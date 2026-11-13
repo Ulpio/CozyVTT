@@ -33,6 +33,10 @@
     // The global types every file sees. Others come in only when imported.
     "types": ["node", "jest"]
   },
+  // ts-node (npm run dev) reads only the files a file imports unless told
+  // otherwise, so it would miss ambient declarations such as
+  // src/types/yazl.d.ts that tsc picks up from "include".
+  "ts-node": { "files": true },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
