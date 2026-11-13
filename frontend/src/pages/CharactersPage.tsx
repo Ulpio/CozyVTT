@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
-import { Plus, LogOut, Loader2, RefreshCw, Upload } from 'lucide-react';
+import { Plus, LogOut, Loader2, Upload } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import characterService from '@/services/character.service';
 import { useCampaignsQuery, useCharactersQuery, queryKeys, toCharacterSummary } from '@/hooks/queries';
@@ -50,11 +50,6 @@ export default function CharactersPage() {
   const error = queryError
     ? (apiErrorMessage(queryError) || 'Failed to load characters')
     : '';
-
-  const loadData = () => {
-    charactersQuery.refetch();
-    campaignsQuery.refetch();
-  };
 
   // Local cache mutations mirror the previous setState behavior. The list
   // holds no sheets, as the server lists it.
@@ -220,17 +215,6 @@ export default function CharactersPage() {
               >
                 <span className="hidden sm:inline">Back to Dashboard</span>
                 <span className="sm:hidden">Dashboard</span>
-              </Button>
-
-              <Button
-                onClick={loadData}
-                disabled={loading}
-                variant="secondary" className="flex items-center gap-2"
-                aria-label={loading ? 'Refreshing characters' : 'Refresh characters'}
-                aria-busy={loading}
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
-                <span className="hidden sm:inline">Refresh</span>
               </Button>
 
               <Button

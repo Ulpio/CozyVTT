@@ -76,6 +76,14 @@ const TABS: SheetTab<TabId>[] = [
   { id: 'bio', label: 'Biography', icon: User },
 ];
 
+const ABILITY_ORDER = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+
+/** Where an ability falls from Strength to Charisma; anything else last. */
+function abilityRank(key: string): number {
+  const i = ABILITY_ORDER.indexOf(key);
+  return i === -1 ? ABILITY_ORDER.length : i;
+}
+
 /**
  * FifthEditionCharacterView - Read-only 5E character sheet
  */
@@ -232,7 +240,11 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
         <div>
           <h3 className="text-lg font-semibold text-ink mb-3">Saving Throws</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 bg-ink/5 border border-ink/10 rounded-lg p-4">
-            {(Object.entries(data.savingThrows ?? {}) as [string, FifthEditionSavingThrow][]).map(([key, save]) => {
+            {/* Strength to Charisma, as the ability scores above, whatever
+                order the character's saves were stored in. */}
+            {(Object.entries(data.savingThrows ?? {}) as [string, FifthEditionSavingThrow][])
+              .sort(([a], [b]) => abilityRank(a) - abilityRank(b))
+              .map(([key, save]) => {
               // Worked out from the scores plus the other bonus, as the dice
               // roll it, so a stored total that has gone stale is not shown.
               const bonus = fifthEditionSaveBonus(data, key);

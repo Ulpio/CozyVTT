@@ -65,6 +65,10 @@ export default defineConfig(({ mode }) => {
     server: {
       host: '0.0.0.0', // Bind to all interfaces (required for Docker)
       port: 3000,
+      // Docker Desktop on Windows passes no file-change events from the host
+      // into the container, so hot reload never fires. VITE_USE_POLLING=true
+      // has Vite check the files on a timer instead.
+      ...(env.VITE_USE_POLLING === 'true' ? { watch: { usePolling: true, interval: 300 } } : {}),
       allowedHosts: [
         'localhost', // Always allow localhost for development
         // Add custom domains via VITE_ALLOWED_HOSTS env var (comma-separated)

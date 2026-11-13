@@ -7,6 +7,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { Link, Navigate, useLocation } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { isValidEmail } from '@/utils/validation';
 import { api } from '@/services/api';
 import Button from '@/components/ui/Button';
@@ -17,6 +18,7 @@ import { AFTER_SIGN_IN, keepingReturnPath, returnPathFrom } from '@/utils/return
 
 export default function LoginPage() {
   const { login, authenticated, mfaPending } = useAuth();
+  const { instanceName } = useTheme();
   // The page that sent the visitor here, to go back to once signed in.
   const { search } = useLocation();
 
@@ -128,7 +130,7 @@ export default function LoginPage() {
             Welcome Back
           </h1>
           <p className="mt-2 text-sm text-warm-gray">
-            Sign in to your CozyVTT account
+            Sign in to {instanceName}
           </p>
         </div>
 

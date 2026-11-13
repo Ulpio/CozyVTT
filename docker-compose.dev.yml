@@ -47,6 +47,7 @@ services:
       PORT: 4000
       SESSION_SECRET: ${SESSION_SECRET}
       SETUP_TOKEN: ${SETUP_TOKEN:-}
+      ADMIN_MFA_REQUIRED: ${ADMIN_MFA_REQUIRED:-true}
       CORS_ORIGIN: ${CORS_ORIGIN}
       APP_URL: ${APP_URL:-http://localhost:3000}
       SMTP_HOST: ${SMTP_HOST}
@@ -92,6 +93,8 @@ services:
       # the backend container, as nginx does in production.
       VITE_PROXY_TARGET: http://backend:4000
       VITE_ALLOWED_HOSTS: ${VITE_ALLOWED_HOSTS}
+      # true on Docker Desktop for Windows, where hot reload otherwise never fires.
+      VITE_USE_POLLING: ${VITE_USE_POLLING:-false}
     ports:
       - "127.0.0.1:3000:3000"
     volumes:

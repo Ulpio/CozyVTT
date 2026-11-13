@@ -82,6 +82,13 @@ export default function SetupWizardPage() {
   // re-initialization server-side; this keeps the URL from exposing the wizard.
   const [checkingStatus, setCheckingStatus] = useState(true);
 
+  // Each step starts at its top. The steps differ in height, so the page kept
+  // the scroll of a long step and could open the next one scrolled past its
+  // fields, showing only empty space and the Next button.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [currentStep]);
+
   useEffect(() => {
     let cancelled = false;
     setupService.checkSetupStatus()

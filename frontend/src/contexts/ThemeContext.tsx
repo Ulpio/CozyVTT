@@ -52,6 +52,9 @@ interface ThemeContextValue {
   /** Re-fetch system appearance from /api/auth/appearance and re-apply. */
   refreshAppearance: () => Promise<void>;
 
+  /** The instance's name, set in the setup wizard and Admin > Settings; CozyVTT until it loads or when blank. */
+  instanceName: string;
+
   /** Branding URLs — always derived from system settings. */
   mascotUrl: string;
   logoUrl: string;
@@ -67,6 +70,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue>({
   appearance: null,
   refreshAppearance: async () => {},
+  instanceName: 'CozyVTT',
   mascotUrl: '/default-mascot.png',
   logoUrl: '/default-logo.png',
   faviconUrl: '/default-mascot.png',
@@ -274,11 +278,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [appearance]
   );
 
+  const instanceName = appearance?.instanceName?.trim() || 'CozyVTT';
+
   // The browser tab shows the instance's name.
   useEffect(() => {
     if (!appearance) return;
-    document.title = appearance.instanceName?.trim() || 'CozyVTT';
-  }, [appearance]);
+    document.title = instanceName;
+  }, [appearance, instanceName]);
 
   const mascotUrl = appearance?.customMascotUrl || '/default-mascot.png';
   const logoUrl = appearance?.customLogoUrl || '/default-logo.png';
@@ -289,6 +295,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       value={{
         appearance,
         refreshAppearance,
+        instanceName,
         mascotUrl,
         logoUrl,
         faviconUrl,

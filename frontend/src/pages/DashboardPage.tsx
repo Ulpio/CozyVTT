@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
-import { Plus, LogOut, RefreshCw, User, ArrowRight, Mail, FolderOpen, Shield, AlertCircle, Upload, FileText, BookOpen } from 'lucide-react';
+import { Plus, LogOut, User, ArrowRight, Mail, FolderOpen, Shield, AlertCircle, Upload, FileText, BookOpen } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useCampaignsQuery, useCharactersQuery, usePendingInvitationsQuery, queryKeys } from '@/hooks/queries';
 import CampaignCard from '@/components/CampaignCard';
@@ -30,7 +30,7 @@ export default function DashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { mascotUrl } = useTheme();
+  const { mascotUrl, instanceName } = useTheme();
 
   const [selectedInvitation, setSelectedInvitation] = useState<CampaignInvitation | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -90,7 +90,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-brand-ink font-heading">
-                  CozyVTT
+                  {instanceName}
                 </h1>
                 <p className="text-sm text-warm-gray">
                   Welcome back, {user?.displayName}
@@ -100,17 +100,6 @@ export default function DashboardPage() {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-3">
-              <Button
-                onClick={loadData}
-                disabled={loading}
-                variant="secondary" className="flex items-center gap-2"
-                aria-label={loading ? 'Refreshing data' : 'Refresh data'}
-                aria-busy={loading}
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
-                <span className="hidden sm:inline">Refresh</span>
-              </Button>
-
               {user?.platformRole === PlatformRole.ADMIN && (
                 <Button
                   onClick={() => navigate('/admin')}
@@ -485,16 +474,22 @@ export default function DashboardPage() {
                   <h3 className="text-xl font-semibold text-brand-ink mb-2">
                     No campaigns yet
                   </h3>
+                  {/* Most people here join a friend's game, so that comes first;
+                      running one yourself is the other way in. */}
+                  <p className="text-warm-gray mb-3">
+                    <strong className="text-brand-ink">Joining a game?</strong> Ask your game master to invite
+                    you. The invitation appears on this page, ready to accept.
+                  </p>
                   <p className="text-warm-gray mb-6">
-                    Create your first campaign to begin your adventure! As its game master (GM), you'll be able
-                    to invite players, create maps, and manage game sessions.
+                    <strong className="text-brand-ink">Running one yourself?</strong> Create a campaign. As its
+                    game master (GM), you'll be able to invite players, create maps, and manage game sessions.
                   </p>
                   <Button
                     onClick={() => setShowCreateModal(true)}
                     className="inline-flex items-center gap-2"
                   >
                     <Plus className="w-5 h-5" />
-                    Create Your First Campaign
+                    Create a Campaign
                   </Button>
                 </div>
               </div>

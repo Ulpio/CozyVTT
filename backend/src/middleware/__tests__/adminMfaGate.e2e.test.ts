@@ -119,3 +119,20 @@ it('ends a session whose account no longer exists', async () => {
   expect(gone.status).toBe(401);
   expect((await agent.get('/api/auth/me')).status).toBe(401);
 });
+
+describe('with ADMIN_MFA_REQUIRED=false', () => {
+  const saved = process.env.ADMIN_MFA_REQUIRED;
+  beforeEach(() => { process.env.ADMIN_MFA_REQUIRED = 'false'; });
+  afterEach(() => {
+    if (saved === undefined) delete process.env.ADMIN_MFA_REQUIRED;
+    else process.env.ADMIN_MFA_REQUIRED = saved;
+  });
+
+  it('lets an administrator past the deadline through, and shows no deadline', async () => {
+    const { agent } = await admin(10);
+    expect((await agent.get('/api/admin/stats')).status).toBe(200);
+    const me = await agent.get('/api/auth/me');
+    expect(me.status).toBe(200);
+    expect(JSON.stringify(me.body)).toContain('"adminMfaDeadline":null');
+  });
+});

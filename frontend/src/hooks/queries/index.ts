@@ -53,6 +53,9 @@ export function useCampaignsQuery() {
   return useQuery({
     queryKey: queryKeys.campaigns,
     queryFn: () => campaignService.getCampaigns(),
+    // Picks up a campaign someone else changed (a session started, a player
+    // joined) when you come back to the tab, so the page needs no Refresh button.
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -83,6 +86,8 @@ export function useCharactersQuery() {
   return useQuery({
     queryKey: queryKeys.characters,
     queryFn: () => characterService.getCharacters(),
+    // Picks up changes made on another device or tab when you come back here.
+    refetchOnWindowFocus: true,
   });
 }
 

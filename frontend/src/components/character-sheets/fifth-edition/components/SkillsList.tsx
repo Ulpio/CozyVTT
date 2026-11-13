@@ -70,6 +70,16 @@ const SKILL_NAMES: Record<string, string> = {
   survival: 'Survival',
 };
 
+/** The skills in alphabetical order of their names; any unknown key last. */
+export function sortedSkillEntries<T>(skills: Record<string, T>): [string, T][] {
+  const order = Object.keys(SKILL_NAMES);
+  const rank = (key: string) => {
+    const i = order.indexOf(key);
+    return i === -1 ? order.length : i;
+  };
+  return Object.entries(skills).sort(([a], [b]) => rank(a) - rank(b));
+}
+
 /**
  * SkillRow - Single skill display with proficiency indicator
  */
@@ -126,10 +136,14 @@ const SkillRow: React.FC<{
 export const SkillsList: React.FC<SkillsListProps> = ({ skills, passivePerception, customSkills, onRoll }) => {
   return (
     <div className="space-y-2">
-      {/* Skills Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-        {Object.entries(skills).map(([key, skill]) => (
-          <SkillRow key={key} name={SKILL_NAMES[key]} skill={skill} onRoll={onRoll} />
+      {/* Skills, alphabetical and read down each column, as on the printed
+          sheet. A character's stored skills keep whatever order they were
+          saved in, so the order is set here. */}
+      <div className="md:columns-2 gap-x-4">
+        {sortedSkillEntries(skills).map(([key, skill]) => (
+          <div key={key} className="break-inside-avoid">
+            <SkillRow name={SKILL_NAMES[key] ?? key} skill={skill} onRoll={onRoll} />
+          </div>
         ))}
       </div>
 

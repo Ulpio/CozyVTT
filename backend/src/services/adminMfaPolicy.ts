@@ -132,8 +132,19 @@ export function resetAdminMfaPolicyCache(): void {
 }
 
 /**
+ * Whether the rule applies on this instance. ADMIN_MFA_REQUIRED=false turns
+ * it off, for a private instance reachable only from a trusted network (a
+ * Tailscale tailnet, say), where the deadline and its banner are friction
+ * with little to guard against. Anything else, or unset, keeps it on. Read
+ * on each call so the tests can change it.
+ */
+export function adminMfaRequired(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.ADMIN_MFA_REQUIRED?.trim().toLowerCase() !== 'false';
+}
+
+/**
  * When this account must have MFA on, or null when it need not (not an
- * administrator, or MFA already on).
+ * administrator, MFA already on, or the rule turned off).
  */
 export async function adminMfaDeadline(user: {
   id: string;
@@ -141,7 +152,7 @@ export async function adminMfaDeadline(user: {
   mfaEnabled: boolean;
   createdAt: Date;
 }): Promise<Date | null> {
-  if (user.platformRole !== 'ADMIN' || user.mfaEnabled) return null;
+  if (!adminMfaRequired() || user.platformRole !== 'ADMIN' || user.mfaEnabled) return null;
   const [start, restart] = await Promise.all([adminMfaPolicyStart(), latestGraceRestart(user.id)]);
   const from = Math.max(start.getTime(), user.createdAt.getTime(), restart?.getTime() ?? 0);
   return new Date(from + ADMIN_MFA_GRACE_MS);

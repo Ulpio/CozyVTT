@@ -152,3 +152,6 @@ playwright-report/
 # developing. Never committed: see "Game content sources" in
 # docs/GAME_SYSTEMS.md.
 system-docs/
+
+# ---- Personal RPG source material (rulebooks, PDFs) — private, never commit --
+materiais/
