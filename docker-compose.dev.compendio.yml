@@ -1,0 +1,8 @@
+# Lets the development backend read the compendium's data (out of git) at
+# /compendio, for the compendium commands (backend/src/compendium/cli.ts):
+#   docker compose -f docker-compose.dev.yml -f docker-compose.dev.compendio.yml up -d backend
+#   docker exec cozyvtt-backend npm run compendium:validate -- /compendio
+services:
+  backend:
+    volumes:
+      - ./materiais/.compendio:/compendio
