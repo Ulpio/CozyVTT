@@ -81,6 +81,30 @@ Sentidos Percepção passiva 10 Idiomas Comum, Orc Nível de Desafio 2 (450 XP)
 Agressivo. O orog pode mover seu deslocamento até uma criatura hostil.
 Ações
 Machado Grande. Ataque Corpo-a-Corpo com Arma: +6 para atingir, alcance 1,5 m, um alvo. Acerto: 10 (1d12 + 4) de dano cortante.
+ÁGUIA INVENTADA
+Besta pequena, imparcial
+Classe de Armadura 12 Pontos de Vida 3 (1d6) Deslocamento 3 m, voo 18 m
+FOR 6 (–2)
+DES 15 (+2)
+CON 10 (+0)
+INT 2 (–4)
+SAB 14 (+2)
+CAR 7 (–2)
+Sentidos Percepção passiva 14 Idiomas – Nível de Desafio 0 (10 XP)
+AÇÕES
+Garras. Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 1,5 m, um alvo. Acerto: 4 (1d4 + 2) de dano cortante.
+ENXAME INVENTADO
+Enxame Médio de bestas Miúdas, imparcial
+Classe de Armadura 12 Pontos de Vida 22 (5d8) Deslocamento 6 m
+FOR 9 (–1)
+DES 14 (+2)
+CON 8 (–1)
+INT 3 (–4)
+SAB 12 (+1)
+CAR 4 (–3)
+Sentidos Percepção passiva 11 Idiomas – Nível de Desafio 1/2 (100 XP)
+AÇÕES
+Mordidas. Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 0 m, um alvo. Acerto: 7 (2d6) de dano perfurante.
 COGUMELO SEM BLOCO
 Planta Pequena, imparcial
 Esta linha deveria ser a Classe de Armadura, mas não é.

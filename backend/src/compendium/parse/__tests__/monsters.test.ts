@@ -15,7 +15,7 @@ const byName = (name: string) => monsters.find((m) => m.name === name)!;
 const block = (name: string) => byName(name).statBlock as Record<string, unknown>;
 
 it('parses a small monster block', () => {
-  expect(monsters.map((m) => m.name)).toEqual(['Lobo Teste', 'Dragão Inventado', 'Soldado Inventado', 'Orog Inventado']);
+  expect(monsters.map((m) => m.name)).toEqual(['Lobo Teste', 'Dragão Inventado', 'Soldado Inventado', 'Orog Inventado', 'Águia Inventada', 'Enxame Inventado']);
   expect(byName('Lobo Teste')).toMatchObject({ creatureType: 'Besta Média', alignment: 'imparcial', challengeRating: '1/4' });
   expect(block('Lobo Teste')).toMatchObject({
     ac: 13,
@@ -73,4 +73,12 @@ it('finds a block whose name is not in capitals, with its sections in lower case
   expect(orog).toMatchObject({ ac: 18, challengeRating: '2' });
   expect((orog.traits as { name: string }[]).map((t) => t.name)).toEqual(['Agressivo']);
   expect((orog.actions as { name: string }[]).map((a) => a.name)).toEqual(['Machado Grande']);
+});
+
+it('finds a block whose type line writes the size in lower case', () => {
+  expect(byName('Águia Inventada')).toMatchObject({ creatureType: 'Besta pequena', challengeRating: '0' });
+});
+
+it('finds a swarm, whose size is followed by what it is made of', () => {
+  expect(byName('Enxame Inventado')).toMatchObject({ creatureType: 'Enxame Médio de bestas Miúdas', challengeRating: '1/2' });
 });

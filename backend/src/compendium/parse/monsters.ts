@@ -16,7 +16,13 @@
 import type { RawMonster } from '../types';
 import { isTitle, lines, nextFilled, paragraphs, titleCase } from './text';
 
-const TYPE_LINE = /^\p{Lu}[\p{L}-]+(?: [\p{L}-]+)? (Miúd[oa]|Pequen[oa]|Médi[oa]|Grande|Enorme|Imens[oa])\b.*,\s*\S/u;
+// "Humanoide Pequeno (goblinoide), neutro e mau" or "Besta pequena, imparcial":
+// a type, its size (any case), what a swarm is made of ("de bestas Miúdas"),
+// an optional note in parentheses, a comma, the alignment. Nothing else may
+// sit between the size and the comma, so an action such as
+// "Machado Grande. Ataque…" is not taken for a type line.
+const TYPE_LINE =
+  /^\p{Lu}[\p{L}-]+(?: [\p{L}-]+)? ([Mm]iúd[oa]|[Pp]equen[oa]|[Mm]édi[oa]|[Gg]rande|[Ee]norme|[Ii]mens[oa])(?: de [\p{L} ]+)?(?: \([^)]*\))?,\s*\S/u;
 const SECTIONS: Record<string, 'actions' | 'reactions' | 'legendaryActions'> = {
   'AÇÕES': 'actions',
   'REAÇÕES': 'reactions',
