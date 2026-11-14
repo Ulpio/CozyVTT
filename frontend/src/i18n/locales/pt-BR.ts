@@ -136,6 +136,73 @@ const ptBR: Messages = {
     },
   },
 
+  session: {
+    back: 'Campanhas',
+    backLabel: 'Voltar às suas campanhas',
+    status: {
+      ACTIVE: 'Ao vivo',
+      PAUSED: 'Pausada',
+      INACTIVE: 'Sem sessão',
+    },
+    paused: 'A sessão está pausada. Os tokens não se movem, e as rolagens da aba Dados ficam só na sua tela.',
+    playersSee: 'Jogadores veem',
+    noMap: 'nenhum mapa',
+    party: {
+      show: 'Mostrar o grupo',
+      hide: 'Esconder o grupo',
+      button: 'Grupo',
+      close: 'Fechar o painel do grupo',
+    },
+    rail: {
+      show: 'Mostrar o painel da sessão',
+      hide: 'Esconder o painel da sessão',
+    },
+    documents: 'Documentos da campanha',
+    shortcuts: 'Atalhos de teclado',
+    ownerSettings: 'Configurações do dono',
+    ownerSettingsHint: 'Configurações do dono: excluir a campanha ou retomar o papel de mestre',
+    menus: {
+      label: 'Ferramentas do mestre',
+      prepare: 'Preparar',
+      ambience: 'Ambiente',
+      table: 'Mesa',
+    },
+    tools: {
+      maps: 'Mapas',
+      tokens: 'Tokens no mapa',
+      creatures: 'Criaturas',
+      templates: 'Modelos de token',
+      spirit: 'Camada oculta',
+      atmosphere: 'Clima e efeitos',
+      settings: 'Configurações da campanha',
+      documents: 'Documentos da campanha',
+      shortcuts: 'Atalhos de teclado',
+    },
+    tabs: {
+      label: 'Painéis da sessão',
+      chat: 'Chat',
+      dice: 'Dados',
+      initiative: 'Iniciativa',
+      notes: 'Notas',
+      session: 'Sessão',
+    },
+    preparing: {
+      region: 'Preparando um mapa',
+      editing: 'Você está editando',
+      tableOn: 'Jogadores veem',
+      tableOnNone: 'Jogadores não veem nenhum mapa.',
+      back: 'Voltar ao mapa dos jogadores',
+      backShort: 'Voltar',
+      backHint: 'Mostra de novo o mapa dos jogadores; o mapa que você está preparando fica como está',
+      bring: 'Mostrar este mapa aos jogadores',
+      bringShort: 'Mostrar aos jogadores',
+      bringHint: 'Torna este o mapa ativo e leva todos os jogadores para ele',
+      help: 'O que os jogadores percebem?',
+      helpText:
+        'Nada do que você edita neste mapa chega aos jogadores. Os controles da campanha continuam valendo para todos: a camada oculta (abrir, o estilo, quem está nela), o clima, o horário e os controles da sessão.',
+    },
+  },
+
   campaignCard: {
     status: {
       PREPARATION: 'Em preparação',

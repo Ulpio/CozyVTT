@@ -288,7 +288,8 @@ describe('the desktop arrangement, from 1,024 px wide', () => {
     try {
       await openPage();
       expect(screen.queryAllByRole('toolbar', { name: 'GM tools' })).toHaveLength(count);
-      expect(screen.queryAllByRole('button', { name: 'Map Library' })).toHaveLength(count);
+      // The tools sit in named menus; Prepare holds the Map Library.
+      expect(screen.queryAllByRole('button', { name: 'Prepare' })).toHaveLength(count);
     } finally {
       page.campaign.userRole = before;
     }
@@ -370,6 +371,7 @@ describe('a change of arrangement', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Dice' }));
     chatArrives('mara');
     expect(screen.getByLabelText('1 unread messages')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare' }));
     fireEvent.click(screen.getByRole('button', { name: 'Map Library' }));
     fireEvent.click(screen.getByRole('button', { name: 'Edit Goblin' }));
 

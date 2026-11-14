@@ -22,6 +22,7 @@
 // ============================================
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Eye, Info } from 'lucide-react';
 import { useCampaign, TableKeptMovingError, type PreparingEnded } from '@/contexts/CampaignContext';
 import { useCompactLayout } from '@/contexts/LayoutContext';
@@ -59,6 +60,7 @@ function focusTheMap() {
 
 export default function PreparingBanner() {
   const { isPreparing, viewedMap, currentMap, backToTable, preparingEnded, clearPreparingEnded } = useCampaign();
+  const { t } = useTranslation();
   const compact = useCompactLayout();
   const sideways = useMediaQuery(SIDEWAYS_QUERY);
   const { showToast } = useToast();
@@ -133,16 +135,16 @@ export default function PreparingBanner() {
     {live}
     <div
       role="region"
-      aria-label="Preparing a map"
+      aria-label={t('session.preparing.region')}
       className={`flex items-center gap-x-3 gap-y-1 px-3 py-1.5 bg-info/10 border-b border-info/30 text-info-ink ${short ? '' : 'flex-wrap'}`}
     >
       <p className={`flex items-center gap-1.5 text-xs min-w-0 ${short ? 'flex-1' : 'basis-full sm:basis-auto sm:flex-1'}`}>
         <Eye className="w-4 h-4 shrink-0" aria-hidden="true" />
         <span className="truncate">
-          Preparing <strong className="font-semibold">{viewedMap.name}</strong>.{' '}
+          {t('session.preparing.editing')} <strong className="font-semibold">{viewedMap.name}</strong>.{' '}
           {currentMap
-            ? <>The table is on <strong className="font-semibold">{currentMap.name}</strong>.</>
-            : 'The table is on no map.'}
+            ? <>{t('session.preparing.tableOn')} <strong className="font-semibold">{currentMap.name}</strong>.</>
+            : t('session.preparing.tableOnNone')}
         </span>
       </p>
       <div className="flex items-center gap-2 shrink-0">
@@ -152,20 +154,20 @@ export default function PreparingBanner() {
           size="sm"
           onClick={() => { void goBack(); }}
           loading={leaving}
-          aria-label="Back to the table"
-          title="Show the table's map again; the map you are preparing stays as you left it"
+          aria-label={t('session.preparing.back')}
+          title={t('session.preparing.backHint')}
         >
-          {short ? 'Back' : 'Back to the table'}
+          {short ? t('session.preparing.backShort') : t('session.preparing.back')}
         </Button>
         <Button
           type="button"
           size="sm"
           onClick={() => { void tableSwitch.requestSwitch(viewedMap); }}
           loading={tableSwitch.switching && !tableSwitch.pending}
-          aria-label="Bring everyone here"
-          title="Make this the active map, moving every player onto it"
+          aria-label={t('session.preparing.bring')}
+          title={t('session.preparing.bringHint')}
         >
-          {short ? 'Bring everyone' : 'Bring everyone here'}
+          {short ? t('session.preparing.bringShort') : t('session.preparing.bring')}
         </Button>
         <Button
           type="button"
@@ -176,22 +178,21 @@ export default function PreparingBanner() {
           onClick={() => setHelpOpen((open) => !open)}
           aria-expanded={helpOpen}
           aria-controls={helpOpen ? 'preparing-what-reaches-the-table' : undefined}
-          aria-label="What reaches the table?"
+          aria-label={t('session.preparing.help')}
         >
-          {short ? null : 'What reaches the table?'}
+          {short ? null : t('session.preparing.help')}
         </Button>
       </div>
       {helpOpen && (
         <p id="preparing-what-reaches-the-table" className="basis-full text-xs">
-          Edits to this map reach no player. The campaign's own controls still change every player's screen: the
-          Spirit Layer (opening it, its style, who is in the realm), Atmosphere, the vibe and the session controls.
+          {t('session.preparing.helpText')}
         </p>
       )}
 
       <Modal
         open={tableSwitch.pending !== null}
         onClose={tableSwitch.cancel}
-        title="Bring everyone here"
+        title={t('session.preparing.bring')}
         size="sm"
         closeDisabled={tableSwitch.switching}
       >

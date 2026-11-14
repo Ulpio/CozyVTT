@@ -7,6 +7,7 @@
 // ============================================
 
 import { PauseCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { CampaignStatus } from '@/types';
 
 /** The header's word for each state of a session it shows one for. */
@@ -18,11 +19,12 @@ export const SESSION_STATUS_LABELS: Partial<Record<CampaignStatus, string>> = {
 
 /** Under the header while the session is paused, for players: what a pause stops. */
 export function SessionPausedBanner() {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-center gap-2 px-4 py-2 bg-warm-amber/10 border-b border-warm-amber/20">
       <PauseCircle className="w-4 h-4 text-accent-ink shrink-0" />
       <p className="text-xs font-medium text-accent-ink">
-        Session is paused. Token movement is disabled, and rolls from the Dice tab stay on your own screen.
+        {t('session.paused')}
       </p>
     </div>
   );

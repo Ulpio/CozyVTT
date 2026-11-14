@@ -133,6 +133,73 @@ const en = {
     },
   },
 
+  session: {
+    back: 'Dashboard',
+    backLabel: 'Back to your campaigns',
+    status: {
+      ACTIVE: 'Live',
+      PAUSED: 'Paused',
+      INACTIVE: 'Inactive',
+    },
+    paused: 'Session is paused. Token movement is disabled, and rolls from the Dice tab stay on your own screen.',
+    playersSee: 'Players see',
+    noMap: 'no map',
+    party: {
+      show: 'Show party panel',
+      hide: 'Hide party panel',
+      button: 'Party',
+      close: 'Close party panel',
+    },
+    rail: {
+      show: 'Show session panel',
+      hide: 'Hide session panel',
+    },
+    documents: 'Campaign documents',
+    shortcuts: 'Keyboard shortcuts',
+    ownerSettings: 'Owner Settings',
+    ownerSettingsHint: 'Owner settings — delete, or take back the GM role',
+    menus: {
+      label: 'GM tools',
+      prepare: 'Prepare',
+      ambience: 'Ambience',
+      table: 'Table',
+    },
+    tools: {
+      maps: 'Map Library',
+      tokens: 'Token Manager',
+      creatures: 'Creature Library',
+      templates: 'Token Templates',
+      spirit: 'Spirit Layer',
+      atmosphere: 'Atmosphere',
+      settings: 'Campaign Settings',
+      documents: 'Campaign documents',
+      shortcuts: 'Keyboard shortcuts',
+    },
+    tabs: {
+      label: 'Session panels',
+      chat: 'Chat',
+      dice: 'Dice',
+      initiative: 'Initiative',
+      notes: 'Notes',
+      session: 'Session',
+    },
+    preparing: {
+      region: 'Preparing a map',
+      editing: 'Preparing',
+      tableOn: 'The table is on',
+      tableOnNone: 'The table is on no map.',
+      back: 'Back to the table',
+      backShort: 'Back',
+      backHint: "Show the table's map again; the map you are preparing stays as you left it",
+      bring: 'Bring everyone here',
+      bringShort: 'Bring everyone',
+      bringHint: 'Make this the active map, moving every player onto it',
+      help: 'What reaches the table?',
+      helpText:
+        "Edits to this map reach no player. The campaign's own controls still change every player's screen: the Spirit Layer (opening it, its style, who is in the realm), Atmosphere, the vibe and the session controls.",
+    },
+  },
+
   campaignCard: {
     status: {
       PREPARATION: 'Preparation',

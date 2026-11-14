@@ -1,9 +1,10 @@
 // ============================================
 // Desktop Table: the campaign page's desktop arrangement
-// The header, the paused banner and three resizable columns:
-// Left: Campaign info, character, party
-// Center: Map canvas
-// Right: Chat, dice roller, controls
+// A slim header, the paused banner, and the map with two folding columns:
+// Left:   the party (campaign info, the roster and, for the GM, the tokens),
+//         folded away until asked for, so the map has the room
+// Center: the map
+// Right:  the session rail (chat, dice, initiative, notes, session)
 //
 // The map, the session panels and the Party content are the page's,
 // drawn once and moved into this arrangement's slots (tableHosts.tsx), so
@@ -14,15 +15,9 @@
 // ============================================
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLeavePage } from '@/hooks/useLeaveGuard';
-import {
-  ArrowLeft,
-  Sun,
-  PauseCircle,
-  PanelLeftClose,
-  PanelLeftOpen,
-  PanelRightClose,
-  PanelRightOpen, Settings, BookOpen, Keyboard } from 'lucide-react';
+import { ArrowLeft, Sun, PauseCircle, PanelRightClose, PanelRightOpen, Settings, BookOpen, Keyboard, Users, Eye } from 'lucide-react';
 import {
   Group,
   Panel,
@@ -33,15 +28,18 @@ import {
 } from 'react-resizable-panels';
 import { useCampaign } from '@/contexts/CampaignContext';
 import SessionSidebar from '@/components/campaign/SessionSidebar';
-import SessionToolbar, { type SessionToolKey } from '@/components/campaign/SessionToolbar';
+import GmToolMenus from '@/components/campaign/GmToolMenus';
+import type { SessionToolKey } from '@/components/campaign/SessionToolbar';
 import { useTableSlot } from '@/components/campaign/tableHosts';
 import ConnectionStatus from '@/components/ConnectionStatus';
-import { SESSION_STATUS_LABELS, SessionPausedBanner } from '@/components/campaign/sessionStatus';
+import GameSystemBadge from '@/components/common/GameSystemBadge';
+import { SessionPausedBanner } from '@/components/campaign/sessionStatus';
 import { CampaignStatus } from '@/types';
 import type { Campaign } from '@/types';
 import Button from '@/components/ui/Button';
 import Tooltip from '@/components/ui/Tooltip';
 import { optionalStorage } from '@/utils/optionalStorage';
+import { cn } from '@/utils/cn';
 
 interface DesktopTableProps {
   campaign: Campaign;
@@ -55,6 +53,10 @@ interface DesktopTableProps {
   onOpenShortcuts: () => void;
 }
 
+/** The party column's share when it opens with no size of its own to go back to. */
+const PARTY_OPEN_SIZE = '22%';
+const RAIL_OPEN_SIZE = '25%';
+
 export default function DesktopTable({
   campaign,
   isOwner,
@@ -63,20 +65,23 @@ export default function DesktopTable({
   onOpenDocuments,
   onOpenShortcuts,
 }: DesktopTableProps) {
+  const { t } = useTranslation();
   const leavePage = useLeavePage();
-  const { userRole } = useCampaign();
+  const { userRole, currentMap } = useCampaign();
   const mapSlot = useTableSlot('map');
   const partySlot = useTableSlot('party');
 
   // Resizable panel layout — persisted to localStorage so each user's
-  // column sizes survive reloads.
+  // column sizes survive reloads. A new id from the layout that opened the
+  // party column by default, so a saved layout of that one does not keep it
+  // open.
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
-    id: 'cozyvtt-session-layout',
+    id: 'cozyvtt-session-layout-v2',
     storage: optionalStorage,
   });
   const leftPanelRef = usePanelRef();
   const rightPanelRef = usePanelRef();
-  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [leftCollapsed, setLeftCollapsed] = useState(true);
   const [rightCollapsed, setRightCollapsed] = useState(false);
 
   const togglePanel = (
@@ -87,8 +92,9 @@ export default function DesktopTable({
     if (!panel) return;
     if (panel.isCollapsed()) {
       panel.expand();
-      // A panel restored from a collapsed saved layout has no previous
-      // size to expand back to — fall back to its default share.
+      // A panel that starts folded, or comes back folded from a saved
+      // layout, has no previous size to expand back to — fall back to its
+      // default share.
       if (panel.getSize().asPercentage === 0) {
         panel.resize(fallbackSize);
       }
@@ -97,49 +103,50 @@ export default function DesktopTable({
     }
   };
 
+  const partyLabel = leftCollapsed ? t('session.party.show') : t('session.party.hide');
+  const railLabel = rightCollapsed ? t('session.rail.show') : t('session.rail.hide');
+
   return (
     <>
-      {/* Header Bar */}
-      {/* Wraps onto a second row in a narrow window instead of running off its edge. */}
-      <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 bg-moss-green/10 border-b border-moss-green/20 shadow-xs">
-        <div className="flex min-w-0 items-center gap-3">
-          <Button
-            // Asking first about work the page holds, such as Paint not saved.
-            onClick={() => leavePage('/dashboard')}
-            variant="secondary" className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="max-sm:sr-only">Dashboard</span>
-          </Button>
+      {/* Header Bar — one slim row; wraps onto a second in a narrow window
+          instead of running off its edge. */}
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 bg-moss-green/10 border-b border-moss-green/20 shadow-xs">
+        <div className="flex min-w-0 items-center gap-2">
+          <Tooltip content={t('session.backLabel')} side="bottom">
+            <Button
+              // Asking first about work the page holds, such as Paint not saved.
+              onClick={() => leavePage('/dashboard')}
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1.5"
+            >
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+              <span className="max-md:sr-only">{t('session.back')}</span>
+            </Button>
+          </Tooltip>
 
-          <div className="h-6 w-px bg-moss-green/20" />
-
-          <h1 className="min-w-0 break-words text-xl font-bold text-brand-ink">
+          <h1 className="min-w-0 break-words text-lg font-bold text-brand-ink font-heading">
             {campaign.name}
           </h1>
-        </div>
+          <GameSystemBadge gameSystem={campaign.gameSystem} size="sm" />
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Connection Status */}
-          <ConnectionStatus />
-
-          {/* Session status indicator (visible to all) */}
+          {/* Session status (visible to all) */}
           {campaign.status === CampaignStatus.ACTIVE && (
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-success/10 border border-success/20">
               <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              <span className="text-xs font-medium text-success-ink hidden sm:inline">{SESSION_STATUS_LABELS[CampaignStatus.ACTIVE]}</span>
+              <span className="text-xs font-medium text-success-ink hidden sm:inline">{t('session.status.ACTIVE')}</span>
             </div>
           )}
           {campaign.status === CampaignStatus.PAUSED && (
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-warm-amber/10 border border-warm-amber/20">
               <PauseCircle className="w-3.5 h-3.5 text-accent-ink" />
-              <span className="text-xs font-medium text-accent-ink hidden sm:inline">{SESSION_STATUS_LABELS[CampaignStatus.PAUSED]}</span>
+              <span className="text-xs font-medium text-accent-ink hidden sm:inline">{t('session.status.PAUSED')}</span>
             </div>
           )}
           {campaign.status === CampaignStatus.INACTIVE && (
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-stone-gray/10 border border-stone-gray/20">
               <div className="w-2 h-2 rounded-full bg-stone-gray/50" />
-              <span className="text-xs font-medium text-stone-gray hidden sm:inline">{SESSION_STATUS_LABELS[CampaignStatus.INACTIVE]}</span>
+              <span className="text-xs font-medium text-stone-gray hidden sm:inline">{t('session.status.INACTIVE')}</span>
             </div>
           )}
 
@@ -152,91 +159,101 @@ export default function DesktopTable({
               </span>
             </div>
           )}
+          <ConnectionStatus />
+        </div>
 
-          {/* GM tools — grouped icon toolbar */}
+        {/* What the players are looking at, always in view for the GM: the
+            map the table is on. While the GM prepares another map, the banner
+            over the map says which one they are editing. */}
+        <div className="flex flex-1 justify-center min-w-0">
           {userRole === 'GM' && (
-            <>
-              <div className="h-6 w-px bg-moss-green/20" />
-              <SessionToolbar
-                openPanels={openTools}
-                onOpen={onOpenTool}
-                spiritLayerEnabled={campaign?.spiritLayerEnabled}
-              />
-            </>
+            <p className="flex items-center gap-2 min-w-0 px-3 py-1.5 rounded-lg bg-surface-light/60 border border-moss-green/20 text-sm">
+              <Eye className="w-4 h-4 shrink-0 text-brand-ink" aria-hidden="true" />
+              <span className="text-warm-gray whitespace-nowrap">{t('session.playersSee')}</span>
+              <strong className="font-semibold text-ink truncate">{currentMap?.name ?? t('session.noMap')}</strong>
+            </p>
           )}
+        </div>
 
-          {/* An owner who has handed the game over keeps two powers — deleting
-              the campaign and taking the seat back — and this is their way to
-              them. It sits here, beside where the GM's own settings gear would
-              be, because that is where somebody goes looking for it; tucked in
-              the sidebar it read as missing. */}
-          {isOwner && userRole !== 'GM' && (
+        <div className="flex flex-wrap items-center gap-2">
+          {userRole === 'GM' ? (
+            <GmToolMenus
+              openPanels={openTools}
+              onOpen={onOpenTool}
+              onOpenDocuments={onOpenDocuments}
+              onOpenShortcuts={onOpenShortcuts}
+              spiritLayerEnabled={campaign?.spiritLayerEnabled}
+            />
+          ) : (
             <>
-              <div className="h-6 w-px bg-moss-green/20" />
-              <Tooltip content="Owner settings — delete, or take back the GM role" side="bottom">
+              {/* An owner who has handed the game over keeps two powers —
+                  deleting the campaign and taking the seat back — and this is
+                  their way to them. */}
+              {isOwner && (
+                <Tooltip content={t('session.ownerSettingsHint')} side="bottom">
+                  <Button
+                    variant="ghost"
+                    iconOnly
+                    icon={Settings}
+                    aria-label={t('session.ownerSettings')}
+                    onClick={() => onOpenTool('settings')}
+                  />
+                </Tooltip>
+              )}
+              {/* Documents shared with the campaign: a rulebook the table is
+                  meant to read has to be reachable by the people reading it. */}
+              <Tooltip content={t('session.documents')} side="bottom">
                 <Button
                   variant="ghost"
                   iconOnly
-                  icon={Settings}
-                  aria-label="Owner Settings"
-                  onClick={() => onOpenTool('settings')}
+                  icon={BookOpen}
+                  aria-label={t('session.documents')}
+                  onClick={onOpenDocuments}
+                />
+              </Tooltip>
+              <Tooltip content={t('session.shortcuts')} side="bottom">
+                <Button
+                  variant="ghost"
+                  iconOnly
+                  icon={Keyboard}
+                  aria-label={t('session.shortcuts')}
+                  onClick={onOpenShortcuts}
                 />
               </Tooltip>
             </>
           )}
 
-          {/* Documents shared with the campaign. Every member, not just the
-              GM: a rulebook the table is meant to read has to be reachable by
-              the people reading it. */}
-          <div className="h-6 w-px bg-moss-green/20" />
-          <Tooltip content="Campaign documents" side="bottom">
+          {/* Column toggles (all roles) */}
+          <div className="h-6 w-px bg-moss-green/20" aria-hidden="true" />
+          <Tooltip content={partyLabel} side="bottom">
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={partyLabel}
+              aria-pressed={!leftCollapsed}
+              onClick={() => togglePanel(leftPanelRef, PARTY_OPEN_SIZE)}
+              className={cn('flex items-center gap-1.5', !leftCollapsed && 'bg-accent/15! text-accent-ink!')}
+            >
+              <Users className="w-4 h-4" aria-hidden="true" />
+              <span className="max-lg:sr-only" aria-hidden="true">{t('session.party.button')}</span>
+            </Button>
+          </Tooltip>
+          <Tooltip content={railLabel} side="bottom">
             <Button
               variant="ghost"
               iconOnly
-              icon={BookOpen}
-              aria-label="Campaign documents"
-              onClick={onOpenDocuments}
+              icon={rightCollapsed ? PanelRightOpen : PanelRightClose}
+              aria-label={railLabel}
+              onClick={() => togglePanel(rightPanelRef, RAIL_OPEN_SIZE)}
             />
           </Tooltip>
-          <Tooltip content="Keyboard shortcuts" side="bottom">
-            <Button
-              variant="ghost"
-              iconOnly
-              icon={Keyboard}
-              aria-label="Keyboard shortcuts"
-              onClick={onOpenShortcuts}
-            />
-          </Tooltip>
-
-          {/* Sidebar collapse toggles (all roles) */}
-          <div className="h-6 w-px bg-moss-green/20" />
-          <div className="flex items-center gap-1">
-            <Tooltip content={leftCollapsed ? 'Show party panel' : 'Hide party panel'} side="bottom">
-              <Button
-                variant="ghost"
-                iconOnly
-                icon={leftCollapsed ? PanelLeftOpen : PanelLeftClose}
-                aria-label={leftCollapsed ? 'Show party panel' : 'Hide party panel'}
-                onClick={() => togglePanel(leftPanelRef, '20%')}
-              />
-            </Tooltip>
-            <Tooltip content={rightCollapsed ? 'Show session panel' : 'Hide session panel'} side="bottom">
-              <Button
-                variant="ghost"
-                iconOnly
-                icon={rightCollapsed ? PanelRightOpen : PanelRightClose}
-                aria-label={rightCollapsed ? 'Show session panel' : 'Hide session panel'}
-                onClick={() => togglePanel(rightPanelRef, '25%')}
-              />
-            </Tooltip>
-          </div>
         </div>
       </header>
 
       {/* Session Paused Banner — visible to players when session is paused */}
       {campaign.status === CampaignStatus.PAUSED && userRole !== 'GM' && <SessionPausedBanner />}
 
-      {/* Main Content - Three Resizable Panels. Relative, so it clips what is
+      {/* Main Content - Resizable Panels. Relative, so it clips what is
           absolutely placed inside it too, such as the hidden names of the
           rail's icon tabs, which otherwise widened a narrow page. */}
       <main className="relative flex-1 min-h-0 overflow-hidden">
@@ -255,10 +272,10 @@ export default function DesktopTable({
           onLayoutChanged={onLayoutChanged}
           resizeTargetMinimumSize={{ coarse: 44, fine: 10 }}
         >
-          {/* Left Panel — party & campaign info */}
+          {/* Left Panel — party & campaign info, folded until asked for */}
           <Panel
             id="party"
-            defaultSize={20}
+            defaultSize={0}
             minSize="260px"
             collapsible
             panelRef={leftPanelRef}
@@ -272,15 +289,15 @@ export default function DesktopTable({
 
           <Separator className="w-1.5 bg-moss-green/10 transition-colors data-[separator=hover]:bg-brand/30 data-[separator=active]:bg-brand/50" />
 
-          {/* Center Panel — map canvas */}
-          <Panel id="map" defaultSize={55} minSize={30} className="h-full">
+          {/* Center Panel — map canvas, with the room the party leaves */}
+          <Panel id="map" defaultSize={75} minSize={35} className="h-full">
             {/* The map is the page's, moved in here (tableHosts.tsx). */}
-            <section ref={mapSlot.ref} className="h-full min-w-0 p-4" />
+            <section ref={mapSlot.ref} className="h-full min-w-0 p-2" />
           </Panel>
 
           <Separator className="w-1.5 bg-moss-green/10 transition-colors data-[separator=hover]:bg-brand/30 data-[separator=active]:bg-brand/50" />
 
-          {/* Right Panel — tabbed session rail (Chat / Dice / Initiative / Session) */}
+          {/* Right Panel — tabbed session rail (Chat / Dice / Initiative / Notes / Session) */}
           <Panel
             id="rail"
             defaultSize={25}

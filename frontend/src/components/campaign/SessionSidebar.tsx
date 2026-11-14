@@ -10,6 +10,7 @@
 // rail draws them itself.
 // ============================================
 
+import { useTranslation } from 'react-i18next';
 import { useGameStore } from '@/stores/gameStore';
 import { cn } from '@/utils/cn';
 import { tabKeyTarget } from '@/utils/tabKeys';
@@ -20,6 +21,7 @@ import { useTableSlot } from './tableHosts';
 const TABS = SESSION_TABS.map((key) => ({ key, ...SESSION_TAB_LOOKS[key] }));
 
 export default function SessionSidebar() {
+  const { t } = useTranslation();
   const activeTab = useGameStore((s) => s.sessionTab);
   const setActiveTab = useGameStore((s) => s.setSessionTab);
   const unreadChat = useGameStore((s) => s.unreadChat);
@@ -45,11 +47,12 @@ export default function SessionSidebar() {
           for screen readers and as a hover title. */}
       <div
         role="tablist"
-        aria-label="Session panels"
+        aria-label={t('session.tabs.label')}
         className="@container flex items-stretch gap-1 px-2 pt-2 border-b border-moss-green/20 shrink-0"
       >
-        {TABS.map(({ key, label, icon: Icon }, index) => {
+        {TABS.map(({ key, icon: Icon }, index) => {
           const active = activeTab === key;
+          const label = t(`session.tabs.${key}`);
           return (
             <button
               key={key}
