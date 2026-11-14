@@ -43,7 +43,12 @@ it('splits traits, actions and reactions', () => {
   expect(dragon.reactions).toEqual([
     { name: 'Cauda Defensiva', description: 'O dragão adiciona 3 à CA contra um ataque que o atingiria.' },
   ]);
-  expect((dragon.legendaryActions as { name: string }[]).map((a) => a.name)).toEqual(['Ações Lendárias', 'Detectar']);
+  const legendary = dragon.legendaryActions as { name: string; description: string }[];
+  expect(legendary.map((a) => a.name)).toEqual(['Ações Lendárias', 'Detectar', 'Ataque com a Cauda', 'Bater as Asas (Custa 2 Ações)']);
+  expect(legendary[0].description).toMatch(/^O dragão pode realizar 3 ações lendárias/);
+  expect(legendary[2].description).toBe('O dragão faz um ataque com a cauda.');
+  // A short sentence that starts with an article is not an option.
+  expect(legendary[3].description).toBe('O dragão bate as asas. O alvo cai.');
   expect(dragon).toMatchObject({
     savingThrows: { dex: 5, con: 9, wis: 5, cha: 9 },
     damageImmunities: 'fogo',

@@ -137,6 +137,30 @@ function isName(line: string): boolean {
   return trimmed.length > 0 && trimmed.length <= 60 && /^\p{L}/u.test(trimmed) && !/[.:;]$/.test(trimmed);
 }
 
+/**
+ * Where a legendary option starts inside a paragraph: after a sentence, a
+ * name of up to four words, an optional "(Custa N Ações)", and a full stop.
+ * A short sentence that starts with an article or a pronoun ("O lich usa seu
+ * Toque Paralisante.") is a sentence, not an option.
+ */
+const LEGENDARY_OPTION =
+  /(?<=[.!?])\s+(?=(?!(?:O|A|Os|As|Um|Uma|Ele|Ela|Se|Quando|Cada|Esse|Essa|Este|Esta)\s)\p{Lu}[\p{L}-]*(?:\s[\p{L}-]+){0,3}(?:\s\(Custa \d+ Aç(?:ões|ão)\))?\.\s)/u;
+
+/**
+ * The legendary actions: the book often runs the options together on the same
+ * lines, so a paragraph is split at each option's name; the paragraph that
+ * says how many it may take ("O lich pode realizar 3 ações lendárias…") is
+ * the section's introduction.
+ */
+function legendaryActions(paras: string[]): { name: string; description: string }[] {
+  const isIntro = (para: string) => /^(?:O|A|Os|As)\s.*pode realizar \d+ ações lendárias/u.test(para);
+  const intro = paras.filter(isIntro).map((para) => ({ name: 'Ações Lendárias', description: para }));
+  // The options, split at each name; a piece without a name of its own goes
+  // onto the option before it (named()).
+  const pieces = paras.filter((para) => !isIntro(para)).flatMap((para) => para.split(LEGENDARY_OPTION));
+  return [...intro, ...named(pieces, 'Ações Lendárias')];
+}
+
 export function parseMonsters(text: string): { monsters: RawMonster[]; unrecognized: string[] } {
   const all = lines(text);
   const monsters: RawMonster[] = [];
@@ -248,7 +272,7 @@ export function parseMonsters(text: string): { monsters: RawMonster[]; unrecogni
       actions: named(paragraphs(sections.actions)),
     };
     if (sections.reactions.length) statBlock.reactions = named(paragraphs(sections.reactions));
-    if (sections.legendaryActions.length) statBlock.legendaryActions = named(paragraphs(sections.legendaryActions), 'Ações Lendárias');
+    if (sections.legendaryActions.length) statBlock.legendaryActions = legendaryActions(paragraphs(sections.legendaryActions));
 
     const title = all[titleAt].trim();
     const name = isTitle(title) ? titleCase(title) : title;

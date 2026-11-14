@@ -45,8 +45,9 @@ de dano de fogo.
 REAÇÕES
 Cauda Defensiva. O dragão adiciona 3 à CA contra um ataque que o atingiria.
 AÇÕES LENDÁRIAS
-O dragão pode realizar 3 ações lendárias, escolhidas dentre as opções abaixo.
-Detectar. O dragão realiza um teste de Sabedoria (Percepção).
+O dragão pode realizar 3 ações lendárias, escolhidas dentre as opções abaixo. Ele recupera as ações gastas no começo do seu turno.
+Detectar. O dragão realiza um teste de Sabedoria (Percepção). Ataque com a Cauda. O dragão faz um ataque
+com a cauda. Bater as Asas (Custa 2 Ações). O dragão bate as asas. O alvo cai.
 SOLDADO INVENTADO
 Humanoide Médio (qualquer raça), qualquer tendência
 
