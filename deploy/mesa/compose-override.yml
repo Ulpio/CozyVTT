@@ -1,0 +1,16 @@
+# Production override for the friends' server (C:\Users\Usuario\MesaServer).
+# Copy to the server folder's root as docker-compose.override.yml (git ignores
+# that name everywhere, which is why this template has another one).
+#
+# The shipped compose file names its containers cozyvtt-*, the same names the
+# development stack uses, so the two could not run side by side. These names
+# keep them apart; COMPOSE_PROJECT_NAME=mesa in .env keeps the volumes apart.
+services:
+  database:
+    container_name: mesa-database
+  backend:
+    container_name: mesa-backend
+  frontend:
+    container_name: mesa-frontend
+  nginx:
+    container_name: mesa-nginx

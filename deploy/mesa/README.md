@@ -9,7 +9,7 @@ não mexe no stack de desenvolvimento.
 
 | Arquivo | Para que serve |
 |---|---|
-| `docker-compose.override.yml` | Dá nomes `mesa-*` aos contêineres. Copie para a raiz do servidor. |
+| `compose-override.yml` | Dá nomes `mesa-*` aos contêineres. Copie para a raiz do servidor com o nome `docker-compose.override.yml` (o git ignora esse nome, por isso o modelo tem outro). |
 | `env.mesa.example` | Modelo do `.env` de produção. Copie para `.env` na raiz do servidor e troque os `TROQUE_POR_*`. |
 | `update.sh` | Atualiza o servidor com o que está em `mesa/quick-fixes` e reconstrói. |
 
@@ -20,7 +20,7 @@ não mexe no stack de desenvolvimento.
    git branch mesa/servidor mesa/quick-fixes
    git worktree add /c/Users/Usuario/MesaServer mesa/servidor
    ```
-2. Na pasta do servidor, copiar `deploy/mesa/docker-compose.override.yml` para a
+2. Na pasta do servidor, copiar `deploy/mesa/compose-override.yml` como `docker-compose.override.yml` na
    raiz e `deploy/mesa/env.mesa.example` para `.env`, trocando a senha do banco
    (32 caracteres hex) e o `SESSION_SECRET` (64).
 3. `docker compose up -d --build`, depois abrir `http://127.0.0.1:8088/setup` e
