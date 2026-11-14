@@ -41,12 +41,13 @@ export function isValidEmail(email: string): boolean {
  */
 export const SPECIAL_CHARACTER = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/;
 
-export const PASSWORD_REQUIREMENTS: Array<{ test: (p: string) => boolean; label: string }> = [
-  { test: (p) => p.length >= 12,         label: 'At least 12 characters' },
-  { test: (p) => /[A-Z]/.test(p),        label: 'One uppercase letter' },
-  { test: (p) => /[a-z]/.test(p),        label: 'One lowercase letter' },
-  { test: (p) => /[0-9]/.test(p),        label: 'One number' },
-  { test: (p) => SPECIAL_CHARACTER.test(p), label: 'One special character, such as ! @ # $ %' },
+/** `key` names the rule in the translations (i18n/locales, passwordRules). */
+export const PASSWORD_REQUIREMENTS: Array<{ test: (p: string) => boolean; label: string; key: 'length' | 'upper' | 'lower' | 'number' | 'special' }> = [
+  { test: (p) => p.length >= 12,         label: 'At least 12 characters', key: 'length' },
+  { test: (p) => /[A-Z]/.test(p),        label: 'One uppercase letter', key: 'upper' },
+  { test: (p) => /[a-z]/.test(p),        label: 'One lowercase letter', key: 'lower' },
+  { test: (p) => /[0-9]/.test(p),        label: 'One number', key: 'number' },
+  { test: (p) => SPECIAL_CHARACTER.test(p), label: 'One special character, such as ! @ # $ %', key: 'special' },
 ];
 
 /** True when every rule in PASSWORD_REQUIREMENTS passes. */

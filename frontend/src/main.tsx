@@ -1,4 +1,6 @@
 import ReactDOM from 'react-dom/client';
+// First, so every screen renders in the chosen language from the start.
+import './i18n';
 import App from './App.tsx';
 import AppRouter from './AppRouter.tsx';
 import './assets/fonts/fonts.css';

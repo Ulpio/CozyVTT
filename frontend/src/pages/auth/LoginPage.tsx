@@ -8,6 +8,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { Link, Navigate, useLocation } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { isValidEmail } from '@/utils/validation';
 import { api } from '@/services/api';
 import Button from '@/components/ui/Button';
@@ -19,6 +20,7 @@ import { AFTER_SIGN_IN, keepingReturnPath, returnPathFrom } from '@/utils/return
 export default function LoginPage() {
   const { login, authenticated, mfaPending } = useAuth();
   const { instanceName } = useTheme();
+  const { t } = useTranslation();
   // The page that sent the visitor here, to go back to once signed in.
   const { search } = useLocation();
 
@@ -69,14 +71,14 @@ export default function LoginPage() {
 
     // Validate email
     if (!email) {
-      errors.email = 'Email is required';
+      errors.email = t('login.errors.emailRequired');
     } else if (!isValidEmail(email)) {
-      errors.email = 'Please enter a valid email address';
+      errors.email = t('login.errors.emailInvalid');
     }
 
     // Validate password
     if (!password) {
-      errors.password = 'Password is required';
+      errors.password = t('login.errors.passwordRequired');
     }
 
     setFieldErrors(errors);
@@ -108,13 +110,13 @@ export default function LoginPage() {
       const serverError = apiErrorMessage(err) || apiErrorText(err);
       if (apiErrorStatus(err) === 429) {
         // The limiter's answer says what happened and when to come back.
-        setError(apiErrorMessage(err) || 'Too many login attempts. Please try again later.');
+        setError(apiErrorMessage(err) || t('login.errors.tooManyAttempts'));
       } else if (serverError) {
         setError(serverError);
       } else if (apiErrorStatus(err) === 401) {
-        setError('Invalid email or password');
+        setError(t('login.errors.invalidCredentials'));
       } else {
-        setError('An error occurred during login. Please try again.');
+        setError(t('login.errors.generic'));
       }
     } finally {
       setLoading(false);
@@ -127,10 +129,10 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-3xl font-bold text-brand-ink font-heading">
-            Welcome Back
+            {t('login.title')}
           </h1>
           <p className="mt-2 text-sm text-warm-gray">
-            Sign in to {instanceName}
+            {t('login.subtitle', { instance: instanceName })}
           </p>
         </div>
 
@@ -156,7 +158,7 @@ export default function LoginPage() {
               htmlFor="email"
               className="block text-sm font-medium text-brand-ink mb-1"
             >
-              Email
+              {t('login.email')}
             </label>
             <input
               id="email"
@@ -170,7 +172,7 @@ export default function LoginPage() {
               className={`input-cozy w-full ${
                 fieldErrors.email ? 'border-spirit-red focus:ring-spirit-red' : ''
               }`}
-              placeholder="your@email.com"
+              placeholder={t('login.emailPlaceholder')}
               disabled={loading}
               aria-required="true"
               aria-invalid={!!fieldErrors.email}
@@ -187,7 +189,7 @@ export default function LoginPage() {
               htmlFor="password"
               className="block text-sm font-medium text-brand-ink mb-1"
             >
-              Password
+              {t('login.password')}
             </label>
             <input
               id="password"
@@ -201,7 +203,7 @@ export default function LoginPage() {
               className={`input-cozy w-full ${
                 fieldErrors.password ? 'border-spirit-red focus:ring-spirit-red' : ''
               }`}
-              placeholder="Enter your password"
+              placeholder={t('login.passwordPlaceholder')}
               disabled={loading}
               aria-required="true"
               aria-invalid={!!fieldErrors.password}
@@ -227,7 +229,7 @@ export default function LoginPage() {
                 htmlFor="remember-me"
                 className="ml-2 block text-sm text-warm-gray"
               >
-                Remember me
+                {t('login.rememberMe')}
               </label>
             </div>
 
@@ -235,7 +237,7 @@ export default function LoginPage() {
               to="/auth/forgot-password"
               className="text-sm text-brand-ink hover:text-brand-ink/80 transition-colors"
             >
-              Forgot password?
+              {t('login.forgotPassword')}
             </Link>
           </div>
 
@@ -267,10 +269,10 @@ export default function LoginPage() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Signing in...
+                {t('login.submitting')}
               </span>
             ) : (
-              'Sign In'
+              t('login.submit')
             )}
           </Button>
         </form>
@@ -279,12 +281,12 @@ export default function LoginPage() {
         {registrationAllowed && (
           <div className="text-center">
             <p className="text-sm text-warm-gray">
-              Don't have an account?{' '}
+              {t('login.noAccount')}{' '}
               <Link
                 to="/auth/register"
                 className="text-brand-ink hover:text-brand-ink/80 font-medium transition-colors"
               >
-                Create one
+                {t('login.createAccount')}
               </Link>
             </p>
           </div>

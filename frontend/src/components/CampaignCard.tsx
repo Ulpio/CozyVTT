@@ -5,7 +5,8 @@
 // ============================================
 
 import { useNavigate } from 'react-router';
-import { CAMPAIGN_ROLE_LABEL, campaignGmName, campaignOwnerName, ownerDiffersFromGm } from '@/utils/campaignRoles';
+import { useTranslation } from 'react-i18next';
+import { campaignGmName, campaignOwnerName, ownerDiffersFromGm } from '@/utils/campaignRoles';
 import { CampaignRole } from '@/types';
 import type { Campaign, CampaignStatus } from '@/types';
 import { Users, Calendar, Crown, Eye, Gamepad2, KeyRound} from 'lucide-react';
@@ -18,32 +19,33 @@ interface CampaignCardProps {
 
 export default function CampaignCard({ campaign, userRole }: CampaignCardProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Get status badge styling
   const getStatusBadge = (status: CampaignStatus) => {
     const badges = {
       PREPARATION: {
-        label: 'Preparation',
+        label: t('campaignCard.status.PREPARATION'),
         class: 'bg-warm-amber/15 text-accent-ink border-warm-amber/30',
       },
       ACTIVE: {
-        label: 'Active',
+        label: t('campaignCard.status.ACTIVE'),
         class: 'bg-moss-green/15 text-brand-ink border-moss-green/30',
       },
       PAUSED: {
-        label: 'Paused',
+        label: t('campaignCard.status.PAUSED'),
         class: 'bg-stone-gray/20 text-stone-gray border-stone-gray/30',
       },
       COMPLETED: {
-        label: 'Completed',
+        label: t('campaignCard.status.COMPLETED'),
         class: 'bg-spirit-purple/15 text-spirit-ink border-spirit-purple/30',
       },
       ARCHIVED: {
-        label: 'Archived',
+        label: t('campaignCard.status.ARCHIVED'),
         class: 'bg-warm-gray/20 text-warm-gray border-warm-gray/30',
       },
       INACTIVE: {
-        label: 'Inactive',
+        label: t('campaignCard.status.INACTIVE'),
         class: 'bg-warm-gray/20 text-warm-gray border-warm-gray/30',
       },
     };
@@ -55,17 +57,17 @@ export default function CampaignCard({ campaign, userRole }: CampaignCardProps) 
   const getRoleBadge = (role: CampaignRole) => {
     const badges = {
       GM: {
-        label: CAMPAIGN_ROLE_LABEL[CampaignRole.GM],
+        label: t('roles.GM'),
         icon: Crown,
         class: 'bg-moss-green/15 text-brand-ink border-moss-green/40',
       },
       PLAYER: {
-        label: CAMPAIGN_ROLE_LABEL[CampaignRole.PLAYER],
+        label: t('roles.PLAYER'),
         icon: Gamepad2,
         class: 'bg-spirit-purple/15 text-spirit-ink border-spirit-purple/40',
       },
       SPECTATOR: {
-        label: CAMPAIGN_ROLE_LABEL[CampaignRole.SPECTATOR],
+        label: t('roles.SPECTATOR'),
         icon: Eye,
         class: 'bg-warm-amber/15 text-accent-ink border-warm-amber/40',
       },
@@ -76,19 +78,19 @@ export default function CampaignCard({ campaign, userRole }: CampaignCardProps) 
 
   // Format date
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Never';
+    if (!dateString) return t('campaignCard.when.never');
 
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-    return `${Math.floor(diffDays / 365)} years ago`;
+    if (diffDays === 0) return t('campaignCard.when.today');
+    if (diffDays === 1) return t('campaignCard.when.yesterday');
+    if (diffDays < 7) return t('campaignCard.when.daysAgo', { count: diffDays });
+    if (diffDays < 30) return t('campaignCard.when.weeksAgo', { count: Math.floor(diffDays / 7) });
+    if (diffDays < 365) return t('campaignCard.when.monthsAgo', { count: Math.floor(diffDays / 30) });
+    return t('campaignCard.when.yearsAgo', { count: Math.floor(diffDays / 365) });
   };
 
   const statusBadge = getStatusBadge(campaign.status);
@@ -150,7 +152,7 @@ export default function CampaignCard({ campaign, userRole }: CampaignCardProps) 
         {/* GM Name */}
         <div className="flex items-center gap-2 text-stone-gray">
           <Crown className="w-4 h-4 text-brand-ink" />
-          <span className="text-warm-gray">{CAMPAIGN_ROLE_LABEL[CampaignRole.GM]}:</span>
+          <span className="text-warm-gray">{t('roles.GM')}:</span>
           <span className="text-stone-gray font-medium">{gmName}</span>
         </div>
 
@@ -159,7 +161,7 @@ export default function CampaignCard({ campaign, userRole }: CampaignCardProps) 
         {showOwner && (
           <div className="flex items-center gap-2 text-stone-gray">
             <KeyRound className="w-4 h-4 text-accent-ink" />
-            <span className="text-warm-gray">Owner:</span>
+            <span className="text-warm-gray">{t('campaignCard.owner')}</span>
             <span className="text-stone-gray font-medium">{ownerName}</span>
           </div>
         )}
@@ -167,14 +169,14 @@ export default function CampaignCard({ campaign, userRole }: CampaignCardProps) 
         {/* Member Count */}
         <div className="flex items-center gap-2 text-stone-gray">
           <Users className="w-4 h-4 text-spirit-ink" />
-          <span className="text-warm-gray">Members:</span>
+          <span className="text-warm-gray">{t('campaignCard.members')}</span>
           <span className="text-stone-gray font-medium">{memberCount}</span>
         </div>
 
         {/* Last Played */}
         <div className="flex items-center gap-2 text-stone-gray">
           <Calendar className="w-4 h-4 text-accent-ink" />
-          <span className="text-warm-gray">Last played:</span>
+          <span className="text-warm-gray">{t('campaignCard.lastPlayed')}</span>
           <span className="text-stone-gray font-medium">{formatDate(campaign.lastPlayedAt)}</span>
         </div>
       </div>
