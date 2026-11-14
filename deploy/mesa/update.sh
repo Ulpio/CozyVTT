@@ -12,7 +12,7 @@ docker compose up -d --build
 
 echo "Esperando a mesa responder..."
 for _ in $(seq 1 60); do
-  if curl -fsS http://127.0.0.1:8088/api/auth/appearance >/dev/null 2>&1; then
+  if curl -fsS http://127.0.0.1:8088/api/setup/status >/dev/null 2>&1; then
     echo "A mesa está no ar."
     exit 0
   fi

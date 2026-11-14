@@ -58,5 +58,5 @@ Use o banco e os uploads do mesmo dia.
 - O Docker Desktop está aberto? Ele precisa abrir junto com o Windows
   (Settings → General → "Start Docker Desktop when you sign in").
 - `docker compose ps` na pasta do servidor: os quatro `mesa-*` estão `Up`?
-- `curl http://127.0.0.1:8088/api/auth/appearance` responde? Se sim, o problema
+- `curl http://127.0.0.1:8088/api/setup/status` responde? Se sim, o problema
   é a Tailscale: `tailscale serve status` deve mostrar o endereço publicado.
