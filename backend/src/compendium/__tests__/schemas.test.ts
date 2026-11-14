@@ -91,3 +91,8 @@ it('accepts a valid monster', () => {
 it('rejects a monster with challenge rating "3/7"', () => {
   expect(validateMonsters([monster({}, '3/7')])).not.toEqual([]);
 });
+
+it('takes bludgeoning damage as the books name it, "concussão"', () => {
+  const club = spell({ mechanics: { attack: 'melee', damage: [{ dice: '1d4', type: 'concussão' }] } });
+  expect(validateEntries([club], known)).toEqual([]);
+});

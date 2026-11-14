@@ -15,7 +15,7 @@ const byName = (name: string) => monsters.find((m) => m.name === name)!;
 const block = (name: string) => byName(name).statBlock as Record<string, unknown>;
 
 it('parses a small monster block', () => {
-  expect(monsters.map((m) => m.name)).toEqual(['Lobo Teste', 'Dragão Inventado']);
+  expect(monsters.map((m) => m.name)).toEqual(['Lobo Teste', 'Dragão Inventado', 'Soldado Inventado']);
   expect(byName('Lobo Teste')).toMatchObject({ creatureType: 'Besta Média', alignment: 'imparcial', challengeRating: '1/4' });
   expect(block('Lobo Teste')).toMatchObject({
     ac: 13,
@@ -58,4 +58,12 @@ it('reads challenge rating 1/4 with its XP', () => {
 
 it('lists a block without Armor Class as unrecognized', () => {
   expect(unrecognized).toEqual(['COGUMELO SEM BLOCO']);
+});
+
+it('reads a score that comes after the properties', () => {
+  const soldier = block('Soldado Inventado');
+  expect(soldier.abilities).toEqual({ str: 16, dex: 13, con: 14, int: 10, wis: 11, cha: 10 });
+  expect(soldier).toMatchObject({ skills: { athletics: 5 }, languages: 'Comum', challengeRating: '3', xp: 700 });
+  expect(soldier.traits).toEqual([]);
+  expect((soldier.actions as { name: string }[]).map((a) => a.name)).toEqual(['Golpe']);
 });

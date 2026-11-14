@@ -47,6 +47,27 @@ Cauda Defensiva. O dragão adiciona 3 à CA contra um ataque que o atingiria.
 AÇÕES LENDÁRIAS
 O dragão pode realizar 3 ações lendárias, escolhidas dentre as opções abaixo.
 Detectar. O dragão realiza um teste de Sabedoria (Percepção).
+SOLDADO INVENTADO
+Humanoide Médio (qualquer raça), qualquer tendência
+
+Classe de Armadura 17 (cota de talas) Pontos de Vida 58 (9d8 + 18) Deslocamento 9 m
+
+FOR 16 (+3)
+
+DES 13 (+1)
+
+CON 14 (+2)
+
+INT 10 (+0)
+
+SAB 11 (+0)
+
+Perícias Atletismo +5 Sentidos Percepção passiva 10 Idiomas Comum Nível de Desafio 3 (700 XP)
+
+CAR 10 (+0)
+
+AÇÕES
+Golpe. Ataque Corpo-a-Corpo com Arma: +5 para atingir, alcance 1,5 m, um alvo. Acerto: 7 (1d8 + 3) de dano cortante.
 COGUMELO SEM BLOCO
 Planta Pequena, imparcial
 Esta linha deveria ser a Classe de Armadura, mas não é.

@@ -19,7 +19,7 @@ const Ability = z.enum(['str', 'dex', 'con', 'int', 'wis', 'cha']);
 /** The damage types of D&D 5e, as the Portuguese books name them. */
 export const DAMAGE_TYPES = [
   'ácido',
-  'contundente',
+  'concussão',
   'cortante',
   'elétrico',
   'energia',

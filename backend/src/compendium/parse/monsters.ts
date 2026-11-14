@@ -133,36 +133,46 @@ export function parseMonsters(text: string): { monsters: RawMonster[]; unrecogni
     while (end < all.length && !(isTitle(all[end]) && !SECTIONS[all[end].trim()])) end++;
     const block = all.slice(acAt, end);
 
-    // The properties end with the challenge rating.
+    // The header ends with the challenge rating, or with a score the page put
+    // after it (CAR below the properties, in some blocks), whichever is last
+    // before the first section.
+    const firstSection = block.findIndex((line) => SECTIONS[line.trim()]);
+    const beforeSections = firstSection === -1 ? block.length : firstSection;
     const crAt = block.findIndex((line) => line.includes('Nível de Desafio'));
+    let headEnd = crAt;
+    block.slice(0, beforeSections).forEach((line, k) => {
+      if (/^(FOR|DES|CON|INT|SAB|CAR) \d+ \(/.test(line.trim())) headEnd = Math.max(headEnd, k);
+    });
     const head = block
-      .slice(0, crAt + 1)
+      .slice(0, headEnd + 1)
       .map((line) => line.trim())
       .filter(Boolean)
       .join(' ');
 
-    const ac = Number(/Classe de Armadura (\d+)/.exec(head)?.[1]);
-    const hpMatch = /Pontos de Vida (\d+)(?: \(([^)]+)\))?/.exec(head);
-    const speed = /Deslocamento (.*?)(?= FOR \d|$)/.exec(head)?.[1].trim() ?? '';
-
     const abilities = {} as Abilities;
     const attributeModifiers = {} as Abilities;
-    let afterScores = 0;
+    let rest = head;
     for (const [label, key] of ABILITIES) {
-      const match = new RegExp(`\\b${label} (\\d+) \\(([+\\-–−]?\\d+)\\)`).exec(head);
+      const pattern = new RegExp(`\\b${label} (\\d+) \\(([+\\-–−]?\\d+)\\)`);
+      const match = pattern.exec(head);
       if (match) {
         abilities[key] = Number(match[1]);
         attributeModifiers[key] = modifier(match[2]);
-        afterScores = Math.max(afterScores, match.index + match[0].length);
+        rest = rest.replace(pattern, ' ');
       }
     }
-    const props = properties(head.slice(afterScores));
+    rest = rest.replace(/\s+/g, ' ');
+
+    const ac = Number(/Classe de Armadura (\d+)/.exec(rest)?.[1]);
+    const hpMatch = /Pontos de Vida (\d+)(?: \(([^)]+)\))?/.exec(rest);
+    const speed = new RegExp(`Deslocamento (.*?)(?= (?:${LABELS.join('|')})\\s|$)`).exec(rest)?.[1].trim() ?? '';
+    const props = properties(rest);
     const crMatch = /^(\S+)(?: \(([\d.,]+) XP\))?/.exec(props['Nível de Desafio'] ?? '');
 
     // Traits until the first section; then each section's entries.
     const sections: Record<string, string[]> = { traits: [], actions: [], reactions: [], legendaryActions: [] };
     let current = 'traits';
-    for (const line of block.slice(crAt + 1)) {
+    for (const line of block.slice(headEnd + 1)) {
       const section = SECTIONS[line.trim()];
       if (section) current = section;
       else sections[current].push(line);
