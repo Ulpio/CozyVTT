@@ -37,6 +37,15 @@ cd /c/Users/Usuario/MesaServer
 bash deploy/mesa/update.sh
 ```
 
+## Backups
+
+Todo dia às 04:00 a tarefa agendada "Mesa - Backup" roda
+`deploy/mesa/backup.sh`, que guarda o banco e os uploads em
+`C:\Users\Usuario\MesaBackups` por 30 dias. Se o PC estiver desligado nessa
+hora, roda quando ele voltar. O resultado de cada dia fica em
+`MesaBackups\backup.log`. Para registrar a tarefa de novo:
+`powershell -ExecutionPolicy Bypass -File deploy\mesa\install-backup-task.ps1`.
+
 ## Restaurar um backup
 
 Os backups ficam em `C:\Users\Usuario\MesaBackups`: o banco em `db\` e os
