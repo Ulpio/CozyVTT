@@ -309,17 +309,28 @@ router.put('/:creatureId', campaignGM, async (req: AuthenticatedRequest, res: Re
       return res.status(404).json({ error: 'Not Found', message: 'Creature template not found' });
     }
 
-    // Prevent editing SRD creatures
-    if (existing.source === 'srd') {
-      return res.status(403).json({
-        error: 'Forbidden',
-        message: 'Cannot edit SRD creatures. Duplicate it first to create a custom version.',
-      });
-    }
+    // A book's creature (global, its source a compendium book's id, such as
+    // the Monster Manual's 'mm' or 'srd') is the admin's to correct, from any
+    // campaign they run. The correction is marked, so a compendium import
+    // leaves it as it is (src/compendium/importer.ts).
+    const correctingBook =
+      existing.campaignId === null &&
+      req.session.platformRole === 'ADMIN' &&
+      (await prisma.compendiumBook.findUnique({ where: { id: existing.source }, select: { id: true } })) !== null;
 
-    // Prevent editing another campaign's creatures
-    if (existing.campaignId !== campaignId) {
-      return res.status(403).json({ error: 'Forbidden', message: 'Cannot edit creatures from another campaign' });
+    if (!correctingBook) {
+      // Prevent editing SRD creatures
+      if (existing.source === 'srd') {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'Cannot edit SRD creatures. Duplicate it first to create a custom version.',
+        });
+      }
+
+      // Prevent editing another campaign's creatures
+      if (existing.campaignId !== campaignId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Cannot edit creatures from another campaign' });
+      }
     }
 
     // A new picture the GM may read; the one already stored may stay.
@@ -345,6 +356,7 @@ router.put('/:creatureId', campaignGM, async (req: AuthenticatedRequest, res: Re
         ...(data.size !== undefined && { size: data.size }),
         ...(data.disposition !== undefined && { disposition: data.disposition }),
         ...(data.displayMode !== undefined && { displayMode: data.displayMode }),
+        ...(correctingBook && { editedAt: new Date(), editedById: req.session.userId }),
       },
     });
 
