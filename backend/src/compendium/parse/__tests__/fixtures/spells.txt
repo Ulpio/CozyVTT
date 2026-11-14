@@ -1,0 +1,42 @@
+LISTAS DE MAGIAS
+MAGIAS DE MAGO
+TRUQUES (NÍVEL 0)
+Faísca Teste (evocação) Truque do Vagalume (ilusão)
+1° NÍVEL
+Raio Teste (evocação) Sino de Vigília (abjuração, ritual)
+2° NÍVEL
+Proteção Partida (abjuração)
+MAGIAS DE CLÉRIGO
+TRUQUES (NÍVEL 0)
+Faísca Teste (evocação)
+1° NÍVEL
+Sino de Vigília (abjuração, ritual)
+DESCRIÇÃO DAS MAGIAS
+FAÍSCA TESTE
+Truque de evocação Tempo de Conjuração: 1 ação Alcance: 18 metros Componentes: V, S Duração: Instantânea
+Uma faísca inventada salta até uma criatura. Faça um ataque à distância com magia. Se atingir, o alvo sofre 1d10 de dano de fogo.
+O dano aumenta em 1d10 quando você alcança o 5° nível.
+RAIO TESTE
+1° nível de evocação Tempo de Conjuração: 1 ação Alcance: 36 metros Componentes: V, S, M (um fio de cobre) Duração: Instantânea
+Um raio inventado atinge uma criatura que você possa ver.
+TABELA INVENTADA
+Uma linha da tabela.
+Em Níveis Superiores. Quando você conjurar essa magia usando um espaço de magia de 2° nível ou superior, o dano aumenta em 1d6.
+SINO DE VIGÍLIA
+1° nível de abjuração (ritual) Tempo de Conjuração: 1 minuto Alcance: 9 metros
+211
+
+Componentes: V, S, M (um sino pequeno) Duração: 8 horas
+Um sino inventado toca na sua mente quando algo cruza a área escolhida, por um cubo de até
+212
+
+6 metros de lado, até a magia acabar.
+TRUQUE DO VAGALUME
+Truque de ilusão
+
+Tempo de Conjuração: 1 ação Alcance: 9 metros Componentes: S Duração: Concentração, até 1 minuto
+Uma luz inventada dança onde você quiser.
+PROTEÇÃO PARTIDA
+2° nível de abjuração Tempo de Conjuração: 1 reação Alcance: Pessoal Componentes: V Duração: 1 rodada
+Uma proteção inventada.
+APÊNDICE A
