@@ -157,6 +157,13 @@ it('skips a monster edited in the app unless forced', async () => {
   expect((await prisma.creatureTemplate.findFirst({ where: { name: 'P2T Lobo', campaignId: null } }))?.alignment).toBe('imparcial');
 });
 
+it('gives a large monster written in lower case a large footprint', async () => {
+  write({ 'phb/class.json': [klass], 'mm/monster.json': [{ ...monster, creatureType: 'Dragão grande' }] });
+  await importCompendium(dir, {});
+  const wolf = await prisma.creatureTemplate.findFirst({ where: { name: 'P2T Lobo', campaignId: null } });
+  expect(wolf?.size).toEqual({ width: 2, height: 2 });
+});
+
 it('keeps a spell and an armor with the same name', async () => {
   writeAll();
   await importCompendium(dir, {});

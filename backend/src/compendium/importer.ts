@@ -27,12 +27,12 @@ export interface ImportReport {
 
 const MONSTER_SOURCE = 'mm';
 
-/** A creature's footprint on the map, in squares, from its size. */
+/** A creature's footprint on the map, in squares, from its size (written in either case). */
 function footprint(creatureType: string | undefined): { width: number; height: number } {
   const type = creatureType ?? '';
-  if (/\bGrande\b/.test(type)) return { width: 2, height: 2 };
-  if (/\bEnorme\b/.test(type)) return { width: 3, height: 3 };
-  if (/\bImens[oa]\b/.test(type)) return { width: 4, height: 4 };
+  if (/\bgrande\b/i.test(type)) return { width: 2, height: 2 };
+  if (/\benorme\b/i.test(type)) return { width: 3, height: 3 };
+  if (/\bimens[oa]\b/i.test(type)) return { width: 4, height: 4 };
   return { width: 1, height: 1 };
 }
 

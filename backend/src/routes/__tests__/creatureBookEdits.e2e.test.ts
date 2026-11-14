@@ -74,3 +74,9 @@ it("still refuses another campaign's creature", async () => {
   expect([403, 404]).toContain(res.status);
   expect((await prisma.creatureTemplate.findUnique({ where: { id: otherCampaignCreatureId } }))?.alignment).toBeNull();
 });
+
+it("keeps a book creature's name, so a new import finds it again", async () => {
+  const res = await adminAgent.put(`/api/campaigns/${adminCampaignId}/creatures/${bookCreatureId}`).send({ name: 'P2E Lobo Renomeado' });
+  expect(res.status).toBe(400);
+  expect((await prisma.creatureTemplate.findUnique({ where: { id: bookCreatureId } }))?.name).toBe('P2E Lobo');
+});

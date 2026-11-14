@@ -318,6 +318,15 @@ router.put('/:creatureId', campaignGM, async (req: AuthenticatedRequest, res: Re
       req.session.platformRole === 'ADMIN' &&
       (await prisma.compendiumBook.findUnique({ where: { id: existing.source }, select: { id: true } })) !== null;
 
+    // A book's creature keeps its book name: the compendium import finds it
+    // by that name, and a renamed one would come back as a second creature.
+    if (correctingBook && data.name !== undefined && data.name !== existing.name) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: "A book's creature keeps its name. Duplicate it to make a renamed copy.",
+      });
+    }
+
     if (!correctingBook) {
       // Prevent editing SRD creatures
       if (existing.source === 'srd') {
