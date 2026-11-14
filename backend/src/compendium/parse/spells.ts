@@ -15,6 +15,7 @@
 
 import { slugify } from '../searchKey';
 import type { RawEntry } from '../types';
+import { isTitle, lines, nextFilled, paragraphs, titleCase } from './text';
 
 export const CLASS_SLUGS = [
   'barbaro',
@@ -36,37 +37,6 @@ const LIST_HEADING = /^(TRUQUES \(NÍVEL 0\)|\d° NÍVEL)$/;
 const CLASS_HEADING = /^MAGIAS DE ([\p{Lu} ]+)$/u;
 const END_OF_SPELLS = /^APÊNDICE\b/;
 const HIGHER_LEVELS = 'Em Níveis Superiores.';
-const SMALL_WORDS = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'a', 'o', 'com', 'para', 'por', 'no', 'na', 'contra']);
-
-/** The text's lines, without the page numbers that stand alone on a line. */
-function lines(text: string): string[] {
-  return text
-    .replace(/\r/g, '')
-    .split('\n')
-    .map((line) => line.trimEnd())
-    .filter((line) => !/^\d+$/.test(line.trim()));
-}
-
-/** A title: capitals only, with at least three letters. */
-function isTitle(line: string): boolean {
-  const trimmed = line.trim();
-  return /^[\p{Lu}0-9 '’/,-]+$/u.test(trimmed) && (trimmed.match(/\p{Lu}/gu) ?? []).length >= 3;
-}
-
-function titleCase(upper: string): string {
-  return upper
-    .toLowerCase()
-    .split(' ')
-    .map((word, i) => (i > 0 && SMALL_WORDS.has(word) ? word : word.charAt(0).toUpperCase() + word.slice(1)))
-    .join(' ');
-}
-
-/** The next line that is not blank, from index `from`. */
-function nextFilled(all: string[], from: number): number {
-  let i = from;
-  while (i < all.length && all[i].trim() === '') i++;
-  return i;
-}
 
 /** Each spell's classes, by spell slug, in the order the lists name them; and the names as the lists write them. */
 function readClassLists(text: string): { classes: Map<string, string[]>; names: Map<string, string> } {
@@ -116,29 +86,6 @@ function components(field: string): { v: boolean; s: boolean; m: boolean; materi
     m: /\bM\b/.test(letters),
     ...(material ? { material: material[1].trim() } : {}),
   };
-}
-
-/**
- * Join a text's lines into paragraphs: a line goes on the last one when that
- * one did not end a sentence, as a page break leaves it. A heading inside the
- * text (a table's title, say) stands as a paragraph of its own.
- */
-function paragraphs(body: string[]): string[] {
-  const out: string[] = [];
-  let lastWasHeading = false;
-  for (const raw of body) {
-    const line = raw.trim();
-    if (!line) continue;
-    const heading = isTitle(line);
-    const last = out[out.length - 1];
-    if (last !== undefined && !heading && !lastWasHeading && (!/[.!?:)”"]$/.test(last) || /^\p{Ll}/u.test(line))) {
-      out[out.length - 1] = `${last} ${line}`;
-    } else {
-      out.push(line);
-    }
-    lastWasHeading = heading;
-  }
-  return out;
 }
 
 export function parseSpells(text: string): { entries: RawEntry[]; unrecognized: string[] } {

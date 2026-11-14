@@ -1,0 +1,52 @@
+LOBO TESTE
+Um lobo inventado que só existe neste teste. Esta seção de história repete o nome do monstro como título.
+LOBO TESTE
+Besta Média, imparcial
+
+Classe de Armadura 13 (armadura natural) Pontos de Vida 11 (2d8 + 2) Deslocamento 12 m
+
+FOR 12 (+1)
+
+DES 15 (+2)
+
+CON 12 (+1)
+
+INT 3 (–4)
+
+SAB 12 (+1)
+
+CAR 6 (-2)
+
+Perícias Percepção +3, Furtividade +4 Sentidos Percepção passiva 13 Idiomas — Nível de Desafio 1/4 (50 XP)
+
+Faro Apurado. O lobo tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato.
+AÇÕES
+Mordida. Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 1,5 m, um alvo. Acerto: 7 (2d4 + 2) de dano perfurante.
+302
+
+DRAGÃO INVENTADO
+Dragão Enorme, caótico e mau
+
+Classe de Armadura 18 (armadura natural) Pontos de Vida 178 (17d12 + 68) Deslocamento 12 m, escalada 12 m, voo 24 m
+FOR 23 (+6)
+DES 10 (+0)
+CON 19 (+4)
+INT 14 (+2)
+SAB 11 (+0)
+CAR 19 (+4)
+Testes de Resistência Des +5, Con +9, Sab +5, Car +9 Perícias Percepção +10
+Imunidade a Dano fogo Sentidos percepção às cegas 18 m, visão no escuro 36 m, Percepção passiva 20 Idiomas Comum, Dracônico
+Nível de Desafio 13 (10.000 XP)
+Anfíbio. O dragão pode respirar ar e água.
+AÇÕES
+Ataques Múltiplos. O dragão realiza três ataques: um com sua mordida e dois com suas garras.
+Mordida. Ataque Corpo-a-Corpo com Arma: +11 para atingir, alcance 3 m, um alvo. Acerto: 17 (2d10 + 6) de dano perfurante mais 4 (1d8)
+de dano de fogo.
+REAÇÕES
+Cauda Defensiva. O dragão adiciona 3 à CA contra um ataque que o atingiria.
+AÇÕES LENDÁRIAS
+O dragão pode realizar 3 ações lendárias, escolhidas dentre as opções abaixo.
+Detectar. O dragão realiza um teste de Sabedoria (Percepção).
+COGUMELO SEM BLOCO
+Planta Pequena, imparcial
+Esta linha deveria ser a Classe de Armadura, mas não é.
