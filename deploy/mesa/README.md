@@ -37,6 +37,22 @@ cd /c/Users/Usuario/MesaServer
 bash deploy/mesa/update.sh
 ```
 
+## Compêndio (regras dos livros)
+
+Os dados do compêndio ficam em `materiais/.compendio/data` no repositório de
+desenvolvimento, fora do git. Para levá-los ao banco de produção, na pasta do
+servidor (o banco só é alcançável dentro da rede do Compose, por isso o
+comando roda num contêiner de uso único do backend, com a pasta montada só
+para leitura):
+
+```bash
+docker compose run --rm -v "/c/Users/Usuario/Projects/CozyVTT/materiais/.compendio/data:/compendio:ro" backend npm run compendium:import -- /compendio
+```
+
+Uma entrada ou criatura que você corrigiu no app fica como está; o relatório
+lista quais pulou. Acrescente `--force` (depois de `/compendio`) para
+sobrescrever também essas.
+
 ## Backups
 
 Todo dia às 04:00 a tarefa agendada "Mesa - Backup" roda
