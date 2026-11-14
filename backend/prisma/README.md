@@ -7,7 +7,7 @@ through the `pg` driver (`src/config/prismaClient.ts`).
 
 ## Models
 
-The schema is in [`schema.prisma`](./schema.prisma) — 24 models grouped by domain:
+The schema is in [`schema.prisma`](./schema.prisma) — 26 models grouped by domain:
 
 **User & auth**
 - `User` — accounts with optional MFA, which an administrator must turn on within 7 days
@@ -25,7 +25,9 @@ The schema is in [`schema.prisma`](./schema.prisma) — 24 models grouped by dom
 - `Map` — base + spirit layer, tokens, walls, lights, fog, annotations; per-map switches for fog of war, Global Illumination and explored memory (`fogEnabled`, `globalIllumination`, `explorationEnabled`, all default on so existing maps keep their behaviour); `drawnBackground`, the colour a map drawn in CozyVTT is made in (null for one made from a picture)
 - `MapExploration` — one player's explored cells on one map; never read when deciding which tokens to send
 - `MapDrawing` — one drawing on one map (a stroke, a shape or a text label): its kind, colours, width and points in whole map pixels from the top-left, who drew it (`authorId`, null once their account is deleted) and who is sent it (`audience`, `ALL` or `GM`). It goes with its map. `layer` is `MARKUP` for everything drawn so far; `GROUND`, `pattern` and `stamp` are kept for GM-drawn map art and not accepted yet
-- `CreatureTemplate` — SRD bestiary + custom creatures (campaign-scoped or global). `source` says which; `createdById` is the author, null for SRD creatures and once the author's account is deleted
+- `CreatureTemplate` — SRD bestiary + custom creatures (campaign-scoped or global). `source` says which; `createdById` is the author, null for SRD creatures and once the author's account is deleted. A creature from a compendium book has the book's id as its `source`; `editedAt` and `editedById` mark one the admin corrected in the app, which an import then leaves alone
+- `CompendiumBook` — a rules book the compendium is drawn from (`phb`, `mm`, `dmg`, `srd`), with its game system
+- `CompendiumEntry` — one rules entry of one book (a spell, class, race, item...), unique by book, type and slug: its name, English name, a `search` key over both, the text and the structured `data`; `editedAt` and `editedById` mark one the admin corrected
 - `CreatureFavorite` — GM's per-campaign starred creatures
 - `TokenTemplate` — reusable token configurations copyable across campaigns
 - `CharacterTemplate` — shareable starter sheets any signed-in user can copy

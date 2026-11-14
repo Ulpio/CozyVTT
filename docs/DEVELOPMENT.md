@@ -102,6 +102,7 @@ Copy `backend/.env.example` to `backend/.env` and fill in the values.
 | `NODE_ENV` | No | `development` | `development` or `production` |
 | `PORT` | No | `4000` | Port the API server listens on |
 | `CORS_ORIGIN` | No | `http://localhost:3000` | Allowed origin for CORS |
+| `ADMIN_MFA_REQUIRED` | No | `true` | `false` stops requiring administrators to turn on two-step sign-in within 7 days (`services/adminMfaPolicy.ts`); any other value keeps the rule |
 | `SMTP_HOST` | No | — | SMTP server hostname. Email is on only when `SMTP_HOST`, `SMTP_USER` and `SMTP_PASS` are all set (`isSmtpConfigured`) |
 | `SMTP_PORT` | No | `587` | SMTP server port |
 | `SMTP_USER` | For email | — | SMTP login username; without it email is off, because the transport always sends a login |

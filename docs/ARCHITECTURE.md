@@ -672,6 +672,28 @@ erDiagram
         string imageUrl
         string createdById FK
         string campaignId FK
+        datetime editedAt
+        string editedById
+    }
+
+    CompendiumBook {
+        string id PK
+        string name
+        GameSystem gameSystem
+    }
+
+    CompendiumEntry {
+        string id PK
+        string bookId FK
+        string type
+        string slug
+        string name
+        string nameEn
+        string search
+        string text
+        json data
+        datetime editedAt
+        string editedById
     }
 
     CreatureFavorite {
@@ -754,6 +776,7 @@ erDiagram
     Campaign ||--o{ CreatureTemplate : "scoped to"
     User ||--o{ CreatureTemplate : "made"
     CreatureTemplate ||--o{ CreatureFavorite : "favorited as"
+    CompendiumBook ||--o{ CompendiumEntry : "holds"
     User ||--o{ CreatureFavorite : "has favorites"
     Campaign ||--o{ CreatureFavorite : "scoped to"
     User ||--o{ TokenTemplate : "made"

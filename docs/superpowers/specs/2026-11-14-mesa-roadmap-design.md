@@ -184,6 +184,17 @@ círculo, com truques à parte e espaços restantes visíveis.
 - *Botões que somam dados ou marcam um estado, sem regra própria:* Ataque
   Furtivo, Golpe Divino, Fúria e características parecidas.
 - *À mão do mestre:* resistências, vulnerabilidades, condições e reações.
+- *Magias de área, estilo BG3* (pedido do dono): ao escolher uma magia com
+  área (Bola de Fogo, Mãos Flamejantes...), o molde certo (esfera, cone,
+  linha, cubo, do tamanho do livro) segue o mouse; o alcance a partir do
+  conjurador aparece e o app recusa um centro fora dele; os tokens dentro
+  da área viram os alvos da salvaguarda. Parte do mapa já existe: a
+  ferramenta manual de área (`map/aoeGeometry.ts`, `map/tools/useMeasureTools.ts`)
+  desenha e encaixa os moldes na grade. Falta ligá-la à magia, medir o
+  alcance e escolher os alvos. Os dados vêm do campo `area` da magia no
+  compêndio, que hoje só está preenchido nas magias de círculo 0 a 2; as
+  de círculo maior (a Bola de Fogo é de 3º) precisam de área e alcance
+  estruturados antes do P5.
 
 **Dano e o que o jogador vê** (decidido pelo dono): o dano de um acerto entra
 direto nos PV do alvo e o mestre pode desfazer. O jogador vê só o estado do

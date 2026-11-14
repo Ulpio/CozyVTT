@@ -126,7 +126,9 @@ const KEPT: Kept[] = [
   // What the app keeps in a browser.
   { name: 'cozyvtt_user_theme', pkg: 'frontend', written: /'cozyvtt_user_theme'/ },
   { name: 'cozyvtt-session-tab', pkg: 'frontend', written: /'cozyvtt-session-tab'/ },
-  { name: 'cozyvtt-session-layout', pkg: 'frontend', written: /'cozyvtt-session-layout'/ },
+  // The table's column sizes. The id moved to -v2 when the party column
+  // stopped opening by default, so a layout saved before is left unread.
+  { name: 'cozyvtt-session-layout-v2', pkg: 'frontend', written: /'cozyvtt-session-layout-v2'/ },
   { name: 'cozyvtt.signInNotice', pkg: 'frontend', written: /'cozyvtt\.signInNotice'/ },
   { name: 'cozyvtt-preparing-map:', pkg: 'frontend', written: /`cozyvtt-preparing-map:\$\{campaignId\}`/ },
   { name: 'cozyvtt-paint-tab', pkg: 'frontend', written: /'cozyvtt-paint-tab'/ },

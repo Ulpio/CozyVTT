@@ -248,6 +248,14 @@ about; the list is not exhaustive.
   values, so going back means restoring a backup taken before the upgrade.
   `src/legacy/__tests__/storedNamesMigration.test.ts` builds a 1.6.0 database
   from the migrations before it and checks every step.
+- `20261114120000_compendium` - The `CompendiumBook` and `CompendiumEntry`
+  tables, the rules data imported from the owner's books, and two nullable
+  columns on `CreatureTemplate`, `editedAt` and `editedById`, which mark a
+  book creature the admin corrected in the app so an import leaves it alone.
+  It adds rows: the four books the compendium starts with (`phb`, `mm`,
+  `dmg`, `srd`). Like every migration it runs by itself when the backend
+  starts. No existing row is changed or removed; the entries themselves come
+  later, from `npm run compendium:import`.
 
 ## Data migrations (one-off scripts)
 
