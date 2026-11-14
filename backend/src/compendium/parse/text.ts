@@ -15,10 +15,13 @@ export function lines(text: string): string[] {
     .filter((line) => !/^\d+$/.test(line.trim()));
 }
 
-/** A title: capitals only, with at least three letters. */
+/**
+ * A title: capitals only (and digits, + for items such as "ESPADA +1", a
+ * colon for headings such as "APÊNDICE A: MONSTROS"), with at least three letters.
+ */
 export function isTitle(line: string): boolean {
   const trimmed = line.trim();
-  return /^[\p{Lu}0-9 '’/,-]+$/u.test(trimmed) && (trimmed.match(/\p{Lu}/gu) ?? []).length >= 3;
+  return /^[\p{Lu}0-9 '’/,:+-]+$/u.test(trimmed) && (trimmed.match(/\p{Lu}/gu) ?? []).length >= 3;
 }
 
 /** "GOLEM DE BARRO" → "Golem de Barro". */

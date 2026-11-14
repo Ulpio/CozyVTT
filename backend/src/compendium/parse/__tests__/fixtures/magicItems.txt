@@ -1,0 +1,18 @@
+ITENS MÁGICOS DE A a Z
+Os itens desta lista são inventados para o teste.
+CAPA TESTE
+Item maravilhoso, incomum (requer sintonização)
+Enquanto veste esta capa inventada, você recebe +1 de bônus na CA.
+ESPADA INVENTADA +1
+Arma (espada longa), rara
+Você recebe +1 de bônus nas jogadas de ataque e de dano feitas com esta arma
+512
+
+inventada.
+TOMO DO SÁBIO TESTE
+Item maravilhoso, muito raro (requer sintonização com um clérigo, druida ou mago)
+Um livro inventado.
+POÇÃO DE CURA INVENTADA
+Poção, raridade varia
+Você recupera pontos de vida quando bebe esta poção inventada.
+APÊNDICE A: MONSTROS
