@@ -113,30 +113,64 @@ function named(paras: string[], firstName?: string): { name: string; description
   return out;
 }
 
+/** A section heading ("AÇÕES", or "Ações" as some blocks write it), whatever its case. */
+function section(line: string): 'actions' | 'reactions' | 'legendaryActions' | undefined {
+  return SECTIONS[line.trim().toUpperCase()];
+}
+
+/** The index of the last line before `from` that is not blank. */
+function previousFilled(all: string[], from: number): number {
+  let i = from;
+  while (i >= 0 && all[i].trim() === '') i--;
+  return i;
+}
+
+/** A line that can be a block's name: short, starting with a letter, not a sentence. */
+function isName(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.length > 0 && trimmed.length <= 60 && /^\p{L}/u.test(trimmed) && !/[.:;]$/.test(trimmed);
+}
+
 export function parseMonsters(text: string): { monsters: RawMonster[]; unrecognized: string[] } {
   const all = lines(text);
   const monsters: RawMonster[] = [];
   const unrecognized: string[] = [];
 
-  for (let i = 0; i < all.length; i++) {
-    if (!isTitle(all[i]) || SECTIONS[all[i].trim()]) continue;
-    const typeAt = nextFilled(all, i + 1);
-    if (typeAt >= all.length || !TYPE_LINE.test(all[typeAt].trim())) continue;
+  // A block is anchored on its type line followed by its Armor Class line;
+  // its name is the line before, in capitals or not ("Orog").
+  const anchors: { titleAt: number; typeAt: number; acAt: number }[] = [];
+  for (let typeAt = 0; typeAt < all.length; typeAt++) {
+    if (!TYPE_LINE.test(all[typeAt].trim())) continue;
+    const titleAt = previousFilled(all, typeAt - 1);
+    if (titleAt < 0) continue;
     const acAt = nextFilled(all, typeAt + 1);
-    if (acAt >= all.length || !all[acAt].trim().startsWith('Classe de Armadura')) {
-      unrecognized.push(all[i].trim());
+    const hasAc = acAt < all.length && all[acAt].trim().startsWith('Classe de Armadura');
+    if (!hasAc) {
+      // A title, a type line and no stat block: worth a look.
+      if (isTitle(all[titleAt])) unrecognized.push(all[titleAt].trim());
       continue;
     }
+    if (!isName(all[titleAt])) {
+      unrecognized.push(`(no name) ${all[typeAt].trim()}`);
+      continue;
+    }
+    anchors.push({ titleAt, typeAt, acAt });
+  }
 
-    // The block runs to the next title that is not one of its sections.
+  for (let a = 0; a < anchors.length; a++) {
+    const { titleAt, typeAt, acAt } = anchors[a];
+
+    // The block runs to the next block's name, or to the next title that is
+    // not one of its sections, whichever comes first.
+    const nextBlock = anchors[a + 1]?.titleAt ?? all.length;
     let end = acAt + 1;
-    while (end < all.length && !(isTitle(all[end]) && !SECTIONS[all[end].trim()])) end++;
+    while (end < nextBlock && !(isTitle(all[end]) && !section(all[end]))) end++;
     const block = all.slice(acAt, end);
 
     // The header ends with the challenge rating, or with a score the page put
     // after it (CAR below the properties, in some blocks), whichever is last
     // before the first section.
-    const firstSection = block.findIndex((line) => SECTIONS[line.trim()]);
+    const firstSection = block.findIndex((line) => section(line));
     const beforeSections = firstSection === -1 ? block.length : firstSection;
     const crAt = block.findIndex((line) => line.includes('Nível de Desafio'));
     let headEnd = crAt;
@@ -173,8 +207,8 @@ export function parseMonsters(text: string): { monsters: RawMonster[]; unrecogni
     const sections: Record<string, string[]> = { traits: [], actions: [], reactions: [], legendaryActions: [] };
     let current = 'traits';
     for (const line of block.slice(headEnd + 1)) {
-      const section = SECTIONS[line.trim()];
-      if (section) current = section;
+      const heading = section(line);
+      if (heading) current = heading;
       else sections[current].push(line);
     }
 
@@ -210,8 +244,9 @@ export function parseMonsters(text: string): { monsters: RawMonster[]; unrecogni
     if (sections.reactions.length) statBlock.reactions = named(paragraphs(sections.reactions));
     if (sections.legendaryActions.length) statBlock.legendaryActions = named(paragraphs(sections.legendaryActions), 'Ações Lendárias');
 
-    monsters.push({ name: titleCase(all[i]), creatureType, alignment, challengeRating, statBlock });
-    i = end - 1;
+    const title = all[titleAt].trim();
+    const name = isTitle(title) ? titleCase(title) : title;
+    monsters.push({ name, creatureType, alignment, challengeRating, statBlock });
   }
   return { monsters, unrecognized };
 }

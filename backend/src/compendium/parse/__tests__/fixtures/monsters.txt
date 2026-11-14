@@ -68,6 +68,19 @@ CAR 10 (+0)
 
 AÇÕES
 Golpe. Ataque Corpo-a-Corpo com Arma: +5 para atingir, alcance 1,5 m, um alvo. Acerto: 7 (1d8 + 3) de dano cortante.
+Orog Inventado
+Humanoide Médio (orc), caótico e mau
+Classe de Armadura 18 (placas) Pontos de Vida 42 (5d8 + 20) Deslocamento 9 m
+FOR 18 (+4)
+DES 12 (+1)
+CON 18 (+4)
+INT 12 (+1)
+SAB 11 (+0)
+CAR 12 (+1)
+Sentidos Percepção passiva 10 Idiomas Comum, Orc Nível de Desafio 2 (450 XP)
+Agressivo. O orog pode mover seu deslocamento até uma criatura hostil.
+Ações
+Machado Grande. Ataque Corpo-a-Corpo com Arma: +6 para atingir, alcance 1,5 m, um alvo. Acerto: 10 (1d12 + 4) de dano cortante.
 COGUMELO SEM BLOCO
 Planta Pequena, imparcial
 Esta linha deveria ser a Classe de Armadura, mas não é.

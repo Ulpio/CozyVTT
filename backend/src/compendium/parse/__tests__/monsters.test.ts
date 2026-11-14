@@ -15,7 +15,7 @@ const byName = (name: string) => monsters.find((m) => m.name === name)!;
 const block = (name: string) => byName(name).statBlock as Record<string, unknown>;
 
 it('parses a small monster block', () => {
-  expect(monsters.map((m) => m.name)).toEqual(['Lobo Teste', 'Dragão Inventado', 'Soldado Inventado']);
+  expect(monsters.map((m) => m.name)).toEqual(['Lobo Teste', 'Dragão Inventado', 'Soldado Inventado', 'Orog Inventado']);
   expect(byName('Lobo Teste')).toMatchObject({ creatureType: 'Besta Média', alignment: 'imparcial', challengeRating: '1/4' });
   expect(block('Lobo Teste')).toMatchObject({
     ac: 13,
@@ -66,4 +66,11 @@ it('reads a score that comes after the properties', () => {
   expect(soldier).toMatchObject({ skills: { athletics: 5 }, languages: 'Comum', challengeRating: '3', xp: 700 });
   expect(soldier.traits).toEqual([]);
   expect((soldier.actions as { name: string }[]).map((a) => a.name)).toEqual(['Golpe']);
+});
+
+it('finds a block whose name is not in capitals, with its sections in lower case', () => {
+  const orog = block('Orog Inventado');
+  expect(orog).toMatchObject({ ac: 18, challengeRating: '2' });
+  expect((orog.traits as { name: string }[]).map((t) => t.name)).toEqual(['Agressivo']);
+  expect((orog.actions as { name: string }[]).map((a) => a.name)).toEqual(['Machado Grande']);
 });
