@@ -779,6 +779,11 @@ model CreatureTemplate {
   campaignId   String?    // null = available globally, set = campaign-specific
   campaign     Campaign?  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
+  // A book's creature (source = a CompendiumBook id) the admin corrected in
+  // the app: a compendium import leaves it as it is unless forced.
+  editedAt     DateTime?
+  editedById   String?
+
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -790,6 +795,45 @@ model CreatureTemplate {
   @@index([campaignId])
   @@index([name])
   @@index([createdById])
+}
+
+// ============================================
+// COMPENDIUM (rules data from the owner's books)
+// ============================================
+// Each entry comes from one book (phb, mm, dmg, srd). The book's text stays
+// on the server: it is imported from files kept out of git
+// (src/compendium). Monsters are not here: they are global CreatureTemplate
+// rows whose `source` is the book's id.
+
+model CompendiumBook {
+  id         String     @id // short and stable: phb, mm, dmg, srd
+  name       String
+  gameSystem GameSystem
+  entries    CompendiumEntry[]
+}
+
+model CompendiumEntry {
+  id         String         @id @default(uuid())
+  bookId     String
+  book       CompendiumBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  type       String         // spell, race, subrace, class, subclass, background, feat, weapon, armor, gear, tool, pack, magicItem, condition
+  slug       String
+  name       String
+  nameEn     String?
+  // name and nameEn without accents, lower case: what a search compares
+  search     String
+  text       String
+  data       Json
+  // Corrected by the admin in the app: an import leaves it unless forced.
+  editedAt   DateTime?
+  editedById String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([bookId, type, slug])
+  @@index([type])
+  @@index([bookId])
+  @@index([search])
 }
 
 // ============================================
