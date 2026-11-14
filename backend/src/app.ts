@@ -34,6 +34,7 @@ import invitationRoutes from './routes/invitations';
 import assetRoutes from './routes/assets';
 import mapRoutes from './routes/maps';
 import creatureRoutes from './routes/creatures';
+import compendiumRoutes from './routes/compendium';
 import tokenTemplateRoutes from './routes/tokenTemplates';
 import adminRoutes from './routes/admin';
 import adminStorageRoutes from './routes/adminStorage';
@@ -253,6 +254,9 @@ export function createApp(options: AppOptions): express.Express {
 
   // Creature Library (nested under campaigns)
   app.use('/api/campaigns/:campaignId/creatures', creatureRoutes);
+
+  // Compendium: rules data from the owner's books (src/compendium)
+  app.use('/api/compendium', compendiumRoutes);
 
   // Token Templates (nested under campaigns)
   app.use('/api/campaigns/:campaignId/token-templates', tokenTemplateRoutes);
