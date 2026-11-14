@@ -1,5 +1,5 @@
 /**
- * The Admin Panel's seven tabs need about 820 px, and the row never wrapped,
+ * The Admin Panel's tabs (seven when this was written, now eight) need about 820 px, and the row never wrapped,
  * so on a phone every tab's page scrolled sideways. Below 1024 px the row now
  * scrolls in its own strip, the open tab kept in view, and on a touch screen
  * each tab is at least 44 px tall. A long name in the header breaks.
@@ -30,7 +30,11 @@ const adminService = vi.hoisted(() => ({
 }));
 vi.mock('@/services/admin.service', () => ({ adminService }));
 vi.mock('@/services/api', () => ({
-  api: { listAssets: () => new Promise<never>(() => {}), adminListAllCampaigns: () => new Promise<never>(() => {}) },
+  api: {
+    listAssets: () => new Promise<never>(() => {}),
+    adminListAllCampaigns: () => new Promise<never>(() => {}),
+    getCompendiumBooks: () => new Promise<never>(() => {}),
+  },
   default: {},
 }));
 

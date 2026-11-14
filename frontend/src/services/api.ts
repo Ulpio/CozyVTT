@@ -52,6 +52,10 @@ import type {
   CampaignInvitationSummary,
   ApiError,
   SystemStats,
+  CompendiumBook,
+  CompendiumEntry,
+  CompendiumEntrySummary,
+  CompendiumSearch,
   AdminHealth,
   AdminSystemSettings,
   AdminActivityData,
@@ -386,6 +390,32 @@ class ApiClient {
 
   async getAdminStats(): Promise<SystemStats> {
     const response = await this.client.get<SystemStats>('/api/admin/stats');
+    return response.data;
+  }
+
+  // ---- Compendium (rules data from the owner's books) ----
+
+  async getCompendiumBooks(): Promise<CompendiumBook[]> {
+    const response = await this.client.get<CompendiumBook[]>('/api/compendium/books');
+    return response.data;
+  }
+
+  async searchCompendium(params: CompendiumSearch): Promise<{ items: CompendiumEntrySummary[]; total: number }> {
+    const response = await this.client.get<{ items: CompendiumEntrySummary[]; total: number }>('/api/compendium/entries', { params });
+    return response.data;
+  }
+
+  async getCompendiumEntry(id: string): Promise<CompendiumEntry> {
+    const response = await this.client.get<CompendiumEntry>(`/api/compendium/entries/${encodeURIComponent(id)}`);
+    return response.data;
+  }
+
+  /** The admin corrects an entry; the server checks `data` against its type. */
+  async updateCompendiumEntry(
+    id: string,
+    correction: { name?: string; nameEn?: string | null; text?: string; data?: unknown }
+  ): Promise<CompendiumEntry> {
+    const response = await this.client.patch<CompendiumEntry>(`/api/compendium/entries/${encodeURIComponent(id)}`, correction);
     return response.data;
   }
 

@@ -1717,3 +1717,40 @@ export interface UserPreferences {
 // ============================================
 
 export * from './game-systems';
+
+// ============================================
+// Compendium (rules data from the owner's books; backend src/compendium)
+// ============================================
+
+export interface CompendiumBook {
+  id: string;
+  name: string;
+  gameSystem: GameSystem;
+}
+
+/** An entry as a search lists it. */
+export interface CompendiumEntrySummary {
+  id: string;
+  bookId: string;
+  type: string;
+  slug: string;
+  name: string;
+  nameEn: string | null;
+}
+
+/** An entry whole: its text and its type's data. */
+export interface CompendiumEntry extends CompendiumEntrySummary {
+  text: string;
+  data: unknown;
+  /** Set when the admin corrected it in the app; an import then leaves it. */
+  editedAt: string | null;
+  editedById: string | null;
+}
+
+export interface CompendiumSearch {
+  type?: string;
+  book?: string;
+  q?: string;
+  page?: number;
+  pageSize?: number;
+}

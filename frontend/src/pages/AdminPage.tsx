@@ -50,6 +50,7 @@ import {
   RotateCcw,
   Palette,
   LockOpen,
+  BookMarked,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -91,6 +92,8 @@ import { cn } from '@/utils/cn';
 import { assetScopeLabel } from '@/utils/assetUrl';
 import DeletionBlockers from '@/components/admin/DeletionBlockers';
 import OrphanedFilesPanel from '@/components/admin/OrphanedFilesPanel';
+import CompendiumPanel from '@/components/admin/CompendiumPanel';
+import { useTranslation } from 'react-i18next';
 import { LogActor, LogChanges } from '@/components/admin/AdminLogDetails';
 import { formatDuration, formatFileSize, formatRelativeTime, type FileSizeOptions } from '@/utils/format';
 import { tabKeyTarget } from '@/utils/tabKeys';
@@ -169,7 +172,7 @@ const LOG_LEVEL_COLORS: Record<string, string> = {
   CRITICAL: 'bg-danger/15 text-danger-ink font-bold',
 };
 
-type Tab = 'dashboard' | 'users' | 'settings' | 'appearance' | 'activity' | 'backups' | 'assets';
+type Tab = 'dashboard' | 'users' | 'settings' | 'appearance' | 'activity' | 'backups' | 'assets' | 'compendium';
 
 // ============================================
 // AdminPage
@@ -178,6 +181,7 @@ type Tab = 'dashboard' | 'users' | 'settings' | 'appearance' | 'activity' | 'bac
 export default function AdminPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -967,6 +971,7 @@ export default function AdminPage() {
     { id: 'appearance', label: 'Appearance', icon: <Palette className="w-4 h-4" /> },
     { id: 'backups',   label: 'Backups',   icon: <HardDrive className="w-4 h-4" /> },
     { id: 'activity',  label: 'Activity',  icon: <Activity className="w-4 h-4" /> },
+    { id: 'compendium', label: t('compendium.tab'), icon: <BookMarked className="w-4 h-4" /> },
   ];
 
   // The open tab is the one stop for Tab; the arrows, Home and End open
@@ -2575,6 +2580,12 @@ export default function AdminPage() {
         )}
 
         {/* ===== ACTIVITY TAB ===== */}
+        {activeTab === 'compendium' && (
+          <div role="tabpanel" id="tabpanel-compendium" aria-labelledby="tab-compendium">
+            <CompendiumPanel />
+          </div>
+        )}
+
         {activeTab === 'activity' && (
           <div role="tabpanel" id="tabpanel-activity" aria-labelledby="tab-activity">
             <div className="flex items-center justify-between mb-6">
