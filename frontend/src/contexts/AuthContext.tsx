@@ -507,6 +507,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 // useAuth Hook
 // ============================================
 
+/**
+ * The signed-in account when there is an AuthProvider above, and undefined
+ * when there is none, for a component that only adjusts to who is signed in
+ * (the creature library offering the admin a correction) and works without.
+ */
+export function useOptionalAuth(): AuthContextType | undefined {
+  return useContext(AuthContext);
+}
+
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
 

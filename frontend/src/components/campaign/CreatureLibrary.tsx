@@ -29,9 +29,10 @@ import {
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useGameStore } from '@/stores/gameStore';
 import api from '@/services/api';
+import { useOptionalAuth } from '@/contexts/AuthContext';
 import { apiErrorMessage } from '@/utils/errors';
 import { STAT_BLOCK_LIMITS, statBlockNumberBounds } from '@/constants/statBlockLimits';
-import type { CreatureTemplate, NpcStatBlock } from '@/types';
+import type { CompendiumBook, CreatureTemplate, NpcStatBlock } from '@/types';
 import { TokenType, GameSystem, AssetType, TokenDisposition } from '@/types';
 import {
   StatBlockViewer,
@@ -112,6 +113,25 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
   // ── Search & filter state ──
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
+  // The compendium's books (backend src/compendium): a creature whose source is
+  // one is a book's, such as the Monster Manual's. Only the admin corrects
+  // those, and nobody deletes them.
+  const [books, setBooks] = useState<CompendiumBook[]>([]);
+  const isAdmin = useOptionalAuth()?.user?.platformRole === 'ADMIN';
+  useEffect(() => {
+    Promise.resolve()
+      .then(() => api.getCompendiumBooks())
+      .then(setBooks)
+      .catch(() => setBooks([]));
+  }, []);
+  const bookOf = (creature: CreatureTemplate) =>
+    creature.campaignId == null ? books.find((b) => b.id === creature.source) : undefined;
+  // The books other than the SRD, which has its own entry, before Custom.
+  const sourceFilters = [
+    ...SOURCE_FILTERS.slice(0, 2),
+    ...books.filter((b) => b.id !== 'srd').map((b) => ({ value: b.id, label: b.name })),
+    ...SOURCE_FILTERS.slice(2),
+  ];
   const [crFilter, setCrFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   /**
@@ -479,7 +499,7 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
                 onChange={(e) => setSourceFilter(e.target.value)}
                 className="input-cozy text-xs flex-1"
               >
-                {SOURCE_FILTERS.map((f) => (
+                {sourceFilters.map((f) => (
                   <option key={f.value} value={f.value}>{f.label}</option>
                 ))}
               </select>
@@ -595,6 +615,9 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
                     onDelete={() => setCreatureToDelete(creature)}
                     onToggleFavorite={() => handleToggleFavorite(creature.id)}
                     onEdit={(opener) => handleEdit(creature, opener)}
+                    bookName={bookOf(creature)?.name}
+                    canEdit={bookOf(creature) ? isAdmin : creature.source !== 'srd'}
+                    canDelete={!bookOf(creature) && creature.source !== 'srd'}
                   />
                 ))
               )}
@@ -682,6 +705,9 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
                 onDelete={() => setCreatureToDelete(creature)}
                 onToggleFavorite={() => handleToggleFavorite(creature.id)}
                 onEdit={(opener) => handleEdit(creature, opener)}
+                bookName={bookOf(creature)?.name}
+                canEdit={bookOf(creature) ? isAdmin : creature.source !== 'srd'}
+                canDelete={!bookOf(creature) && creature.source !== 'srd'}
               />
             ))}
 
@@ -769,6 +795,12 @@ interface CreatureRowProps {
   onToggleFavorite: () => void;
   /** Called with the Edit button, which takes focus back when the form's step closes. */
   onEdit: (opener: HTMLElement) => void;
+  /** The book the creature comes from, when it is a book's (the Monster Manual's, say). */
+  bookName?: string;
+  /** Whether to offer Edit: a campaign's own creature, or a book's for the admin. */
+  canEdit: boolean;
+  /** Whether to offer Delete: a campaign's own creature only. */
+  canDelete: boolean;
 }
 
 function CreatureRow({
@@ -783,6 +815,9 @@ function CreatureRow({
   onDelete,
   onToggleFavorite,
   onEdit,
+  bookName,
+  canEdit,
+  canDelete,
 }: CreatureRowProps) {
   const statBlock = creature.statBlock as NpcStatBlock;
 
@@ -828,7 +863,7 @@ function CreatureRow({
               ? 'bg-info/10 text-info-ink'
               : 'bg-moss-green/10 text-brand-ink'
           }`}>
-            {creature.source === 'srd' ? 'SRD' : 'Custom'}
+            {bookName && creature.source !== 'srd' ? bookName : creature.source === 'srd' ? 'SRD' : 'Custom'}
           </span>
 
           {/* Room for the favourite star: a finger's width on a touch screen. */}
@@ -876,7 +911,7 @@ function CreatureRow({
               )}
               {isPlacing ? 'Placing...' : 'Place on Map'}
             </button>
-            {creature.source !== 'srd' && (
+            {canEdit && (
               <button
                 onClick={(e) => onEdit(e.currentTarget)}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-cozy border border-moss-green/20 text-brand-ink hover:bg-moss-green/10 transition-colors"
@@ -892,7 +927,7 @@ function CreatureRow({
             >
               <Copy className="w-3 h-3" /> Duplicate
             </button>
-            {creature.source !== 'srd' && (
+            {canDelete && (
               <button
                 onClick={onDelete}
                 aria-label={`Delete ${creature.name}`}
