@@ -146,7 +146,7 @@ O `pdftotext` existe no Git Bash do Windows, não no contêiner. Por isso a extr
 - Produces:
   - Pastas: `<dir>/raw/<livro>.txt`; `<dir>/data/<livro>/<tipo>.json` (array de `RawEntry`) e `<dir>/data/mm/monster.json` (array de `RawMonster`).
   - `importCompendium(dataDir: string, opts: { force?: boolean }): Promise<ImportReport>` com `ImportReport { created: number; updated: number; skippedEdited: string[]; monstersCreated: number; monstersUpdated: number; monstersSkippedEdited: string[] }`. Recusa (lança) se `validate` acusar problemas.
-  - `backend/scripts/compendium-extract.sh <pdfDir> <outDir>`: `pdftotext -enc UTF-8` em `D&D 5E - Livro do Jogador (Impressão Ecônomica - Sem Imagens) - Biblioteca Élfica.pdf` → `raw/phb.txt`, `D&D 5E - Manual dos Monstros (D&D Beyond 2.1) - Biblioteca Élfica.pdf` → `raw/mm.txt`, `D&D 5E - Guia do Mestre - Biblioteca Élfica.pdf` → `raw/dmg.txt`.
+  - `backend/scripts/compendium-extract.sh <pdfDir> <outDir>`: `pdftotext -enc UTF-8` no PDF do Livro do Jogador → `raw/phb.txt`, o do Manual dos Monstros → `raw/mm.txt`, o do Guia do Mestre → `raw/dmg.txt` (os nomes dos arquivos ficam só em `materiais/`).
   - CLI: `parse <outDir>` (escreve os JSON dos parsers sem apagar entradas de curadoria já presentes no mesmo arquivo: junta por `slug`, a curadoria vence), `validate <outDir>` (imprime os problemas, sai 1 se houver), `import <dataDir> [--force]`.
 
 - [ ] **Step 1: Testes** (pasta temporária com JSON inventados): `imports entries and monsters`; `updates an entry on a second import`; `skips an entry edited in the app unless forced`; `skips a monster edited in the app unless forced`; `keeps a spell and an armor with the same name`; `refuses data that fails validation`.

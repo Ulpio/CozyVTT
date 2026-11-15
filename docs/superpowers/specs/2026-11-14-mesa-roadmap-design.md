@@ -142,7 +142,7 @@ estatística). Os outros livros entram depois, um por vez.
   os livros fossem usados, então o texto passar pelo modelo está coberto. O
   resultado é um conjunto de dados revisado, guardado fora do git; não é
   preciso refazer, só acrescentar livros novos (M2, M3) do mesmo jeito.
-- **Nomes:** os da tradução que o grupo usa (os PDFs da Biblioteca Élfica,
+- **Nomes:** os da tradução que o grupo usa (a tradução em português dos livros,
   regras de 2014). A busca aceita também o nome em inglês.
 
 **Pronto quando** o Livro do Jogador e o Manual dos Monstros estão no banco,
@@ -306,7 +306,7 @@ O dono escolheu B com o editor de correções de C.
   padrão.
 - A estruturação dos livros é feita por mim (Claude), e o texto passar pelo
   modelo está coberto pelo pedido do dono de usar os livros.
-- Nomes da tradução Biblioteca Élfica, com busca também em inglês.
+- Nomes da tradução em português que o grupo usa, com busca também em inglês.
 - Backend: aditivo por preferência, mudanças de comportamento pequenas e
   documentadas quando necessárias.
 - Ícones: atribuídos no editor do compêndio, com casamento pelo nome do

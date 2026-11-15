@@ -55,7 +55,7 @@ com ataque, dano e espaços de magia automáticos (P5), itens dados pelo mestre
   ferramentas, os esquemas e testes com textos inventados para o teste.
 - **Backend aditivo**, como manda o roadmap: tabelas novas e uma migração;
   a biblioteca de criaturas recebe linhas novas, sem mudar de forma.
-- **Nomes da tradução Biblioteca Élfica**, que é a que o grupo usa (regras de
+- **Nomes da tradução em português**, que é a que o grupo usa (regras de
   2014). O nome em inglês vem junto para a busca.
 - Ambiente: Windows + Git Bash com `pdftotext` (`/ucrt64/bin/pdftotext`);
   backend Node/TypeScript/Prisma; testes de backend no banco `cozyvtt_test`.
@@ -236,7 +236,7 @@ editor de criaturas que já existe. Em português.
 - Caminho C (misto).
 - Itens mágicos do Guia do Mestre incluídos, com mecânica para os comuns.
 - O resto vem do roadmap: livros como fonte, mecânica até o 2º círculo,
-  editor de correções, nomes da Biblioteca Élfica com busca em inglês.
+  editor de correções, nomes da tradução do grupo com busca em inglês.
 
 **Minhas (o dono pode corrigir)**
 
