@@ -243,6 +243,26 @@ const ptBR: Messages = {
     },
   },
 
+  campaignCreation: {
+    methodsLegend: 'Métodos de atributos',
+    methodsHint: 'Como os jogadores podem definir os atributos ao criar um personagem. Pelo menos um fica ativo.',
+    method: {
+      POINT_BUY: 'Compra de pontos',
+      STANDARD_ARRAY: 'Conjunto padrão',
+      ROLL: 'Rolar 4d6',
+    },
+    levelLegend: 'Criação de personagem',
+    level: {
+      FAITHFUL: 'Fiel',
+      FLEXIBLE: 'Flexível',
+    },
+    levelHint: {
+      FAITHFUL: 'Segue as regras como escritas.',
+      FLEXIBLE: 'Permite que os jogadores se afastem das regras como escritas.',
+    },
+    saveFailed: 'Não foi possível salvar as configurações de criação',
+  },
+
   campaignBooks: {
     legend: 'Livros desta campanha',
     none: 'Este sistema ainda não tem livros.',

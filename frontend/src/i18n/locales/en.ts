@@ -240,6 +240,26 @@ const en = {
     },
   },
 
+  campaignCreation: {
+    methodsLegend: 'Ability score methods',
+    methodsHint: 'How players may set their scores when creating a character. At least one stays on.',
+    method: {
+      POINT_BUY: 'Point buy',
+      STANDARD_ARRAY: 'Standard array',
+      ROLL: 'Roll 4d6',
+    },
+    levelLegend: 'Character creation',
+    level: {
+      FAITHFUL: 'Faithful',
+      FLEXIBLE: 'Flexible',
+    },
+    levelHint: {
+      FAITHFUL: 'Follows the rules as written.',
+      FLEXIBLE: 'Lets players depart from the rules as written.',
+    },
+    saveFailed: 'Could not save the creation settings',
+  },
+
   campaignBooks: {
     legend: 'Books in this campaign',
     none: 'This system has no books yet.',

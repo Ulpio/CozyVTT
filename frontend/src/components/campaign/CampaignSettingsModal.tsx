@@ -27,10 +27,11 @@ import api from '@/services/api';
 import campaignService from '@/services/campaign.service';
 import InvitePlayerModal from './InvitePlayerModal';
 import CampaignBooksPicker from './CampaignBooksPicker';
+import CampaignCreationSettings from './CampaignCreationSettings';
 import { useTranslation } from 'react-i18next';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
-import { CampaignRole } from '@/types';
-import type { AccessRevoked, AssignableCampaignRole, CampaignBookChoice, CampaignMembership, CampaignInvitationSummary } from '@/types';
+import { CampaignRole, GameSystem } from '@/types';
+import type { AbilityScoreMethod, AccessRevoked, AssignableCampaignRole, CampaignDetailLevel, CampaignBookChoice, CampaignMembership, CampaignInvitationSummary } from '@/types';
 import Button from '@/components/ui/Button';
 import SlideOver, { SlideOverClose, SlideOverTitle } from '@/components/ui/SlideOver';
 import { apiErrorMessage } from '@/utils/errors';
@@ -103,6 +104,11 @@ export default function CampaignSettingsModal({
   // The campaign's system's books, loaded when the panel opens; saved at once.
   const [books, setBooks] = useState<CampaignBookChoice[] | null>(null);
   const [savingBooks, setSavingBooks] = useState(false);
+
+  // ── Character creation ───────────────────────
+  // What the creation settings show while their save is on its way; the
+  // campaign's own values otherwise. A refusal drops it, which puts them back.
+  const [creationShown, setCreationShown] = useState<{ abilityScoreMethods: AbilityScoreMethod[]; detailLevel: CampaignDetailLevel } | null>(null);
 
   // ── Chat settings ────────────────────────────
   const [chatCooldownEnabled, setChatCooldownEnabled] = useState(false);
@@ -195,6 +201,25 @@ export default function CampaignSettingsModal({
       showToast(apiErrorMessage(err) ?? t('campaignBooks.saveFailed'), 'error');
     } finally {
       setSavingBooks(false);
+    }
+  };
+
+  /** Creation settings: saved as soon as they change; shown as the campaign has them again if the save fails. */
+  const handleCreation = async (patch: Partial<{ abilityScoreMethods: AbilityScoreMethod[]; detailLevel: CampaignDetailLevel }>) => {
+    if (!campaign?.id) return;
+    const next = {
+      abilityScoreMethods: creationShown?.abilityScoreMethods ?? campaign.abilityScoreMethods,
+      detailLevel: creationShown?.detailLevel ?? campaign.detailLevel,
+      ...patch,
+    };
+    setCreationShown(next);
+    try {
+      await campaignService.updateCampaign(campaign.id, patch);
+      await refreshCampaign();
+    } catch (err) {
+      showToast(apiErrorMessage(err) ?? t('campaignCreation.saveFailed'), 'error');
+    } finally {
+      setCreationShown(null);
     }
   };
 
@@ -562,6 +587,18 @@ export default function CampaignSettingsModal({
               {books && (
                 <div className="pt-4 mt-4 border-t border-moss-green/15">
                   <CampaignBooksPicker books={books} onChange={(ids) => void handleBooks(ids)} disabled={!isGmViewer || savingBooks} />
+                </div>
+              )}
+
+              {/* ── Character creation ── */}
+              {campaign.gameSystem === GameSystem.FIFTH_EDITION && (
+                <div className="pt-4 mt-4 border-t border-moss-green/15">
+                  <CampaignCreationSettings
+                    methods={creationShown?.abilityScoreMethods ?? campaign.abilityScoreMethods}
+                    detailLevel={creationShown?.detailLevel ?? campaign.detailLevel}
+                    onChange={(patch) => void handleCreation(patch)}
+                    disabled={!isGmViewer || creationShown !== null}
+                  />
                 </div>
               )}
 

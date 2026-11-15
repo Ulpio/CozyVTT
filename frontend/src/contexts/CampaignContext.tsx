@@ -687,8 +687,8 @@ export function CampaignProvider({ children }: CampaignProviderProps) {
   useEffect(() => {
     const handleSettings = (data: CampaignSettingsUpdatedBroadcast) => {
       if (shownCampaignId.current !== data?.campaignId) return;
-      const { name, description, gameSystem, chatCooldownEnabled, chatCooldownSeconds, playersMayDraw } = data;
-      setCampaign((prev) => (prev ? { ...prev, name, description, gameSystem, chatCooldownEnabled, chatCooldownSeconds, playersMayDraw } : null));
+      const { name, description, gameSystem, chatCooldownEnabled, chatCooldownSeconds, playersMayDraw, abilityScoreMethods, detailLevel } = data;
+      setCampaign((prev) => (prev ? { ...prev, name, description, gameSystem, chatCooldownEnabled, chatCooldownSeconds, playersMayDraw, abilityScoreMethods, detailLevel } : null));
     };
     socketClient.on('campaign.settings.updated', handleSettings);
     return () => {

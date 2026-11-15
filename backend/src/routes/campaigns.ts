@@ -458,14 +458,14 @@ router.get('/:campaignId/characters', campaignMember, async (req: AuthenticatedR
   }
 });
 
+/** The ways a campaign lets players set ability scores. */
+export type AbilityScoreMethod = 'POINT_BUY' | 'STANDARD_ARRAY' | 'ROLL';
+
 /**
  * `campaign.settings.updated`: the Campaign Settings every member's page
  * shows, as stored, sent when the GM saves any of them. The frontend declares
  * the same fields (keepInStep.test.ts).
  */
-/** The ways a campaign lets players set ability scores. */
-export type AbilityScoreMethod = 'POINT_BUY' | 'STANDARD_ARRAY' | 'ROLL';
-
 export interface CampaignSettingsUpdatedBroadcast {
   campaignId: string;
   name: string;

@@ -87,3 +87,12 @@ it('takes whether players may draw', async () => {
   saved({ ...settings, playersMayDraw: true });
   expect(latest!.campaign?.playersMayDraw).toBe(true);
 });
+
+// The creation settings reach a player's page too, so their character sheet
+// offers the methods the GM allows without a reload.
+it('takes the ability score methods and the detail level', async () => {
+  await open();
+  saved({ ...settings, abilityScoreMethods: ['ROLL'], detailLevel: 'FLEXIBLE' });
+
+  expect(latest!.campaign).toMatchObject({ abilityScoreMethods: ['ROLL'], detailLevel: 'FLEXIBLE' });
+});

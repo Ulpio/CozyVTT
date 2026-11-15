@@ -9,12 +9,12 @@ import userEvent from '@testing-library/user-event';
 import type { Campaign } from '@/types';
 
 const shown = vi.hoisted(() => ({ id: 'c1' }));
-const { showToast, getCampaignBooks, setCampaignBooks } = vi.hoisted(() => ({
-  showToast: vi.fn(), getCampaignBooks: vi.fn(), setCampaignBooks: vi.fn(),
+const { showToast, getCampaignBooks, setCampaignBooks, updateCampaign } = vi.hoisted(() => ({
+  showToast: vi.fn(), getCampaignBooks: vi.fn(), setCampaignBooks: vi.fn(), updateCampaign: vi.fn(),
 }));
 vi.mock('@/contexts/CampaignContext', () => ({
   useCampaign: () => ({
-    campaign: { id: shown.id, name: 'The Keep', description: '', memberships: [], ownerId: 'dm', gameSystem: 'FIFTH_EDITION' } as unknown as Campaign,
+    campaign: { id: shown.id, name: 'The Keep', description: '', memberships: [], ownerId: 'dm', gameSystem: 'FIFTH_EDITION', abilityScoreMethods: ['POINT_BUY', 'STANDARD_ARRAY'], detailLevel: 'FAITHFUL' } as unknown as Campaign,
     refreshCampaign: vi.fn(),
     userRole: 'GM',
   }),
@@ -23,6 +23,7 @@ vi.mock('@/contexts/ToastContext', () => ({ useToast: () => ({ showToast }) }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'dm', platformRole: 'USER' } }) }));
 vi.mock('react-router', () => ({ useNavigate: () => vi.fn() }));
 vi.mock('@/services/api', () => ({ default: { getCampaignBooks, setCampaignBooks } }));
+vi.mock('@/services/campaign.service', () => ({ default: { updateCampaign } }));
 
 import CampaignSettingsModal from '../CampaignSettingsModal';
 
@@ -36,6 +37,7 @@ beforeEach(() => {
   showToast.mockReset();
   getCampaignBooks.mockReset().mockResolvedValue(books);
   setCampaignBooks.mockReset();
+  updateCampaign.mockReset();
 });
 
 it('saves the books as soon as one is ticked', async () => {
@@ -62,4 +64,21 @@ it("never shows one campaign's books for another whose books could not be read",
   view.rerender(<CampaignSettingsModal isOpen onClose={vi.fn()} onDeleted={vi.fn()} />);
   await waitFor(() => expect(getCampaignBooks).toHaveBeenCalledWith('c2'));
   await waitFor(() => expect(screen.queryByRole('checkbox', { name: 'Manual dos Monstros' })).not.toBeInTheDocument());
+});
+
+// The creation settings sit under the books for a 5e campaign and are saved
+// the moment they change.
+it('saves the creation settings as soon as one changes', async () => {
+  updateCampaign.mockResolvedValue({});
+  render(<CampaignSettingsModal isOpen onClose={vi.fn()} onDeleted={vi.fn()} />);
+  await userEvent.click(await screen.findByRole('checkbox', { name: 'Roll 4d6' }));
+  expect(updateCampaign).toHaveBeenCalledWith('c1', { abilityScoreMethods: ['POINT_BUY', 'STANDARD_ARRAY', 'ROLL'] });
+});
+
+it('says why when the creation settings are refused', async () => {
+  updateCampaign.mockRejectedValue({ response: { data: { message: 'Nope' } } });
+  render(<CampaignSettingsModal isOpen onClose={vi.fn()} onDeleted={vi.fn()} />);
+  await userEvent.click(await screen.findByRole('radio', { name: /Flexible/ }));
+  await waitFor(() => expect(showToast).toHaveBeenCalledWith('Nope', 'error'));
+  expect(screen.getByRole('radio', { name: /Faithful/ })).toBeChecked();
 });

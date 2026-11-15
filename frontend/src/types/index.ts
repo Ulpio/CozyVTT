@@ -806,13 +806,13 @@ export interface SessionState {
   annotations: Annotation[];
 }
 
-// ============================================
 /** The ways a campaign lets players set ability scores. */
 export type AbilityScoreMethod = 'POINT_BUY' | 'STANDARD_ARRAY' | 'ROLL';
 
 /** How closely guided character creation holds to the rules as written. */
 export type CampaignDetailLevel = 'FAITHFUL' | 'FLEXIBLE';
 
+// ============================================
 // Character
 // ============================================
 
