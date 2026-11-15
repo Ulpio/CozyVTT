@@ -359,7 +359,8 @@ const en = {
       subrace: 'Subrace',
       noSubrace: 'None',
       speed: 'Speed',
-      meters: '{{meters}} m',
+      // The books give meters; the sheet, as the summary, feet.
+      feet: '{{feet}} ft',
       size: 'Size',
       increases: 'Ability increases',
       darkvision: 'Darkvision',

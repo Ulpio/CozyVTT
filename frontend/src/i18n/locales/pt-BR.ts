@@ -362,7 +362,7 @@ const ptBR: Messages = {
       subrace: 'Sub-raça',
       noSubrace: 'Nenhuma',
       speed: 'Deslocamento',
-      meters: '{{meters}} m',
+      feet: '{{feet}} pés',
       size: 'Tamanho',
       increases: 'Aumento de atributos',
       darkvision: 'Visão no escuro',

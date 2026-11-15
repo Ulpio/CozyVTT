@@ -61,6 +61,8 @@ describe('GuidedCreationModal, steps 1 to 5', () => {
     expect(screen.queryByRole('radio', { name: 'Alto Elfo' })).not.toBeInTheDocument();
     // The trait text comes from the compendium entry.
     expect(screen.getAllByText(/Anão traço/).length).toBeGreaterThan(0);
+    // Speed in feet, as the summary and the saved sheet give it (7,5 m).
+    expect(screen.getByText('25 ft')).toBeInTheDocument();
     expect(next()).toBeDisabled();
 
     pick('Anão da Colina');

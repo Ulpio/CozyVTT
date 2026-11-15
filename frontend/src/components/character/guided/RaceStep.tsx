@@ -5,6 +5,7 @@
 import { useTranslation } from 'react-i18next';
 import { ABILITY_KEYS } from '@/utils/rules/fifthEdition';
 import type { RaceData, SubraceData } from '@/utils/guidedCreation/compendiumData';
+import { feet } from '@/utils/guidedCreation/buildSheet';
 import { OPTIONAL_SUBRACE_RACES } from '@/utils/guidedCreation/raceRules';
 import { ChoiceList, Details, Facts, NamedTexts } from './parts';
 import { subracesOf, type StepProps } from './stepRules';
@@ -26,8 +27,8 @@ export default function RaceStep({ data, choices, update }: StepProps) {
     return [
       [t('guidedCreation.race.increases'), increases || undefined],
       [t('guidedCreation.race.size'), d.size],
-      [t('guidedCreation.race.speed'), d.speed ? t('guidedCreation.race.meters', { meters: d.speed }) : undefined],
-      [t('guidedCreation.race.darkvision'), d.darkvision ? t('guidedCreation.race.meters', { meters: d.darkvision }) : undefined],
+      [t('guidedCreation.race.speed'), d.speed ? t('guidedCreation.race.feet', { feet: feet(d.speed) }) : undefined],
+      [t('guidedCreation.race.darkvision'), d.darkvision ? t('guidedCreation.race.feet', { feet: feet(d.darkvision) }) : undefined],
       [t('guidedCreation.race.languages'), d.languages?.join(', ')],
     ];
   };

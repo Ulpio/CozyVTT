@@ -89,7 +89,7 @@ const LONG: Record<AbilityKey, keyof FifthEditionStats> = {
  * The sheet labels speed and range in feet and weight in pounds; the books
  * give meters and kilograms (1,5 m per 5 ft, 0,5 kg per lb).
  */
-const feet = (meters: number) => Math.round((meters / 1.5) * 5);
+export const feet = (meters: number) => Math.round((meters / 1.5) * 5);
 const pounds = (kg: number) => kg * 2;
 
 /** What the proficiency boxes call armor kinds and weapon groups. */
