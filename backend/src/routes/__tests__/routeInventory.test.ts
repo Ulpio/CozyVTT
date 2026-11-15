@@ -189,6 +189,8 @@ const TESTED: Record<string, string> = {
   'GET /api/campaigns': 'routes/__tests__/characterAndCampaignCreate.e2e.test.ts',
   'POST /api/campaigns': 'routes/__tests__/characterAndCampaignCreate.e2e.test.ts',
   'GET /api/characters': 'routes/__tests__/characterAndCampaignCreate.e2e.test.ts',
+  'GET /api/campaigns/:campaignId/books': 'routes/__tests__/campaignBooks.e2e.test.ts',
+  'PUT /api/campaigns/:campaignId/books': 'routes/__tests__/campaignBooks.e2e.test.ts',
   'GET /api/compendium/books': 'routes/__tests__/compendium.e2e.test.ts',
   'GET /api/compendium/entries': 'routes/__tests__/compendium.e2e.test.ts',
   'GET /api/compendium/entries/:id': 'routes/__tests__/compendium.e2e.test.ts',

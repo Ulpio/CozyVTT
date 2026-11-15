@@ -16,6 +16,13 @@ export const CreateCampaignSchema = z.object({
   name: z.string().trim().min(1, 'Campaign name is required').max(CAMPAIGN_LIMITS.maxNameLength, `Campaign name must be ${CAMPAIGN_LIMITS.maxNameLength} characters or fewer`),
   description: z.string().max(CAMPAIGN_LIMITS.maxDescriptionLength).optional(),
   gameSystem: GameSystemSchema.nullish(),
+  // The compendium books it uses; left out, its system's books but the English SRD.
+  bookIds: z.array(z.string().max(40), { error: 'bookIds must be a list of book ids' }).max(50).optional(),
+});
+
+/** PUT /api/campaigns/:campaignId/books: the compendium books the campaign uses. */
+export const CampaignBooksSchema = z.object({
+  bookIds: z.array(z.string().max(40), { error: 'bookIds must be a list of book ids' }).max(50),
 });
 
 export type CreateCampaignInput = z.infer<typeof CreateCampaignSchema>;

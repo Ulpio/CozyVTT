@@ -19,7 +19,8 @@ import { prepareCampaignExport, ExportTooLargeError, type PreparedExport } from 
 import { CAMPAIGN_ARCHIVE_MAX_BYTES, megabytes } from '../utils/campaignArchiveSize';
 import { previewCampaignImport, importCampaign, importTempDirectory, IMPORT_FAILED_MESSAGE } from '../services/campaignImporter';
 import { ArchiveRefusedError } from '../utils/archive';
-import { CreateCampaignSchema, UpdateCampaignSchema, TransferGMSchema, CampaignInviteSchema, VibeSettingsSchema } from '../validators/campaigns';
+import { CreateCampaignSchema, UpdateCampaignSchema, TransferGMSchema, CampaignInviteSchema, VibeSettingsSchema, CampaignBooksSchema } from '../validators/campaigns';
+import { CampaignBooksError, campaignBookList, defaultBookIds, enabledBookIds, setCampaignBooks } from '../compendium/campaignBooks';
 import { CreatePersonalNoteSchema, UpdatePersonalNoteSchema, MAX_NOTES_PER_CAMPAIGN } from '../validators/personalNotes';
 import { UpdateSessionNotesSchema, EndSessionSchema } from '../validators/sessionNotes';
 import { listLeftCampaigns, getLeftCampaign, getLeftCampaignNote, getLeftCampaignNotes } from './leftCampaigns';
@@ -226,28 +227,34 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
         message: parsed.error.issues[0]?.message ?? 'Invalid campaign data',
       });
     }
-    const { name, description, gameSystem } = parsed.data;
+    const { name, description, gameSystem, bookIds } = parsed.data;
 
-    // Create campaign with default vibe settings and optional gameSystem
-    const campaign = await prisma.campaign.create({
-      data: {
-        name,
-        description: description || '',
-        ownerId: userId,
-        vibeSettings: toJson(DEFAULT_VIBE_SETTINGS),
-        gameSystem: gameSystem || null,
-      },
-    });
-
-    // Automatically add creator as GM
-    await prisma.campaignMembership.create({
-      data: {
-        userId,
-        campaignId: campaign.id,
-        role: 'GM',
-        characterIds: [],
-      },
-    });
+    // The campaign, its creator as GM and its books together: a book it
+    // cannot use refuses the whole campaign.
+    let campaign;
+    try {
+      campaign = await prisma.$transaction(async (tx) => {
+        const created = await tx.campaign.create({
+          data: {
+            name,
+            description: description || '',
+            ownerId: userId,
+            vibeSettings: toJson(DEFAULT_VIBE_SETTINGS),
+            gameSystem: gameSystem || null,
+          },
+        });
+        await tx.campaignMembership.create({
+          data: { userId, campaignId: created.id, role: 'GM', characterIds: [] },
+        });
+        await setCampaignBooks(created.id, bookIds ?? (await defaultBookIds(gameSystem || null, tx)), tx);
+        return created;
+      });
+    } catch (error) {
+      if (error instanceof CampaignBooksError) {
+        return res.status(400).json({ error: 'Validation Error', message: error.message });
+      }
+      throw error;
+    }
 
     // Fetch campaign with memberships to return complete data.
     // SECURITY: see note in GET /api/campaigns — never embed `email` in
@@ -499,7 +506,10 @@ router.put('/:campaignId', campaignGM, async (req: AuthenticatedRequest, res: Re
     if (playersMayDraw !== undefined) updateData.playersMayDraw = playersMayDraw;
 
     // Handle gameSystem update
+    let systemChanged = false;
     if (gameSystem !== undefined) {
+      const before = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { gameSystem: true } });
+      systemChanged = (before?.gameSystem ?? null) !== (gameSystem ?? null);
       // Changing the system under existing characters is allowed, but logged.
       const characterCount = await prisma.character.count({
         where: { campaignId },
@@ -523,6 +533,12 @@ router.put('/:campaignId', campaignGM, async (req: AuthenticatedRequest, res: Re
     const campaign = vibeSettings === undefined
       ? outcome.campaign
       : { ...outcome.campaign, ...(await saveVibeSettings(campaignId, req.session.userId!, vibeSettings)) };
+
+    // Another system has other books: the campaign starts over with its default.
+    if (systemChanged) {
+      await setCampaignBooks(campaignId, await defaultBookIds(campaign.gameSystem));
+      tellTableBooks(campaignId, await enabledBookIds(campaignId));
+    }
 
     // Every member's page shows these, so a player at the table follows them
     // without a reload: the chat box's cooldown, the campaign's name, whether
@@ -555,6 +571,57 @@ router.put('/:campaignId', campaignGM, async (req: AuthenticatedRequest, res: Re
       error: 'Internal Server Error',
       message: 'Failed to update campaign',
     });
+  }
+});
+
+/**
+ * Tell everyone at the table which books the campaign now uses, so an open
+ * creature library follows. Saved either way: a failed broadcast is logged.
+ */
+function tellTableBooks(campaignId: string, bookIds: string[]): void {
+  try {
+    broadcastToCampaign(campaignId, 'campaign.books.updated', { campaignId, bookIds });
+  } catch (error) {
+    logger.error('Campaign books saved but not sent to the table', { err: error, campaignId });
+  }
+}
+
+/**
+ * GET /api/campaigns/:campaignId/books
+ * The compendium books of the campaign's system, each marked enabled or not.
+ * Requires: Campaign membership (any role)
+ */
+router.get('/:campaignId/books', campaignMember, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    return res.json({ books: await campaignBookList(req.params.campaignId) });
+  } catch (error) {
+    logger.error('Error listing campaign books', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to list the campaign books' });
+  }
+});
+
+/**
+ * PUT /api/campaigns/:campaignId/books
+ * Set the books the campaign uses: { bookIds }. A book of another system,
+ * or one that does not exist, refuses the whole list.
+ * Requires: Campaign GM role
+ */
+router.put('/:campaignId/books', campaignGM, async (req: AuthenticatedRequest, res: Response) => {
+  const parsed = CampaignBooksSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Validation Error', message: issueMessages(parsed.error) });
+  }
+  const { campaignId } = req.params;
+  try {
+    await setCampaignBooks(campaignId, parsed.data.bookIds);
+    tellTableBooks(campaignId, await enabledBookIds(campaignId));
+    return res.json({ books: await campaignBookList(campaignId) });
+  } catch (error) {
+    if (error instanceof CampaignBooksError) {
+      return res.status(400).json({ error: 'Validation Error', message: error.message });
+    }
+    logger.error('Error setting campaign books', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to set the campaign books' });
   }
 });
 

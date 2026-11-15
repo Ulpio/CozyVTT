@@ -1381,6 +1381,7 @@ _Sent to: map readers are every member while the map is the one the campaign is 
 | `atmosphere.effect.updated` | The campaign | `atmosphere.ts` |
 | `authenticated` | The sender | `events.ts` |
 | `campaign.access.revoked` | One socket | `utils.ts` |
+| `campaign.books.updated` | The campaign | `campaigns.ts` |
 | `campaign.dm.transferred` | The campaign | `campaigns.ts` |
 | `campaign.gm.transferred` | The campaign | `campaigns.ts` |
 | `campaign.role.changed` | The campaign | `campaigns.ts` |
