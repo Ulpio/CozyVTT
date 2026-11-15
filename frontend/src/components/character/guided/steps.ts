@@ -18,6 +18,8 @@ import SkillsStep from './SkillsStep';
 import ClassChoicesStep from './ClassChoicesStep';
 import EquipmentStep from './EquipmentStep';
 import SpellsStep from './SpellsStep';
+import DetailsStep, { detailsComplete } from './DetailsStep';
+import ReviewStep from './ReviewStep';
 
 export type StepId = keyof Messages['guidedCreation']['steps'];
 
@@ -76,6 +78,9 @@ export const STEPS: StepDefinition[] = [
       return !model || spellsComplete(model);
     },
   },
+  { id: 'details', Component: DetailsStep, isComplete: ({ choices }) => detailsComplete(choices.details) },
+  // Done when the character is created: it closes the wizard.
+  { id: 'review', Component: ReviewStep, isComplete: () => false },
 ];
 
 /** The steps that apply to these choices, in order. */

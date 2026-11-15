@@ -25,23 +25,23 @@ import { emptyChoices, useCreationState } from './useCreationState';
 export interface GuidedCreationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** The character was created (the review step, still to come, calls it). */
+  /** The character was created (the review step calls it). */
   onCreated: (character: Character) => void;
   /** The campaign the character is made for: its books and ability-score methods. */
   campaign?: Campaign;
 }
 
-export default function GuidedCreationModal({ isOpen, onClose, campaign }: GuidedCreationModalProps) {
+export default function GuidedCreationModal({ isOpen, onClose, onCreated, campaign }: GuidedCreationModalProps) {
   const { t } = useTranslation();
   return (
     <Modal open={isOpen} onClose={onClose} title={t('guidedCreation.title')} icon={Wand2} size="full" fitViewport>
-      <Wizard campaign={campaign} />
+      <Wizard campaign={campaign} onCreated={onCreated} />
     </Modal>
   );
 }
 
 /** Mounted while the dialog is open, so each opening starts afresh (a saved roll comes back from the server). */
-function Wizard({ campaign }: { campaign?: Campaign }) {
+function Wizard({ campaign, onCreated }: { campaign?: Campaign; onCreated: (character: Character) => void }) {
   const { t } = useTranslation();
   const { data, loading, error } = useCreationData(campaign?.id);
   const roll = useAbilityRoll(campaign?.id);
@@ -51,16 +51,17 @@ function Wizard({ campaign }: { campaign?: Campaign }) {
   if (!data.races.length || !data.classes.length) {
     return <p className="text-sm text-ink">{t(campaign ? 'guidedCreation.noBooks' : 'guidedCreation.noBooksOutsideCampaign')}</p>;
   }
-  return <Steps data={data} campaign={campaign} roll={roll} />;
+  return <Steps data={data} campaign={campaign} roll={roll} onCreated={onCreated} />;
 }
 
 interface StepsProps {
   data: CreationData;
   campaign?: Campaign;
   roll: AbilityRollState;
+  onCreated: (character: Character) => void;
 }
 
-function Steps({ data, campaign, roll }: StepsProps) {
+function Steps({ data, campaign, roll, onCreated }: StepsProps) {
   const { t } = useTranslation();
   const { choices, dispatch, cleared } = useCreationState(data, () => {
     const method = availableMethods(campaign, null)[0] ?? 'POINT_BUY';
@@ -151,7 +152,7 @@ function Steps({ data, campaign, roll }: StepsProps) {
           <h3 ref={headingRef} tabIndex={-1} className="text-xl font-semibold text-brand-ink font-heading focus:outline-hidden">
             {t(`guidedCreation.steps.${step.id}`)}
           </h3>
-          <step.Component data={data} choices={choices} update={update} campaign={campaign} roll={roll} />
+          <step.Component data={data} choices={choices} update={update} campaign={campaign} roll={roll} onCreated={onCreated} />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 pt-3 shrink-0">

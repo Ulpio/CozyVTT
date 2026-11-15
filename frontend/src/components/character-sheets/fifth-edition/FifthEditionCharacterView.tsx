@@ -21,7 +21,8 @@ import {
   Dices,
 } from 'lucide-react';
 import { hitDieExpression, hitDiceMaximum, spendRoll, canSpendHitDie } from '@/utils/hitDice';
-import { Character } from '../../../types';
+import type { CampaignDetailLevel, Character } from '../../../types';
+import { useOptionalCampaign } from '@/contexts/CampaignContext';
 import type {
   FifthEditionCharacterData,
   FifthEditionSavingThrow,
@@ -63,6 +64,12 @@ interface FifthEditionCharacterViewProps {
    * the dice still roll but nothing is decremented.
    */
   onSpendHitDie?: (index: number) => void;
+  /**
+   * The detail level of the character's campaign. Without it, the campaign
+   * shown around the sheet decides, when the character is in it; a Flexible
+   * campaign leaves weight out of the inventory.
+   */
+  campaignDetailLevel?: CampaignDetailLevel;
 }
 
 type TabId = 'stats' | 'combat' | 'spells' | 'inventory' | 'features' | 'bio';
@@ -87,10 +94,12 @@ function abilityRank(key: string): number {
 /**
  * FifthEditionCharacterView - Read-only 5E character sheet
  */
-export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps> = ({ character, onEdit, onRoll, rollMode, onSpendHitDie }) => {
+export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps> = ({ character, onEdit, onRoll, rollMode, onSpendHitDie, campaignDetailLevel }) => {
   const [activeTab, setActiveTab] = useState<TabId>('stats');
   const sheetTabsId = useId();
   const data = character.data as FifthEditionCharacterData;
+  const shownIn = useOptionalCampaign()?.campaign;
+  const detailLevel = campaignDetailLevel ?? (shownIn && shownIn.id === character.campaignId ? shownIn.detailLevel : undefined);
   const [themeColor, setThemeColor] = useState(COLOR_PRESETS[0]);
   const [isCustomColor, setIsCustomColor] = useState(false);
   const [customColorHex, setCustomColorHex] = useState('');
@@ -538,7 +547,12 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
   // Render Inventory tab
   const renderInventoryTab = () => (
     <div>
-      <InventoryList inventory={data.inventory} currency={data.currency} strengthScore={data.stats?.strength?.score} />
+      <InventoryList
+        inventory={data.inventory}
+        currency={data.currency}
+        strengthScore={data.stats?.strength?.score}
+        showWeight={detailLevel !== 'FLEXIBLE'}
+      />
     </div>
   );
 

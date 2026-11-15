@@ -4,14 +4,14 @@
  * check, as the wizard does.
  */
 import { render, screen } from '@testing-library/react';
-import type { Campaign } from '@/types';
+import type { Campaign, Character } from '@/types';
 import { CREATION_DATA } from '@/utils/guidedCreation/__tests__/fixtures/creationData';
 import type { CreationChoices } from '@/utils/guidedCreation/types';
 import { STEPS, type StepId } from '../steps';
 import type { AbilityRollState } from '../useAbilityRoll';
 import { emptyChoices, useCreationState } from '../useCreationState';
 
-const NO_ROLL: AbilityRollState = {
+export const NO_ROLL: AbilityRollState = {
   roll: null,
   known: true,
   loading: false,
@@ -29,7 +29,22 @@ export interface Harness {
   choices: () => CreationChoices;
 }
 
-function StepHarness({ id, initial, campaign, out }: { id: StepId; initial: Partial<CreationChoices>; campaign?: Campaign; out: Harness }) {
+export interface HarnessOptions {
+  /** The saved roll the wizard knows of (none by default). */
+  roll?: AbilityRollState;
+  onCreated?: (character: Character) => void;
+}
+
+interface StepHarnessProps {
+  id: StepId;
+  initial: Partial<CreationChoices>;
+  campaign?: Campaign;
+  out: Harness;
+  options: HarnessOptions;
+}
+
+function StepHarness({ id, initial, campaign, out, options }: StepHarnessProps) {
+  const roll = options.roll ?? NO_ROLL;
   const { choices, dispatch } = useCreationState(CREATION_DATA, () => ({
     ...emptyChoices('STANDARD_ARRAY'),
     baseScores: BASE_SCORES,
@@ -37,7 +52,7 @@ function StepHarness({ id, initial, campaign, out }: { id: StepId; initial: Part
   }));
   out.choices = () => choices;
   const step = STEPS.find((s) => s.id === id)!;
-  const complete = step.isComplete({ data: CREATION_DATA, choices, campaign, roll: null, rollKnown: true });
+  const complete = step.isComplete({ data: CREATION_DATA, choices, campaign, roll: roll.roll, rollKnown: roll.known });
   return (
     <>
       <step.Component
@@ -45,7 +60,8 @@ function StepHarness({ id, initial, campaign, out }: { id: StepId; initial: Part
         choices={choices}
         update={(patch) => dispatch({ type: 'update', patch })}
         campaign={campaign}
-        roll={NO_ROLL}
+        roll={roll}
+        onCreated={options.onCreated}
       />
       <button type="button" disabled={!complete}>
         Next
@@ -54,9 +70,9 @@ function StepHarness({ id, initial, campaign, out }: { id: StepId; initial: Part
   );
 }
 
-export function renderStep(id: StepId, initial: Partial<CreationChoices>, campaign?: Campaign): Harness {
+export function renderStep(id: StepId, initial: Partial<CreationChoices>, campaign?: Campaign, options: HarnessOptions = {}): Harness {
   const out: Harness = { choices: () => ({}) as CreationChoices };
-  render(<StepHarness id={id} initial={initial} campaign={campaign} out={out} />);
+  render(<StepHarness id={id} initial={initial} campaign={campaign} out={out} options={options} />);
   return out;
 }
 

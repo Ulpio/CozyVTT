@@ -3,7 +3,7 @@
 // decide whether a step is done.
 // ============================================
 
-import type { AbilityRollDto, AbilityScoreMethod, Campaign } from '@/types';
+import type { AbilityRollDto, AbilityScoreMethod, Campaign, Character } from '@/types';
 import { ABILITY_KEYS } from '@/utils/rules/fifthEdition';
 import {
   POINT_BUY_MIN,
@@ -22,6 +22,8 @@ export interface StepProps {
   update: (patch: Partial<CreationChoices>) => void;
   campaign?: Campaign;
   roll: AbilityRollState;
+  /** The character was created (the review step). */
+  onCreated?: (character: Character) => void;
 }
 
 /** What a step's completeness is judged from. */

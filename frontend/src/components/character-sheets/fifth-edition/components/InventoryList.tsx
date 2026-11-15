@@ -16,6 +16,11 @@ interface InventoryListProps {
   currency?: Currency;
   /** The character's Strength score, which sets what they can carry. */
   strengthScore?: number;
+  /**
+   * Weight, total weight and carrying capacity are shown (default). Off in a
+   * Flexible campaign, which does not track them; the weights stay on the sheet.
+   */
+  showWeight?: boolean;
 }
 
 /**
@@ -51,7 +56,7 @@ const CurrencyDisplay: React.FC<{ currency: Currency }> = ({ currency }) => {
 /**
  * InventoryItem Row
  */
-const InventoryItemRow: React.FC<{ item: InventoryItem }> = ({ item }) => {
+const InventoryItemRow: React.FC<{ item: InventoryItem; showWeight: boolean }> = ({ item, showWeight }) => {
   return (
     <div className="flex items-center justify-between p-2 hover:bg-ink/5 rounded-sm border-b border-ink/10 last:border-0">
       <div className="flex-1">
@@ -88,10 +93,12 @@ const InventoryItemRow: React.FC<{ item: InventoryItem }> = ({ item }) => {
           <div className="text-xs text-ink-muted">Qty</div>
           <div>{item.quantity ?? '—'}</div>
         </div>
-        <div className="text-right">
-          <div className="text-xs text-ink-muted">Wt</div>
-          <div>{item.weight != null ? `${item.weight} lb` : '—'}</div>
-        </div>
+        {showWeight && (
+          <div className="text-right">
+            <div className="text-xs text-ink-muted">Wt</div>
+            <div>{item.weight != null ? `${item.weight} lb` : '—'}</div>
+          </div>
+        )}
         <div className="text-right">
           <div className="text-xs text-ink-muted">Value</div>
           <div>{item.value != null ? `${item.value} gp` : '—'}</div>
@@ -104,7 +111,7 @@ const InventoryItemRow: React.FC<{ item: InventoryItem }> = ({ item }) => {
 /**
  * InventoryList - Displays inventory and currency
  */
-export const InventoryList: React.FC<InventoryListProps> = ({ inventory, currency, strengthScore }) => {
+export const InventoryList: React.FC<InventoryListProps> = ({ inventory, currency, strengthScore, showWeight = true }) => {
   // The schema lets an item go without either: one with no weight weighs
   // nothing, and one with no quantity is one item.
   const totalWeight = inventory?.reduce((sum, item) => sum + (item.weight ?? 0) * (item.quantity ?? 1), 0) ?? 0;
@@ -157,11 +164,13 @@ export const InventoryList: React.FC<InventoryListProps> = ({ inventory, currenc
         <div className="p-3 bg-ink/10 border-b border-ink/10">
           <div className="flex flex-wrap items-center justify-between gap-x-4 sm:flex-nowrap">
             <h4 className="font-semibold text-ink">Equipment & Items</h4>
-            <span className="text-sm text-ink-secondary">
-              Total Weight: <span className="font-semibold">{totalWeight.toFixed(1)} lb</span>
-            </span>
+            {showWeight && (
+              <span className="text-sm text-ink-secondary">
+                Total Weight: <span className="font-semibold">{totalWeight.toFixed(1)} lb</span>
+              </span>
+            )}
           </div>
-          {strengthScore != null && (
+          {showWeight && strengthScore != null && (
             <div className="mt-1 text-right text-xs text-ink-secondary">
               Carrying capacity: {carryingCapacity(strengthScore).carry} lb (push, drag or lift{' '}
               {carryingCapacity(strengthScore).pushDragLift} lb)
@@ -171,7 +180,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({ inventory, currenc
         <div className="divide-y divide-ink/10">
           {inventory && inventory.length > 0 ? (
             inventory.map((item, index) => (
-              <InventoryItemRow key={index} item={item} />
+              <InventoryItemRow key={index} item={item} showWeight={showWeight} />
             ))
           ) : (
             <div className="p-8 text-center text-ink-muted">

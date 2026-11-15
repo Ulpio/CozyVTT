@@ -414,7 +414,16 @@ const background = (slug: string, name: string, skills: string[], tools: string[
     equipment: [],
     startingEquipmentChoices: [{ options: [{ items: [], gp: 10 }] }],
     feature: trait(`${name} característica`),
+    personality: {
+      traits: rows(`${name} traço`, 8),
+      ideals: rows(`${name} ideal`, 6),
+      bonds: rows(`${name} vínculo`, 6),
+      flaws: rows(`${name} defeito`, 6),
+    },
   });
+
+/** An invented d8/d6 table: "Soldado ideal 1", "Soldado ideal 2"... */
+const rows = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => `${prefix} ${i + 1}`);
 
 const BACKGROUNDS = [
   background('acolito', 'Acólito', ['insight', 'religion'], [], 2),

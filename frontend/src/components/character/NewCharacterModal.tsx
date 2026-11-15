@@ -12,6 +12,7 @@ import { SHEET_NAME_MAX } from '@/constants/sheetLimits';
 import api from '@/services/api';
 import Button from '@/components/ui/Button';
 import { apiErrorMessage, apiValidationIssues, errorMessage, errorSummary } from '@/utils/errors';
+import GuidedCreationModal from './guided/GuidedCreationModal';
 
 /** Set when the character was made and publishing it as a template was not. */
 export interface TemplatePublishFailure {
@@ -41,6 +42,9 @@ interface TemplateOption {
   description: string;
 }
 
+/** The 5e option that opens the guided creation instead of making a sheet. */
+const GUIDED_TEMPLATE = 'guided';
+
 const TEMPLATE_OPTIONS_BY_SYSTEM: Record<string, TemplateOption[]> = {
   [GameSystem.FIFTH_EDITION]: [
     {
@@ -52,6 +56,11 @@ const TEMPLATE_OPTIONS_BY_SYSTEM: Record<string, TemplateOption[]> = {
       value: 'fighter',
       label: 'Level 1 Fighter (Example)',
       description: 'A pre-built Fighter with standard array stats',
+    },
+    {
+      value: GUIDED_TEMPLATE,
+      label: 'Guided creation',
+      description: 'Build a 3rd-level character step by step from the compendium',
     },
   ],
   [GameSystem.FANTASY_D20]: [
@@ -99,6 +108,10 @@ export default function NewCharacterModal({
   const [loading, setLoading] = useState(false);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [error, setError] = useState('');
+  const [guidedOpen, setGuidedOpen] = useState(false);
+  const isGuided = gameSystem === GameSystem.FIFTH_EDITION && selectedTemplate === GUIDED_TEMPLATE;
+  // The wizard reads the campaign's books, methods and detail level.
+  const guidedCampaign = campaign ?? availableCampaigns.find((c) => c.id === selectedCampaignId);
 
   // Fetch user's campaigns when modal opens
   useEffect(() => {
@@ -184,6 +197,12 @@ export default function NewCharacterModal({
     const publishTemplate = alsoPublishTemplate.current;
     alsoPublishTemplate.current = false;
 
+    // The wizard asks for the name and creates the character itself.
+    if (isGuided) {
+      setGuidedOpen(true);
+      return;
+    }
+
     // Validation
     if (name.trim().length < 2) {
       setError('Character name must be at least 2 characters');
@@ -268,21 +287,40 @@ export default function NewCharacterModal({
     }
   };
 
+  const resetForm = () => {
+    setName('');
+    setSelectedCampaignId(campaign?.id || null);
+    setGameSystem(preselectedGameSystem || playedGameSystem(campaign?.gameSystem));
+    setSelectedTemplate('blank');
+    setError('');
+    setGuidedOpen(false);
+  };
+
   const handleClose = () => {
     if (!loading) {
-      setName('');
-      setSelectedCampaignId(campaign?.id || null);
-      setGameSystem(preselectedGameSystem || playedGameSystem(campaign?.gameSystem));
-      setSelectedTemplate('blank');
-      setError('');
+      resetForm();
       onClose();
     }
   };
 
-  const isFormValid = name.trim().length >= 2;
+  // The wizard made the character: it is this dialog's, and both close.
+  const handleGuidedCreated = (character: Character) => {
+    resetForm();
+    onSuccess(character);
+    onClose();
+  };
+
+  const isFormValid = isGuided || name.trim().length >= 2;
 
   return (
-    <Modal open={isOpen} onClose={handleClose} title="Create New Character" icon={User} size="lg" closeDisabled={loading}>
+    <>
+    <GuidedCreationModal
+      isOpen={isOpen && guidedOpen}
+      onClose={() => setGuidedOpen(false)}
+      onCreated={handleGuidedCreated}
+      campaign={guidedCampaign}
+    />
+    <Modal open={isOpen && !guidedOpen} onClose={handleClose} title="Create New Character" icon={User} size="lg" closeDisabled={loading}>
       {/* Error Alert */}
       {error && (
                 <div className="mb-4 bg-spirit-red/10 border border-spirit-red/30 rounded-lg p-4 max-h-60 overflow-y-auto">
@@ -294,30 +332,32 @@ export default function NewCharacterModal({
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Character Name */}
-                <div>
-                  <label
-                    htmlFor="characterName"
-                    className="block text-sm font-semibold text-ink mb-2"
-                  >
-                    Character Name <span className="text-danger-ink">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="characterName"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Aria Moonshadow"
-                    disabled={loading}
-                    maxLength={SHEET_NAME_MAX}
-                    className="input-cozy w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                    data-autofocus
-                    required
-                  />
-                  <p className="mt-1 text-xs text-ink-muted">
-                    Give your character a memorable name (2-{SHEET_NAME_MAX} characters)
-                  </p>
-                </div>
+                {/* Character Name (the wizard asks for it in the guided creation) */}
+                {!isGuided && (
+                  <div>
+                    <label
+                      htmlFor="characterName"
+                      className="block text-sm font-semibold text-ink mb-2"
+                    >
+                      Character Name <span className="text-danger-ink">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="characterName"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Aria Moonshadow"
+                      disabled={loading}
+                      maxLength={SHEET_NAME_MAX}
+                      className="input-cozy w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                      data-autofocus
+                      required
+                    />
+                    <p className="mt-1 text-xs text-ink-muted">
+                      Give your character a memorable name (2-{SHEET_NAME_MAX} characters)
+                    </p>
+                  </div>
+                )}
 
                 {/* Campaign Selection (if not from campaign context) */}
                 {!campaign && (
@@ -437,14 +477,16 @@ export default function NewCharacterModal({
                 )}
 
                 {/* Info Box */}
-                <div className="rounded-lg p-4 bg-moss-green/10 border border-moss-green/30">
-                  <p className="text-sm text-ink">
-                    <strong className="text-brand-ink">Note:</strong> After
-                    creation, the character appears in your list. Choose Edit
-                    Character from its card&apos;s menu to fill in the rest of
-                    its sheet.
-                  </p>
-                </div>
+                {!isGuided && (
+                  <div className="rounded-lg p-4 bg-moss-green/10 border border-moss-green/30">
+                    <p className="text-sm text-ink">
+                      <strong className="text-brand-ink">Note:</strong> After
+                      creation, the character appears in your list. Choose Edit
+                      Character from its card&apos;s menu to fill in the rest of
+                      its sheet.
+                    </p>
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-3 pt-2">
@@ -470,26 +512,29 @@ export default function NewCharacterModal({
                     ) : (
                       <>
                         <User className="w-4 h-4 inline-block mr-2" />
-                        Create Character
+                        {isGuided ? 'Start Guided Creation' : 'Create Character'}
                       </>
                     )}
                   </Button>
                 </div>
 
                 {/* Publish the same sheet for others to copy, in one step. */}
-                <div className="pt-1">
-                  <Button
-                    type="submit"
-                    variant="secondary"
-                    disabled={loading || !isFormValid}
-                    onClick={() => { alsoPublishTemplate.current = true; }}
-                    title="Create this character and also publish it as a template others can copy"
-                    className="w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Create &amp; Publish as Template
-                  </Button>
-                </div>
+                {!isGuided && (
+                  <div className="pt-1">
+                    <Button
+                      type="submit"
+                      variant="secondary"
+                      disabled={loading || !isFormValid}
+                      onClick={() => { alsoPublishTemplate.current = true; }}
+                      title="Create this character and also publish it as a template others can copy"
+                      className="w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Create &amp; Publish as Template
+                    </Button>
+                  </div>
+                )}
               </form>
     </Modal>
+    </>
   );
 }

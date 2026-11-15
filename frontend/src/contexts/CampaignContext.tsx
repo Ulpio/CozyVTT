@@ -1167,3 +1167,11 @@ export function useCampaign() {
 
   return context;
 }
+
+/**
+ * The campaign context when there is one, undefined outside a
+ * CampaignProvider (a sheet shown from the Characters page).
+ */
+export function useOptionalCampaign() {
+  return useContext(CampaignContext);
+}
