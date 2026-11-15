@@ -519,6 +519,14 @@ describe('buildSheet, review fixes', () => {
     expect(new Set(names).size).toBe(2);
   });
 
+  it('a pick that became always prepared (a new Land terrain) spends no prepared spell', () => {
+    // magia-2-02 is the forest terrain's; it was picked before the terrain was.
+    const druid = sample('druida');
+    const sheet = buildSheet({ ...druid, spellSlugs: ['magia-2-02', ...druid.spellSlugs] }, CREATION_DATA);
+    const prepared = sheet.spellcasting!.spells!.filter((s) => s.prepared).map((s) => s.compendiumRef!.slug);
+    expect(prepared.sort()).toEqual([...druid.spellSlugs, 'magia-2-02'].sort());
+  });
+
   it('only the known spells kept spend the free school pick', () => {
     // magia-1-03 and -07 are evocation; -01, -02, -05, -06 enchantment/illusion.
     const rogue = sample('ladino');

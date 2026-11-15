@@ -456,9 +456,12 @@ function spellcastingFor(
     for (const slug of [...fixed, ...pickedCantrips]) cantrips.set(slug, ability);
 
     const extra = subclass ? expandedSpellsFor(subclass.data, casting.maxLevel) : [];
+    // An always-prepared spell is no pick (a pick made before a Land druid's
+    // terrain made it one spends nothing), as the wizard's spells step counts.
+    const always = subclass ? alwaysPreparedFor(subclass.data, choices.optionPicks, casting.maxLevel) : [];
     const pool = new Set(
       availableSpells(data.spells, casting.list, casting.maxLevel, undefined, extra)
-        .filter((s) => s.data.level > 0)
+        .filter((s) => s.data.level > 0 && !always.includes(s.slug))
         .map((s) => s.slug),
     );
     // Picks in order until the limit; an off-school pick is kept only while free picks remain.
@@ -485,7 +488,7 @@ function spellcastingFor(
     } else {
       picked.forEach((slug) => prepare(slug, true));
     }
-    if (subclass) for (const slug of alwaysPreparedFor(subclass.data, choices.optionPicks, casting.maxLevel)) prepare(slug, true);
+    for (const slug of always) prepare(slug, true);
   }
 
   // Race, feat and option choices: cantrips with their own ability, spells always ready.
