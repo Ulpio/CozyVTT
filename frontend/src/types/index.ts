@@ -1776,6 +1776,8 @@ export interface CompendiumSearch {
   /** Search only this campaign's books (members only). */
   campaignId?: string;
   q?: string;
+  /** Each item carries its text and data. */
+  full?: boolean;
   page?: number;
   pageSize?: number;
 }

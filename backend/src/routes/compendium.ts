@@ -2,13 +2,14 @@
  * The compendium (rules data from the owner's books, src/compendium):
  *
  *   GET   /api/compendium/books          the books
- *   GET   /api/compendium/entries        search: ?type= &book= &q= &page= &pageSize=
+ *   GET   /api/compendium/entries        search: ?type= &book= &q= &page= &pageSize= &full=
  *   GET   /api/compendium/entries/:id    one entry, whole
  *   PATCH /api/compendium/entries/:id    the admin corrects an entry
  *
  * Every signed-in account reads it, except magic items, which only the admin
  * finds until the GM can hand one over (P6). `q` is compared with the
- * entry's name and English name, without accents or case. A correction is
+ * entry's name and English name, without accents or case. `full=true` adds
+ * each entry's text and data to the list. A correction is
  * checked against its type's schema and marked, so an import leaves it alone.
  */
 
@@ -39,6 +40,8 @@ const SearchQuery = z.object({
   // Search only the books this campaign uses; members only.
   campaignId: z.string().max(100).optional(),
   q: z.string().max(200).optional(),
+  // true: each item also carries its text and data.
+  full: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
 });
@@ -65,7 +68,7 @@ router.get('/books', authenticated, async (_req: AuthenticatedRequest, res: Resp
 router.get('/entries', authenticated, async (req: AuthenticatedRequest, res: Response) => {
   const parsed = SearchQuery.safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: 'Validation Error', message: issueMessages(parsed.error) });
-  const { type, book, campaignId, q, page, pageSize } = parsed.data;
+  const { type, book, campaignId, q, full, page, pageSize } = parsed.data;
 
   const where: Prisma.CompendiumEntryWhereInput = {};
   if (type) where.type = type;
@@ -90,7 +93,7 @@ router.get('/entries', authenticated, async (req: AuthenticatedRequest, res: Res
     const [items, total] = await Promise.all([
       prisma.compendiumEntry.findMany({
         where,
-        select: { id: true, bookId: true, type: true, slug: true, name: true, nameEn: true },
+        select: { id: true, bookId: true, type: true, slug: true, name: true, nameEn: true, ...(full ? { text: true, data: true, editedAt: true, editedById: true } : {}) },
         orderBy: [{ name: 'asc' }, { type: 'asc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,

@@ -96,3 +96,125 @@ it('takes bludgeoning damage as the books name it, "concussão"', () => {
   const club = spell({ mechanics: { attack: 'melee', damage: [{ dice: '1d4', type: 'concussão' }] } });
   expect(validateEntries([club], known)).toEqual([]);
 });
+
+describe('curated starting data', () => {
+  const klass = (extra: Record<string, unknown> = {}): RawEntry => ({
+    type: 'class',
+    slug: 'classe-teste',
+    name: 'Classe Teste',
+    text: 'Inventada.',
+    data: {
+      hitDie: 8,
+      savingThrows: ['str', 'con'],
+      proficiencies: { armor: [], weapons: [], tools: [] },
+      skills: { choose: 2, from: ['athletics'] },
+      startingEquipment: ['x'],
+      subclassLevel: 3,
+      features: [],
+      ...extra,
+    },
+  });
+  const background = (extra: Record<string, unknown> = {}): RawEntry => ({
+    type: 'background',
+    slug: 'antecedente-teste',
+    name: 'Antecedente Teste',
+    text: 'Inventado.',
+    data: {
+      proficiencies: { skills: [], tools: [] },
+      equipment: [],
+      feature: { name: 'Característica', description: 'Inventada.' },
+      ...extra,
+    },
+  });
+  const subclass = (mechanics: unknown): RawEntry => ({
+    type: 'subclass',
+    slug: 'subclasse-teste',
+    name: 'Subclasse Teste',
+    text: 'Inventada.',
+    data: { parent: 'classe-teste', features: [{ level: 1, name: 'A', description: 'B', mechanics }] },
+  });
+  const choices = [
+    {
+      options: [
+        { items: [{ ref: { type: 'weapon', slug: 'machado-grande' }, quantity: 1 }] },
+        { items: [{ anyOf: 'martialMeleeWeapon', quantity: 1 }, { ref: { type: 'gear', slug: 'tocha' }, quantity: 2 }], gp: 5 },
+      ],
+    },
+  ];
+
+  it('accepts a class with structured starting equipment choices', () => {
+    expect(validateEntries([klass({ startingEquipmentChoices: choices })], known)).toEqual([]);
+  });
+
+  it('rejects an equipment item with neither ref nor anyOf', () => {
+    const bad = [{ options: [{ items: [{ quantity: 1 }] }] }];
+    expect(validateEntries([klass({ startingEquipmentChoices: bad })], known)).not.toEqual([]);
+  });
+
+  it('rejects an equipment item with both ref and anyOf', () => {
+    const bad = [{ options: [{ items: [{ ref: { type: 'gear', slug: 'x' }, anyOf: 'instrument', quantity: 1 }] }] }];
+    expect(validateEntries([klass({ startingEquipmentChoices: bad })], known)).not.toEqual([]);
+  });
+
+  it('accepts a background with choices and personality', () => {
+    const personality = { traits: ['a'], ideals: ['b'], bonds: ['c'], flaws: ['d'] };
+    expect(validateEntries([background({ startingEquipmentChoices: choices, personality })], known)).toEqual([]);
+  });
+
+  it('rejects a personality table holding a non-string', () => {
+    const personality = { traits: ['a', 3], ideals: [], bonds: [], flaws: [] };
+    expect(validateEntries([background({ personality })], known)).not.toEqual([]);
+  });
+
+  it('accepts spellsBySpellLevel keyed 1 to 5', () => {
+    expect(validateEntries([subclass({ spellsBySpellLevel: { '1': ['a'], '5': ['b'] } })], known)).toEqual([]);
+  });
+
+  it('rejects spellsBySpellLevel with key 7', () => {
+    expect(validateEntries([subclass({ spellsBySpellLevel: { '7': ['a'] } })], known)).not.toEqual([]);
+  });
+
+  it('checks spellsByTerrain the same way, per terrain', () => {
+    expect(validateEntries([subclass({ spellsByTerrain: { floresta: { '2': ['a'] } } })], known)).toEqual([]);
+    expect(validateEntries([subclass({ spellsByTerrain: { floresta: { '7': ['a'] } } })], known)).not.toEqual([]);
+  });
+});
+
+describe('references to other entries', () => {
+  const withRef = (slug: string): RawEntry => ({
+    type: 'class',
+    slug: 'classe-ref',
+    name: 'Classe Ref',
+    text: 'Inventada.',
+    data: {
+      hitDie: 8,
+      savingThrows: ['str', 'con'],
+      proficiencies: { armor: [], weapons: [], tools: [] },
+      skills: { choose: 0, from: [] },
+      startingEquipment: [],
+      subclassLevel: 3,
+      features: [],
+      startingEquipmentChoices: [{ options: [{ items: [{ ref: { type: 'weapon', slug }, quantity: 1 }] }] }],
+    },
+  });
+
+  it('names an equipment ref that does not resolve', () => {
+    const slugs = new Set(['weapon:adaga']);
+    expect(validateEntries([withRef('adaga')], { ...known, slugs })).toEqual([]);
+    const issues = validateEntries([withRef('adagaa')], { ...known, slugs });
+    expect(issues.map((i) => i.message).join(' ')).toMatch(/adagaa/);
+  });
+
+  it('names a subclass spell that does not resolve', () => {
+    const entry: RawEntry = {
+      type: 'subclass',
+      slug: 'sub-ref',
+      name: 'Sub Ref',
+      text: 'Inventada.',
+      data: { parent: 'x', features: [{ level: 1, name: 'A', description: 'B', mechanics: { spellsBySpellLevel: { '1': ['sono', 'nao-existe'] } } }] },
+    };
+    const issues = validateEntries([entry], { ...known, slugs: new Set(['spell:sono']) });
+    expect(issues.map((i) => i.message).join(' ')).toMatch(/nao-existe/);
+    expect(issues).toHaveLength(1);
+  });
+});

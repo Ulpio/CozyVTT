@@ -413,8 +413,11 @@ class ApiClient {
     return response.data.books;
   }
 
-  async searchCompendium(params: CompendiumSearch): Promise<{ items: CompendiumEntrySummary[]; total: number }> {
-    const response = await this.client.get<{ items: CompendiumEntrySummary[]; total: number }>('/api/compendium/entries', { params });
+  /** A search lists summaries; with `full: true` each item is the whole entry (text and data). */
+  async searchCompendium(params: CompendiumSearch & { full: true }): Promise<{ items: CompendiumEntry[]; total: number }>;
+  async searchCompendium(params: CompendiumSearch): Promise<{ items: CompendiumEntrySummary[]; total: number }>;
+  async searchCompendium(params: CompendiumSearch): Promise<{ items: CompendiumEntrySummary[] | CompendiumEntry[]; total: number }> {
+    const response = await this.client.get<{ items: CompendiumEntrySummary[] | CompendiumEntry[]; total: number }>('/api/compendium/entries', { params });
     return response.data;
   }
 

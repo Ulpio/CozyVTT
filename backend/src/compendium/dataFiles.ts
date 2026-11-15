@@ -47,12 +47,13 @@ export function loadData(dataDir: string): CompendiumData {
 /** Everything wrong with the data; the class slugs a spell may name are the data's own classes. */
 export function validateData(data: CompendiumData): Issue[] {
   const classSlugs = new Set(data.entries.filter((e) => e.type === 'class').map((e) => e.slug));
+  const slugs = new Set(data.entries.map((e) => `${e.type}:${e.slug}`));
   const issues: Issue[] = [];
   // Slugs repeat across books, so each book is checked on its own.
   const books = new Set(data.entries.map((e) => e.bookId));
   for (const bookId of books) {
     const own = data.entries.filter((e) => e.bookId === bookId);
-    for (const issue of validateEntries(own, { classSlugs })) issues.push({ ...issue, where: `${bookId}/${issue.where}` });
+    for (const issue of validateEntries(own, { classSlugs, slugs })) issues.push({ ...issue, where: `${bookId}/${issue.where}` });
   }
   return issues.concat(validateMonsters(data.monsters));
 }

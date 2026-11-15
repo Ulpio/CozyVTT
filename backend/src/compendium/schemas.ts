@@ -41,7 +41,49 @@ const CHALLENGE_RATINGS = new Set(['0', '1/8', '1/4', '1/2', ...Array.from({ len
 
 const Damage = z.object({ dice: z.string(), type: z.string() });
 const Named = z.object({ name: z.string().min(1), description: z.string() });
-const Feature = Named.extend({ level: z.number().int().min(1).max(20), mechanics: z.unknown().optional() });
+/** Spell slugs by spell level 1 to 5, for the spells a subclass always has prepared. */
+const SpellsBySpellLevel = z.partialRecord(z.enum(['1', '2', '3', '4', '5']), z.array(z.string().min(1)));
+
+// Feature mechanics are free-form, except the subclass spell lists, which the
+// character wizard reads: by spell level, or, for the Circle of the Land, by
+// terrain and then spell level.
+const Feature = Named.extend({ level: z.number().int().min(1).max(20), mechanics: z.unknown().optional() }).superRefine(
+  (feature, ctx) => {
+    const mechanics = feature.mechanics;
+    if (!mechanics || typeof mechanics !== 'object') return;
+    const { spellsBySpellLevel, spellsByTerrain } = mechanics as Record<string, unknown>;
+    const complain = (path: (string | number)[], error: z.ZodError) => {
+      for (const issue of error.issues) ctx.addIssue({ code: 'custom', message: issue.message, path: ['mechanics', ...path, ...issue.path.map(String)] });
+    };
+    if (spellsBySpellLevel !== undefined) {
+      const parsed = SpellsBySpellLevel.safeParse(spellsBySpellLevel);
+      if (!parsed.success) complain(['spellsBySpellLevel'], parsed.error);
+    }
+    if (spellsByTerrain !== undefined) {
+      const parsed = z.record(z.string().min(1), SpellsBySpellLevel).safeParse(spellsByTerrain);
+      if (!parsed.success) complain(['spellsByTerrain'], parsed.error);
+    }
+  }
+);
+
+const ITEM_TYPES = ['weapon', 'armor', 'gear', 'tool', 'pack'] as const;
+
+/** One thing a character starts with: a compendium item, or any item of a kind to pick. */
+const EquipmentItem = z
+  .object({
+    ref: z.object({ type: z.enum(ITEM_TYPES), slug: z.string().min(1) }).optional(),
+    anyOf: z
+      .enum(['simpleWeapon', 'martialWeapon', 'simpleMeleeWeapon', 'martialMeleeWeapon', 'instrument', 'artisanTool', 'gamingSet'])
+      .optional(),
+    quantity: z.number().int().min(1),
+  })
+  .refine((item) => (item.ref === undefined) !== (item.anyOf === undefined), {
+    message: 'an item needs exactly one of ref and anyOf',
+  });
+
+const EquipmentBundle = z.object({ items: z.array(EquipmentItem), gp: z.number().int().min(0).optional() });
+/** One "(a) ... or (b) ..." choice; a single option is fixed equipment. */
+const EquipmentChoice = z.object({ options: z.array(EquipmentBundle).min(1) });
 
 const SpellMechanics = z.object({
   attack: z.enum(['melee', 'ranged']).optional(),
@@ -94,6 +136,7 @@ const Class = z.object({
   proficiencies: z.object({ armor: z.array(z.string()), weapons: z.array(z.string()), tools: z.array(z.string()) }),
   skills: z.object({ choose: z.number().int().min(0), from: z.array(z.string()) }),
   startingEquipment: z.array(z.string()),
+  startingEquipmentChoices: z.array(EquipmentChoice).optional(),
   spellcasting: z
     .object({
       ability: Ability,
@@ -113,6 +156,10 @@ const Background = z.object({
   proficiencies: z.object({ skills: z.array(z.string()), tools: z.array(z.string()) }),
   languages: z.union([z.number().int(), z.array(z.string())]).optional(),
   equipment: z.array(z.string()),
+  startingEquipmentChoices: z.array(EquipmentChoice).optional(),
+  personality: z
+    .object({ traits: z.array(z.string()), ideals: z.array(z.string()), bonds: z.array(z.string()), flaws: z.array(z.string()) })
+    .optional(),
   feature: Named,
 });
 
@@ -216,8 +263,48 @@ function diceAndDamage(entry: RawEntry): { dice: [string, string][]; damageTypes
   return { dice, damageTypes };
 }
 
-/** The problems with these entries; none means they may be imported. */
-export function validateEntries(entries: RawEntry[], known: { classSlugs: Set<string> }): Issue[] {
+/** Every compendium entry ("type:slug") a class, background or subclass points at, with where. */
+function references(entry: RawEntry): [string, string][] {
+  const data = asData(entry.data);
+  const out: [string, string][] = [];
+  if (entry.type === 'class' || entry.type === 'background') {
+    const choices = Array.isArray(data.startingEquipmentChoices) ? data.startingEquipmentChoices : [];
+    choices.forEach((choice, c) => {
+      const options = asData(choice).options;
+      (Array.isArray(options) ? options : []).forEach((option, o) => {
+        const items = asData(option).items;
+        (Array.isArray(items) ? items : []).forEach((item, i) => {
+          const ref = asData(asData(item).ref);
+          if (typeof ref.type === 'string' && typeof ref.slug === 'string') {
+            out.push([`startingEquipmentChoices[${c}].options[${o}].items[${i}].ref`, `${ref.type}:${ref.slug}`]);
+          }
+        });
+      });
+    });
+  }
+  if (entry.type === 'subclass') {
+    const features = Array.isArray(data.features) ? data.features : [];
+    features.forEach((feature, f) => {
+      const mechanics = asData(asData(feature).mechanics);
+      const lists = (value: unknown, where: string) => {
+        for (const [level, slugs] of Object.entries(asData(value))) {
+          if (Array.isArray(slugs)) for (const slug of slugs) out.push([`features[${f}].mechanics.${where}.${level}`, `spell:${String(slug)}`]);
+        }
+      };
+      lists(mechanics.spellsBySpellLevel, 'spellsBySpellLevel');
+      for (const [terrain, byLevel] of Object.entries(asData(mechanics.spellsByTerrain))) lists(byLevel, `spellsByTerrain.${terrain}`);
+    });
+  }
+  return out;
+}
+
+/**
+ * The problems with these entries; none means they may be imported. When
+ * `known.slugs` ("type:slug" of every entry there is) is given, the items a
+ * class or background starts with and the spells a subclass always has
+ * prepared must exist.
+ */
+export function validateEntries(entries: RawEntry[], known: { classSlugs: Set<string>; slugs?: Set<string> }): Issue[] {
   const issues: Issue[] = [];
   const seen = new Set<string>();
 
@@ -254,6 +341,11 @@ export function validateEntries(entries: RawEntry[], known: { classSlugs: Set<st
       const ac = Number(data.baseAc);
       const [min, max] = data.category === 'shield' ? [1, 5] : [5, 30];
       if (ac < min || ac > max) add(`baseAc ${ac} is outside ${min}–${max}`);
+    }
+    if (known.slugs) {
+      for (const [path, ref] of references(entry)) {
+        if (!known.slugs.has(ref)) add(`${path}: "${ref.slice(ref.indexOf(':') + 1)}" is not a ${ref.slice(0, ref.indexOf(':'))} in the compendium`);
+      }
     }
     if (entry.type === 'spell' && Array.isArray(data.classes)) {
       for (const cls of data.classes) if (!known.classSlugs.has(String(cls))) add(`names unknown class "${String(cls)}"`);
