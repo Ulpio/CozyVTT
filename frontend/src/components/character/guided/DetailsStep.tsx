@@ -41,6 +41,17 @@ export function drawRows(rows: string[], count: number): string[] {
   return out;
 }
 
+
+/**
+ * The field with a row picked from its table: a trait joins the others, the
+ * newest `DRAWN.traits` kept and never the same row twice; the rest take the row.
+ */
+export function withPickedRow(field: PersonalityField, value: string, row: string): string {
+  if (field !== 'traits') return row;
+  const lines = value.split('\n').filter((line) => line.trim());
+  if (lines.includes(row)) return value;
+  return [...lines, row].slice(-DRAWN.traits).join('\n');
+}
 /** A name the server takes (trimmed). */
 export const detailsComplete = (details: CreationDetails) => {
   const name = details.name.trim();
@@ -147,8 +158,7 @@ export default function DetailsStep({ data, choices, update }: StepProps) {
                       value=""
                       onChange={(e) => {
                         const row = e.target.value;
-                        // Traits are two: a picked one joins the first.
-                        if (row) setPersonality(field, field === 'traits' && value ? `${value}\n${row}` : row);
+                        if (row) setPersonality(field, withPickedRow(field, value, row));
                       }}
                       className="input-cozy max-w-[16rem] text-sm"
                     >

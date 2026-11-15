@@ -78,6 +78,27 @@ describe('DetailsStep', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Pick flaws from the table' }), { target: { value: 'Soldado defeito 2' } });
     expect(harness.choices().details.personality?.flaws).toBe('Soldado defeito 2');
   });
+
+  it('keeps two picked traits at most, never the same row twice, and one of each of the rest', () => {
+    const harness = renderStep('details', FIGHTER);
+    const pickTrait = (row: string) =>
+      fireEvent.change(screen.getByRole('combobox', { name: 'Pick personality traits from the table' }), { target: { value: row } });
+    const traits = () => harness.choices().details.personality?.traits?.split('\n');
+
+    pickTrait('Soldado traço 1');
+    pickTrait('Soldado traço 1');
+    expect(traits()).toEqual(['Soldado traço 1']);
+    pickTrait('Soldado traço 2');
+    pickTrait('Soldado traço 3');
+    // The newest two: the oldest makes room.
+    expect(traits()).toEqual(['Soldado traço 2', 'Soldado traço 3']);
+
+    const pickBond = (row: string) =>
+      fireEvent.change(screen.getByRole('combobox', { name: 'Pick bonds from the table' }), { target: { value: row } });
+    pickBond('Soldado vínculo 1');
+    pickBond('Soldado vínculo 2');
+    expect(harness.choices().details.personality?.bonds).toBe('Soldado vínculo 2');
+  });
 });
 
 describe('ReviewStep', () => {
