@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, renderHook, act } from '@testing-library/react';
-import type { CompendiumSearch } from '@/types';
+import type { Campaign, CompendiumSearch } from '@/types';
 import { CREATION_DATA } from '@/utils/guidedCreation/__tests__/fixtures/creationData';
 import GuidedCreationModal from '../GuidedCreationModal';
 import { useCreationState } from '../useCreationState';
@@ -121,11 +121,43 @@ describe('GuidedCreationModal, steps 1 to 5', () => {
     expect(next()).toBeDisabled();
   });
 
+  it('moves focus to the heading of the step it opens', async () => {
+    open();
+    await screen.findByRole('radio', { name: 'Humano' });
+    pick('Humano');
+    fireEvent.click(next());
+    expect(screen.getByRole('heading', { name: 'Class' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('heading', { name: 'Race' })).toHaveFocus();
+  });
+
+  it('says when the books have no background', async () => {
+    searchCompendium.mockImplementation((p: CompendiumSearch) => compendiumPage(p, { ...CREATION_DATA, backgrounds: [] }));
+    open();
+    await screen.findByRole('radio', { name: 'Humano' });
+    pick('Humano');
+    fireEvent.click(next());
+    pick('Guerreiro');
+    fireEvent.click(next());
+    pick('Sub campeao');
+    fireEvent.click(next());
+    expect(screen.getByText('No background is in the books.')).toBeInTheDocument();
+    expect(next()).toBeDisabled();
+  });
+
   it('shows a message instead of the steps when the compendium is empty', async () => {
     searchCompendium.mockImplementation((p: CompendiumSearch) => compendiumPage(p, EMPTY_DATA));
     open();
-    expect(await screen.findByText(/No books with character options/)).toBeInTheDocument();
+    expect(await screen.findByText('No books with character options are available.')).toBeInTheDocument();
+    expect(screen.queryByText(/campaign|GM/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
+  });
+
+  it('inside a campaign, the empty compendium points to the GM', async () => {
+    searchCompendium.mockImplementation((p: CompendiumSearch) => compendiumPage(p, EMPTY_DATA));
+    const campaign = { id: 'c1', abilityScoreMethods: ['POINT_BUY'], detailLevel: 'FLEXIBLE' } as unknown as Campaign;
+    render(<GuidedCreationModal isOpen onClose={() => {}} onCreated={() => {}} campaign={campaign} />);
+    expect(await screen.findByText(/The GM can turn them on/)).toBeInTheDocument();
   });
 
   it('shows the error when the compendium does not load', async () => {

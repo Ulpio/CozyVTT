@@ -56,11 +56,10 @@ export interface CreationDataState {
   error: string | null;
 }
 
-export function useCreationData(campaignId?: string, enabled = true): CreationDataState {
-  const [state, setState] = useState<CreationDataState>({ data: null, loading: enabled, error: null });
+export function useCreationData(campaignId?: string): CreationDataState {
+  const [state, setState] = useState<CreationDataState>({ data: null, loading: true, error: null });
 
   useEffect(() => {
-    if (!enabled) return;
     let live = true;
     setState({ data: null, loading: true, error: null });
     loadAll(campaignId).then(
@@ -73,7 +72,7 @@ export function useCreationData(campaignId?: string, enabled = true): CreationDa
     return () => {
       live = false;
     };
-  }, [campaignId, enabled]);
+  }, [campaignId]);
 
   return state;
 }

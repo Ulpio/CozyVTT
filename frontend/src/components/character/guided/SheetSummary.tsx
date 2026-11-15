@@ -3,7 +3,7 @@
 // rules give so far. Once there is a class it is the sheet buildSheet makes.
 // ============================================
 
-import { useId, useMemo } from 'react';
+import { useEffect, useId, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ABILITY_KEYS, abilityModifier, formatModifier } from '@/utils/rules/fifthEdition';
 import { finalScores } from '@/utils/guidedCreation/abilities';
@@ -22,17 +22,24 @@ export default function SheetSummary({ data, choices }: SheetSummaryProps) {
   const { t } = useTranslation();
   const titleId = useId();
 
-  const { scores, sheet } = useMemo(() => {
+  const { scores, sheet, failure } = useMemo(() => {
     const { effects } = collectEffects(choices, data);
     const scores = finalScores(choices.baseScores, effects, abilityPicksOf(choices));
-    if (!data.classes.some((c) => c.slug === choices.classSlug)) return { scores, sheet: null };
+    if (!data.classes.some((c) => c.slug === choices.classSlug)) return { scores, sheet: null, failure: null };
     try {
-      return { scores, sheet: buildSheet(choices, data) };
+      return { scores, sheet: buildSheet(choices, data), failure: null };
     } catch (err) {
-      console.error('Guided creation summary:', errorSummary(err));
-      return { scores, sheet: null };
+      return { scores, sheet: null, failure: err };
     }
   }, [choices, data]);
+
+  // The summary recomputes on every pick: say once that the sheet cannot be built, not on each one.
+  const logged = useRef(false);
+  useEffect(() => {
+    if (!failure || logged.current) return;
+    logged.current = true;
+    console.error('Guided creation summary:', errorSummary(failure));
+  }, [failure]);
 
   const name = <T extends { slug: string; name: string }>(list: T[], slug: string | undefined) =>
     slug ? list.find((e) => e.slug === slug)?.name : undefined;

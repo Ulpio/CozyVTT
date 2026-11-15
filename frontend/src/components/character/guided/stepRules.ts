@@ -31,17 +31,22 @@ export interface StepCheck {
   choices: CreationChoices;
   campaign?: Campaign;
   roll: AbilityRollDto | null;
+  /** The server has answered whether a roll is saved. */
+  rollKnown: boolean;
 }
 
 export const ALL_METHODS: AbilityScoreMethod[] = ['POINT_BUY', 'STANDARD_ARRAY', 'ROLL'];
 
 /**
- * The methods the player may use: the campaign's (all three outside one), plus
- * Roll when a roll is already saved, since it was made while the campaign allowed it.
+ * The methods the player may use: the campaign's (all three outside one). Once
+ * a roll exists, only Roll: the roll is never set aside for another method
+ * (ledger ruling), and it stays offered after the campaign dropped Roll, since
+ * it was made while the campaign allowed it.
  */
 export function availableMethods(campaign: Campaign | undefined, roll: AbilityRollDto | null): AbilityScoreMethod[] {
+  if (roll) return ['ROLL'];
   const allowed = campaign ? campaign.abilityScoreMethods : ALL_METHODS;
-  return ALL_METHODS.filter((m) => allowed.includes(m) || (m === 'ROLL' && !!roll));
+  return ALL_METHODS.filter((m) => allowed.includes(m));
 }
 
 export function subracesOf(data: CreationData, raceSlug: string) {
@@ -62,8 +67,11 @@ export function raceComplete({ data, choices }: StepCheck): boolean {
   );
 }
 
-export function abilitiesComplete({ data, choices, campaign, roll }: StepCheck): boolean {
+export function abilitiesComplete({ data, choices, campaign, roll, rollKnown }: StepCheck): boolean {
+  // Until the server says whether a roll is saved, no method can be trusted.
+  if (!rollKnown) return false;
   if (!availableMethods(campaign, roll).includes(choices.method)) return false;
+  if (roll && choices.abilityRollId !== roll.id) return false;
   const totals = roll?.rolls.map((r) => r.total);
   if (validateBaseScores(choices.method, choices.baseScores, totals).length) return false;
   const { effects } = collectEffects(choices, data);

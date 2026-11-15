@@ -1,11 +1,11 @@
 // ============================================
-// Step 5: ability scores. The methods are the campaign's (a saved roll is
-// offered even when the campaign has since dropped Roll); racial increases
-// are shown apart from the base scores; the half-elf and the variant human
-// pick their +1s here.
+// Step 5: ability scores. The methods are the campaign's; once a roll exists
+// it is the only method (ledger ruling), even when the campaign has since
+// dropped Roll. Racial increases are shown apart from the base scores; the
+// half-elf and the variant human pick their +1s here.
 // ============================================
 
-import { useEffect, useId, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dices } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -22,13 +22,13 @@ import {
 import { abilityPicksOf, collectEffects } from '@/utils/guidedCreation/collectEffects';
 import type { AbilityKey, Effect } from '@/utils/guidedCreation/types';
 import { cn } from '@/utils/cn';
+import { ChoiceList } from './parts';
 import { availableMethods, defaultScores, rollTotals, type StepProps } from './stepRules';
 
 const POINT_BUY_VALUES = Array.from({ length: POINT_BUY_MAX - POINT_BUY_MIN + 1 }, (_, i) => POINT_BUY_MIN + i);
 
 export default function AbilitiesStep({ data, choices, update, campaign, roll }: StepProps) {
   const { t } = useTranslation();
-  const panelId = useId();
   const methods = availableMethods(campaign, roll.roll);
   const totals = rollTotals(roll.roll);
   const { method, baseScores } = choices;
@@ -40,11 +40,13 @@ export default function AbilitiesStep({ data, choices, update, campaign, roll }:
       abilityRollId: next === 'ROLL' ? roll.roll?.id : undefined,
     });
 
-  // A method the campaign does not offer (the default before the campaign was read) gives way to the first it does.
+  // The chosen method must be one offered: the first the campaign offers at the
+  // start, and Roll alone once a roll exists. Waits for the roll lookup, which
+  // decides between the two.
   useEffect(() => {
-    if (methods.length && !methods.includes(method)) choose(methods[0]);
+    if (roll.known && methods.length && !methods.includes(method)) choose(methods[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs when the offered methods or the chosen one change, not on every new list
-  }, [methods.join(), method]);
+  }, [roll.known, methods.join(), method]);
 
   const effects = useMemo(() => collectEffects(choices, data).effects, [choices, data]);
   const picks = abilityPicksOf(choices);
@@ -65,6 +67,20 @@ export default function AbilitiesStep({ data, choices, update, campaign, roll }:
     update({ baseScores: next });
   };
 
+  if (!roll.known) {
+    if (roll.lookupFailed) {
+      return (
+        <div role="alert" className="space-y-2">
+          <p className="text-sm text-danger-ink">{t('guidedCreation.abilities.lookupFailed')}</p>
+          <Button type="button" variant="secondary" onClick={roll.retry}>
+            {t('common.tryAgain')}
+          </Button>
+        </div>
+      );
+    }
+    return <p className="text-sm text-warm-gray">{t('guidedCreation.abilities.rollLoading')}</p>;
+  }
+
   const pool = method === 'STANDARD_ARRAY' ? [...STANDARD_ARRAY] : method === 'ROLL' ? (totals ?? []) : POINT_BUY_VALUES;
   const options = [...new Set(pool)].sort((a, b) => b - a);
   const showTable = method !== 'ROLL' || !!roll.roll;
@@ -72,26 +88,14 @@ export default function AbilitiesStep({ data, choices, update, campaign, roll }:
 
   return (
     <div className="space-y-4">
-      <div role="tablist" aria-label={t('guidedCreation.abilities.methods')} className="flex flex-wrap gap-2">
-        {methods.map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="tab"
-            aria-selected={method === m}
-            aria-controls={panelId}
-            onClick={() => method !== m && choose(m)}
-            className={cn(
-              'rounded-cozy border px-3 py-2 text-sm touch-target',
-              method === m ? 'border-moss-green bg-moss-green/10 text-ink font-semibold' : 'border-ink/15 text-stone-gray hover:bg-ink/5',
-            )}
-          >
-            {t(`guidedCreation.abilities.method.${m}`)}
-          </button>
-        ))}
-      </div>
+      <ChoiceList
+        legend={t('guidedCreation.abilities.methods')}
+        items={methods.map((m) => ({ value: m, label: t(`guidedCreation.abilities.method.${m}`) }))}
+        selected={method}
+        onSelect={(m) => m !== method && choose(m as AbilityScoreMethod)}
+      />
 
-      <div id={panelId} role="tabpanel" className="space-y-4">
+      <div className="space-y-4">
         {method === 'POINT_BUY' && (
           <p className={cn('text-sm font-semibold', pointsLeft < 0 ? 'text-danger-ink' : 'text-ink')}>
             {t('guidedCreation.abilities.pointsLeft', { count: pointsLeft })}
@@ -103,7 +107,6 @@ export default function AbilitiesStep({ data, choices, update, campaign, roll }:
           <RollPanel
             totals={totals}
             title={(i) => roll.roll?.rolls[i].dice.join(', ')}
-            loading={roll.loading}
             rolling={roll.rolling}
             failed={roll.failed}
             onRoll={doRoll}
@@ -164,14 +167,13 @@ export default function AbilitiesStep({ data, choices, update, campaign, roll }:
 interface RollPanelProps {
   totals: number[] | undefined;
   title: (i: number) => string | undefined;
-  loading: boolean;
   rolling: boolean;
   failed: boolean;
   onRoll: () => void;
 }
 
 /** The saved roll, or the one button that makes it. There is no rolling again. */
-function RollPanel({ totals, title, loading, rolling, failed, onRoll }: RollPanelProps) {
+function RollPanel({ totals, title, rolling, failed, onRoll }: RollPanelProps) {
   const { t } = useTranslation();
   if (totals) {
     return (
@@ -187,7 +189,6 @@ function RollPanel({ totals, title, loading, rolling, failed, onRoll }: RollPane
       </div>
     );
   }
-  if (loading) return <p className="text-sm text-warm-gray">{t('guidedCreation.abilities.rollLoading')}</p>;
   return (
     <div className="space-y-2">
       <p className="text-sm text-warm-gray">{t('guidedCreation.abilities.rollHint')}</p>

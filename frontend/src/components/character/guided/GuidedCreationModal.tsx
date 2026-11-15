@@ -49,7 +49,7 @@ function Wizard({ campaign }: { campaign?: Campaign }) {
   if (loading) return <p className="text-sm text-warm-gray">{t('guidedCreation.loading')}</p>;
   if (error || !data) return <p role="alert" className="text-sm text-danger-ink">{t('guidedCreation.loadFailed')}</p>;
   if (!data.races.length || !data.classes.length) {
-    return <p className="text-sm text-ink">{t('guidedCreation.noBooks')}</p>;
+    return <p className="text-sm text-ink">{t(campaign ? 'guidedCreation.noBooks' : 'guidedCreation.noBooksOutsideCampaign')}</p>;
   }
   return <Steps data={data} campaign={campaign} roll={roll} />;
 }
@@ -71,23 +71,31 @@ function Steps({ data, campaign, roll }: StepsProps) {
   const update = (patch: Partial<CreationChoices>) =>
     dispatch({ type: 'update', patch });
 
-  // A roll saved earlier (this wizard was closed, or the page reloaded) is the one to use.
-  const savedRollUsed = useRef(false);
+  // Once a roll exists (saved earlier, or just made) it is the method, and the only one (ledger ruling).
+  const rollId = roll.roll?.id;
   useEffect(() => {
-    if (!roll.roll || savedRollUsed.current) return;
-    savedRollUsed.current = true;
-    if (choices.abilityRollId === roll.roll.id) return;
+    if (!roll.roll || (choices.method === 'ROLL' && choices.abilityRollId === roll.roll.id)) return;
     update({ method: 'ROLL', baseScores: defaultScores('ROLL', rollTotals(roll.roll)), abilityRollId: roll.roll.id });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the saved roll is known
-  }, [roll.roll]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- follows the roll and the chosen method only
+  }, [rollId, choices.method, choices.abilityRollId]);
 
-  const check = { data, choices, campaign, roll: roll.roll };
+  const check = { data, choices, campaign, roll: roll.roll, rollKnown: roll.known };
   const complete = STEPS.map((s) => s.isComplete(check));
   // A step can be opened once every step before it is done.
   const firstOpen = complete.findIndex((done) => !done);
   const reachable = (i: number) => firstOpen === -1 || i <= firstOpen;
   const step = STEPS[current];
   const isLast = current === STEPS.length - 1;
+
+  // A screen reader and the keyboard land on the step just opened, not on the
+  // button that opened it (the first step keeps the dialog's own focus).
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const shownStep = useRef(current);
+  useEffect(() => {
+    if (shownStep.current === current) return;
+    shownStep.current = current;
+    headingRef.current?.focus();
+  }, [current]);
 
   const go = (i: number) => {
     setCurrent(i);
@@ -135,7 +143,9 @@ function Steps({ data, campaign, roll }: StepsProps) {
               </button>
             </div>
           )}
-          <h3 className="text-xl font-semibold text-brand-ink font-heading">{t(`guidedCreation.steps.${step.id}`)}</h3>
+          <h3 ref={headingRef} tabIndex={-1} className="text-xl font-semibold text-brand-ink font-heading focus:outline-hidden">
+            {t(`guidedCreation.steps.${step.id}`)}
+          </h3>
           <step.Component data={data} choices={choices} update={update} campaign={campaign} roll={roll} />
         </div>
 

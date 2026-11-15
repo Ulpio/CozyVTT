@@ -61,16 +61,16 @@ const row = (ability: string) => screen.getByRole('row', { name: new RegExp(abil
 describe('AbilitiesStep', () => {
   it('offers every method outside a campaign', async () => {
     await toAbilities();
-    expect(screen.getByRole('tab', { name: 'Point buy' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Standard array' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Roll 4d6' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Point buy' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Standard array' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Roll 4d6' })).toBeInTheDocument();
   });
 
   it('offers only the campaign methods', async () => {
     await toAbilities(campaignWith(['STANDARD_ARRAY']));
-    expect(screen.queryByRole('tab', { name: 'Point buy' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Roll 4d6' })).not.toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Standard array' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('radio', { name: 'Point buy' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Roll 4d6' })).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Standard array' })).toBeChecked();
     expect(next()).toBeEnabled();
   });
 
@@ -116,11 +116,41 @@ describe('AbilitiesStep', () => {
     getAbilityRoll.mockResolvedValue(ROLL);
     await toAbilities(campaignWith(['POINT_BUY']));
     expect(getAbilityRoll).toHaveBeenCalledWith('camp-1');
-    expect(screen.getByRole('tab', { name: 'Roll 4d6' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('radio', { name: 'Roll 4d6' })).toBeChecked();
     const list = screen.getByRole('list', { name: 'Rolled scores' });
     expect(within(list).getAllByRole('listitem')).toHaveLength(6);
     expect(rollAbilities).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /roll/i })).not.toBeInTheDocument();
+    // A saved roll locks the method.
+    expect(screen.queryByRole('radio', { name: 'Point buy' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Standard array' })).not.toBeInTheDocument();
+  });
+
+  it('locks the method to the roll once the player has rolled', async () => {
+    await toAbilities();
+    fireEvent.click(screen.getByRole('radio', { name: 'Roll 4d6' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Roll' }));
+    await screen.findByRole('list', { name: 'Rolled scores' });
+    expect(screen.queryByRole('radio', { name: 'Point buy' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Standard array' })).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Roll 4d6' })).toBeChecked();
+    expect(next()).toBeEnabled();
+  });
+
+  it('holds the step when the saved roll cannot be looked up, until a retry succeeds', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    getAbilityRoll.mockRejectedValueOnce(new Error('down'));
+    await toAbilities();
+    expect(screen.getByRole('alert')).toHaveTextContent(/Could not check for a saved roll/);
+    expect(screen.queryByRole('radio', { name: 'Point buy' })).not.toBeInTheDocument();
+    expect(next()).toBeDisabled();
+
+    getAbilityRoll.mockResolvedValueOnce(null);
+    fireEvent.click(screen.getByRole('button', { name: 'Try Again' }));
+    expect(await screen.findByRole('radio', { name: 'Point buy' })).toBeChecked();
+    expect(next()).toBeEnabled();
+    expect(getAbilityRoll).toHaveBeenCalledTimes(2);
+    logged.mockRestore();
   });
 
   it('shows racial bonuses apart from the base score', async () => {

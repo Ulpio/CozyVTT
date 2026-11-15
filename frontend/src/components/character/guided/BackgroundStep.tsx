@@ -13,6 +13,7 @@ export default function BackgroundStep({ data, choices, update }: StepProps) {
   const background = data.backgrounds.find((b) => b.slug === choices.backgroundSlug);
   const skillName = (s: string) =>
     (SKILL_KEYS as readonly string[]).includes(s) ? t(`guidedCreation.skill.${s as SkillKey}`) : s;
+  if (!data.backgrounds.length) return <p className="text-sm text-warm-gray">{t('guidedCreation.background.none')}</p>;
   const languages = (l: number | string[] | undefined) =>
     typeof l === 'number' ? (l > 0 ? t('guidedCreation.background.languagesOfChoice', { count: l }) : undefined) : l?.join(', ');
 

@@ -298,6 +298,7 @@ const ptBR: Messages = {
     loading: 'Carregando o compêndio...',
     loadFailed: 'Não foi possível carregar o compêndio. Feche e tente de novo.',
     noBooks: 'Nenhum livro com opções de personagem está ativo nesta campanha. O mestre pode ativá-los nas configurações da campanha.',
+    noBooksOutsideCampaign: 'Nenhum livro com opções de personagem está disponível.',
     cleared: 'Algumas escolhas foram desfeitas porque deixaram de valer.',
     dismiss: 'Fechar aviso',
     stepList: 'Passos da criação',
@@ -368,7 +369,7 @@ const ptBR: Messages = {
     subclass: {
       choose: 'Escolha uma subclasse',
       needClass: 'Escolha uma classe primeiro.',
-      none: 'Nenhuma subclasse desta classe está nos livros da campanha.',
+      none: 'Nenhuma subclasse desta classe está nos livros.',
     },
     background: {
       choose: 'Escolha um antecedente',
@@ -376,6 +377,7 @@ const ptBR: Messages = {
       tools: 'Ferramentas',
       languages: 'Idiomas',
       languagesOfChoice: '{{count}} à sua escolha',
+      none: 'Nenhum antecedente está nos livros.',
       feature: 'Característica',
     },
     abilities: {
@@ -397,6 +399,7 @@ const ptBR: Messages = {
       roll: 'Rolar',
       rollLoading: 'Procurando uma rolagem guardada...',
       rollFailed: 'Não foi possível rolar. Tente de novo.',
+      lookupFailed: 'Não foi possível verificar se há uma rolagem guardada. Os atributos esperam até que isso se saiba.',
       rolled: 'Valores rolados',
       rolledHint: 'Dê cada valor rolado a um atributo.',
       racialPicks: 'Aumentos raciais à sua escolha',

@@ -295,6 +295,7 @@ const en = {
     loading: 'Loading the compendium...',
     loadFailed: 'Could not load the compendium. Close and try again.',
     noBooks: 'No books with character options are on for this campaign. The GM can turn them on in the campaign settings.',
+    noBooksOutsideCampaign: 'No books with character options are available.',
     cleared: 'Some choices were cleared because they no longer apply.',
     dismiss: 'Dismiss',
     stepList: 'Creation steps',
@@ -365,7 +366,7 @@ const en = {
     subclass: {
       choose: 'Choose a subclass',
       needClass: 'Choose a class first.',
-      none: 'No subclass of this class is in the campaign books.',
+      none: 'No subclass of this class is in the books.',
     },
     background: {
       choose: 'Choose a background',
@@ -373,6 +374,7 @@ const en = {
       tools: 'Tools',
       languages: 'Languages',
       languagesOfChoice: '{{count}} of your choice',
+      none: 'No background is in the books.',
       feature: 'Feature',
     },
     abilities: {
@@ -394,6 +396,7 @@ const en = {
       roll: 'Roll',
       rollLoading: 'Looking for a saved roll...',
       rollFailed: 'Could not roll. Try again.',
+      lookupFailed: 'Could not check for a saved roll. The scores wait until it is known.',
       rolled: 'Rolled scores',
       rolledHint: 'Give each rolled score to one ability.',
       racialPicks: 'Racial increases of your choice',
