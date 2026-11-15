@@ -99,3 +99,14 @@ it('refuses the campaign search to someone outside the campaign', async () => {
   const res = await outsider.get('/api/compendium/entries').query({ campaignId, q: 'p3f talento' });
   expect(res.status).toBe(403);
 });
+
+it('keeps every book creature in a campaign with no system, which has no books to choose', async () => {
+  const res = await gm.post('/api/campaigns').send({ name: 'P3F Sem Sistema' });
+  const loose = res.body.campaign.id;
+  try {
+    const list = await gm.get(`/api/campaigns/${loose}/creatures`).query({ search: 'P3F' });
+    expect(names(list.body)).toEqual(['P3F Lobo', 'P3F Urso']);
+  } finally {
+    await cleanupCampaigns([loose]);
+  }
+});

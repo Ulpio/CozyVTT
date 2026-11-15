@@ -75,6 +75,7 @@ import { startsWithMp3Header } from '../middleware/fileValidation';
 import { isPictureAssetType, pictureLimitProblem } from '../utils/pictureLimits';
 import { getCampaignArchiveSizeLimit, megabytes } from '../utils/campaignArchiveSize';
 import logger from '../utils/logger';
+import { defaultBookIds, setCampaignBooks } from '../compendium/campaignBooks';
 
 // Unresolved: the paths built from it are stored (utils/fileUtils.ts).
 const UPLOADS_BASE = uploadsDirectorySetting();
@@ -853,6 +854,8 @@ export async function importCampaign(
           await tx.campaignMembership.create({
             data: { id: randomUUID(), userId: importingUserId, campaignId: newCampaignId, role: 'GM' },
           });
+          // The archive carries no books; the campaign starts with its system's defaults, as a new one does.
+          await setCampaignBooks(newCampaignId, await defaultBookIds(gameSystem ?? null, tx), tx);
           if (assets.length > 0) {
             await tx.asset.createMany({
               data: assets.map((a, i) => ({

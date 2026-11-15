@@ -172,6 +172,8 @@ export default function CampaignSettingsModal({
   useEffect(() => {
     if (!isOpen || !campaign?.id) return;
     let live = true;
+    // Never another campaign's list while this one's is on its way, or if it fails.
+    setBooks(null);
     api.getCampaignBooks(campaign.id).then(
       (list) => live && setBooks(list),
       (err) => live && showToast(apiErrorMessage(err) ?? t('campaignBooks.loadFailed'), 'error')

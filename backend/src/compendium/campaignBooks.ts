@@ -77,10 +77,14 @@ export async function campaignBookList(
  * those from no book, and those from a book it uses.
  */
 export async function creatureBookScope(campaignId: string, db: Db = prisma): Promise<Prisma.CreatureTemplateWhereInput> {
-  const [all, enabled] = await Promise.all([
+  const [campaign, all, enabled] = await Promise.all([
+    db.campaign.findUnique({ where: { id: campaignId }, select: { gameSystem: true } }),
     db.compendiumBook.findMany({ select: { id: true } }),
     enabledBookIds(campaignId, db),
   ]);
+  // A campaign with no system has no books to turn on, so its library keeps
+  // every creature, as it did before books were chosen per campaign.
+  if (!campaign?.gameSystem) return {};
   return {
     OR: [{ campaignId }, { source: { notIn: all.map((b) => b.id) } }, { source: { in: enabled } }],
   };

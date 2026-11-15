@@ -8,12 +8,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Campaign } from '@/types';
 
+const shown = vi.hoisted(() => ({ id: 'c1' }));
 const { showToast, getCampaignBooks, setCampaignBooks } = vi.hoisted(() => ({
   showToast: vi.fn(), getCampaignBooks: vi.fn(), setCampaignBooks: vi.fn(),
 }));
 vi.mock('@/contexts/CampaignContext', () => ({
   useCampaign: () => ({
-    campaign: { id: 'c1', name: 'The Keep', description: '', memberships: [], ownerId: 'dm', gameSystem: 'FIFTH_EDITION' } as unknown as Campaign,
+    campaign: { id: shown.id, name: 'The Keep', description: '', memberships: [], ownerId: 'dm', gameSystem: 'FIFTH_EDITION' } as unknown as Campaign,
     refreshCampaign: vi.fn(),
     userRole: 'GM',
   }),
@@ -31,6 +32,7 @@ const books = [
 ];
 
 beforeEach(() => {
+  shown.id = 'c1';
   showToast.mockReset();
   getCampaignBooks.mockReset().mockResolvedValue(books);
   setCampaignBooks.mockReset();
@@ -50,4 +52,14 @@ it('puts the books back and says why when the save fails', async () => {
   await userEvent.click(await screen.findByRole('checkbox', { name: 'Manual dos Monstros' }));
   await waitFor(() => expect(showToast).toHaveBeenCalledWith('This campaign cannot use the book mm', 'error'));
   expect(screen.getByRole('checkbox', { name: 'Manual dos Monstros' })).not.toBeChecked();
+});
+
+it("never shows one campaign's books for another whose books could not be read", async () => {
+  const view = render(<CampaignSettingsModal isOpen onClose={vi.fn()} onDeleted={vi.fn()} />);
+  await screen.findByRole('checkbox', { name: 'Manual dos Monstros' });
+  getCampaignBooks.mockRejectedValue(new Error('offline'));
+  shown.id = 'c2';
+  view.rerender(<CampaignSettingsModal isOpen onClose={vi.fn()} onDeleted={vi.fn()} />);
+  await waitFor(() => expect(getCampaignBooks).toHaveBeenCalledWith('c2'));
+  await waitFor(() => expect(screen.queryByRole('checkbox', { name: 'Manual dos Monstros' })).not.toBeInTheDocument());
 });

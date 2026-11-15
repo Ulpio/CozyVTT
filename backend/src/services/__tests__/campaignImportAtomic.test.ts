@@ -183,3 +183,9 @@ describe('a campaign import that succeeds', () => {
     expect(campaign.currentMapId).toBe(maps[0].id);
   });
 });
+
+it("gives an imported campaign its system's books, as a new one gets them", async () => {
+  const { campaignId } = await importCampaign(await archive([map('Cellar')]), userId);
+  const books = await prisma.campaignBook.findMany({ where: { campaignId }, select: { bookId: true } });
+  expect(books.map((b) => b.bookId).sort()).toEqual(['dmg', 'mm', 'phb']);
+});
