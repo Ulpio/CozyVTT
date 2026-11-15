@@ -394,7 +394,7 @@
       {
         "level": 1,
         "name": "S magia-1-04",
-        "prepared": true,
+        "prepared": false,
         "ritual": false,
         "concentration": true,
         "compendiumRef": {
@@ -405,7 +405,7 @@
       {
         "level": 1,
         "name": "S magia-1-05",
-        "prepared": true,
+        "prepared": false,
         "ritual": false,
         "concentration": false,
         "compendiumRef": {
@@ -416,7 +416,7 @@
       {
         "level": 1,
         "name": "S magia-1-06",
-        "prepared": true,
+        "prepared": false,
         "ritual": true,
         "concentration": false,
         "compendiumRef": {
@@ -427,7 +427,7 @@
       {
         "level": 1,
         "name": "S magia-1-07",
-        "prepared": false,
+        "prepared": true,
         "ritual": false,
         "concentration": true,
         "compendiumRef": {
@@ -438,7 +438,7 @@
       {
         "level": 1,
         "name": "S magia-1-08",
-        "prepared": false,
+        "prepared": true,
         "ritual": false,
         "concentration": false,
         "compendiumRef": {
@@ -460,7 +460,7 @@
       {
         "level": 2,
         "name": "S magia-2-02",
-        "prepared": false,
+        "prepared": true,
         "ritual": false,
         "concentration": false,
         "compendiumRef": {

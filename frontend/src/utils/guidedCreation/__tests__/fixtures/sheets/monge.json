@@ -243,14 +243,14 @@
   "proficiencies": {
     "armor": "",
     "weapons": "Armas simples, Espada curta",
-    "tools": "Kit de jogo: conjunto de dados, Um tipo de ferramenta à escolha, Veículos (terrestres)",
+    "tools": "Kit de jogo: conjunto de dados, Ferramentas de ferreiro, Veículos (terrestres)",
     "languages": "Comum, Élfico"
   },
   "proficienciesAndLanguages": [
     "Armas simples",
     "Espada curta",
     "Kit de jogo: conjunto de dados",
-    "Um tipo de ferramenta à escolha",
+    "Ferramentas de ferreiro",
     "Veículos (terrestres)",
     "Comum",
     "Élfico"

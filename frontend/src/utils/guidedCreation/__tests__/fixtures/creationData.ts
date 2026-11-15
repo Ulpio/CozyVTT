@@ -94,6 +94,7 @@ const TOOLS = [
   entry('kit-de-herbalismo', 'Kit de herbalismo', { weight: 1.5 }),
   entry('alaude', 'Alaúde', { weight: 1 }),
   entry('flauta', 'Flauta', { weight: 0.5 }),
+  entry('lira', 'Lira', { weight: 1 }),
   entry('ferramentas-de-ferreiro', 'Ferramentas de ferreiro', { weight: 4 }),
   entry('kit-de-jogo-conjunto-de-dados', 'Kit de jogo: conjunto de dados', {}),
 ];
@@ -246,6 +247,16 @@ const CLASSES = [
   }),
   cls('guerreiro', 'Guerreiro', {
     hitDie: 10,
+    features: [
+      feature('Guerreiro 1', 1),
+      {
+        name: 'Estilo de Luta',
+        level: 1,
+        description: `${TEXT}\nARQUEARIA - Arquearia, texto inventado.\nDEFESA - Defesa, texto inventado.\nDUELISMO - Duelismo, texto inventado.`,
+      },
+      feature('Guerreiro 2', 2),
+      feature('Guerreiro 5', 5),
+    ],
     savingThrows: ['str', 'con'],
     proficiencies: { armor: ['Todas as armaduras', 'escudos'], weapons: [], tools: [] },
     skills: { choose: 2, from: ['acrobatics', 'animalHandling', 'athletics', 'history', 'insight', 'intimidation', 'perception', 'survival'] },
@@ -332,6 +343,7 @@ const SUBCLASSES = [
   ]),
   sub('linhagem-draconica', 'feiticeiro'),
   sub('campeao', 'guerreiro'),
+  sub('cavaleiro-arcano', 'guerreiro'),
   sub('trapaceiro-arcano', 'ladino'),
   sub('escola-de-evocacao', 'mago'),
   sub('caminho-dos-quatro-elementos', 'monge'),
@@ -404,7 +416,12 @@ const BACKGROUNDS = [
   background('forasteiro', 'Forasteiro', ['athletics', 'survival'], ['Um tipo de instrumento musical'], 1),
 ];
 
-const FEATS = [entry('mobilidade', 'Mobilidade', {}), entry('alerta', 'Alerta', {}), entry('robusto', 'Robusto', {})];
+const FEATS = [
+  entry('mobilidade', 'Mobilidade', {}),
+  entry('alerta', 'Alerta', {}),
+  entry('robusto', 'Robusto', {}),
+  entry('perito', 'Perito', {}),
+];
 
 export const CREATION_DATA: CreationData = {
   races: RACES,

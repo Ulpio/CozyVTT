@@ -52,3 +52,17 @@ const BACKGROUND_TOOL_PICKS: Array<[RegExp, ToolCategory]> = [
 export function backgroundToolCategory(line: string): ToolCategory | undefined {
   return BACKGROUND_TOOL_PICKS.find(([re]) => re.test(line.trim()))?.[1];
 }
+
+/** The tool slugs of one group or several (a choice may allow more than one). */
+export function toolsOf(category: ToolCategory | ToolCategory[]): string[] {
+  return (Array.isArray(category) ? category : [category]).flatMap((c) => TOOL_CATEGORIES[c]);
+}
+
+/**
+ * A class tool line that is a pick ("Três instrumentos musicais, à sua
+ * escolha"): the class rules hold it as a toolChoice, so the line itself is not
+ * a proficiency.
+ */
+export function isClassToolPick(line: string): boolean {
+  return /escolha/i.test(line);
+}

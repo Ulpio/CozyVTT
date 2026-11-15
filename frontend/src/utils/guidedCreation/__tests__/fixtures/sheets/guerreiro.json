@@ -286,6 +286,10 @@
       "description": "Texto de exemplo, inventado para os testes. (Guerreiro 1)"
     },
     {
+      "name": "Estilo de Luta",
+      "description": "Texto de exemplo, inventado para os testes.\nARQUEARIA - Arquearia, texto inventado.\nDEFESA - Defesa, texto inventado.\nDUELISMO - Duelismo, texto inventado."
+    },
+    {
       "name": "Guerreiro 2",
       "description": "Texto de exemplo, inventado para os testes. (Guerreiro 2)"
     },

@@ -203,6 +203,15 @@ describe('resolveEquipment', () => {
     expect(out.inventory).toEqual([]);
   });
 
+  it('a choice with one offered option needs no pick', () => {
+    // A cleric without martial weapons is offered only option (a) of the first choice.
+    const offered = offeredOptions(CLERIC, BACKGROUND, CLERIC_PROFS, ITEMS);
+    expect(offered[0]).toEqual([0]);
+    const first = CLERIC.startingEquipmentChoices![0].options[0].items[0].ref!.slug;
+    const out = resolveEquipment(CLERIC, BACKGROUND, [], {}, ITEMS, CLERIC_PROFS);
+    expect(out.inventory.map((i) => i.slug)).toContain(first);
+  });
+
   it('a pick that is not offered falls back to the first offered option', () => {
     // Chain mail (option 2) is not offered to a cleric without heavy armor.
     const out = resolveEquipment(CLERIC, BACKGROUND, [0, 2, 0, 0, 0, 0], {}, ITEMS, CLERIC_PROFS);

@@ -76,7 +76,7 @@ const SAMPLES: Array<{ choices: CreationChoices; hitDie: number; hpPerLevel: num
       skillPicks: ['deception', 'persuasion', 'insight', 'arcana', 'history', 'stealth', 'perception', 'medicine'],
       expertisePicks: ['performance', 'persuasion'],
       toolPicks: ['alaude'],
-      optionPicks: { 'race:languageChoice:0': ['Anão'] },
+      optionPicks: { 'race:languageChoice:0': ['Anão'], 'class:toolChoice:0': ['flauta', 'lira', 'alaude'] },
       equipmentPicks: [0, 0],
       cantripSlugs: ['maos-magicas', 'luz'],
       spellSlugs: ['magia-1-01', 'magia-1-02', 'magia-1-03', 'magia-1-04', 'magia-1-05', 'magia-2-01'],
@@ -180,6 +180,7 @@ const SAMPLES: Array<{ choices: CreationChoices; hitDie: number; hpPerLevel: num
         'magia-2-01',
         'magia-2-02',
       ],
+      preparedSlugs: ['magia-2-02', 'magia-1-08', 'magia-1-07', 'magia-1-01', 'magia-1-02', 'magia-1-03', 'magia-1-04'],
     }),
   },
   {
@@ -198,6 +199,7 @@ const SAMPLES: Array<{ choices: CreationChoices; hitDie: number; hpPerLevel: num
         feat: ['mobilidade'],
         elementalDiscipline: ['punho-do-ar-continuo'],
         'race:languageChoice:0': ['Élfico'],
+        'class:toolChoice:0': ['ferramentas-de-ferreiro'],
       },
       equipmentPicks: [0],
     }),
@@ -385,6 +387,14 @@ describe('buildSheet, class details', () => {
     expect(sheet.initiative).toBe(sheet.stats.dexterity.modifier + 1);
     expect(sheet.spellcasting?.spells).toHaveLength(6);
     expect(sheet.spellcasting?.spells?.every((s) => s.prepared)).toBe(true);
+    // The three instruments are picks, not the class's prose line.
+    expect((sheet.proficiencies as Record<string, string>).tools).toBe('Kit de disfarce, Alaúde, Flauta, Lira');
+  });
+
+  it("monk: the class's tool pick", () => {
+    expect((sheetOf('monge').proficiencies as Record<string, string>).tools).toBe(
+      'Kit de jogo: conjunto de dados, Ferramentas de ferreiro, Veículos (terrestres)',
+    );
   });
 
   it('warlock: pact slots counted once, expanded spells, tome cantrips, Agonizing Blast', () => {
@@ -424,11 +434,24 @@ describe('buildSheet, class details', () => {
     expect((sheet.proficiencies as Record<string, string>).languages).toContain('Dracônico');
   });
 
-  it('wizard: ten spellbook spells, the first six prepared; the high elf cantrip', () => {
+  it('wizard: ten spellbook spells, the first six of preparedSlugs prepared; the high elf cantrip', () => {
     const sheet = sheetOf('mago');
     const spells = sheet.spellcasting!.spells!;
     expect(spells).toHaveLength(10);
-    expect(spells.filter((s) => s.prepared)).toHaveLength(6);
+    expect(spells.filter((s) => s.prepared).map((s) => s.compendiumRef?.slug).sort()).toEqual([
+      'magia-1-01',
+      'magia-1-02',
+      'magia-1-03',
+      'magia-1-07',
+      'magia-1-08',
+      'magia-2-02',
+    ]);
+    // A prepared pick outside the spellbook is not prepared.
+    const outside = buildSheet(
+      { ...SAMPLES.find((s) => s.choices.classSlug === 'mago')!.choices, preparedSlugs: ['magia-1-09', 'magia-1-01'] },
+      CREATION_DATA,
+    );
+    expect(outside.spellcasting!.spells!.filter((s) => s.prepared).map((s) => s.compendiumRef?.slug)).toEqual(['magia-1-01']);
     expect(sheet.spellcasting?.cantrips).toHaveLength(4);
     expect(attack(sheet, 'raio-de-fogo')).toMatchObject({ attackBonus: 5, damageRoll: '1d10' });
     expect((sheet.proficiencies as Record<string, string>).weapons).toContain('Espada longa');

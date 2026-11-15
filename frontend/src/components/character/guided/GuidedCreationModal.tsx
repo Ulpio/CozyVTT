@@ -16,7 +16,7 @@ import type { CreationData } from '@/utils/guidedCreation/buildSheet';
 import type { CreationChoices } from '@/utils/guidedCreation/types';
 import { cn } from '@/utils/cn';
 import SheetSummary from './SheetSummary';
-import { STEPS } from './steps';
+import { stepsFor, type StepId } from './steps';
 import { availableMethods, defaultScores, rollTotals } from './stepRules';
 import { useAbilityRoll, type AbilityRollState } from './useAbilityRoll';
 import { useCreationData } from './useCreationData';
@@ -66,7 +66,7 @@ function Steps({ data, campaign, roll }: StepsProps) {
     const method = availableMethods(campaign, null)[0] ?? 'POINT_BUY';
     return { ...emptyChoices(method), baseScores: defaultScores(method) };
   });
-  const [current, setCurrent] = useState(0);
+  const [currentId, setCurrentId] = useState<StepId>('race');
   const [summaryOpen, setSummaryOpen] = useState(false);
   const update = (patch: Partial<CreationChoices>) =>
     dispatch({ type: 'update', patch });
@@ -80,12 +80,15 @@ function Steps({ data, campaign, roll }: StepsProps) {
   }, [rollId, choices.method, choices.abilityRollId]);
 
   const check = { data, choices, campaign, roll: roll.roll, rollKnown: roll.known };
-  const complete = STEPS.map((s) => s.isComplete(check));
+  // The steps that apply to these choices (no spells step for a non-caster).
+  const steps = stepsFor(check);
+  const current = Math.max(0, steps.findIndex((s) => s.id === currentId));
+  const complete = steps.map((s) => s.isComplete(check));
   // A step can be opened once every step before it is done.
   const firstOpen = complete.findIndex((done) => !done);
   const reachable = (i: number) => firstOpen === -1 || i <= firstOpen;
-  const step = STEPS[current];
-  const isLast = current === STEPS.length - 1;
+  const step = steps[current];
+  const isLast = current === steps.length - 1;
 
   // A screen reader and the keyboard land on the step just opened, not on the
   // button that opened it (the first step keeps the dialog's own focus).
@@ -98,7 +101,7 @@ function Steps({ data, campaign, roll }: StepsProps) {
   }, [current]);
 
   const go = (i: number) => {
-    setCurrent(i);
+    setCurrentId(steps[i].id);
     dispatch({ type: 'dismissCleared' });
   };
 
@@ -106,7 +109,7 @@ function Steps({ data, campaign, roll }: StepsProps) {
     <div className="flex-1 min-h-0 flex flex-col gap-3 lg:grid lg:grid-cols-[12rem_minmax(0,1fr)_17rem] lg:gap-6">
       <nav aria-label={t('guidedCreation.stepList')} className="shrink-0 lg:overflow-y-auto">
         <ol className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
-          {STEPS.map((s, i) => (
+          {steps.map((s, i) => (
             <li key={s.id} className="shrink-0">
               <button
                 type="button"

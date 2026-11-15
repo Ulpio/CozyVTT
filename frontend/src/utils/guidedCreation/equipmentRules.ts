@@ -209,9 +209,9 @@ const weightOf = (entry: RulesEntry<unknown> | undefined): number | undefined =>
 
 /**
  * The starting equipment the picks give: `picks[i]` is the option index of
- * choice i (`equipmentChoicesOf` order; a single option needs no pick). Only
- * options `offeredOptions` gives count: a pick it does not offer falls back to
- * the first one it does. Each anyOf unit is filled from
+ * choice i (`equipmentChoicesOf` order; a choice with one offered option needs
+ * no pick). Only options `offeredOptions` gives count: a pick it does not offer
+ * falls back to the first one it does. Each anyOf unit is filled from
  * `anyOfPicks[anyOfKey(...)]` when the pick is among `anyOfOptions` for these
  * proficiencies. Repeated items are merged. `armor` is the body armor, `shield`
  * whether a shield came with it.
@@ -239,7 +239,8 @@ export function resolveEquipment(
   };
 
   equipmentChoicesOf(classData, backgroundData).forEach((choice, c) => {
-    const pick = choice.options.length === 1 ? (picks[c] ?? 0) : picks[c];
+    // With a single option offered there is nothing to pick.
+    const pick = offered[c].length === 1 ? offered[c][0] : picks[c];
     const index = pick === undefined || offered[c].includes(pick) ? pick : offered[c][0];
     const bundle = index !== undefined ? choice.options[index] : undefined;
     if (!bundle) return;

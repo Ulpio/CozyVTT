@@ -77,7 +77,8 @@ export type Effect =
   | { type: 'weaponChoice'; count: number }
   /** A fixed tool proficiency (tool slug). */
   | { type: 'tool'; tool: string }
-  | { type: 'toolChoice'; count: number; category?: ToolCategory }
+  /** `category`: the group(s) the picks come from (the monk: an artisan's tool or an instrument). */
+  | { type: 'toolChoice'; count: number; category?: ToolCategory | ToolCategory[] }
   | { type: 'language'; language: string }
   | { type: 'languageChoice'; count: number }
   | { type: 'hpPerLevel'; amount: number }
@@ -144,6 +145,13 @@ export interface CreationChoices {
   equipmentPicks: number[];
   anyOfPicks: Record<string, string>;
   cantripSlugs: string[];
+  /** Class spells: the spells known, the spells prepared (cleric, druid, paladin) or the wizard's spellbook. */
   spellSlugs: string[];
+  /**
+   * The wizard's prepared spells: the spellbook spells (`spellSlugs`) listed
+   * here are prepared, up to the number the wizard prepares. Other classes
+   * ignore it.
+   */
+  preparedSlugs?: string[];
   details: CreationDetails;
 }

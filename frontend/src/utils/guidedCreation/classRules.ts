@@ -77,7 +77,11 @@ const FAVORED_ENEMIES: OptionEffect[] = [
 
 export const CLASS_EFFECTS: Record<string, Effect[]> = {
   barbaro: [{ type: 'unarmoredAC', base: 10, abilities: ['dex', 'con'] }],
-  bardo: [{ type: 'jackOfAllTrades' }, { type: 'expertiseChoice', count: 2 }],
+  bardo: [
+    { type: 'toolChoice', count: 3, category: 'instrument' },
+    { type: 'jackOfAllTrades' },
+    { type: 'expertiseChoice', count: 2 },
+  ],
   bruxo: [
     { type: 'option', id: 'invocations', choose: 2, options: INVOCATIONS },
     { type: 'option', id: 'pactBoon', choose: 1, options: PACT_BOONS },
@@ -88,6 +92,7 @@ export const CLASS_EFFECTS: Record<string, Effect[]> = {
   ],
   ladino: [{ type: 'expertiseChoice', count: 2, tool: 'ferramentas-de-ladrao' }],
   monge: [
+    { type: 'toolChoice', count: 1, category: ['artisanTool', 'instrument'] },
     { type: 'unarmoredAC', base: 10, abilities: ['dex', 'wis'], noShield: true },
     { type: 'attackBonus', attack: 'unarmed', die: '1d4', ability: 'dex' },
     { type: 'attackBonus', attack: 'monkWeapon', ability: 'dex' },

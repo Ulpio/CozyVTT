@@ -46,7 +46,7 @@ import {
   expandedSpellsFor,
   spellcastingAt3,
 } from './spellRules';
-import { backgroundToolCategory } from './toolRules';
+import { backgroundToolCategory, isClassToolPick } from './toolRules';
 import { SKILL_KEYS, type AbilityKey, type CreationChoices, type Effect, type SkillKey } from './types';
 
 /** A compendium entry as the creation reads it: a `CompendiumEntry` with typed `data`. */
@@ -297,9 +297,9 @@ function raceName(race: CreationEntry<RaceData> | undefined, subrace: CreationEn
 
 /**
  * Tool proficiencies: fixed and picked ones as tool slugs, and the prose lines
- * of the class, background and race that name no single tool ("Três
- * instrumentos à escolha", "Veículos (terrestres)"), kept as written. A
- * background line that is a pick is left out: its pick is a tool effect.
+ * of the class, background and race that name no single tool ("Veículos
+ * (terrestres)"), kept as written. A class or background line that is a pick
+ * is left out: its pick is a tool effect.
  */
 function toolProficiencies(
   classData: ClassData,
@@ -315,7 +315,7 @@ function toolProficiencies(
     if (tool) slugs.push(tool.slug);
     else prose.push(line);
   };
-  classData.proficiencies.tools.forEach(read);
+  classData.proficiencies.tools.filter((l) => !isClassToolPick(l)).forEach(read);
   (backgroundData?.proficiencies.tools ?? []).filter((l) => !backgroundToolCategory(l)).forEach(read);
   const weaponNames = new Set(data.weapons.map((w) => normalizeName(w.name)));
   raceLines
@@ -422,9 +422,9 @@ function appearanceOf(appearance: Record<string, string> | undefined): Pick<Fift
  * The spellcasting block: the class's cantrips and spells (the subclass's for
  * Eldritch Knight and Arcane Trickster) limited to what 3rd level allows, the
  * always-prepared ones, and those race, feat and option choices give. Known
- * spells and a cleric's, druid's or paladin's picks are prepared; a wizard's
- * spellbook has its first `prepared` picks prepared. Null when there is
- * nothing to cast.
+ * spells and a cleric's, druid's or paladin's picks are prepared; in a wizard's
+ * spellbook, the spells in `preparedSlugs` are (up to `prepared`, in that
+ * order). Null when there is nothing to cast.
  */
 function spellcastingFor(
   choices: CreationChoices,
@@ -475,8 +475,16 @@ function spellcastingFor(
       }
       picked.push(slug);
     }
-    const preparedCount = casting.spellbook !== undefined ? (casting.prepared ?? 0) : picked.length;
-    picked.forEach((slug, i) => prepare(slug, i < preparedCount));
+    if (casting.spellbook !== undefined) {
+      // The spellbook spells the wizard chose to prepare, up to the number prepared.
+      const inBook = new Set(picked);
+      const chosen = new Set(
+        unique(choices.preparedSlugs ?? []).filter((s) => inBook.has(s)).slice(0, casting.prepared ?? 0),
+      );
+      picked.forEach((slug) => prepare(slug, chosen.has(slug)));
+    } else {
+      picked.forEach((slug) => prepare(slug, true));
+    }
     if (subclass) for (const slug of alwaysPreparedFor(subclass.data, choices.optionPicks, casting.maxLevel)) prepare(slug, true);
   }
 

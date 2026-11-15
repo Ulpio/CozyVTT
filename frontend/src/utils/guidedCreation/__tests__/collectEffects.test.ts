@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BackgroundData, ClassData, FeatData, RaceData, SubclassData, SubraceData, WeaponData } from '../compendiumData';
-import { collectEffects, pruneChoices, type RulesData } from '../collectEffects';
+import { choiceStates, collectEffects, pruneChoices, type RulesData } from '../collectEffects';
 import type { CreationChoices, SkillKey } from '../types';
 
 // Invented placeholder entries: just the fields the rules read, no book text.
@@ -41,6 +41,8 @@ const data: RulesData = {
     cls('feiticeiro', 2, ['arcana', 'deception'], ['con', 'cha'], true),
     cls('clerigo', 2, ['history', 'insight', 'medicine', 'persuasion', 'religion'], ['wis', 'cha'], true),
     cls('bruxo', 2, ['arcana', 'deception'], ['wis', 'cha'], true),
+    cls('bardo', 3, ['arcana', 'history', 'stealth'], ['dex', 'cha'], true),
+    cls('monge', 2, ['acrobatics', 'stealth'], ['str', 'dex']),
   ],
   subclasses: [
     { slug: 'linhagem-draconica', name: 'Linhagem', data: { parent: 'feiticeiro', features: [] } as SubclassData },
@@ -63,6 +65,7 @@ const data: RulesData = {
     { slug: 'imobilizador', name: 'Imobilizador', data: {} as FeatData },
     { slug: 'atirador-de-magia', name: 'Atirador', data: {} as FeatData },
     { slug: 'mestre-de-armas', name: 'Mestre de Armas', data: {} as FeatData },
+    { slug: 'perito', name: 'Perito', data: {} as FeatData },
   ],
   weapons: [
     { slug: 'espada-longa', name: 'Espada Longa', data: {} as WeaponData },
@@ -239,9 +242,9 @@ describe('collectEffects, review round 1', () => {
   it('offers only the feats whose prerequisites are met', () => {
     const vh = (over: Partial<CreationChoices>) => base({ subraceSlug: 'humano-variante', ...over });
     const feats = (c: CreationChoices) => ids(collectEffects(c, data).pending.find((p) => p.id === 'feat'));
-    expect(feats(vh({}))).toEqual(['robusto', 'alerta', 'maestria-em-armadura-pesada', 'imobilizador', 'mestre-de-armas']);
+    expect(feats(vh({}))).toEqual(['robusto', 'alerta', 'maestria-em-armadura-pesada', 'imobilizador', 'mestre-de-armas', 'perito']);
     const weakWizard = vh({ classSlug: 'mago', baseScores: { str: 12, dex: 14, con: 13, int: 15, wis: 10, cha: 8 } });
-    expect(feats(weakWizard)).toEqual(['robusto', 'alerta', 'atirador-de-magia', 'mestre-de-armas']);
+    expect(feats(weakWizard)).toEqual(['robusto', 'alerta', 'atirador-de-magia', 'mestre-de-armas', 'perito']);
     // +1 STR from the variant human's own increase reaches 13 before the feat.
     expect(feats({ ...weakWizard, racialChoices: { abilityPicks: ['str', 'dex'] } })).toContain('imobilizador');
   });
@@ -317,5 +320,66 @@ describe('collectEffects, review round 1', () => {
     const done = { ...rogue, expertisePicks: ['stealth', 'ferramentas-de-ladrao'] };
     expect(collectEffects(done, data).pending.find((p) => p.kind === 'expertiseChoice')).toBeUndefined();
     expect(pruneChoices(done, data)).toBe(done);
+  });
+});
+
+describe('collectEffects, Task 11 tool picks and choice states', () => {
+  const ids = (p: { options?: { id: string }[] } | undefined) => p?.options?.map((o) => o.id) ?? [];
+  const toolEffects = (c: CreationChoices) =>
+    collectEffects(c, data).effects.flatMap((e) => (e.type === 'tool' ? [e.tool] : []));
+
+  it('the bard picks three musical instruments', () => {
+    const bard = base({ classSlug: 'bardo' });
+    const tool = collectEffects(bard, data).pending.find((p) => p.kind === 'toolChoice');
+    expect(tool).toMatchObject({ id: 'class:toolChoice:0', count: 3 });
+    expect(ids(tool)).toEqual(['alaude']);
+    expect(toolEffects({ ...bard, optionPicks: { 'class:toolChoice:0': ['alaude', 'ferramentas-de-ferreiro'] } })).toEqual([
+      'alaude',
+    ]);
+  });
+
+  it("the monk picks one artisan's tool or one musical instrument", () => {
+    const monk = base({ classSlug: 'monge' });
+    const tool = collectEffects(monk, data).pending.find((p) => p.kind === 'toolChoice');
+    expect(tool).toMatchObject({ id: 'class:toolChoice:0', count: 1 });
+    expect(ids(tool).sort()).toEqual(['alaude', 'ferramentas-de-ferreiro']);
+    const picked = { ...monk, optionPicks: { 'class:toolChoice:0': ['ferramentas-de-ferreiro'] } };
+    expect(toolEffects(picked)).toEqual(['ferramentas-de-ferreiro']);
+    expect(collectEffects(picked, data).pending.find((p) => p.kind === 'toolChoice')).toBeUndefined();
+    expect(pruneChoices({ ...monk, optionPicks: { 'class:toolChoice:0': ['ferramentas-de-ladrao'] } }, data).optionPicks).toEqual({});
+  });
+
+  it('Skilled (perito) picks may be skills or tools', () => {
+    const skilled = base({
+      subraceSlug: 'humano-variante',
+      optionPicks: { feat: ['perito'] },
+      skillPicks: ['athletics', 'perception', 'arcana'],
+    });
+    const before = collectEffects(skilled, data).pending.find((p) => p.id === 'feat:skillChoice:0');
+    expect(ids(before)).toEqual(expect.arrayContaining(['history', 'alaude', 'ferramentas-de-ladrao']));
+
+    const withTools = { ...skilled, optionPicks: { ...skilled.optionPicks, 'feat:skillChoice:0': ['alaude', 'ferramentas-de-ladrao'] } };
+    // Class 2 (athletics, perception) and the variant's 1 (arcana) leave the feat its two tools and one skill.
+    const withSkill = { ...withTools, skillPicks: [...withTools.skillPicks, 'history' as SkillKey] };
+    const out = collectEffects(withSkill, data);
+    expect(out.pending.find((p) => p.id === 'feat:skillChoice:0')).toBeUndefined();
+    expect(toolEffects(withSkill)).toEqual(['alaude', 'ferramentas-de-ladrao']);
+    expect(pruneChoices(withSkill, data)).toBe(withSkill);
+    // A fourth skill has no room left.
+    const extra = { ...withSkill, skillPicks: [...withSkill.skillPicks, 'stealth' as SkillKey] };
+    expect(pruneChoices(extra, data).skillPicks).toEqual(withSkill.skillPicks);
+  });
+
+  it('choiceStates lists each choice with its picks, picked or not', () => {
+    const fighter = base({ optionPicks: { fightingStyle: ['defesa'] }, skillPicks: ['athletics'] });
+    const states = choiceStates(fighter, data);
+    const style = states.find((s) => s.id === 'fightingStyle');
+    expect(style).toMatchObject({ count: 1, picks: ['defesa'] });
+    expect(ids(style)).toContain('arquearia');
+    const skills = states.find((s) => s.id === 'class:skillChoice:0');
+    expect(skills).toMatchObject({ count: 2, picks: ['athletics'] });
+    // Its own pick stays among its options; the background's skills are not offered.
+    expect(ids(skills)).toEqual(['athletics', 'perception', 'survival']);
+    expect(states.find((s) => s.id === 'background:languageChoice:0')).toMatchObject({ count: 2, picks: [] });
   });
 });

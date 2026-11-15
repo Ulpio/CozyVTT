@@ -44,6 +44,7 @@ export function emptyChoices(method: AbilityScoreMethod = 'POINT_BUY'): Creation
     anyOfPicks: {},
     cantripSlugs: [],
     spellSlugs: [],
+    preparedSlugs: [],
     details: { name: '' },
   };
 }
@@ -67,7 +68,7 @@ function dropDependents(before: CreationChoices, out: CreationChoices, data: Cre
     };
   }
   if (next.classSlug !== before.classSlug || next.subclassSlug !== before.subclassSlug) {
-    next = { ...next, cantripSlugs: [], spellSlugs: [] };
+    next = { ...next, cantripSlugs: [], spellSlugs: [], preparedSlugs: [] };
   }
   // Racial +1s the race no longer gives, or no longer allows.
   const stored = next.racialChoices.abilityPicks;
@@ -102,6 +103,7 @@ function clearedBetween(before: CreationChoices, after: CreationChoices): string
   for (const key of lists) {
     if (before[key].length && !sameList(before[key], after[key])) out.push(key);
   }
+  if (before.preparedSlugs?.length && !sameList(before.preparedSlugs, after.preparedSlugs)) out.push('preparedSlugs');
   if (Object.keys(before.anyOfPicks).length > Object.keys(after.anyOfPicks).length) out.push('anyOfPicks');
   const picks = before.racialChoices.abilityPicks;
   if (Array.isArray(picks) && picks.some(Boolean) && after.racialChoices.abilityPicks !== picks) {
