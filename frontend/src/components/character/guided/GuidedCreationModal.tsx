@@ -178,7 +178,7 @@ function Steps({ data, campaign, roll, onCreated, onChosenChange }: StepsProps) 
 
   return (
     <div className="flex-1 min-h-0 flex flex-col gap-3 lg:grid lg:grid-cols-[12rem_minmax(0,1fr)_17rem] lg:gap-6">
-      <nav aria-label={t('guidedCreation.stepList')} className="shrink-0 lg:overflow-y-auto">
+      <nav aria-label={t('guidedCreation.stepList')} className="shrink-0 lg:overflow-y-auto lg:overflow-x-hidden">
         <ol className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
           {steps.map((s, i) => (
             <li key={s.id} className="shrink-0">
@@ -188,7 +188,7 @@ function Steps({ data, campaign, roll, onCreated, onChosenChange }: StepsProps) 
                 disabled={!reachable(i)}
                 aria-current={i === current ? 'step' : undefined}
                 className={cn(
-                  'w-full text-left rounded-cozy px-3 py-2 text-sm touch-target whitespace-nowrap',
+                  'w-full text-left rounded-cozy px-3 py-2 text-sm touch-target whitespace-nowrap lg:whitespace-normal',
                   i === current ? 'bg-moss-green/15 text-ink font-semibold' : 'text-stone-gray hover:bg-ink/5',
                   'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent',
                 )}

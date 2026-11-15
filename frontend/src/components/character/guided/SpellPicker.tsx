@@ -54,12 +54,12 @@ export default function SpellPicker({ legend, spells, count, picks, onChange, lo
       <li
         key={`${isLocked ? 'locked' : 'pick'}-${spell.slug}`}
         className={cn(
-          'flex items-center gap-2 rounded-cozy border px-3 py-1.5 text-sm',
+          'flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-cozy border px-3 py-1.5 text-sm',
           checked ? 'border-moss-green bg-moss-green/10' : 'border-ink/15',
           shown === spell.slug && 'ring-1 ring-moss-green',
         )}
       >
-        <label className={cn('flex flex-1 items-center gap-2 touch-target', disabled ? 'cursor-not-allowed' : 'cursor-pointer')}>
+        <label className={cn('flex flex-1 min-w-[10rem] items-center gap-2 touch-target', disabled ? 'cursor-not-allowed' : 'cursor-pointer')}>
           <input
             type="checkbox"
             checked={checked}
@@ -73,7 +73,7 @@ export default function SpellPicker({ legend, spells, count, picks, onChange, lo
           <span className={cn('text-ink', disabled && !checked && 'opacity-60')}>{spell.name}</span>
           {isLocked && <Lock className="h-3.5 w-3.5 text-warm-gray" aria-label={t('guidedCreation.spells.locked')} />}
         </label>
-        <span className="text-xs text-warm-gray">
+        <span className="text-xs text-warm-gray whitespace-nowrap">
           {levelName(spell.data.level)} · {spell.data.school}
         </span>
         <button
@@ -127,13 +127,19 @@ export default function SpellPicker({ legend, spells, count, picks, onChange, lo
         />
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_16rem]">
+      {/* The text beside the list only where both fit (xl): the wizard takes
+          its steps and summary columns from lg, which leaves the list too
+          narrow for a panel beside it. Below xl the text comes under it. */}
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_16rem]">
         <ul className="space-y-1">
           {locked.map((s) => row(s, true))}
           {visible.map((s) => row(s, false))}
           {!visible.length && <li className="text-sm text-warm-gray">{t('guidedCreation.spells.noMatch')}</li>}
         </ul>
-        <aside aria-live="polite" className="rounded-cozy border border-ink/10 bg-surface/50 p-3 text-sm self-start">
+        <aside
+          aria-live="polite"
+          className="sticky top-0 rounded-cozy border border-ink/10 bg-surface/50 p-3 text-sm self-start xl:max-h-[70dvh] xl:overflow-y-auto"
+        >
           {focused ? (
             <div className="space-y-1">
               <h5 className="font-semibold text-ink">{focused.name}</h5>
