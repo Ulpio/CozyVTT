@@ -296,6 +296,17 @@ const en = {
     loadFailed: 'Could not load the compendium. Close and try again.',
     noBooks: 'No books with character options are on for this campaign. The GM can turn them on in the campaign settings.',
     noBooksOutsideCampaign: 'No books with character options are available.',
+    entry: {
+      label: 'Guided creation',
+      description: 'Build a 3rd-level character step by step from the compendium',
+      start: 'Start Guided Creation',
+    },
+    discard: {
+      title: 'Discard this character?',
+      message: 'Closing now loses every choice made so far.',
+      confirm: 'Discard',
+      cancel: 'Keep creating',
+    },
     cleared: 'Some choices were cleared because they no longer apply.',
     dismiss: 'Dismiss',
     stepList: 'Creation steps',

@@ -299,6 +299,17 @@ const ptBR: Messages = {
     loadFailed: 'Não foi possível carregar o compêndio. Feche e tente de novo.',
     noBooks: 'Nenhum livro com opções de personagem está ativo nesta campanha. O mestre pode ativá-los nas configurações da campanha.',
     noBooksOutsideCampaign: 'Nenhum livro com opções de personagem está disponível.',
+    entry: {
+      label: 'Criação guiada',
+      description: 'Monte um personagem de 3º nível passo a passo a partir do compêndio',
+      start: 'Iniciar criação guiada',
+    },
+    discard: {
+      title: 'Descartar este personagem?',
+      message: 'Fechar agora perde todas as escolhas feitas até aqui.',
+      confirm: 'Descartar',
+      cancel: 'Continuar criando',
+    },
     cleared: 'Algumas escolhas foram desfeitas porque deixaram de valer.',
     dismiss: 'Fechar aviso',
     stepList: 'Passos da criação',

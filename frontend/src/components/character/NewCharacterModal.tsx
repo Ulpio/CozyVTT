@@ -4,6 +4,7 @@
  */
 
 import { useState, FormEvent, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, User, Sparkles } from 'lucide-react';
 import { Modal } from '@/components/ui';
 import { Character, GameSystem, Campaign } from '@/types';
@@ -59,6 +60,7 @@ const TEMPLATE_OPTIONS_BY_SYSTEM: Record<string, TemplateOption[]> = {
     },
     {
       value: GUIDED_TEMPLATE,
+      // Shown through i18n (guidedCreation.entry), as the rest of the guided creation is.
       label: 'Guided creation',
       description: 'Build a 3rd-level character step by step from the compendium',
     },
@@ -96,6 +98,7 @@ export default function NewCharacterModal({
   campaign,
   preselectedGameSystem,
 }: NewCharacterModalProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
     campaign?.id || null
@@ -457,14 +460,14 @@ export default function NewCharacterModal({
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-ink">
-                                {template.label}
+                                {template.value === GUIDED_TEMPLATE ? t('guidedCreation.entry.label') : template.label}
                               </span>
                               {template.value !== 'blank' && (
                                 <Sparkles className="w-4 h-4 text-accent-ink" />
                               )}
                             </div>
                             <p className="text-sm text-ink-muted mt-1">
-                              {template.description}
+                              {template.value === GUIDED_TEMPLATE ? t('guidedCreation.entry.description') : template.description}
                             </p>
                           </div>
                         </label>
@@ -512,7 +515,7 @@ export default function NewCharacterModal({
                     ) : (
                       <>
                         <User className="w-4 h-4 inline-block mr-2" />
-                        {isGuided ? 'Start Guided Creation' : 'Create Character'}
+                        {isGuided ? t('guidedCreation.entry.start') : 'Create Character'}
                       </>
                     )}
                   </Button>

@@ -4,9 +4,10 @@
  * The character the wizard makes is handed on as New Character's own.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { Campaign, Character } from '@/types';
+import i18n from '@/i18n';
 import NewCharacterModal from '../../NewCharacterModal';
 import type { GuidedCreationModalProps } from '../GuidedCreationModal';
 
@@ -81,5 +82,18 @@ describe('Guided creation in New Character', () => {
 
     act(() => wizard!.onClose());
     expect(await screen.findByRole('radio', { name: /Guided creation/ })).toBeChecked();
+  });
+});
+
+describe('Guided creation in New Character, in Portuguese', () => {
+  afterEach(() => act(() => void i18n.changeLanguage('en')));
+
+  it('names the option and its button in the chosen language', async () => {
+    await act(() => i18n.changeLanguage('pt-BR'));
+    render(<NewCharacterModal isOpen onClose={vi.fn()} onSuccess={vi.fn()} />);
+    await screen.findByRole('option', { name: /Lantern Road/ });
+    fireEvent.change(screen.getByLabelText(/^Game System/), { target: { value: 'FIFTH_EDITION' } });
+    fireEvent.click(screen.getByRole('radio', { name: /Criação guiada/ }));
+    expect(screen.getByRole('button', { name: /Iniciar criação guiada/ })).toBeInTheDocument();
   });
 });
