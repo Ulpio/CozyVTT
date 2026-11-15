@@ -237,7 +237,7 @@
   ],
   "proficiencies": {
     "armor": "Armaduras leves, armaduras médias, escudos",
-    "weapons": "Porrete, Adaga, Dardo, Azagaia, Maca, Bordao, cimitarra, foice-curta, funda, lanca, Espada longa, Arco longo",
+    "weapons": "Porrete, Adaga, Dardo, Azagaia, Maca, Bordao, Cimitarra, Foice curta, Funda, Lanca, Espada longa, Arco longo",
     "tools": "Kit de herbalismo",
     "languages": "Comum, Élfico, Silvestre"
   },
@@ -251,10 +251,10 @@
     "Azagaia",
     "Maca",
     "Bordao",
-    "cimitarra",
-    "foice-curta",
-    "funda",
-    "lanca",
+    "Cimitarra",
+    "Foice curta",
+    "Funda",
+    "Lanca",
     "Espada longa",
     "Arco longo",
     "Kit de herbalismo",

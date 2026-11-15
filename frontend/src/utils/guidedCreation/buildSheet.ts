@@ -73,6 +73,8 @@ const PROFICIENCY = proficiencyBonusFor(LEVEL);
 /** Experience points at the start of 3rd level. */
 const XP_AT_3 = 900;
 const THIEVES_TOOLS = 'ferramentas-de-ladrao';
+/** Speed lost in armor whose Strength requirement the character does not meet. */
+const HEAVY_ARMOR_PENALTY_METERS = 3;
 
 const LONG: Record<AbilityKey, keyof FifthEditionStats> = {
   str: 'strength',
@@ -102,7 +104,7 @@ const VERSATILE_LABEL = 'Duas mãos';
 
 /** The feature a picked option belongs to, for its featuresAndTraits entry. */
 const OPTION_LABELS: Record<string, string> = {
-  ancestry: 'Ancestral Dracônico',
+  ancestry: 'Ancestralidade Dracônica',
   fightingStyle: 'Estilo de Luta',
   invocations: 'Invocação Mística',
   pactBoon: 'Dádiva do Pacto',
@@ -199,10 +201,13 @@ export function buildSheet(input: CreationChoices, data: CreationData): FifthEdi
   const armored = !!worn || equipment.shield;
 
   // The race's speed plus the speed effects. Not a subrace's own speed: the wood
-  // elf's already holds its bonus, which is also an effect.
+  // elf's already holds its bonus, which is also an effect. Worn armor whose
+  // Strength requirement is above the character's STR costs 3 m, except to dwarves.
+  const tooHeavy =
+    !!worn?.data.strength && scores.str < worn.data.strength && !of(effects, 'ignoreArmorStrength').length;
   const speedMeters = of(effects, 'speed')
     .filter((e) => !(e.noArmor && armored))
-    .reduce((m, e) => m + e.meters, race?.data.speed ?? 9);
+    .reduce((m, e) => m + e.meters, (race?.data.speed ?? 9) - (tooHeavy ? HEAVY_ARMOR_PENALTY_METERS : 0));
 
   const hitDie = cls.data.hitDie;
   const maxHp = maxHitPoints(hitDie, LEVEL, mod('con'), sumOf(of(effects, 'hpPerLevel')));
@@ -239,7 +244,7 @@ export function buildSheet(input: CreationChoices, data: CreationData): FifthEdi
     characterName: details.name,
     class: cls.name,
     level: LEVEL,
-    race: subrace?.name ?? race?.name ?? choices.raceSlug,
+    race: raceName(race, subrace) ?? choices.raceSlug,
     background: background?.name ?? '',
     ...(details.alignment ? { alignment: details.alignment } : {}),
     experiencePoints: XP_AT_3,
@@ -280,8 +285,14 @@ export function buildSheet(input: CreationChoices, data: CreationData): FifthEdi
 
 function weaponLabels(proficiencies: Proficiencies, data: CreationData): string[] {
   return proficiencies.weapons.map(
-    (w) => WEAPON_GROUP_LABELS[w] ?? data.weapons.find((x) => x.slug === w)?.name ?? w,
+    (w) => WEAPON_GROUP_LABELS[w] ?? data.weapons.find((x) => x.slug === w)?.name ?? capitalize(w.replace(/-/g, ' ')),
   );
+}
+
+/** The subrace's name when it holds the race's ("Elfo da Floresta"), else "Halfling (Pés-Leves)". */
+function raceName(race: CreationEntry<RaceData> | undefined, subrace: CreationEntry<SubraceData> | undefined) {
+  if (!race || !subrace) return race?.name;
+  return normalizeName(subrace.name).includes(normalizeName(race.name)) ? subrace.name : `${race.name} (${subrace.name})`;
 }
 
 /**
@@ -450,15 +461,20 @@ function spellcastingFor(
         .filter((s) => s.data.level > 0)
         .map((s) => s.slug),
     );
-    let freeSchoolPicks = casting.freeSchoolPicks ?? 0;
-    const inSchool = (slug: string) => {
-      if (!casting.schools || casting.schools.includes(spellOf(slug)!.data.school)) return true;
-      if (freeSchoolPicks <= 0) return false;
-      freeSchoolPicks -= 1;
-      return true;
-    };
+    // Picks in order until the limit; an off-school pick is kept only while free picks remain.
     const limit = casting.known ?? casting.spellbook ?? casting.prepared ?? 0;
-    const picked = unique(choices.spellSlugs).filter((s) => pool.has(s) && inSchool(s)).slice(0, limit);
+    let freeSchoolPicks = casting.freeSchoolPicks ?? 0;
+    const picked: string[] = [];
+    for (const slug of unique(choices.spellSlugs)) {
+      if (picked.length >= limit) break;
+      if (!pool.has(slug)) continue;
+      const inSchool = !casting.schools || casting.schools.includes(spellOf(slug)!.data.school);
+      if (!inSchool) {
+        if (freeSchoolPicks <= 0) continue;
+        freeSchoolPicks -= 1;
+      }
+      picked.push(slug);
+    }
     const preparedCount = casting.spellbook !== undefined ? (casting.prepared ?? 0) : picked.length;
     picked.forEach((slug, i) => prepare(slug, i < preparedCount));
     if (subclass) for (const slug of alwaysPreparedFor(subclass.data, choices.optionPicks, casting.maxLevel)) prepare(slug, true);

@@ -274,14 +274,14 @@
   ],
   "proficiencies": {
     "armor": "Armaduras leves",
-    "weapons": "Armas simples, besta-de-mao, Espada longa, Rapieira, Espada curta, Arco longo",
+    "weapons": "Armas simples, Besta de mao, Espada longa, Rapieira, Espada curta, Arco longo",
     "tools": "Ferramentas de ladrão, Kit de jogo: conjunto de dados",
     "languages": "Comum, Élfico"
   },
   "proficienciesAndLanguages": [
     "Armaduras leves",
     "Armas simples",
-    "besta-de-mao",
+    "Besta de mao",
     "Espada longa",
     "Rapieira",
     "Espada curta",

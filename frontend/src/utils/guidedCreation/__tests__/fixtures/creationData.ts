@@ -70,7 +70,7 @@ const WEAPONS = [
   weapon('azagaia', 'simple', 'melee', '1d6', 'perfurante', ['arremesso'], { normalRange: 9, longRange: 36 }),
 ];
 
-const armor = (slug: string, category: ArmorData['category'], baseAc: number, weight: number) =>
+const armor = (slug: string, category: ArmorData['category'], baseAc: number, weight: number, strength?: number) =>
   entry<ArmorData>(slug, `A ${slug}`, {
     category,
     baseAc,
@@ -78,10 +78,11 @@ const armor = (slug: string, category: ArmorData['category'], baseAc: number, we
     stealthDisadvantage: category === 'heavy',
     cost: '10 po',
     weight,
+    ...(strength ? { strength } : {}),
   });
 
 const ARMOR = [
-  armor('cota-de-malha', 'heavy', 16, 27.5),
+  armor('cota-de-malha', 'heavy', 16, 27.5, 13),
   armor('brunea', 'medium', 14, 22.5),
   armor('couro', 'light', 11, 5),
   armor('escudo', 'shield', 2, 3),
@@ -379,7 +380,7 @@ const SUBRACES = [
     speed: 10.5,
     proficiencies: ['espada longa', 'arco longo'],
   }),
-  subrace('halfling-pes-leves', 'Pés Leves', 'halfling', { abilityIncreases: { cha: 1 } }),
+  subrace('halfling-pes-leves', 'Pés-Leves', 'halfling', { abilityIncreases: { cha: 1 } }),
 ];
 
 // --- Backgrounds and feats ----------------------------------------------------

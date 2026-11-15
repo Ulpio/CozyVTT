@@ -111,7 +111,9 @@ export type Effect =
     }
   // Added in Task 6 (the brief's race rules need them):
   | { type: 'featChoice'; count: number }
-  | { type: 'resistance'; damageType: string };
+  | { type: 'resistance'; damageType: string }
+  /** Heavy armor's Strength requirement does not reduce speed (dwarves). */
+  | { type: 'ignoreArmorStrength' };
 
 export interface CreationDetails {
   name: string;

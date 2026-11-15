@@ -248,14 +248,14 @@
   ],
   "proficiencies": {
     "armor": "",
-    "weapons": "Adaga, Dardo, funda, Bordao, Besta leve",
+    "weapons": "Adaga, Dardo, Funda, Bordao, Besta leve",
     "tools": "",
     "languages": "Comum, Dracônico, Anão, Gigante"
   },
   "proficienciesAndLanguages": [
     "Adaga",
     "Dardo",
-    "funda",
+    "Funda",
     "Bordao",
     "Besta leve",
     "Comum",
@@ -285,7 +285,7 @@
       "description": "Texto de exemplo, inventado para os testes. (Sábio característica)"
     },
     {
-      "name": "Ancestral Dracônico: Vermelho",
+      "name": "Ancestralidade Dracônica: Vermelho",
       "description": ""
     },
     {

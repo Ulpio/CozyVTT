@@ -264,14 +264,14 @@
   ],
   "proficiencies": {
     "armor": "Armaduras leves",
-    "weapons": "Armas simples, besta-de-mao, Espada longa, Rapieira, Espada curta",
+    "weapons": "Armas simples, Besta de mao, Espada longa, Rapieira, Espada curta",
     "tools": "Kit de disfarce, Alaúde, Três instrumentos à escolha",
     "languages": "Comum, Élfico, Anão"
   },
   "proficienciesAndLanguages": [
     "Armaduras leves",
     "Armas simples",
-    "besta-de-mao",
+    "Besta de mao",
     "Espada longa",
     "Rapieira",
     "Espada curta",

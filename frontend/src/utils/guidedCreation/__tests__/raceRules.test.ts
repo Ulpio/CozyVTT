@@ -27,7 +27,8 @@ describe('raceRules', () => {
   it('combines race and subrace effects and converts increases', () => {
     expect(raceEffects('elfo', 'elfo-da-floresta')).toEqual([{ type: 'speed', meters: 1.5 }]);
     expect(raceEffects('humano')).toEqual([{ type: 'languageChoice', count: 1 }]);
-    expect(raceEffects('anao')).toEqual([]);
+    expect(raceEffects('anao')).toEqual([{ type: 'ignoreArmorStrength' }]);
+    expect(raceEffects('anao', 'anao-da-colina')).toEqual([{ type: 'ignoreArmorStrength' }, { type: 'hpPerLevel', amount: 1 }]);
     expect(abilityIncreaseEffects({ str: 2, cha: 1 })).toEqual([
       { type: 'ability', ability: 'str', amount: 2 },
       { type: 'ability', ability: 'cha', amount: 1 },

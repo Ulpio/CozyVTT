@@ -465,3 +465,54 @@ describe('buildSheet, class details', () => {
     expect(sheet.spellcasting?.spells).toHaveLength(3);
   });
 });
+
+describe('buildSheet, review fixes', () => {
+  const sample = (classSlug: string) => SAMPLES.find((s) => s.choices.classSlug === classSlug)!.choices;
+  const featureNames = (sheet: FifthEditionCharacterData) =>
+    (sheet.featuresAndTraits ?? []).map((f) => (typeof f === 'string' ? f : f.name));
+
+  it('heavy armor above the character’s STR costs 10 ft of speed', () => {
+    const cleric = sample('clerigo');
+    const human = buildSheet(
+      { ...cleric, raceSlug: 'humano', subraceSlug: undefined, baseScores: scores(['wis', 'con', 'cha', 'dex', 'int', 'str']), optionPicks: { 'race:languageChoice:0': ['Orc'] } },
+      CREATION_DATA,
+    );
+    expect(human.stats.strength.score).toBe(9);
+    expect(human.speed).toBe(20);
+    const strong = buildSheet({ ...cleric, raceSlug: 'humano', subraceSlug: undefined }, CREATION_DATA);
+    expect(strong.stats.strength.score).toBe(14);
+    expect(strong.speed).toBe(30);
+  });
+
+  it('dwarves (any subrace) ignore the Strength requirement of heavy armor', () => {
+    const sheet = buildSheet({ ...sample('clerigo'), baseScores: scores(['wis', 'con', 'cha', 'dex', 'int', 'str']) }, CREATION_DATA);
+    expect(sheet.stats.strength.score).toBe(8);
+    expect(sheet.speed).toBe(25);
+  });
+
+  it("the dragonborn's ancestry and the sorcerer's ancestor are told apart", () => {
+    const names = featureNames(sheetOf('feiticeiro')).filter((n) => n.includes('Vermelho'));
+    expect(names).toHaveLength(2);
+    expect(new Set(names).size).toBe(2);
+  });
+
+  it('only the known spells kept spend the free school pick', () => {
+    // magia-1-03 and -07 are evocation; -01, -02, -05, -06 enchantment/illusion.
+    const rogue = sample('ladino');
+    const spells = (spellSlugs: string[]) =>
+      buildSheet({ ...rogue, spellSlugs }, CREATION_DATA).spellcasting!.spells!.map((s) => s.compendiumRef!.slug);
+    expect(spells(['magia-1-01', 'magia-1-02', 'magia-1-05', 'magia-1-03'])).toEqual(['magia-1-01', 'magia-1-02', 'magia-1-05']);
+    expect(spells(['magia-1-03', 'magia-1-07', 'magia-1-01', 'magia-1-02'])).toEqual(['magia-1-01', 'magia-1-02', 'magia-1-03']);
+  });
+
+  it('a subrace whose name lacks the race is written with the race', () => {
+    expect(sheetOf('patrulheiro').race).toBe('Halfling (Pés-Leves)');
+    expect(sheetOf('druida').race).toBe('Elfo da Floresta');
+  });
+
+  it('a proficient weapon missing from the compendium gets a readable name', () => {
+    const weapons = (sheetOf('mago').proficiencies as Record<string, string>).weapons;
+    expect(weapons).toContain('Funda');
+    expect(weapons).not.toMatch(/\bfunda\b/);
+  });
+});

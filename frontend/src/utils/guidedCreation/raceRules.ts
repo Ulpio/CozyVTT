@@ -37,6 +37,8 @@ export const RACE_EFFECTS: Record<string, Effect[]> = {
     { type: 'cantripChoice', count: 1, list: 'mago', ability: 'int' },
     { type: 'languageChoice', count: 1 },
   ],
+  // The race's effects apply with every subrace, so both dwarves have it.
+  anao: [{ type: 'ignoreArmorStrength' }],
   'anao-da-colina': [{ type: 'hpPerLevel', amount: 1 }],
   'anao-da-montanha': [
     { type: 'armorProficiency', armor: 'light' },

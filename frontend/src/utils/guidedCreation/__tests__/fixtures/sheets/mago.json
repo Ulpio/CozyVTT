@@ -234,14 +234,14 @@
   ],
   "proficiencies": {
     "armor": "",
-    "weapons": "Adaga, Dardo, funda, Bordao, Besta leve, Espada longa, Arco longo",
+    "weapons": "Adaga, Dardo, Funda, Bordao, Besta leve, Espada longa, Arco longo",
     "tools": "",
     "languages": "Comum, Élfico, Dracônico, Anão, Orc"
   },
   "proficienciesAndLanguages": [
     "Adaga",
     "Dardo",
-    "funda",
+    "Funda",
     "Bordao",
     "Besta leve",
     "Espada longa",

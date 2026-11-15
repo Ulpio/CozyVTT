@@ -2,7 +2,7 @@
   "characterName": "Teste patrulheiro",
   "class": "Patrulheiro",
   "level": 3,
-  "race": "Pés Leves",
+  "race": "Halfling (Pés-Leves)",
   "background": "Forasteiro",
   "experiencePoints": 900,
   "proficiencyBonus": 2,
@@ -278,8 +278,8 @@
       "description": "Texto de exemplo, inventado para os testes. (Halfling traço)"
     },
     {
-      "name": "Pés Leves traço",
-      "description": "Texto de exemplo, inventado para os testes. (Pés Leves traço)"
+      "name": "Pés-Leves traço",
+      "description": "Texto de exemplo, inventado para os testes. (Pés-Leves traço)"
     },
     {
       "name": "Patrulheiro 1",
