@@ -15,7 +15,7 @@ import { X, type LucideIcon } from 'lucide-react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { cn } from '@/utils/cn';
 
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
 export interface ModalProps {
   open: boolean;
@@ -51,6 +51,8 @@ const SIZE_CLASSES: Record<ModalSize, string> = {
   md: 'max-w-lg',
   lg: 'max-w-2xl',
   xl: 'max-w-4xl',
+  // A workspace rather than a dialog: the guided character creation.
+  full: 'max-w-7xl',
 };
 
 export default function Modal({
