@@ -72,3 +72,30 @@ describe('compendium references in the 5E editor', () => {
     expect(saved.inventory[0]).not.toHaveProperty('compendiumRef');
   });
 });
+
+describe('cantrip references follow the cantrips box', () => {
+  const twoCantrips = () => {
+    const character = characterWithRefs();
+    const sc = (character.data as any).spellcasting;
+    sc.cantrips = ['Light', 'Mage Hand'];
+    sc.cantripRefs = [
+      { name: 'Light', compendiumRef: ref('light') },
+      { name: 'Mage Hand', compendiumRef: ref('mage-hand') },
+    ];
+    return character;
+  };
+
+  it('keeps both when the box is left alone', async () => {
+    const saved = await save(twoCantrips());
+    expect(saved.spellcasting.cantripRefs.map((r: any) => r.name)).toEqual(['Light', 'Mage Hand']);
+  });
+
+  it('drops the pointer of a cantrip removed from the box and keeps the other', async () => {
+    const saved = await save(twoCantrips(), () => {
+      fireEvent.click(screen.getByRole('tab', { name: /Spells/ }));
+      fireEvent.change(screen.getByLabelText('Cantrips'), { target: { value: 'Mage Hand' } });
+    });
+    expect(saved.spellcasting.cantrips).toEqual(['Mage Hand']);
+    expect(saved.spellcasting.cantripRefs).toEqual([{ name: 'Mage Hand', compendiumRef: ref('mage-hand') }]);
+  });
+});

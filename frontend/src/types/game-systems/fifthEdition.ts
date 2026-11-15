@@ -151,15 +151,15 @@ export interface FifthEditionAdditionalDamage {
   damageType?: string;
 }
 
-/**
- * Attack/weapon entry
- */
 /** A pointer at a compendium entry; the sheet keeps its own copy of every value. */
 export interface CompendiumRef {
   bookId: string;
   slug: string;
 }
 
+/**
+ * Attack/weapon entry
+ */
 export interface FifthEditionAttack {
   name: string;
   attackBonus: number;

@@ -2635,6 +2635,13 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             }
             setCantripsTurnedAway(false);
             updateField('spellcasting.cantrips', e.target.value);
+            // A pointer for a cantrip the box no longer lists has nothing to point from.
+            const listed = new Set(parseCommaSeparated(e.target.value));
+            setFormData((prev) => {
+              const refs = prev.spellcasting?.cantripRefs;
+              if (!refs || refs.every((r) => listed.has(r.name.trim()))) return prev;
+              return { ...prev, spellcasting: { ...prev.spellcasting!, cantripRefs: refs.filter((r) => listed.has(r.name.trim())) } };
+            });
           }}
           placeholder="Enter cantrips separated by commas (e.g., Fire Bolt, Mage Hand, Prestidigitation)"
           aria-label="Cantrips"
