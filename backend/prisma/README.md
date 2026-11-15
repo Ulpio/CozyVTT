@@ -15,7 +15,7 @@ The schema is in [`schema.prisma`](./schema.prisma) — 27 models grouped by dom
 - `LoginSession` — the `session` table where `connect-pg-simple` keeps sign-ins. `@@ignore` leaves it out of the Prisma client; the session store and `services/sessionStore.ts` read and write it with SQL of their own. Its migration, `20261015032229_add_login_session_table`, uses `IF NOT EXISTS`, so on an instance whose backend already made the table it changes nothing
 
 **Campaigns & membership**
-- `Campaign` — game-system, vibe settings, spirit-layer config, status, and whether players may draw on the map (`playersMayDraw`, default on)
+- `Campaign` — game-system, vibe settings, spirit-layer config, status, and whether players may draw on the map (`playersMayDraw`, default on), and how guided character creation runs (`abilityScoreMethods`, default point buy and standard array; `detailLevel`, default `FLEXIBLE`)
 - `CampaignMembership` — join table with role (`GM`, `PLAYER` or `SPECTATOR`)
 - `CampaignInvitation` — pending/accepted/declined invites
 - `Session` — live game sessions with full state snapshots

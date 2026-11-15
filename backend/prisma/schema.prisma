@@ -198,6 +198,11 @@ model PasswordResetToken {
 // CAMPAIGN MANAGEMENT
 // ============================================
 
+enum CampaignDetailLevel {
+  FAITHFUL
+  FLEXIBLE
+}
+
 model Campaign {
   id          String         @id @default(uuid())
   name        String
@@ -230,6 +235,12 @@ model Campaign {
   // Drawing Settings
   // Players may draw on the map while the session is live; the GM always may.
   playersMayDraw Boolean @default(true)
+
+  // Character creation
+  // The ways the GM lets players set ability scores, and how closely guided
+  // creation holds to the rules as written.
+  abilityScoreMethods String[]            @default(["POINT_BUY", "STANDARD_ARRAY"])
+  detailLevel         CampaignDetailLevel @default(FLEXIBLE)
 
   // Dice Settings
   // When the GM clears roll history, this records when — rolls older than it

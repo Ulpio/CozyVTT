@@ -578,6 +578,10 @@ export interface Campaign {
   chatCooldownSeconds: number;
   /** Players may draw on the map and point the laser; the GM always may. */
   playersMayDraw: boolean;
+  /** The ways players may set ability scores when creating a character. */
+  abilityScoreMethods: AbilityScoreMethod[];
+  /** How closely guided creation holds to the rules as written. */
+  detailLevel: CampaignDetailLevel;
   createdAt: string;
   updatedAt: string;
   lastPlayedAt: string | null;
@@ -803,6 +807,12 @@ export interface SessionState {
 }
 
 // ============================================
+/** The ways a campaign lets players set ability scores. */
+export type AbilityScoreMethod = 'POINT_BUY' | 'STANDARD_ARRAY' | 'ROLL';
+
+/** How closely guided character creation holds to the rules as written. */
+export type CampaignDetailLevel = 'FAITHFUL' | 'FLEXIBLE';
+
 // Character
 // ============================================
 
@@ -1223,6 +1233,8 @@ export interface UpdateCampaignRequest {
   chatCooldownEnabled?: boolean;
   chatCooldownSeconds?: number;
   playersMayDraw?: boolean;
+  abilityScoreMethods?: AbilityScoreMethod[];
+  detailLevel?: CampaignDetailLevel;
 }
 
 // Character
@@ -1516,6 +1528,8 @@ export interface CampaignSettingsUpdatedBroadcast {
   chatCooldownEnabled: boolean;
   chatCooldownSeconds: number;
   playersMayDraw: boolean;
+  abilityScoreMethods: AbilityScoreMethod[];
+  detailLevel: CampaignDetailLevel;
 }
 
 // Atmosphere Events

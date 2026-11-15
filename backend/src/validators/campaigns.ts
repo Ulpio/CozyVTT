@@ -11,6 +11,14 @@ import { GameSystemSchema } from './gameSystem';
 import { HEX_COLOR_PATTERN, SPIRIT_STYLE_PATTERN, isSafeVibeFilter } from '../utils/styleAllowlists';
 import { CAMPAIGN_LIMITS } from './campaignLimits';
 
+/** The ways a campaign lets players set ability scores: at least one, each once. */
+const AbilityScoreMethodsSchema = z.array(z.enum(['POINT_BUY', 'STANDARD_ARRAY', 'ROLL']), {
+  error: 'abilityScoreMethods must be a list of POINT_BUY, STANDARD_ARRAY or ROLL',
+}).min(1, 'abilityScoreMethods needs at least one method').max(3)
+  .transform((methods) => [...new Set(methods)]);
+
+const DetailLevelSchema = z.enum(['FAITHFUL', 'FLEXIBLE'], { error: 'detailLevel must be FAITHFUL or FLEXIBLE' });
+
 /** POST /api/campaigns */
 export const CreateCampaignSchema = z.object({
   name: z.string().trim().min(1, 'Campaign name is required').max(CAMPAIGN_LIMITS.maxNameLength, `Campaign name must be ${CAMPAIGN_LIMITS.maxNameLength} characters or fewer`),
@@ -18,6 +26,8 @@ export const CreateCampaignSchema = z.object({
   gameSystem: GameSystemSchema.nullish(),
   // The compendium books it uses; left out, its system's books but the English SRD.
   bookIds: z.array(z.string().max(40), { error: 'bookIds must be a list of book ids' }).max(50).optional(),
+  abilityScoreMethods: AbilityScoreMethodsSchema.optional(),
+  detailLevel: DetailLevelSchema.optional(),
 });
 
 /** PUT /api/campaigns/:campaignId/books: the compendium books the campaign uses. */
@@ -128,6 +138,8 @@ export const UpdateCampaignSchema = z.object({
   chatCooldownEnabled: z.boolean({ error: 'chatCooldownEnabled must be true or false' }).optional(),
   chatCooldownSeconds: z.number({ error: COOLDOWN_MESSAGE }).int(COOLDOWN_MESSAGE).min(1, COOLDOWN_MESSAGE).max(300, COOLDOWN_MESSAGE).optional(),
   playersMayDraw: z.boolean({ error: 'playersMayDraw must be true or false' }).optional(),
+  abilityScoreMethods: AbilityScoreMethodsSchema.optional(),
+  detailLevel: DetailLevelSchema.optional(),
 });
 
 export type UpdateCampaignInput = z.infer<typeof UpdateCampaignSchema>;

@@ -2418,6 +2418,17 @@ paths:
                   enum: [FIFTH_EDITION, FANTASY_D20, HORROR_D100]
                   nullable: true
                   description: Optional game system for the campaign
+                abilityScoreMethods:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    enum: [POINT_BUY, STANDARD_ARRAY, ROLL]
+                  description: Optional; defaults to point buy and standard array.
+                detailLevel:
+                  type: string
+                  enum: [FAITHFUL, FLEXIBLE]
+                  description: Optional; defaults to FLEXIBLE.
       responses:
         '201':
           description: Campaign created
@@ -2554,11 +2565,13 @@ paths:
         Unknown fields are ignored. Changing `gameSystem` after characters
         have been created logs a warning, but the change is still allowed.
         A request that carries `name`, `description`, `gameSystem`,
-        `chatCooldownEnabled`, `chatCooldownSeconds` or `playersMayDraw`,
+        `chatCooldownEnabled`, `chatCooldownSeconds`, `playersMayDraw`,
+        `abilityScoreMethods` or `detailLevel`,
         changed or not, sends every connected member
         `campaign.settings.updated` with `campaignId`, `name`,
         `description`, `gameSystem`, `chatCooldownEnabled`,
-        `chatCooldownSeconds` and `playersMayDraw` as stored, so open pages
+        `chatCooldownSeconds`, `playersMayDraw`, `abilityScoreMethods` and
+        `detailLevel` as stored, so open pages
         follow them without a reload. A refused request sends nothing, and a
         send that fails is logged and the change stays saved. `vibeSettings`
         is broadcast as described below. Open pages see a change to
@@ -2659,6 +2672,20 @@ paths:
                     drawings stay theirs to erase while it is off. Anything
                     but `true` or `false` answers 400 with "playersMayDraw
                     must be true or false".
+                abilityScoreMethods:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    enum: [POINT_BUY, STANDARD_ARRAY, ROLL]
+                  description: >-
+                    The ways players may set ability scores in guided
+                    character creation. At least one; repeats are stored
+                    once. An empty list or another value answers 400.
+                detailLevel:
+                  type: string
+                  enum: [FAITHFUL, FLEXIBLE]
+                  description: How closely guided creation holds to the rules as written.
       responses:
         '200':
           description: Campaign updated
@@ -13078,6 +13105,18 @@ components:
           type: boolean
           default: true
           description: Whether players may draw on the map while the session is live; the GM always may.
+        abilityScoreMethods:
+          type: array
+          items:
+            type: string
+            enum: [POINT_BUY, STANDARD_ARRAY, ROLL]
+          default: [POINT_BUY, STANDARD_ARRAY]
+          description: The ways players may set ability scores in guided character creation.
+        detailLevel:
+          type: string
+          enum: [FAITHFUL, FLEXIBLE]
+          default: FLEXIBLE
+          description: How closely guided character creation holds to the rules as written.
         rollHistoryClearedAt:
           type: string
           format: date-time

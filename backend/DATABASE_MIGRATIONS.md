@@ -262,6 +262,10 @@ about; the list is not exhaustive.
   library offered disappears; a campaign with no system gets none. Like every
   migration it runs by itself when the backend starts. No existing row is
   changed or removed.
+- `20261115120000_campaign_creation_settings` - `Campaign.abilityScoreMethods`
+  and `Campaign.detailLevel` (enum `CampaignDetailLevel`), how guided character
+  creation runs. Column defaults only: existing campaigns read point buy and
+  standard array, and `FLEXIBLE`; no row is written.
 
 ## Data migrations (one-off scripts)
 

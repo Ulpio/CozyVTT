@@ -25,7 +25,7 @@ import { CreatePersonalNoteSchema, UpdatePersonalNoteSchema, MAX_NOTES_PER_CAMPA
 import { UpdateSessionNotesSchema, EndSessionSchema } from '../validators/sessionNotes';
 import { listLeftCampaigns, getLeftCampaign, getLeftCampaignNote, getLeftCampaignNotes } from './leftCampaigns';
 import { leftNotesDownloadLimiter } from '../middleware/leftNotesDownloadLimiter';
-import { CampaignRole, type GameSystem, type Prisma } from '@prisma/client';
+import { CampaignRole, type CampaignDetailLevel, type GameSystem, type Prisma } from '@prisma/client';
 import { normaliseRole } from '../legacy/gameSystemAliases';
 import { sheetAsRead } from '../legacy/sheetConversion';
 import { errorMessage } from '../utils/errors';
@@ -227,7 +227,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
         message: parsed.error.issues[0]?.message ?? 'Invalid campaign data',
       });
     }
-    const { name, description, gameSystem, bookIds } = parsed.data;
+    const { name, description, gameSystem, bookIds, abilityScoreMethods, detailLevel } = parsed.data;
 
     // The campaign, its creator as GM and its books together: a book it
     // cannot use refuses the whole campaign.
@@ -241,6 +241,8 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
             ownerId: userId,
             vibeSettings: toJson(DEFAULT_VIBE_SETTINGS),
             gameSystem: gameSystem || null,
+            ...(abilityScoreMethods !== undefined && { abilityScoreMethods }),
+            ...(detailLevel !== undefined && { detailLevel }),
           },
         });
         await tx.campaignMembership.create({
@@ -461,6 +463,9 @@ router.get('/:campaignId/characters', campaignMember, async (req: AuthenticatedR
  * shows, as stored, sent when the GM saves any of them. The frontend declares
  * the same fields (keepInStep.test.ts).
  */
+/** The ways a campaign lets players set ability scores. */
+export type AbilityScoreMethod = 'POINT_BUY' | 'STANDARD_ARRAY' | 'ROLL';
+
 export interface CampaignSettingsUpdatedBroadcast {
   campaignId: string;
   name: string;
@@ -469,6 +474,8 @@ export interface CampaignSettingsUpdatedBroadcast {
   chatCooldownEnabled: boolean;
   chatCooldownSeconds: number;
   playersMayDraw: boolean;
+  abilityScoreMethods: AbilityScoreMethod[];
+  detailLevel: CampaignDetailLevel;
 }
 
 /**
@@ -486,7 +493,7 @@ router.put('/:campaignId', campaignGM, async (req: AuthenticatedRequest, res: Re
         message: parsed.error.issues[0]?.message ?? 'Invalid campaign data',
       });
     }
-    const { name, description, status, vibeSettings, spiritLayerEnabled, spiritLayerStyle, gameSystem, chatCooldownEnabled, chatCooldownSeconds, playersMayDraw } = parsed.data;
+    const { name, description, status, vibeSettings, spiritLayerEnabled, spiritLayerStyle, gameSystem, chatCooldownEnabled, chatCooldownSeconds, playersMayDraw, abilityScoreMethods, detailLevel } = parsed.data;
 
     const updateData: Prisma.CampaignUpdateInput = {};
     if (name !== undefined) updateData.name = name;
@@ -504,6 +511,8 @@ router.put('/:campaignId', campaignGM, async (req: AuthenticatedRequest, res: Re
     if (chatCooldownEnabled !== undefined) updateData.chatCooldownEnabled = chatCooldownEnabled;
     if (chatCooldownSeconds !== undefined) updateData.chatCooldownSeconds = chatCooldownSeconds;
     if (playersMayDraw !== undefined) updateData.playersMayDraw = playersMayDraw;
+    if (abilityScoreMethods !== undefined) updateData.abilityScoreMethods = abilityScoreMethods;
+    if (detailLevel !== undefined) updateData.detailLevel = detailLevel;
 
     // Handle gameSystem update
     let systemChanged = false;
@@ -544,7 +553,7 @@ router.put('/:campaignId', campaignGM, async (req: AuthenticatedRequest, res: Re
     // without a reload: the chat box's cooldown, the campaign's name, whether
     // they may draw. The change is saved either way, so a failed broadcast is
     // only logged.
-    if ([name, description, gameSystem, chatCooldownEnabled, chatCooldownSeconds, playersMayDraw].some((value) => value !== undefined)) {
+    if ([name, description, gameSystem, chatCooldownEnabled, chatCooldownSeconds, playersMayDraw, abilityScoreMethods, detailLevel].some((value) => value !== undefined)) {
       try {
         const settings: CampaignSettingsUpdatedBroadcast = {
           campaignId,
@@ -554,6 +563,8 @@ router.put('/:campaignId', campaignGM, async (req: AuthenticatedRequest, res: Re
           chatCooldownEnabled: campaign.chatCooldownEnabled,
           chatCooldownSeconds: campaign.chatCooldownSeconds,
           playersMayDraw: campaign.playersMayDraw,
+          abilityScoreMethods: campaign.abilityScoreMethods as AbilityScoreMethod[],
+          detailLevel: campaign.detailLevel,
         };
         broadcastToCampaign(campaignId, 'campaign.settings.updated', settings);
       } catch (error) {
