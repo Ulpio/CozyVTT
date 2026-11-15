@@ -256,6 +256,12 @@ about; the list is not exhaustive.
   `dmg`, `srd`). Like every migration it runs by itself when the backend
   starts. No existing row is changed or removed; the entries themselves come
   later, from `npm run compendium:import`.
+- `20261114180000_campaign_books` - The `CampaignBook` table, the compendium
+  books each campaign uses. It adds rows: every campaign that exists gets every
+  book of its game system, the English SRD included, so nothing its creature
+  library offered disappears; a campaign with no system gets none. Like every
+  migration it runs by itself when the backend starts. No existing row is
+  changed or removed.
 
 ## Data migrations (one-off scripts)
 

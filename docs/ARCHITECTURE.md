@@ -696,6 +696,11 @@ erDiagram
         string editedById
     }
 
+    CampaignBook {
+        string campaignId PK,FK
+        string bookId PK,FK
+    }
+
     CreatureFavorite {
         string id PK
         string campaignId FK
@@ -777,6 +782,8 @@ erDiagram
     User ||--o{ CreatureTemplate : "made"
     CreatureTemplate ||--o{ CreatureFavorite : "favorited as"
     CompendiumBook ||--o{ CompendiumEntry : "holds"
+    Campaign ||--o{ CampaignBook : "uses"
+    CompendiumBook ||--o{ CampaignBook : "used by"
     User ||--o{ CreatureFavorite : "has favorites"
     Campaign ||--o{ CreatureFavorite : "scoped to"
     User ||--o{ TokenTemplate : "made"

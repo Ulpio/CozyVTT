@@ -259,6 +259,7 @@ model Campaign {
   personalNotes      PersonalNote[]
   diceMacros         DiceMacro[]
   documentLinks      CampaignDocument[]
+  books              CampaignBook[]
 
   @@index([ownerId])
   @@index([status])
@@ -810,6 +811,18 @@ model CompendiumBook {
   name       String
   gameSystem GameSystem
   entries    CompendiumEntry[]
+  campaigns  CampaignBook[]
+}
+
+// A book a campaign uses: its creatures and rules are offered there.
+model CampaignBook {
+  campaignId String
+  campaign   Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  bookId     String
+  book       CompendiumBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, bookId])
+  @@index([bookId])
 }
 
 model CompendiumEntry {

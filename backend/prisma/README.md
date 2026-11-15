@@ -7,7 +7,7 @@ through the `pg` driver (`src/config/prismaClient.ts`).
 
 ## Models
 
-The schema is in [`schema.prisma`](./schema.prisma) — 26 models grouped by domain:
+The schema is in [`schema.prisma`](./schema.prisma) — 27 models grouped by domain:
 
 **User & auth**
 - `User` — accounts with optional MFA, which an administrator must turn on within 7 days
@@ -28,6 +28,7 @@ The schema is in [`schema.prisma`](./schema.prisma) — 26 models grouped by dom
 - `CreatureTemplate` — SRD bestiary + custom creatures (campaign-scoped or global). `source` says which; `createdById` is the author, null for SRD creatures and once the author's account is deleted. A creature from a compendium book has the book's id as its `source`; `editedAt` and `editedById` mark one the admin corrected in the app, which an import then leaves alone
 - `CompendiumBook` — a rules book the compendium is drawn from (`phb`, `mm`, `dmg`, `srd`), with its game system
 - `CompendiumEntry` — one rules entry of one book (a spell, class, race, item...), unique by book, type and slug: its name, English name, a `search` key over both, the text and the structured `data`; `editedAt` and `editedById` mark one the admin corrected
+- `CampaignBook` — a book a campaign uses; its creature library and character creation offer only those books' content (`src/compendium/campaignBooks.ts`)
 - `CreatureFavorite` — GM's per-campaign starred creatures
 - `TokenTemplate` — reusable token configurations copyable across campaigns
 - `CharacterTemplate` — shareable starter sheets any signed-in user can copy
