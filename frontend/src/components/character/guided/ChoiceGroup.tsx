@@ -30,6 +30,8 @@ export interface ChoiceGroupProps {
   update: (patch: Partial<CreationChoices>) => void;
   /** Languages the character speaks without picking. */
   known: string[];
+  /** Tools the character has (ownedTools): not offered again, except as this choice's own picks. */
+  tools: string[];
 }
 
 /** The feature texts an option's paragraph can be cut from: race, class, subclass and the picked feat. */
@@ -49,13 +51,14 @@ export function featureSources(data: CreationData, choices: CreationChoices): st
     .concat(feat?.text ? [feat.text] : []);
 }
 
-export default function ChoiceGroup({ state, states, data, choices, update, known }: ChoiceGroupProps) {
+export default function ChoiceGroup({ state, states, data, choices, update, known, tools }: ChoiceGroupProps) {
   const { t, i18n } = useTranslation();
   const { effect } = state;
   // Each option's paragraph from the feature that lists them (a fighting style, an invocation...).
   const texts =
     effect.type === 'option'
-      ? optionTexts(featureSources(data, choices), (state.options ?? []).map((o) => o.name))
+      ? // Every option of the feature bounds the paragraphs, offered or not; only offered ones are shown.
+        optionTexts(featureSources(data, choices), effect.options.map((o) => o.name))
       : new Map<string, string>();
   const onChange = (next: string[]) => update(picksPatch(choices, states, state, next));
   const skillName = (id: string) =>
@@ -125,7 +128,11 @@ export default function ChoiceGroup({ state, states, data, choices, update, know
       description: state.picks.includes(o.id) ? data.feats.find((f) => f.slug === o.id)?.text || undefined : undefined,
     }));
   } else {
-    options = (state.options ?? []).map((o) => ({
+    const toolSlugs = new Set(data.tools.map((x) => x.slug));
+    // A tool the character already has is not a new proficiency (expertise is, of a tool it has).
+    const picksTools = effect.type === 'toolChoice' || effect.type === 'skillChoice';
+    const taken = (id: string) => picksTools && toolSlugs.has(id) && tools.includes(id) && !state.picks.includes(id);
+    options = (state.options ?? []).filter((o) => !taken(o.id)).map((o) => ({
       id: o.id,
       label: skillName(o.id) ?? o.name,
       description: effect.type === 'option' ? texts.get(o.name) : undefined,

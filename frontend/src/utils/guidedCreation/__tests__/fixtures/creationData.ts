@@ -95,6 +95,7 @@ const TOOLS = [
   entry('alaude', 'Alaúde', { weight: 1 }),
   entry('flauta', 'Flauta', { weight: 0.5 }),
   entry('lira', 'Lira', { weight: 1 }),
+  entry('tambor', 'Tambor', { weight: 1.5 }),
   entry('ferramentas-de-ferreiro', 'Ferramentas de ferreiro', { weight: 4 }),
   entry('kit-de-jogo-conjunto-de-dados', 'Kit de jogo: conjunto de dados', {}),
 ];
@@ -210,6 +211,15 @@ const CLASSES = [
   }),
   cls('bruxo', 'Bruxo', {
     hitDie: 8,
+    features: [
+      feature('Bruxo 1', 1),
+      {
+        name: 'Invocações Místicas',
+        level: 2,
+        description: `${TEXT}\nArmadura de Sombras. Texto inventado A.\nExplosão Agonizante. Texto inventado B.\nIdioma Bestial. Texto inventado C.`,
+      },
+      feature('Bruxo 5', 5),
+    ],
     savingThrows: ['wis', 'cha'],
     proficiencies: { armor: ['Armaduras leves'], weapons: [], tools: [] },
     skills: { choose: 2, from: ['arcana', 'deception', 'history', 'intimidation', 'investigation', 'nature', 'religion'] },
@@ -414,6 +424,7 @@ const BACKGROUNDS = [
   background('artista', 'Artista', ['acrobatics', 'performance'], ['Kit de disfarce', 'Um tipo de instrumento musical']),
   background('eremita', 'Eremita', ['medicine', 'religion'], ['Kit de herbalismo'], 1),
   background('forasteiro', 'Forasteiro', ['athletics', 'survival'], ['Um tipo de instrumento musical'], 1),
+  background('marinheiro', 'Marinheiro', ['athletics', 'perception'], []),
 ];
 
 const FEATS = [
@@ -421,6 +432,7 @@ const FEATS = [
   entry('alerta', 'Alerta', {}),
   entry('robusto', 'Robusto', {}),
   entry('perito', 'Perito', {}),
+  entry('atleta', 'Atleta', {}),
 ];
 
 export const CREATION_DATA: CreationData = {

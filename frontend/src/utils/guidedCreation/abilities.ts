@@ -83,7 +83,7 @@ export function validateAbilityPicks(effects: Effect[], picks: AbilityKey[]): st
 export function finalScores(
   base: Record<AbilityKey, number>,
   effects: Effect[],
-  picks: AbilityKey[] = [],
+  picks: Array<AbilityKey | undefined> = [],
 ): Record<AbilityKey, number> {
   const out = { ...base };
   let i = 0;
@@ -91,7 +91,7 @@ export function finalScores(
     if (e.type === 'ability') out[e.ability] += e.amount;
     else if (e.type === 'abilityChoice') {
       for (const a of picks.slice(i, i + e.count)) {
-        if (!e.exclude?.includes(a)) out[a] += e.amount;
+        if (a && !e.exclude?.includes(a)) out[a] += e.amount;
       }
       i += e.count;
     }

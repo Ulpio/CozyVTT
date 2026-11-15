@@ -10,7 +10,7 @@ import type { AbilityScoreMethod } from '@/types';
 import { ABILITY_KEYS } from '@/utils/rules/fifthEdition';
 import { validateAbilityPicks } from '@/utils/guidedCreation/abilities';
 import type { CreationData } from '@/utils/guidedCreation/buildSheet';
-import { abilityPicksOf, collectEffects, pruneChoices } from '@/utils/guidedCreation/collectEffects';
+import { abilityChoiceSlots, abilityPicksOf, pruneChoices } from '@/utils/guidedCreation/collectEffects';
 import { equipmentChoicesOf } from '@/utils/guidedCreation/equipmentRules';
 import type { AbilityKey, CreationChoices } from '@/utils/guidedCreation/types';
 
@@ -70,14 +70,23 @@ function dropDependents(before: CreationChoices, out: CreationChoices, data: Cre
   if (next.classSlug !== before.classSlug || next.subclassSlug !== before.subclassSlug) {
     next = { ...next, cantripSlugs: [], spellSlugs: [], preparedSlugs: [] };
   }
-  // Racial +1s the race no longer gives, or no longer allows.
+  // +1s the race or the feat no longer gives, or no longer allows: each choice's picks go on their own.
   const stored = next.racialChoices.abilityPicks;
   if (Array.isArray(stored) && stored.some(Boolean)) {
-    const { effects } = collectEffects(next, data);
-    const errors = validateAbilityPicks(effects, abilityPicksOf(next));
-    if (errors.some((e) => e !== 'missingPick')) {
+    const picks = abilityPicksOf(next);
+    let kept: Array<string | undefined> = [];
+    for (const { effect, start } of abilityChoiceSlots(next, data)) {
+      const mine = picks.slice(start, start + effect.count);
+      const valid = mine.filter((p): p is AbilityKey => !!p);
+      const ok = !validateAbilityPicks([effect], valid).some((e) => e !== 'missingPick');
+      kept = [...kept, ...Array.from({ length: effect.count }, (_, i) => (ok ? mine[i] : undefined))];
+    }
+    while (kept.length && !kept[kept.length - 1]) kept.pop();
+    // Unmade picks (empty, or past the end) do not count as a change.
+    const same = [...stored.keys(), ...kept.keys()].every((i) => (kept[i] ?? '') === (picks[i] ?? ''));
+    if (!same) {
       const { abilityPicks: _dropped, ...rest } = next.racialChoices;
-      next = { ...next, racialChoices: rest };
+      next = { ...next, racialChoices: kept.some(Boolean) ? { ...rest, abilityPicks: kept.map((p) => p ?? '') } : rest };
     }
   }
   return next;

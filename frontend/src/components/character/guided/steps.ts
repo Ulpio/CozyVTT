@@ -6,7 +6,7 @@
 
 import type { ComponentType } from 'react';
 import type { Messages } from '@/i18n/locales/en';
-import { collectEffects } from '@/utils/guidedCreation/collectEffects';
+import { abilityPickErrors, collectEffects } from '@/utils/guidedCreation/collectEffects';
 import { abilitiesComplete, raceComplete, subclassesOf, type StepCheck, type StepProps } from './stepRules';
 import { equipmentComplete, equipmentModel, inSkillsStep, spellModel, spellsComplete } from './stepModels';
 import RaceStep from './RaceStep';
@@ -53,7 +53,12 @@ export const STEPS: StepDefinition[] = [
   },
   { id: 'abilities', Component: AbilitiesStep, isComplete: abilitiesComplete },
   { id: 'skills', Component: SkillsStep, isComplete: (check) => noPending(check, true) },
-  { id: 'classChoices', Component: ClassChoicesStep, isComplete: (check) => noPending(check, false) },
+  {
+    id: 'classChoices',
+    Component: ClassChoicesStep,
+    // A half-feat's +1 is owed here too.
+    isComplete: (check) => noPending(check, false) && abilityPickErrors(check.choices, check.data, true).length === 0,
+  },
   {
     id: 'equipment',
     Component: EquipmentStep,

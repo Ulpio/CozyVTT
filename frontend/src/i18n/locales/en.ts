@@ -388,7 +388,7 @@ const en = {
       },
       ability: 'Ability',
       base: 'Base',
-      racial: 'Racial',
+      racial: 'Increases',
       total: 'Total',
       modifier: 'Mod',
       pointsLeft: 'Points left: {{count}}',
@@ -420,7 +420,9 @@ const en = {
         weaponChoice: 'Weapon proficiencies',
         cantripChoice: 'Cantrips',
         spellChoice: 'Spells',
+        abilityChoice: 'Ability increase',
       },
+      abilityPick: 'Ability +{{amount}} ({{n}})',
       source: {
         race: 'Race',
         subrace: 'Subrace',
@@ -469,6 +471,7 @@ const en = {
       weight: 'Weight (kg)',
       gp: '{{gp}} gp',
       load: 'Total weight: {{total}} kg of a {{capacity}} kg carrying capacity',
+      unweighed: 'Not in the total (no weight in the books): {{list}}',
     },
     spells: {
       noCasting: 'This character casts no spells.',

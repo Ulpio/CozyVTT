@@ -391,7 +391,7 @@ const ptBR: Messages = {
       },
       ability: 'Atributo',
       base: 'Base',
-      racial: 'Racial',
+      racial: 'Aumentos',
       total: 'Total',
       modifier: 'Mod',
       pointsLeft: 'Pontos restantes: {{count}}',
@@ -423,7 +423,9 @@ const ptBR: Messages = {
         weaponChoice: 'Proficiência em armas',
         cantripChoice: 'Truques',
         spellChoice: 'Magias',
+        abilityChoice: 'Aumento de atributo',
       },
+      abilityPick: 'Atributo +{{amount}} ({{n}})',
       source: {
         race: 'Raça',
         subrace: 'Sub-raça',
@@ -472,6 +474,7 @@ const ptBR: Messages = {
       weight: 'Peso (kg)',
       gp: '{{gp}} po',
       load: 'Peso total: {{total}} kg de {{capacity}} kg de capacidade de carga',
+      unweighed: 'Fora do total (sem peso nos livros): {{list}}',
     },
     spells: {
       noCasting: 'Este personagem não conjura magias.',

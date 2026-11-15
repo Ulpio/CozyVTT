@@ -12,7 +12,7 @@ import { choiceStates, collectEffects } from '@/utils/guidedCreation/collectEffe
 import { SKILL_KEYS, type SkillKey } from '@/utils/guidedCreation/types';
 import ChoiceGroup from './ChoiceGroup';
 import { Facts } from './parts';
-import { inSkillsStep, knownLanguages } from './stepModels';
+import { inSkillsStep, knownLanguages, ownedTools } from './stepModels';
 import type { StepProps } from './stepRules';
 
 export default function SkillsStep({ data, choices, update }: StepProps) {
@@ -23,6 +23,7 @@ export default function SkillsStep({ data, choices, update }: StepProps) {
   );
   const shown = states.filter(inSkillsStep);
   const known = knownLanguages(data, choices, effects);
+  const tools = ownedTools(data, choices, effects);
   const skillName = (s: string) => t(`guidedCreation.skill.${s as SkillKey}`);
 
   const fixed = [...new Set(effects.flatMap((e) => (e.type === 'skill' ? [e.skill] : [])))];
@@ -42,7 +43,7 @@ export default function SkillsStep({ data, choices, update }: StepProps) {
       )}
       {shown.length === 0 && <p className="text-sm text-warm-gray">{t('guidedCreation.choices.none')}</p>}
       {shown.map((state) => (
-        <ChoiceGroup key={state.id} state={state} states={states} data={data} choices={choices} update={update} known={known} />
+        <ChoiceGroup key={state.id} state={state} states={states} data={data} choices={choices} update={update} known={known} tools={tools} />
       ))}
     </div>
   );

@@ -8,11 +8,10 @@ import { ABILITY_KEYS } from '@/utils/rules/fifthEdition';
 import {
   POINT_BUY_MIN,
   STANDARD_ARRAY,
-  validateAbilityPicks,
   validateBaseScores,
 } from '@/utils/guidedCreation/abilities';
 import type { CreationData } from '@/utils/guidedCreation/buildSheet';
-import { abilityPicksOf, collectEffects } from '@/utils/guidedCreation/collectEffects';
+import { abilityPickErrors } from '@/utils/guidedCreation/collectEffects';
 import { OPTIONAL_SUBRACE_RACES } from '@/utils/guidedCreation/raceRules';
 import type { AbilityKey, CreationChoices } from '@/utils/guidedCreation/types';
 import type { AbilityRollState } from './useAbilityRoll';
@@ -74,8 +73,8 @@ export function abilitiesComplete({ data, choices, campaign, roll, rollKnown }: 
   if (roll && choices.abilityRollId !== roll.id) return false;
   const totals = roll?.rolls.map((r) => r.total);
   if (validateBaseScores(choices.method, choices.baseScores, totals).length) return false;
-  const { effects } = collectEffects(choices, data);
-  return validateAbilityPicks(effects, abilityPicksOf(choices)).length === 0;
+  // The race's +1s; a half-feat's are picked with the feat, in the class choices step.
+  return abilityPickErrors(choices, data, false).length === 0;
 }
 
 /** The scores a method starts from: all 8 for point buy, the array or the roll in ability order. */

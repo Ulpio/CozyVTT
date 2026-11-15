@@ -21,6 +21,9 @@ import type { StepProps } from './stepRules';
 
 type AnyOf = keyof Messages['guidedCreation']['equipment']['anyOf'];
 
+/** An equipment choice not picked yet (`equipmentPicks` has no holes). */
+const NO_PICK = -1;
+
 const letter = (i: number) => String.fromCharCode(97 + i);
 
 export default function EquipmentStep({ data, choices, update, campaign }: StepProps) {
@@ -48,13 +51,15 @@ export default function EquipmentStep({ data, choices, update, campaign }: StepP
 
   const pick = (c: number, index: number) =>
     update({
-      equipmentPicks: Array.from({ length: model.choices.length }, (_, i) => (i === c ? index : choices.equipmentPicks[i])),
+      equipmentPicks: Array.from({ length: model.choices.length }, (_, i) => (i === c ? index : (choices.equipmentPicks[i] ?? NO_PICK))),
     });
 
   const { effects } = collectEffects(choices, data);
   const strength = finalScores(choices.baseScores, effects, abilityPicksOf(choices)).str;
   const equipment = resolveEquipment(cls.data, background?.data, choices.equipmentPicks, choices.anyOfPicks, data, model.proficiencies);
   const totalKg = equipment.inventory.reduce((sum, item) => sum + (item.weight ?? 0) * item.quantity, 0);
+  // Packs and some items have no weight in the books: say so rather than count them as nothing.
+  const unweighed = equipment.inventory.filter((item) => item.weight === undefined).map((item) => item.name);
   // The rules give pounds (STR × 15); the books' data is in kg, 0,5 kg to the pound.
   const capacityKg = carryingCapacity(strength).carry / 2;
 
@@ -162,6 +167,9 @@ export default function EquipmentStep({ data, choices, update, campaign }: StepP
           <p className={cn('text-sm', totalKg > capacityKg ? 'text-danger-ink' : 'text-ink')}>
             {t('guidedCreation.equipment.load', { total: number(totalKg), capacity: number(capacityKg) })}
           </p>
+        )}
+        {showWeight && unweighed.length > 0 && (
+          <p className="text-xs text-warm-gray">{t('guidedCreation.equipment.unweighed', { list: unweighed.join(', ') })}</p>
         )}
       </section>
     </div>

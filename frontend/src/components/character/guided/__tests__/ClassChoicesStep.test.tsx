@@ -65,6 +65,37 @@ describe('ClassChoicesStep', () => {
     expect(harness.choices().optionPicks['feat:skillChoice:0']).toEqual(['alaude', 'ferramentas-de-ladrao']);
     expect(harness.choices().skillPicks).toContain('arcana');
   });
+
+  it('a half-feat asks for its +1 here, and holds Next until it is picked', () => {
+    const harness = renderStep('classChoices', {
+      raceSlug: 'humano',
+      subraceSlug: 'humano-variante',
+      racialChoices: { abilityPicks: ['str', 'dex'] },
+      classSlug: 'guerreiro',
+      subclassSlug: 'campeao',
+      backgroundSlug: 'soldado',
+      optionPicks: { fightingStyle: ['defesa'], 'race:languageChoice:0': ['Orc'] },
+      skillPicks: ['perception', 'survival', 'history'],
+    });
+    expect(nextButton()).toBeDisabled();
+    fireEvent.click(within(group(/Feat · Subrace/)).getByRole('radio', { name: 'Atleta' }));
+    const increase = within(group(/Ability increase · Feat/)).getByRole('combobox', { name: 'Ability +1 (1)' });
+    // Athlete: Strength or Dexterity, even one the race raised.
+    expect(within(increase).getAllByRole('option').map((o) => o.getAttribute('value'))).toEqual(['', 'str', 'dex']);
+    expect(nextButton()).toBeDisabled();
+    fireEvent.change(increase, { target: { value: 'str' } });
+    expect(harness.choices().racialChoices.abilityPicks).toEqual(['str', 'dex', 'str']);
+    expect(nextButton()).toBeEnabled();
+  });
+
+  it("cuts each invocation's text at the next invocation, offered or not", () => {
+    renderStep('classChoices', { raceSlug: 'anao', subraceSlug: 'anao-da-colina', classSlug: 'bruxo', subclassSlug: 'o-corruptor', backgroundSlug: 'soldado' });
+    const invocations = group(/Eldritch invocations · Class/);
+    // Agonizing Blast needs Eldritch Blast, which this warlock does not know yet.
+    expect(within(invocations).queryByRole('checkbox', { name: 'Explosão Agonizante' })).not.toBeInTheDocument();
+    expect(within(invocations).getByRole('checkbox', { name: 'Armadura de Sombras' })).toHaveAccessibleDescription('Texto inventado A.');
+    expect(within(invocations).getByRole('checkbox', { name: 'Idioma Bestial' })).toHaveAccessibleDescription('Texto inventado C.');
+  });
 });
 
 describe('the wizard, steps 6 and 7', () => {

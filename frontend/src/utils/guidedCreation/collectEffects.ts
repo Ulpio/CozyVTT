@@ -1,9 +1,10 @@
-import { finalScores } from './abilities';
+import { finalScores, validateAbilityPicks } from './abilities';
 import type {
   BackgroundData,
   ClassData,
   FeatData,
   RaceData,
+  SpellData,
   SubclassData,
   SubraceData,
   WeaponData,
@@ -12,7 +13,8 @@ import { CLASS_EFFECTS } from './classRules';
 import { FEAT_EFFECTS, FEAT_REQUIRES } from './featRules';
 import { abilityIncreaseEffects, RACE_EFFECTS, REPLACES_RACE_INCREASES } from './raceRules';
 import { SUBCLASS_EFFECTS } from './subclassRules';
-import { backgroundToolCategory, toolsOf } from './toolRules';
+import { availableSpells } from './spellRules';
+import { backgroundToolCategory, isClassToolPick, toolsOf } from './toolRules';
 import {
   SKILL_KEYS,
   type AbilityKey,
@@ -41,6 +43,8 @@ export interface RulesData {
   feats?: RulesEntry<FeatData>[];
   weapons?: RulesEntry<WeaponData>[];
   tools?: RulesEntry<unknown>[];
+  /** When given, a cantrip or spell choice asks for no more than the list holds. */
+  spells?: RulesEntry<SpellData>[];
 }
 
 /**
@@ -52,8 +56,8 @@ export interface RulesData {
  * start with `background:`), else `optionPicks[id]`; `skillChoice` →
  * `skillPicks` (a Skilled pick that is a tool → `optionPicks[id]`); `expertiseChoice`
  * → `expertisePicks`.
- * `abilityChoice` is not listed: the abilities step checks it with
- * `validateAbilityPicks` over `abilityPicksOf(choices)`.
+ * `abilityChoice` is not listed: its picks are checked with `abilityPickErrors`
+ * (the race's in the abilities step, a half-feat's with the feat).
  */
 export interface PendingChoice {
   id: string;
@@ -82,12 +86,27 @@ const SKILLS = new Set<string>(SKILL_KEYS);
 const isSkill = (s: string): s is SkillKey => SKILLS.has(s);
 const skillEffects = (list: string[] | undefined): Effect[] =>
   (list ?? []).filter(isSkill).map((skill) => ({ type: 'skill', skill }));
+/** Lowercase without accents, to match a prose line to a tool name. */
+const plain = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+
+/** The tool a prose line names ("Ferramentas de ladrão"), if it names one. */
+const toolSlugOf = (line: string, data: RulesData): string[] =>
+  (data.tools ?? []).filter((t) => plain(t.name) === plain(line)).map((t) => t.slug);
+
 const ABILITIES = new Set<string>(['str', 'dex', 'con', 'int', 'wis', 'cha']);
 
-/** The abilityChoice picks, in effect order: `racialChoices.abilityPicks`. */
-export function abilityPicksOf(choices: CreationChoices): AbilityKey[] {
+/**
+ * The abilityChoice picks, in effect order: `racialChoices.abilityPicks`. A pick
+ * not made yet is undefined, so the picks after it keep their place.
+ */
+export function abilityPicksOf(choices: CreationChoices): Array<AbilityKey | undefined> {
   const picks = choices.racialChoices.abilityPicks;
-  return Array.isArray(picks) ? picks.filter((p): p is AbilityKey => ABILITIES.has(p as string)) : [];
+  return Array.isArray(picks) ? picks.map((p) => (ABILITIES.has(p as string) ? (p as AbilityKey) : undefined)) : [];
 }
 
 /** An effect, the id its picks are stored under, its counted picks and where it comes from. */
@@ -241,6 +260,22 @@ function sources(ctx: Context): Array<[string, Effect[]]> {
       const category = backgroundToolCategory(line);
       if (category) effects.push({ type: 'toolChoice', count: 1, category });
     }
+    // A proficiency the background repeats is swapped for another of the same
+    // kind (PHB): a skill the race gives, a tool the class or subclass gives.
+    const raceSkills = new Set(
+      out.flatMap(([, list]) => list.flatMap((e) => (e.type === 'skill' ? [e.skill as string] : []))),
+    );
+    const repeatedSkills = proficiencies.skills.filter((s) => raceSkills.has(s)).length;
+    if (repeatedSkills) effects.push({ type: 'skillChoice', count: repeatedSkills });
+    const classTools = new Set([
+      ...(cls?.data.proficiencies.tools ?? []).filter((l) => !isClassToolPick(l)).flatMap((l) => toolSlugOf(l, data)),
+      ...(subclass ? (SUBCLASS_EFFECTS[subclass.slug] ?? []) : []).flatMap((e) => (e.type === 'tool' ? [e.tool] : [])),
+    ]);
+    const repeatedTools = proficiencies.tools
+      .filter((l) => !backgroundToolCategory(l))
+      .flatMap((l) => toolSlugOf(l, data))
+      .filter((slug) => classTools.has(slug));
+    if (repeatedTools.length) effects.push({ type: 'toolChoice', count: repeatedTools.length });
     out.push(['background', effects]);
   }
   if (cls) {
@@ -377,7 +412,18 @@ function allocate(picks: string[], slots: Slot[], blocked: Set<string>) {
   return { taken, used };
 }
 
+/** resolve() per choices and data: the wizard checks every step on each render. */
+const resolved = new WeakMap<CreationChoices, WeakMap<RulesData, ReturnType<typeof resolveNow>>>();
+
 function resolve(choices: CreationChoices, data: RulesData) {
+  let byData = resolved.get(choices);
+  if (!byData) resolved.set(choices, (byData = new WeakMap()));
+  let out = byData.get(data);
+  if (!out) byData.set(data, (out = resolveNow(choices, data)));
+  return out;
+}
+
+function resolveNow(choices: CreationChoices, data: RulesData) {
   const ctx = new Context(choices, data);
   const tagged = tagAll(ctx, true);
   const of = <K extends Effect['type']>(type: K) =>
@@ -466,7 +512,15 @@ function statesOf(resolved: ReturnType<typeof resolve>, data: RulesData): Choice
         state(1, picks, ctx.availableFeats().map((f) => ({ id: f.slug, name: f.name })));
         break;
       case 'cantripChoice':
-      case 'spellChoice':
+      case 'spellChoice': {
+        // No more picks than the books have spells on that list.
+        const level = effect.type === 'cantripChoice' ? 0 : effect.level;
+        const listed = data.spells
+          ? availableSpells(data.spells, effect.list, level).filter((s) => s.data.level === level).length
+          : effect.count;
+        state(Math.min(effect.count, listed), picks);
+        break;
+      }
       case 'languageChoice':
         state(effect.count, picks);
         break;
@@ -602,4 +656,46 @@ export function pruneChoices(choices: CreationChoices, data: RulesData): Creatio
   );
   if (!sameList(expertisePicks, out.expertisePicks)) out = { ...out, expertisePicks };
   return out;
+}
+
+/**
+ * Each abilityChoice in effect order with where its picks start in
+ * `racialChoices.abilityPicks` (`start`), and whether the feat gives it (a
+ * half-feat, picked with the feat) rather than the race.
+ */
+export interface AbilityChoiceSlot {
+  effect: Extract<Effect, { type: 'abilityChoice' }>;
+  feat: boolean;
+  start: number;
+}
+
+export function abilityChoiceSlots(choices: CreationChoices, data: RulesData): AbilityChoiceSlot[] {
+  let start = 0;
+  return resolve(choices, data).tagged.flatMap(({ effect, scope }) => {
+    if (effect.type !== 'abilityChoice') return [];
+    const slot = { effect, feat: scope === 'feat', start };
+    start += effect.count;
+    return [slot];
+  });
+}
+
+/**
+ * What is wrong with the stored ability picks: of the race's choices
+ * (`feat` false), the feat's (true), or all of them plus picks beyond the last
+ * choice (omitted). Each choice is checked on its own: a feat may raise an
+ * ability the race raised.
+ */
+export function abilityPickErrors(choices: CreationChoices, data: RulesData, feat?: boolean): string[] {
+  const stored = choices.racialChoices.abilityPicks;
+  const raw: unknown[] = Array.isArray(stored) ? stored : [];
+  const slots = abilityChoiceSlots(choices, data);
+  const errors = slots
+    .filter((s) => feat === undefined || s.feat === feat)
+    .flatMap((s) => {
+      const mine = raw.slice(s.start, s.start + s.effect.count).filter((p): p is AbilityKey => ABILITIES.has(p as string));
+      return validateAbilityPicks([s.effect], mine);
+    });
+  const size = slots.reduce((n, s) => n + s.effect.count, 0);
+  if (feat === undefined && raw.slice(size).some((p) => ABILITIES.has(p as string))) errors.push('tooManyPicks');
+  return [...new Set(errors)];
 }

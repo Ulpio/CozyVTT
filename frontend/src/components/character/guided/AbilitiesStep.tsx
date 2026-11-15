@@ -19,9 +19,10 @@ import {
   STANDARD_ARRAY,
   finalScores,
 } from '@/utils/guidedCreation/abilities';
-import { abilityPicksOf, collectEffects } from '@/utils/guidedCreation/collectEffects';
-import type { AbilityKey, Effect } from '@/utils/guidedCreation/types';
+import { abilityChoiceSlots, abilityPicksOf, collectEffects } from '@/utils/guidedCreation/collectEffects';
+import type { AbilityKey } from '@/utils/guidedCreation/types';
 import { cn } from '@/utils/cn';
+import AbilityPicks from './AbilityPicks';
 import { ChoiceList } from './parts';
 import { availableMethods, defaultScores, rollTotals, type StepProps } from './stepRules';
 
@@ -159,7 +160,13 @@ export default function AbilitiesStep({ data, choices, update, campaign, roll }:
         )}
       </div>
 
-      <RacialPicks effects={effects} stored={choices.racialChoices.abilityPicks} onChange={(abilityPicks) => update({ racialChoices: { ...choices.racialChoices, abilityPicks } })} />
+      <AbilityPicks
+        legend={t('guidedCreation.abilities.racialPicks')}
+        slots={abilityChoiceSlots(choices, data).filter((s) => !s.feat)}
+        stored={choices.racialChoices.abilityPicks}
+        onChange={(abilityPicks) => update({ racialChoices: { ...choices.racialChoices, abilityPicks } })}
+        label={(amount, n) => t('guidedCreation.abilities.racialPick', { amount, n })}
+      />
     </div>
   );
 }
@@ -200,53 +207,3 @@ function RollPanel({ totals, title, rolling, failed, onRoll }: RollPanelProps) {
   );
 }
 
-interface RacialPicksProps {
-  effects: Effect[];
-  stored: unknown;
-  onChange: (picks: string[]) => void;
-}
-
-/** One select per +1 an abilityChoice effect gives, in effect order. */
-function RacialPicks({ effects, stored, onChange }: RacialPicksProps) {
-  const { t } = useTranslation();
-  const choicesOf = effects.filter((e): e is Extract<Effect, { type: 'abilityChoice' }> => e.type === 'abilityChoice');
-  if (!choicesOf.length) return null;
-  const raw = Array.isArray(stored) ? stored.map((p) => (typeof p === 'string' ? p : '')) : [];
-  const size = choicesOf.reduce((n, e) => n + e.count, 0);
-  const picks = Array.from({ length: size }, (_, i) => raw[i] ?? '');
-
-  let offset = 0;
-  return (
-    <fieldset className="space-y-2">
-      <legend className="text-sm font-semibold text-stone-gray">{t('guidedCreation.abilities.racialPicks')}</legend>
-      <div className="flex flex-wrap gap-2">
-        {choicesOf.flatMap((effect) => {
-          const start = offset;
-          offset += effect.count;
-          const mine = picks.slice(start, start + effect.count);
-          return mine.map((value, j) => {
-            const index = start + j;
-            // An ability takes one +1 from a choice, and never one it excludes.
-            const allowed = ABILITY_KEYS.filter((k) => !effect.exclude?.includes(k) && (k === value || !mine.includes(k)));
-            return (
-              <select
-                key={index}
-                aria-label={t('guidedCreation.abilities.racialPick', { amount: effect.amount, n: index + 1 })}
-                value={value}
-                onChange={(e) => onChange(picks.map((p, i) => (i === index ? e.target.value : p)))}
-                className="input-cozy py-1"
-              >
-                <option value="">{t('guidedCreation.abilities.choosePick')}</option>
-                {allowed.map((k) => (
-                  <option key={k} value={k}>
-                    {t(`guidedCreation.ability.${k}`)}
-                  </option>
-                ))}
-              </select>
-            );
-          });
-        })}
-      </div>
-    </fieldset>
-  );
-}

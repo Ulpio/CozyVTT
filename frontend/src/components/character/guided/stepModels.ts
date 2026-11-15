@@ -58,6 +58,22 @@ export function knownLanguages(data: CreationData, choices: CreationChoices, eff
 }
 
 /**
+ * Tools the character has, picked or not: tool effects, and the class's and
+ * background's lines that name one tool ("Ferramentas de ladrão").
+ */
+export function ownedTools(data: CreationData, choices: CreationChoices, effects: Effect[]): string[] {
+  const cls = data.classes.find((c) => c.slug === choices.classSlug);
+  const background = data.backgrounds.find((b) => b.slug === choices.backgroundSlug);
+  const lines = [...(cls?.data.proficiencies.tools ?? []), ...(background?.data.proficiencies.tools ?? [])].map(normalizeName);
+  return [
+    ...new Set([
+      ...effects.flatMap((e) => (e.type === 'tool' ? [e.tool] : [])),
+      ...data.tools.filter((t) => lines.includes(normalizeName(t.name))).map((t) => t.slug),
+    ]),
+  ];
+}
+
+/**
  * The patch that makes `next` the picks of `state`, written where its kind
  * stores them (see PendingChoice): skills in `skillPicks` and expertise in
  * `expertisePicks` (shared by every choice of the kind, so only this choice's

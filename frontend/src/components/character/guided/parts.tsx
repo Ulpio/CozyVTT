@@ -92,10 +92,6 @@ export interface PickOption {
   label: string;
   /** Shown under the label (compendium text), not part of its name. */
   description?: string;
-  /** A short note after the label ("level 1, evocation"). */
-  note?: string;
-  /** Why it cannot be picked now; it is shown disabled. */
-  blocked?: boolean;
 }
 
 interface PickGroupProps {
@@ -134,7 +130,7 @@ export function PickGroup({ legend, count, options, picks, onChange, hint }: Pic
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
         {options.map((option) => {
           const checked = picks.includes(option.id);
-          const disabled = !checked && (option.blocked || (!single && full));
+          const disabled = !checked && !single && full;
           const descriptionId = `${name}-${option.id}`;
           return (
             <div
@@ -157,7 +153,6 @@ export function PickGroup({ legend, count, options, picks, onChange, hint }: Pic
                   className="h-4 w-4 accent-moss-green"
                 />
                 {option.label}
-                {option.note && <span className="text-xs text-warm-gray">{option.note}</span>}
               </label>
               {option.description && (
                 <p id={descriptionId} className="mt-1 whitespace-pre-line text-xs text-ink/80">

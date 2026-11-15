@@ -70,6 +70,8 @@ describe('EquipmentStep', () => {
     expect(screen.getByRole('cell', { name: '27.5' })).toBeInTheDocument();
     // STR 15: 225 lb, 112.5 kg.
     expect(screen.getByText(/Total weight: 27.5 kg of a 112.5 kg carrying capacity/)).toBeInTheDocument();
+    // The pack has no weight in the books: it is named, not counted.
+    expect(screen.getByText('Not in the total (no weight in the books): P aventureiro')).toBeInTheDocument();
   });
 
   it('hides weights in a Flexible campaign', () => {

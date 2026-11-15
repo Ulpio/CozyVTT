@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { BackgroundData, ClassData, FeatData, RaceData, SubclassData, SubraceData, WeaponData } from '../compendiumData';
-import { choiceStates, collectEffects, pruneChoices, type RulesData } from '../collectEffects';
+import {
+  abilityChoiceSlots,
+  abilityPickErrors,
+  choiceStates,
+  collectEffects,
+  pruneChoices,
+  type RulesData,
+} from '../collectEffects';
+import { CREATION_DATA } from './fixtures/creationData';
 import type { CreationChoices, SkillKey } from '../types';
 
 // Invented placeholder entries: just the fields the rules read, no book text.
@@ -381,5 +389,55 @@ describe('collectEffects, Task 11 tool picks and choice states', () => {
     // Its own pick stays among its options; the background's skills are not offered.
     expect(ids(skills)).toEqual(['athletics', 'perception', 'survival']);
     expect(states.find((s) => s.id === 'background:languageChoice:0')).toMatchObject({ count: 2, picks: [] });
+  });
+});
+
+describe('collectEffects, review round 1 of Task 11', () => {
+  const fixture = (over: Partial<CreationChoices>) =>
+    base({ raceSlug: 'anao', subraceSlug: 'anao-da-colina', backgroundSlug: 'acolito', ...over });
+
+  it('a background skill the race already gives is replaced by a pick of any skill', () => {
+    const elfSailor = fixture({ raceSlug: 'elfo', subraceSlug: 'alto-elfo', backgroundSlug: 'marinheiro' });
+    const pending = collectEffects(elfSailor, CREATION_DATA).pending.find((p) => p.id === 'background:skillChoice:0');
+    expect(pending).toMatchObject({ kind: 'skillChoice', count: 1 });
+    expect(pending?.options?.map((o) => o.id)).not.toContain('perception');
+    expect(collectEffects(fixture({ backgroundSlug: 'marinheiro' }), CREATION_DATA).pending.map((p) => p.id)).not.toContain(
+      'background:skillChoice:0',
+    );
+  });
+
+  it("a background tool the class already gives is replaced by a pick of any tool (rogue, Criminal's thieves' tools)", () => {
+    const rogue = fixture({ classSlug: 'ladino', backgroundSlug: 'criminoso' });
+    const tools = collectEffects(rogue, CREATION_DATA).pending.filter((p) => p.kind === 'toolChoice');
+    expect(tools.map((p) => p.id)).toEqual(['background:toolChoice:0', 'background:toolChoice:1']);
+    expect(tools[1].options?.length).toBe(CREATION_DATA.tools.length);
+    // The two background picks share toolPicks, in order.
+    const picked = { ...rogue, toolPicks: ['kit-de-jogo-conjunto-de-dados', 'kit-de-disfarce'] };
+    expect(collectEffects(picked, CREATION_DATA).effects).toContainEqual({ type: 'tool', tool: 'kit-de-disfarce' });
+    expect(collectEffects(fixture({ classSlug: 'guerreiro', backgroundSlug: 'criminoso' }), CREATION_DATA).pending.filter((p) => p.kind === 'toolChoice')).toHaveLength(1);
+  });
+
+  it('caps cantrip and spell choices at the spells the books have', () => {
+    const highElf = fixture({ raceSlug: 'elfo', subraceSlug: 'alto-elfo' });
+    const noSpells = { ...CREATION_DATA, spells: CREATION_DATA.spells.filter((s) => s.slug !== 'raio-de-fogo' && !s.data.classes.includes('mago')) };
+    expect(collectEffects(highElf, noSpells).pending.map((p) => p.id)).not.toContain('subrace:cantripChoice:0');
+    expect(collectEffects(highElf, CREATION_DATA).pending.map((p) => p.id)).toContain('subrace:cantripChoice:0');
+  });
+
+  it('lists the ability choices by source: the race, then the feat', () => {
+    const vh = fixture({ raceSlug: 'humano', subraceSlug: 'humano-variante', optionPicks: { feat: ['atleta'] } });
+    expect(abilityChoiceSlots(vh, CREATION_DATA).map(({ feat, start, effect }) => [feat, start, effect.count])).toEqual([
+      [false, 0, 2],
+      [true, 2, 1],
+    ]);
+    const racialDone = { ...vh, racialChoices: { abilityPicks: ['str', 'dex'] } };
+    expect(abilityPickErrors(racialDone, CREATION_DATA, false)).toEqual([]);
+    expect(abilityPickErrors(racialDone, CREATION_DATA, true)).toEqual(['missingPick']);
+    // The feat may raise an ability the race raised.
+    const featDone = { ...vh, racialChoices: { abilityPicks: ['str', 'dex', 'str'] } };
+    expect(abilityPickErrors(featDone, CREATION_DATA)).toEqual([]);
+    expect(abilityPickErrors({ ...vh, racialChoices: { abilityPicks: ['str', 'dex', 'wis'] } }, CREATION_DATA, true)).toEqual([
+      'excludedAbility',
+    ]);
   });
 });

@@ -84,9 +84,11 @@ function Steps({ data, campaign, roll }: StepsProps) {
   const steps = stepsFor(check);
   const current = Math.max(0, steps.findIndex((s) => s.id === currentId));
   const complete = steps.map((s) => s.isComplete(check));
-  // A step can be opened once every step before it is done.
+  // A step can be opened once every step before it is done, and Next waits
+  // until nothing is owed in this step or an earlier one.
   const firstOpen = complete.findIndex((done) => !done);
   const reachable = (i: number) => firstOpen === -1 || i <= firstOpen;
+  const canGoOn = firstOpen === -1 || firstOpen > current;
   const step = steps[current];
   const isLast = current === steps.length - 1;
 
@@ -161,7 +163,7 @@ function Steps({ data, campaign, roll }: StepsProps) {
               {t('guidedCreation.back')}
             </Button>
             {!isLast && (
-              <Button type="button" onClick={() => go(current + 1)} disabled={!complete[current]}>
+              <Button type="button" onClick={() => go(current + 1)} disabled={!canGoOn}>
                 {t('guidedCreation.next')}
               </Button>
             )}

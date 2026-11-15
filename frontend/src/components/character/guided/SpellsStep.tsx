@@ -49,7 +49,7 @@ export default function SpellsStep({ data, choices, update }: StepProps) {
       <SpellPicker
         legend={t(`guidedCreation.spells.${model.mode}`)}
         spells={model.pool}
-        count={model.limit}
+        count={model.needed}
         picks={model.spells}
         onChange={setSpells}
         locked={model.always}

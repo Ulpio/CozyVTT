@@ -52,15 +52,17 @@ describe('SkillsStep', () => {
   it('the bard picks three musical instruments; the background its own', () => {
     const harness = renderStep('skills', { ...DWARF, classSlug: 'bardo', subclassSlug: 'colegio-do-conhecimento', backgroundSlug: 'artista' });
     const classTools = group(/Tools · Class/);
-    expect(within(classTools).getAllByRole('checkbox').map((c) => c.getAttribute('value'))).toEqual(['alaude', 'flauta', 'lira']);
+    expect(within(classTools).getAllByRole('checkbox').map((c) => c.getAttribute('value'))).toEqual(['alaude', 'flauta', 'lira', 'tambor']);
     check(classTools, 'Flauta');
     check(classTools, 'Lira');
     check(classTools, 'Alaúde');
     expect(harness.choices().optionPicks['class:toolChoice:0']).toEqual(['flauta', 'lira', 'alaude']);
 
-    // The background owes one instrument: a single pick is a radio.
-    fireEvent.click(within(group(/Tools · Background/)).getByRole('radio', { name: 'Flauta' }));
-    expect(harness.choices().toolPicks).toEqual(['flauta']);
+    // The background owes one instrument: a single pick is a radio, and the class's are not offered again.
+    const background = group(/Tools · Background/);
+    expect(within(background).getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual(['tambor']);
+    fireEvent.click(within(background).getByRole('radio', { name: 'Tambor' }));
+    expect(harness.choices().toolPicks).toEqual(['tambor']);
   });
 
   it("the monk picks one artisan's tool or one musical instrument", () => {
@@ -70,9 +72,32 @@ describe('SkillsStep', () => {
       'alaude',
       'flauta',
       'lira',
+      'tambor',
       'ferramentas-de-ferreiro',
     ]);
     fireEvent.click(within(classTools).getByRole('radio', { name: 'Ferramentas de ferreiro' }));
     expect(harness.choices().optionPicks['class:toolChoice:0']).toEqual(['ferramentas-de-ferreiro']);
+  });
+
+  it("an elf sailor gets a replacement for Perception, which the race already gives", () => {
+    const harness = renderStep('skills', { raceSlug: 'elfo', subraceSlug: 'elfo-da-floresta', classSlug: 'guerreiro', subclassSlug: 'campeao', backgroundSlug: 'marinheiro' });
+    const replacement = group(/Skills · Background/);
+    expect(within(replacement).getByText('0/1')).toBeInTheDocument();
+    expect(within(replacement).queryByRole('radio', { name: 'Perception' })).not.toBeInTheDocument();
+    fireEvent.click(within(replacement).getByRole('radio', { name: 'Arcana' }));
+    expect(harness.choices().skillPicks).toEqual(['arcana']);
+  });
+
+  it("a rogue criminal gets a replacement for thieves' tools, which the class already gives", () => {
+    const harness = renderStep('skills', { ...DWARF, classSlug: 'ladino', subclassSlug: 'trapaceiro-arcano', backgroundSlug: 'criminoso' });
+    const [gamingSet, replacement] = screen.getAllByRole('group', { name: /Tools · Background/ });
+    fireEvent.click(within(gamingSet).getByRole('radio', { name: 'Kit de jogo: conjunto de dados' }));
+    // Any tool but the ones the character has or picked.
+    const offered = within(replacement).getAllByRole('radio').map((r) => r.getAttribute('value'));
+    expect(offered).not.toContain('ferramentas-de-ladrao');
+    expect(offered).not.toContain('kit-de-jogo-conjunto-de-dados');
+    expect(offered).toContain('kit-de-disfarce');
+    fireEvent.click(within(replacement).getByRole('radio', { name: 'Kit de disfarce' }));
+    expect(harness.choices().toolPicks).toEqual(['kit-de-jogo-conjunto-de-dados', 'kit-de-disfarce']);
   });
 });

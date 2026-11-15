@@ -201,6 +201,8 @@ describe('resolveEquipment', () => {
   it('a choice with several options and no pick gives nothing', () => {
     const out = resolveEquipment(FIGHTER, undefined, [], {}, ITEMS, FIGHTER_PROFS);
     expect(out.inventory).toEqual([]);
+    // -1 marks a choice not picked yet.
+    expect(resolveEquipment(FIGHTER, undefined, [-1, -1], {}, ITEMS, FIGHTER_PROFS).inventory).toEqual([]);
   });
 
   it('a choice with one offered option needs no pick', () => {
