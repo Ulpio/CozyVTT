@@ -100,6 +100,32 @@ describe('Escape', () => {
       window.removeEventListener('keydown', onWindowKey);
     }
   });
+
+  function Fields({ onClose }: { onClose: () => void }) {
+    const ref = useFocusTrap(true, onClose, { escapeStaysInFields: true });
+    return (
+      <div ref={ref} role="dialog" aria-label="Fields">
+        <button type="button">Plain button</button>
+        <input aria-label="Text" />
+        <input aria-label="Search" type="search" />
+        <input aria-label="Tick" type="checkbox" />
+        <textarea aria-label="Notes" />
+        <select aria-label="Pick"><option>a</option></select>
+      </div>
+    );
+  }
+
+  it('with escapeStaysInFields, leaves an Escape typed in a field to the field', async () => {
+    const onClose = vi.fn();
+    render(<Fields onClose={onClose} />);
+    await nextFrame();
+    for (const name of ['Text', 'Search', 'Notes', 'Pick']) fireEvent.keyDown(screen.getByLabelText(name), { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(screen.getByLabelText('Tick'), { key: 'Escape' });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Plain button' }), { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('where focus goes', () => {

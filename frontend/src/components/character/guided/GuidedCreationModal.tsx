@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ClipboardList, Wand2, X } from 'lucide-react';
 import { Modal } from '@/components/ui';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import Button from '@/components/ui/Button';
 import type { Campaign, Character } from '@/types';
 import type { CreationData } from '@/utils/guidedCreation/buildSheet';
@@ -33,15 +34,56 @@ export interface GuidedCreationModalProps {
 
 export default function GuidedCreationModal({ isOpen, onClose, onCreated, campaign }: GuidedCreationModalProps) {
   const { t } = useTranslation();
+  // Whether closing now loses a choice, and whether the player is being asked.
+  const [chosen, setChosen] = useState(false);
+  const [asking, setAsking] = useState(false);
+  useEffect(() => {
+    if (isOpen) return;
+    setChosen(false);
+    setAsking(false);
+  }, [isOpen]);
+
+  // The X and Escape close at once while nothing is chosen, and ask once
+  // something is, as the sheet editor does. A click beside the window never
+  // closes it (Modal), and an Escape typed in a field is the field's.
+  const requestClose = () => (chosen ? setAsking(true) : onClose());
+
   return (
-    <Modal open={isOpen} onClose={onClose} title={t('guidedCreation.title')} icon={Wand2} size="full" fitViewport>
-      <Wizard campaign={campaign} onCreated={onCreated} />
-    </Modal>
+    <>
+      <Modal
+        open={isOpen}
+        onClose={requestClose}
+        title={t('guidedCreation.title')}
+        icon={Wand2}
+        size="full"
+        fitViewport
+        escapeStaysInFields
+      >
+        <Wizard campaign={campaign} onCreated={onCreated} onChosenChange={setChosen} />
+      </Modal>
+      <ConfirmDialog
+        isOpen={asking}
+        title={t('guidedCreation.discard.title')}
+        message={t('guidedCreation.discard.message')}
+        confirmLabel={t('guidedCreation.discard.confirm')}
+        cancelLabel={t('guidedCreation.discard.cancel')}
+        variant="warning"
+        onConfirm={onClose}
+        onCancel={() => setAsking(false)}
+      />
+    </>
   );
 }
 
+interface WizardProps {
+  campaign?: Campaign;
+  onCreated: (character: Character) => void;
+  /** Whether any choice is made, which closing would lose. */
+  onChosenChange: (chosen: boolean) => void;
+}
+
 /** Mounted while the dialog is open, so each opening starts afresh (a saved roll comes back from the server). */
-function Wizard({ campaign, onCreated }: { campaign?: Campaign; onCreated: (character: Character) => void }) {
+function Wizard({ campaign, onCreated, onChosenChange }: WizardProps) {
   const { t } = useTranslation();
   const { data, loading, error } = useCreationData(campaign?.id);
   const roll = useAbilityRoll(campaign?.id);
@@ -51,7 +93,7 @@ function Wizard({ campaign, onCreated }: { campaign?: Campaign; onCreated: (char
   if (!data.races.length || !data.classes.length) {
     return <p className="text-sm text-ink">{t(campaign ? 'guidedCreation.noBooks' : 'guidedCreation.noBooksOutsideCampaign')}</p>;
   }
-  return <Steps data={data} campaign={campaign} roll={roll} onCreated={onCreated} />;
+  return <Steps data={data} campaign={campaign} roll={roll} onCreated={onCreated} onChosenChange={onChosenChange} />;
 }
 
 interface StepsProps {
@@ -59,9 +101,32 @@ interface StepsProps {
   campaign?: Campaign;
   roll: AbilityRollState;
   onCreated: (character: Character) => void;
+  onChosenChange: (chosen: boolean) => void;
 }
 
-function Steps({ data, campaign, roll, onCreated }: StepsProps) {
+/** A value written with its object keys in order, so two equal choices write the same. */
+const canonical = (value: unknown): string =>
+  JSON.stringify(value, (_key, v: unknown) =>
+    v && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)))
+      : v,
+  );
+
+/**
+ * Whether the player has chosen anything: the choices differ from a fresh
+ * start with the same method (the method itself follows the campaign and the
+ * saved roll, which the server keeps).
+ */
+function anyChosen(choices: CreationChoices, roll: AbilityRollState['roll']): boolean {
+  const fresh: CreationChoices = {
+    ...emptyChoices(choices.method),
+    baseScores: defaultScores(choices.method, choices.method === 'ROLL' ? rollTotals(roll) : undefined),
+    abilityRollId: choices.abilityRollId,
+  };
+  return canonical(choices) !== canonical(fresh);
+}
+
+function Steps({ data, campaign, roll, onCreated, onChosenChange }: StepsProps) {
   const { t } = useTranslation();
   const { choices, dispatch, cleared } = useCreationState(data, () => {
     const method = availableMethods(campaign, null)[0] ?? 'POINT_BUY';
@@ -71,6 +136,9 @@ function Steps({ data, campaign, roll, onCreated }: StepsProps) {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const update = (patch: Partial<CreationChoices>) =>
     dispatch({ type: 'update', patch });
+
+  const chosen = anyChosen(choices, roll.roll);
+  useEffect(() => onChosenChange(chosen), [chosen, onChosenChange]);
 
   // Once a roll exists (saved earlier, or just made) it is the method, and the only one (ledger ruling).
   const rollId = roll.roll?.id;

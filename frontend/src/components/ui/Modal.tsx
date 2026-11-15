@@ -43,6 +43,8 @@ export interface ModalProps {
    * should size themselves with flex-1 and min-h-0.
    */
   fitViewport?: boolean;
+  /** An Escape pressed in a field stays the field's and leaves the dialog open (useFocusTrap). */
+  escapeStaysInFields?: boolean;
   children: React.ReactNode;
 }
 
@@ -66,6 +68,7 @@ export default function Modal({
   layer = 'base',
   children,
   fitViewport = false,
+  escapeStaysInFields = false,
 }: ModalProps) {
   const titleId = useId();
   const dialogExit = useMotionExit({ opacity: 0, scale: 0.95, y: 20 });
@@ -74,7 +77,7 @@ export default function Modal({
     if (!closeDisabled) onClose();
   };
 
-  const modalRef = useFocusTrap(open, handleClose);
+  const modalRef = useFocusTrap(open, handleClose, { escapeStaysInFields });
   // The backdrop shares the dialog's layer, so a window opened from a side
   // panel (z-50, see SlideOver) dims the panel too; it comes later in the
   // page, so it is drawn over it.

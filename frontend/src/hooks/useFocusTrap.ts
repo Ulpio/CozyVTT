@@ -60,6 +60,22 @@ export interface FocusTrapOptions {
    * answers Back itself does (compact/BottomSheet.tsx).
    */
   closesOnBack?: boolean;
+  /**
+   * An Escape pressed in a field (a text box, a search box, a list to pick
+   * from) is the field's, and leaves the dialog open: a long form such as the
+   * guided creation, where an Escape meant to close a select's list would
+   * otherwise lose every choice.
+   */
+  escapeStaysInFields?: boolean;
+}
+
+const TEXTLESS_INPUTS = new Set(['button', 'checkbox', 'color', 'file', 'image', 'radio', 'range', 'reset', 'submit']);
+
+/** Whether a key pressed on `target` is typed into a field. */
+function isField(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target instanceof HTMLInputElement) return !TEXTLESS_INPUTS.has(target.type);
+  return target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target.isContentEditable;
 }
 
 /**
@@ -80,6 +96,8 @@ export function useFocusTrap(isOpen: boolean, onClose?: () => void, options: Foc
   onCloseRef.current = onClose;
   const keepFocusInsideRef = useRef(options.keepFocusInside === true);
   keepFocusInsideRef.current = options.keepFocusInside === true;
+  const escapeStaysInFieldsRef = useRef(options.escapeStaysInFields === true);
+  escapeStaysInFieldsRef.current = options.escapeStaysInFields === true;
   const closesOnBack = useCompactLayout() && options.closesOnBack !== false;
 
   // When the trap opened, among the dialogs and sheets (sheetHistory's
@@ -121,6 +139,7 @@ export function useFocusTrap(isOpen: boolean, onClose?: () => void, options: Foc
       // Escape closes the modal, and nothing behind it sees the key
       if (e.key === 'Escape') {
         e.stopPropagation();
+        if (escapeStaysInFieldsRef.current && isField(e.target)) return;
         if (onCloseRef.current) {
           e.preventDefault();
           onCloseRef.current();
