@@ -12,7 +12,7 @@ import logger from '../utils/logger';
 const router = Router();
 
 /** The scope of a roll made outside any campaign. */
-const NO_CAMPAIGN = 'none';
+export const NO_CAMPAIGN = 'none';
 const SCORES = 6;
 const EXPRESSION = '4d6kh3';
 

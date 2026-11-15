@@ -4,6 +4,8 @@
  * character created from it. Requires PostgreSQL at DATABASE_URL.
  */
 
+import fs from 'fs';
+import path from 'path';
 import request from 'supertest';
 import { createTestApp } from '../../__tests__/helpers/test-app';
 import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampaigns, TEST_PASSWORD } from '../../__tests__/helpers/db';
@@ -135,4 +137,27 @@ it('uses the roll up when a character is created from it, and only the caller\'s
   expect(await prisma.abilityRoll.findUnique({ where: { id: roll.id } })).toBeNull();
   const next = (await mine.agent.post('/api/characters/ability-roll').send({})).body.roll;
   expect(next.id).not.toBe(roll.id);
+});
+
+/** A sheet the guided creation built (the frontend's buildSheet test writes it). */
+const guidedSheet: unknown = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, '../../../../frontend/src/utils/guidedCreation/__tests__/fixtures/sheets/clerigo.json'), 'utf8'),
+);
+
+it('uses up only a roll made for the scope the character is created in', async () => {
+  const gm = await signIn('GM Scopes');
+  const player = await signIn('Player Scopes');
+  const campaignId = await campaignWith(gm.id, ['ROLL'], [player.id]);
+  const inCampaign = (await player.agent.post('/api/characters/ability-roll').send({ campaignId })).body.roll;
+  const outside = (await player.agent.post('/api/characters/ability-roll').send({})).body.roll;
+
+  // A campaign's roll does not pay for a character made outside it, nor the other way round.
+  expect((await player.agent.post('/api/characters').send({ name: 'Outside', abilityRollId: inCampaign.id })).status).toBe(201);
+  expect(await prisma.abilityRoll.findUnique({ where: { id: inCampaign.id } })).not.toBeNull();
+  const inside = await player.agent.post('/api/characters').send({ name: 'Inside', campaignId, data: guidedSheet, abilityRollId: outside.id });
+  expect(inside.status).toBe(201);
+  expect(await prisma.abilityRoll.findUnique({ where: { id: outside.id } })).not.toBeNull();
+
+  expect((await player.agent.post('/api/characters').send({ name: 'Inside Too', campaignId, data: guidedSheet, abilityRollId: inCampaign.id })).status).toBe(201);
+  expect(await prisma.abilityRoll.findUnique({ where: { id: inCampaign.id } })).toBeNull();
 });

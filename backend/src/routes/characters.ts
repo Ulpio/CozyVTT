@@ -36,6 +36,7 @@ import { getCharacterTemplate } from '../utils/character-templates';
 import { FLEXIBLE_TEMPLATES } from '../utils/character-templates/flexible-templates';
 import { normaliseGameSystem } from '../legacy/gameSystemAliases';
 import { isHorrorD100, sheetAsRead, sheetAsSent, sheetKeepingConversionRecord } from '../legacy/sheetConversion';
+import { NO_CAMPAIGN } from './abilityRolls';
 
 const router = Router();
 
@@ -288,8 +289,11 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
 
       if (campaignId && membershipToJoin) await addToMemberCharacters(tx, userId, campaignId, created.id);
 
-      // The roll this character was built from is spent, if it is the caller's.
-      if (abilityRollId) await tx.abilityRoll.deleteMany({ where: { id: abilityRollId, userId } });
+      // The roll this character was built from is spent, if it is the caller's
+      // and made for where the character is made (a campaign, or none).
+      if (abilityRollId) {
+        await tx.abilityRoll.deleteMany({ where: { id: abilityRollId, userId, scope: campaignId || NO_CAMPAIGN } });
+      }
 
       return created;
     });
