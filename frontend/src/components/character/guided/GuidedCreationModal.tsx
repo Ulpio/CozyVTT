@@ -204,7 +204,7 @@ function Steps({ data, campaign, roll, onCreated, onChosenChange }: StepsProps) 
       <section className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-4">
           {cleared.length > 0 && (
-            <div role="status" className="flex items-start gap-2 rounded-cozy border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-ink">
+            <div role="status" className="flex items-start gap-2 rounded-cozy border border-warning/40 bg-warning/10 p-3 text-sm text-ink">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
               <span className="flex-1">{t('guidedCreation.cleared')}</span>
               <button

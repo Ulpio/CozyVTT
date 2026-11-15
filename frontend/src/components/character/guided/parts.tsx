@@ -122,7 +122,7 @@ export function PickGroup({ legend, count, options, picks, onChange, hint }: Pic
     <fieldset className="space-y-2">
       <legend className="text-sm font-semibold text-stone-gray">
         {legend}{' '}
-        <span className={cn('ml-1 font-normal', full ? 'text-moss-green' : 'text-warm-gray')}>
+        <span className={cn('ml-1 font-normal', full ? 'text-brand-ink' : 'text-warm-gray')}>
           {t('guidedCreation.choices.picked', { n: picks.length, total: count })}
         </span>
       </legend>

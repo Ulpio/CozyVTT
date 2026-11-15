@@ -79,7 +79,7 @@ export default function SpellPicker({ legend, spells, count, picks, onChange, lo
         <button
           type="button"
           onClick={() => setShown(spell.slug)}
-          className="text-xs text-moss-green underline touch-target"
+          className="text-xs text-brand-ink underline touch-target"
           aria-label={t('guidedCreation.spells.readSpell', { name: spell.name })}
         >
           {t('guidedCreation.spells.read')}
@@ -92,7 +92,7 @@ export default function SpellPicker({ legend, spells, count, picks, onChange, lo
     <fieldset className="space-y-2">
       <legend className="text-sm font-semibold text-stone-gray">
         {legend}{' '}
-        <span className={cn('ml-1 font-normal', full ? 'text-moss-green' : 'text-warm-gray')}>
+        <span className={cn('ml-1 font-normal', full ? 'text-brand-ink' : 'text-warm-gray')}>
           {t('guidedCreation.choices.picked', { n: picks.length, total: count })}
         </span>
       </legend>

@@ -149,7 +149,7 @@ export default function AbilitiesStep({ data, choices, update, campaign, roll }:
                         ))}
                       </select>
                     </td>
-                    <td className="py-1 pr-2 text-moss-green">{bonus > 0 ? `+${bonus}` : t('guidedCreation.none')}</td>
+                    <td className="py-1 pr-2 text-brand-ink">{bonus > 0 ? `+${bonus}` : t('guidedCreation.none')}</td>
                     <td className="py-1 pr-2 font-semibold text-ink">{scores[k]}</td>
                     <td className="py-1 text-ink">{formatModifier(abilityModifier(scores[k]))}</td>
                   </tr>

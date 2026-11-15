@@ -69,7 +69,7 @@ export default function ReviewStep({ data, choices, campaign, roll, onCreated }:
   return (
     <div className="space-y-4">
       {!ready && (
-        <div className="rounded-cozy border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-ink space-y-1">
+        <div className="rounded-cozy border border-warning/40 bg-warning/10 p-3 text-sm text-ink space-y-1">
           <p>{t('guidedCreation.review.pendingHint')}</p>
           <ul aria-label={t('guidedCreation.review.pending')} className="list-disc pl-5">
             {pending.map((s) => (
