@@ -1170,6 +1170,24 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
     });
   };
 
+  /**
+   * Rename a spell, attack or item by hand. A compendium pointer describes the
+   * entry the row was made from, so a row given another name no longer has one.
+   */
+  const renameRow = (list: 'attacks' | 'inventory' | 'spellcasting.spells', index: number, name: string) => {
+    updateField(`${list}.${index}.name`, name);
+    setFormData((prev) => {
+      const rows = list === 'spellcasting.spells' ? prev.spellcasting?.spells : prev[list];
+      const row = rows?.[index];
+      if (!row || !('compendiumRef' in row)) return prev;
+      const { compendiumRef: _dropped, ...rest } = row;
+      const next = rows.map((r, i) => (i === index ? rest : r));
+      return list === 'spellcasting.spells'
+        ? { ...prev, spellcasting: { ...prev.spellcasting!, spells: next as NonNullable<typeof prev.spellcasting>["spells"] } }
+        : { ...prev, [list]: next };
+    });
+  };
+
   // Render character header with token upload and color picker
   const renderHeader = () => {
     // Determine the current background style
@@ -2244,7 +2262,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 <input
                   type="text"
                   value={attack.name || ''}
-                  onChange={(e) => updateField(`attacks.${index}.name`, e.target.value)}
+                  onChange={(e) => renameRow('attacks', index, e.target.value)}
                   placeholder="Attack Name"
                   aria-label={`Name of attack ${index + 1}`}
                   maxLength={SHEET_SHORT_TEXT_MAX}
@@ -2707,7 +2725,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
               <input
                 type="text"
                 value={spell.name || ''}
-                onChange={(e) => updateField(`spellcasting.spells.${index}.name`, e.target.value)}
+                onChange={(e) => renameRow('spellcasting.spells', index, e.target.value)}
                 placeholder="Spell Name"
                 aria-label={`Name of spell ${index + 1}`}
                 maxLength={SHEET_SHORT_TEXT_MAX}
@@ -2832,7 +2850,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 <input
                   type="text"
                   value={item.name || ''}
-                  onChange={(e) => updateField(`inventory.${index}.name`, e.target.value)}
+                  onChange={(e) => renameRow('inventory', index, e.target.value)}
                   placeholder="Item Name"
                   aria-label={`Name of item ${index + 1}`}
                   maxLength={SHEET_SHORT_TEXT_MAX}

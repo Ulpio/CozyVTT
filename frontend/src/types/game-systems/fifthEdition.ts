@@ -154,6 +154,12 @@ export interface FifthEditionAdditionalDamage {
 /**
  * Attack/weapon entry
  */
+/** A pointer at a compendium entry; the sheet keeps its own copy of every value. */
+export interface CompendiumRef {
+  bookId: string;
+  slug: string;
+}
+
 export interface FifthEditionAttack {
   name: string;
   attackBonus: number;
@@ -164,6 +170,7 @@ export interface FifthEditionAttack {
   notes?: string;
   /** Extra damage lines beyond the primary one. Absent on most attacks. */
   additionalDamage?: FifthEditionAdditionalDamage[];
+  compendiumRef?: CompendiumRef;
 }
 
 /**
@@ -190,6 +197,7 @@ export interface FifthEditionInventoryItem {
   requiresAttunement?: boolean;
   attuned?: boolean;
   value?: number;
+  compendiumRef?: CompendiumRef;
 }
 
 /**
@@ -224,6 +232,7 @@ export interface FifthEditionSpell {
   prepared: boolean;
   ritual: boolean;
   concentration: boolean;
+  compendiumRef?: CompendiumRef;
 }
 
 /**
@@ -240,6 +249,8 @@ export interface FifthEditionSpellcasting {
   spellSaveDCOtherBonus?: number;
   spellAttackOtherBonus?: number;
   cantrips?: string[];
+  /** Pointers for the cantrips that have one; the names stay in `cantrips`. */
+  cantripRefs?: { name: string; compendiumRef: CompendiumRef }[];
   slots?: FifthEditionSpellSlots;
   spells?: FifthEditionSpell[];
 }
@@ -360,6 +371,14 @@ export interface FifthEditionCharacterData extends SheetChrome {
    */
   featuresAndTraits?: Array<string | FeatureEntry>;
   spellcasting?: FifthEditionSpellcasting;
+  /** Where the guided creation took the character from. */
+  origin?: {
+    race?: CompendiumRef;
+    subrace?: CompendiumRef;
+    class?: CompendiumRef;
+    subclass?: CompendiumRef;
+    background?: CompendiumRef;
+  };
   appearance?: FifthEditionAppearance;
   personality?: FifthEditionPersonality;
   backstory?: string;

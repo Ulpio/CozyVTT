@@ -212,6 +212,12 @@ const additionalDamageSchema = z.object({
   damageType: z.string().max(FIFTH_EDITION_DAMAGE_TYPE_MAX).optional(),
 });
 
+/**
+ * A pointer at a compendium entry. The sheet keeps its own copy of every value,
+ * so a pointer that no longer resolves loses nothing but the link.
+ */
+const compendiumRefSchema = z.object({ bookId: z.string().max(40), slug: z.string().max(120) });
+
 const attackSchema = z.object({
   name: shortText.min(1),
   attackBonus: z.number().int(),
@@ -225,6 +231,7 @@ const attackSchema = z.object({
   properties: z.array(z.string().max(FIFTH_EDITION_WEAPON_PROPERTY_LENGTH_MAX)).max(FIFTH_EDITION_WEAPON_PROPERTIES_MAX).optional(),
   notes: longText.optional(),
   additionalDamage: z.array(additionalDamageSchema).max(FIFTH_EDITION_ATTACK_DAMAGE_ROLLS_MAX).optional(),
+  compendiumRef: compendiumRefSchema.optional(),
 });
 
 /**
@@ -252,6 +259,7 @@ const inventoryItemSchema = z.object({
   requiresAttunement: z.boolean().optional(),
   attuned: z.boolean().optional(),
   value: z.number().min(0).optional(),
+  compendiumRef: compendiumRefSchema.optional(),
 });
 
 /**
@@ -294,6 +302,7 @@ const spellSchema = z.object({
   prepared: z.boolean(),
   ritual: z.boolean(),
   concentration: z.boolean(),
+  compendiumRef: compendiumRefSchema.optional(),
 });
 
 /**
@@ -317,6 +326,8 @@ const spellcastingSchema = z.object({
   spellSaveDCOtherBonus: manualBonusSchema.optional(),
   spellAttackOtherBonus: manualBonusSchema.optional(),
   cantrips: sheetList(shortText).optional(),
+  // Cantrips stay a list of names; this holds the pointer for those that have one.
+  cantripRefs: sheetList(z.object({ name: shortText.min(1), compendiumRef: compendiumRefSchema })).optional(),
   slots: spellSlotsSchema.optional(),
   spells: sheetList(spellSchema).optional(),
 });
@@ -450,6 +461,16 @@ export const fifthEditionCharacterDataSchema = z.object({
   // See utils/featureEntries.
   featuresAndTraits: sheetList(featureEntrySchema).optional(),
   spellcasting: spellcastingSchema.optional(),
+  // Where the guided creation took the character from.
+  origin: z
+    .object({
+      race: compendiumRefSchema.optional(),
+      subrace: compendiumRefSchema.optional(),
+      class: compendiumRefSchema.optional(),
+      subclass: compendiumRefSchema.optional(),
+      background: compendiumRefSchema.optional(),
+    })
+    .optional(),
   appearance: appearanceSchema.optional(),
   personality: personalitySchema.optional(),
   backstory: longText.optional(),
