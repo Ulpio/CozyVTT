@@ -97,11 +97,12 @@ export type Effect =
    * Attacks of a kind get: `damage: 'ability'` adds the casting modifier to the
    * damage (Agonizing Blast); `toHit`/`damageBonus` flat bonuses (Archery, Dueling);
    * `die` replaces the damage die and `ability` may replace STR when better
-   * (Martial Arts, Tavern Brawler).
+   * (Martial Arts, Tavern Brawler). `monkWeapon`: shortswords and simple melee
+   * weapons without two-handed or heavy (Martial Arts).
    */
   | {
       type: 'attackBonus';
-      attack: 'eldritchBlast' | 'unarmed' | 'ranged' | 'oneHandedMelee' | 'all';
+      attack: 'eldritchBlast' | 'unarmed' | 'monkWeapon' | 'ranged' | 'oneHandedMelee' | 'all';
       damage?: 'ability';
       toHit?: number;
       damageBonus?: number;

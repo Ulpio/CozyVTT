@@ -90,6 +90,7 @@ export const CLASS_EFFECTS: Record<string, Effect[]> = {
   monge: [
     { type: 'unarmoredAC', base: 10, abilities: ['dex', 'wis'], noShield: true },
     { type: 'attackBonus', attack: 'unarmed', die: '1d4', ability: 'dex' },
+    { type: 'attackBonus', attack: 'monkWeapon', ability: 'dex' },
     { type: 'speed', meters: 3, noArmor: true },
   ],
   paladino: [fightingStyle([STYLE.defesa, STYLE.duelismo, STYLE.armasGrandes, STYLE.protecao])],

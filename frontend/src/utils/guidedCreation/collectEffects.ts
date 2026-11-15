@@ -92,7 +92,7 @@ const bySlug = <T>(list: RulesEntry<T>[] | undefined, slug: string | undefined) 
 const unique = (list: string[] | undefined) => [...new Set(list ?? [])];
 
 /** Armor kinds a class's proficiency lines grant ("Todas as armaduras", "armaduras médias", ...). */
-function classArmor(lines: string[]): ArmorKind[] {
+export function classArmor(lines: string[]): ArmorKind[] {
   const out: ArmorKind[] = [];
   for (const raw of lines) {
     const line = raw.toLowerCase();
