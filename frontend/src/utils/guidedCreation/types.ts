@@ -41,10 +41,12 @@ export type Effect =
   | { type: 'ability'; ability: AbilityKey; amount: number }
   | { type: 'abilityChoice'; count: number; amount: number; exclude?: AbilityKey[] }
   | { type: 'skill'; skill: SkillKey }
-  | { type: 'skillChoice'; count: number; from?: SkillKey[] }
-  | { type: 'expertiseChoice'; count: number }
+  /** `orTool`: each pick may be a tool instead (Skilled). */
+  | { type: 'skillChoice'; count: number; from?: SkillKey[]; orTool?: true }
+  | { type: 'expertiseChoice'; count: number; from?: SkillKey[] }
   | { type: 'save'; ability: AbilityKey }
   | { type: 'armorProficiency'; armor: ArmorKind }
+  /** `weapon`: 'simple', 'martial', 'improvised', 'pactWeapon' or a weapon slug. */
   | { type: 'weaponProficiency'; weapon: string }
   | { type: 'toolChoice'; count: number }
   | { type: 'language'; language: string }
@@ -56,11 +58,26 @@ export type Effect =
   | { type: 'passivePerception'; amount: number }
   | { type: 'speed'; meters: number }
   | { type: 'jackOfAllTrades' }
+  /** `list`: a class slug, or 'any' for every class list (Pact of the Tome). */
   | { type: 'cantripChoice'; count: number; list: string; ability: AbilityKey }
   | { type: 'spellChoice'; count: number; level: number; list: string }
   | { type: 'alwaysPrepared'; slugs: string[] }
   | { type: 'option'; id: string; choose: number; options: OptionEffect[] }
-  | { type: 'attackBonus'; attack: 'eldritchBlast' | 'unarmed' | 'all'; damage?: 'ability' }
+  /**
+   * Attacks of a kind get: `damage: 'ability'` adds the casting modifier to the
+   * damage (Agonizing Blast); `toHit`/`damageBonus` flat bonuses (Archery, Dueling);
+   * `die` replaces the damage die and `ability` may replace STR when better
+   * (Martial Arts, Tavern Brawler).
+   */
+  | {
+      type: 'attackBonus';
+      attack: 'eldritchBlast' | 'unarmed' | 'ranged' | 'oneHandedMelee' | 'all';
+      damage?: 'ability';
+      toHit?: number;
+      damageBonus?: number;
+      die?: string;
+      ability?: AbilityKey;
+    }
   // Added in Task 6 (the brief's race rules need them):
   | { type: 'featChoice'; count: number }
   | { type: 'resistance'; damageType: string };
