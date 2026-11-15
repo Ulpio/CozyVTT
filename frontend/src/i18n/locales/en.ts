@@ -240,6 +240,13 @@ const en = {
     },
   },
 
+  campaignBooks: {
+    legend: 'Books in this campaign',
+    none: 'This system has no books yet.',
+    loadFailed: 'Could not load the campaign books',
+    saveFailed: 'Could not save the campaign books',
+  },
+
   campaignCard: {
     status: {
       PREPARATION: 'Preparation',

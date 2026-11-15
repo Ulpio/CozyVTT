@@ -20,6 +20,8 @@ const viewer = vi.hoisted(() => ({ role: 'GM', user: { id: 'dm', platformRole: '
 const updateCampaign = vi.hoisted(() => vi.fn());
 const invitationsApi = vi.hoisted(() => ({
   listCampaignInvitations: vi.fn(), withdrawCampaignInvitation: vi.fn(), removeCampaignMember: vi.fn(), changeCampaignMemberRole: vi.fn(),
+  // The books section reads the campaign's books; none here.
+  getCampaignBooks: () => Promise.resolve([]),
 }));
 vi.mock('@/services/api', () => ({ default: invitationsApi, api: invitationsApi }));
 const refreshCampaign = vi.hoisted(() => vi.fn());

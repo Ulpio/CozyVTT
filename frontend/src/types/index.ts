@@ -1207,6 +1207,8 @@ export interface CreateCampaignRequest {
   name: string;
   gameSystem?: GameSystem;
   description?: string;
+  /** The compendium books it uses; left out, its system's books but the English SRD. */
+  bookIds?: string[];
 }
 
 export interface UpdateCampaignRequest {
@@ -1747,9 +1749,18 @@ export interface CompendiumEntry extends CompendiumEntrySummary {
   editedById: string | null;
 }
 
+/** A book of the campaign's system, and whether the campaign uses it. */
+export interface CampaignBookChoice {
+  id: string;
+  name: string;
+  enabled: boolean;
+}
+
 export interface CompendiumSearch {
   type?: string;
   book?: string;
+  /** Search only this campaign's books (members only). */
+  campaignId?: string;
   q?: string;
   page?: number;
   pageSize?: number;

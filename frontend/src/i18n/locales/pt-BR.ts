@@ -243,6 +243,13 @@ const ptBR: Messages = {
     },
   },
 
+  campaignBooks: {
+    legend: 'Livros desta campanha',
+    none: 'Este sistema ainda não tem livros.',
+    loadFailed: 'Não foi possível carregar os livros da campanha',
+    saveFailed: 'Não foi possível salvar os livros da campanha',
+  },
+
   campaignCard: {
     status: {
       PREPARATION: 'Em preparação',

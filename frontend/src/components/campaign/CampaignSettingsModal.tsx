@@ -26,9 +26,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import api from '@/services/api';
 import campaignService from '@/services/campaign.service';
 import InvitePlayerModal from './InvitePlayerModal';
+import CampaignBooksPicker from './CampaignBooksPicker';
+import { useTranslation } from 'react-i18next';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { CampaignRole } from '@/types';
-import type { AccessRevoked, AssignableCampaignRole, CampaignMembership, CampaignInvitationSummary } from '@/types';
+import type { AccessRevoked, AssignableCampaignRole, CampaignBookChoice, CampaignMembership, CampaignInvitationSummary } from '@/types';
 import Button from '@/components/ui/Button';
 import SlideOver, { SlideOverClose, SlideOverTitle } from '@/components/ui/SlideOver';
 import { apiErrorMessage } from '@/utils/errors';
@@ -81,6 +83,7 @@ export default function CampaignSettingsModal({
   const isGmViewer = userRole === 'GM';
   const { showToast } = useToast();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const mayDelete = isCampaignOwner(campaign, user?.id) || user?.platformRole === 'ADMIN';
 
   // ── Tab ─────────────────────────────────────
@@ -95,6 +98,11 @@ export default function CampaignSettingsModal({
   // What the switch shows while its save is on its way; the campaign's own
   // value otherwise, which the settings broadcast keeps current.
   const [playersMayDrawShown, setPlayersMayDrawShown] = useState<boolean | null>(null);
+
+  // ── Books ────────────────────────────────────
+  // The campaign's system's books, loaded when the panel opens; saved at once.
+  const [books, setBooks] = useState<CampaignBookChoice[] | null>(null);
+  const [savingBooks, setSavingBooks] = useState(false);
 
   // ── Chat settings ────────────────────────────
   const [chatCooldownEnabled, setChatCooldownEnabled] = useState(false);
@@ -159,6 +167,34 @@ export default function CampaignSettingsModal({
   useEffect(() => {
     if (isOpen && isGmViewer && activeTab === 'members') void loadInvitations();
   }, [isOpen, isGmViewer, activeTab, loadInvitations]);
+
+  // The books, read again each time the panel opens and when the system changes.
+  useEffect(() => {
+    if (!isOpen || !campaign?.id) return;
+    let live = true;
+    api.getCampaignBooks(campaign.id).then(
+      (list) => live && setBooks(list),
+      (err) => live && showToast(apiErrorMessage(err) ?? t('campaignBooks.loadFailed'), 'error')
+    );
+    return () => {
+      live = false;
+    };
+  }, [isOpen, campaign?.id, campaign?.gameSystem, showToast, t]);
+
+  const handleBooks = async (bookIds: string[]) => {
+    if (!campaign?.id || !books) return;
+    const before = books;
+    setBooks(books.map((b) => ({ ...b, enabled: bookIds.includes(b.id) })));
+    setSavingBooks(true);
+    try {
+      setBooks(await api.setCampaignBooks(campaign.id, bookIds));
+    } catch (err) {
+      setBooks(before);
+      showToast(apiErrorMessage(err) ?? t('campaignBooks.saveFailed'), 'error');
+    } finally {
+      setSavingBooks(false);
+    }
+  };
 
   // Remove is disabled while the member is removed, so the confirmation
   // cannot hand the focus back to it. Once the removal has finished the focus
@@ -519,6 +555,13 @@ export default function CampaignSettingsModal({
                   />
                 </button>
               </div>
+
+              {/* ── Books ── */}
+              {books && (
+                <div className="pt-4 mt-4 border-t border-moss-green/15">
+                  <CampaignBooksPicker books={books} onChange={(ids) => void handleBooks(ids)} disabled={!isGmViewer || savingBooks} />
+                </div>
+              )}
 
               {/* ── Export ── */}
               <div className="pt-4 mt-4 border-t border-moss-green/15 space-y-3">

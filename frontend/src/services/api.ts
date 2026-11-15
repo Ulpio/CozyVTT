@@ -53,6 +53,7 @@ import type {
   ApiError,
   SystemStats,
   CompendiumBook,
+  CampaignBookChoice,
   CompendiumEntry,
   CompendiumEntrySummary,
   CompendiumSearch,
@@ -398,6 +399,18 @@ class ApiClient {
   async getCompendiumBooks(): Promise<CompendiumBook[]> {
     const response = await this.client.get<CompendiumBook[]>('/api/compendium/books');
     return response.data;
+  }
+
+  /** The books of a campaign's system, each marked with whether the campaign uses it. */
+  async getCampaignBooks(campaignId: string): Promise<CampaignBookChoice[]> {
+    const response = await this.client.get<{ books: CampaignBookChoice[] }>(`/api/campaigns/${encodeURIComponent(campaignId)}/books`);
+    return response.data.books;
+  }
+
+  /** The GM sets which books the campaign uses. */
+  async setCampaignBooks(campaignId: string, bookIds: string[]): Promise<CampaignBookChoice[]> {
+    const response = await this.client.put<{ books: CampaignBookChoice[] }>(`/api/campaigns/${encodeURIComponent(campaignId)}/books`, { bookIds });
+    return response.data.books;
   }
 
   async searchCompendium(params: CompendiumSearch): Promise<{ items: CompendiumEntrySummary[]; total: number }> {

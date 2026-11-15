@@ -3,10 +3,12 @@
 // Modal dialog for creating a new campaign
 // ============================================
 
-import { useState, useCallback, FormEvent } from 'react';
+import { useState, useCallback, useEffect, FormEvent } from 'react';
 import { Plus } from 'lucide-react';
 import campaignService from '@/services/campaign.service';
-import type { Campaign, GameSystem } from '@/types';
+import type { Campaign, CompendiumBook, GameSystem } from '@/types';
+import api from '@/services/api';
+import CampaignBooksPicker from '@/components/campaign/CampaignBooksPicker';
 import { GAME_SYSTEM_OPTIONS } from '@/constants/game-systems';
 import { Button, Modal, Field, Input, Textarea, Select } from '@/components/ui';
 import { apiErrorMessage } from '@/utils/errors';
@@ -28,6 +30,29 @@ export default function CreateCampaignModal({
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Every compendium book, once loaded; null until then, or if it failed,
+  // in which case the server picks the books.
+  const [allBooks, setAllBooks] = useState<CompendiumBook[] | null>(null);
+  const [bookIds, setBookIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!isOpen || allBooks) return;
+    let live = true;
+    api.getCompendiumBooks().then(
+      (books) => live && setAllBooks(books),
+      () => undefined
+    );
+    return () => {
+      live = false;
+    };
+  }, [isOpen, allBooks]);
+
+  const systemBooks = allBooks?.filter((b) => gameSystem && b.gameSystem === gameSystem) ?? [];
+
+  // A new campaign starts with its system's books but the English SRD.
+  useEffect(() => {
+    setBookIds((allBooks ?? []).filter((b) => gameSystem && b.gameSystem === gameSystem && b.id !== 'srd').map((b) => b.id));
+  }, [allBooks, gameSystem]);
 
   const handleClose = useCallback(() => {
     if (!loading) {
@@ -56,6 +81,7 @@ export default function CreateCampaignModal({
         name: name.trim(),
         gameSystem: gameSystem || undefined,
         description: description.trim() || undefined,
+        ...(allBooks && gameSystem ? { bookIds } : {}),
       });
 
       // Reset form
@@ -122,6 +148,14 @@ export default function CreateCampaignModal({
             </Select>
           )}
         </Field>
+
+        {gameSystem && allBooks && (
+          <CampaignBooksPicker
+            books={systemBooks.map((b) => ({ id: b.id, name: b.name, enabled: bookIds.includes(b.id) }))}
+            onChange={setBookIds}
+            disabled={loading}
+          />
+        )}
 
         <Field label="Description" hint="Brief overview of your campaign's story and setting">
           {(field) => (
