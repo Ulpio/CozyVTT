@@ -1,4 +1,5 @@
 import type { AbilityKey } from '@/utils/rules/fifthEdition';
+import type { AbilityScoreMethod } from '@/types';
 import { FIFTH_EDITION_SKILLS } from '@/utils/rules/fifthEdition';
 
 export type { AbilityKey };
@@ -26,7 +27,6 @@ export type SkillKey =
 
 export const SKILL_KEYS: readonly SkillKey[] = FIFTH_EDITION_SKILLS.map((s) => s.key as SkillKey);
 
-export type ScoreMethod = 'pointBuy' | 'standardArray' | 'roll';
 
 export type ArmorKind = 'light' | 'medium' | 'heavy' | 'shield';
 
@@ -50,7 +50,7 @@ export type Effect =
   | { type: 'language'; language: string }
   | { type: 'languageChoice'; count: number }
   | { type: 'hpPerLevel'; amount: number }
-  | { type: 'unarmoredAC'; base: number; abilities: AbilityKey[] }
+  | { type: 'unarmoredAC'; base: number; abilities: AbilityKey[]; noShield?: true }
   | { type: 'acBonus'; amount: number; whenArmored: boolean }
   | { type: 'initiative'; amount: number }
   | { type: 'passivePerception'; amount: number }
@@ -80,7 +80,7 @@ export interface CreationChoices {
   classSlug: string;
   subclassSlug: string;
   backgroundSlug: string;
-  method: ScoreMethod;
+  method: AbilityScoreMethod;
   baseScores: Record<AbilityKey, number>;
   abilityRollId?: string;
   racialChoices: Record<string, unknown>;

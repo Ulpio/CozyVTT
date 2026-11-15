@@ -19,6 +19,11 @@ describe('raceRules', () => {
     expect(new Set(DRAGON_ANCESTRIES.map((d) => d.id)).size).toBe(10);
     expect(DRAGON_ANCESTRIES.every((d) => d.effects.length === 1)).toBe(true);
   });
+  it('gives each dragon its damage type', () => {
+    const eff = (id: string) => DRAGON_ANCESTRIES.find((d) => d.id === id)?.effects;
+    expect(eff('vermelho')).toEqual([{ type: 'resistance', damageType: 'fire' }]);
+    expect(eff('prata')).toEqual([{ type: 'resistance', damageType: 'cold' }]);
+  });
   it('combines race and subrace effects and converts increases', () => {
     expect(raceEffects('elfo', 'elfo-da-floresta')).toEqual([{ type: 'speed', meters: 1.5 }]);
     expect(raceEffects('humano')).toEqual([]);

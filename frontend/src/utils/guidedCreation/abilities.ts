@@ -1,5 +1,6 @@
 import { ABILITY_KEYS, type AbilityKey } from '@/utils/rules/fifthEdition';
-import type { Effect, ScoreMethod } from './types';
+import type { AbilityScoreMethod } from '@/types';
+import type { Effect } from './types';
 
 export const POINT_BUY_COST: Record<number, number> = {
   8: 0,
@@ -18,7 +19,13 @@ export const STANDARD_ARRAY: readonly number[] = [15, 14, 13, 12, 10, 8];
 export const ABILITY_CAP = 20;
 
 export function pointBuySpent(scores: Record<AbilityKey, number>): number {
-  return ABILITY_KEYS.reduce((sum, k) => sum + (POINT_BUY_COST[scores[k]] ?? 0), 0);
+  let sum = 0;
+  for (const k of ABILITY_KEYS) {
+    const cost = POINT_BUY_COST[scores[k]];
+    if (cost === undefined) return NaN; // outside 8..15: not priceable
+    sum += cost;
+  }
+  return sum;
 }
 
 function sameMultiset(a: number[], b: readonly number[]): boolean {
@@ -28,23 +35,28 @@ function sameMultiset(a: number[], b: readonly number[]): boolean {
   return x.every((v, i) => v === y[i]);
 }
 
-/** Error keys (empty when valid); the UI maps them to copy. */
+/**
+ * Error keys (empty when valid); the UI maps them to copy. `roll` is the six
+ * totals of the server roll: pass `dto.rolls.map((r) => r.total)`.
+ */
 export function validateBaseScores(
-  method: ScoreMethod,
+  method: AbilityScoreMethod,
   scores: Record<AbilityKey, number>,
   roll?: number[],
 ): string[] {
   const values = ABILITY_KEYS.map((k) => scores[k]);
-  if (method === 'pointBuy') {
+  if (method === 'POINT_BUY') {
     if (values.some((v) => !Number.isInteger(v) || v < POINT_BUY_MIN || v > POINT_BUY_MAX)) {
       return ['outOfRange'];
     }
     return pointBuySpent(scores) > POINT_BUY_BUDGET ? ['overBudget'] : [];
   }
-  if (method === 'standardArray') {
+  if (method === 'STANDARD_ARRAY') {
     return sameMultiset(values, STANDARD_ARRAY) ? [] : ['notStandardArray'];
   }
-  return roll && sameMultiset(values, roll) ? [] : ['notRolled'];
+  if (method === 'ROLL') return roll && sameMultiset(values, roll) ? [] : ['notRolled'];
+  const unreachable: never = method;
+  throw new Error(`Unknown score method: ${String(unreachable)}`);
 }
 
 /** Error keys for the picks of abilityChoice effects, in effect order. */
@@ -56,9 +68,11 @@ export function validateAbilityPicks(effects: Effect[], picks: AbilityKey[]): st
     const mine = picks.slice(i, i + e.count);
     i += e.count;
     if (mine.length !== e.count) errors.push('missingPick');
-    if (new Set(mine).size !== mine.length) errors.push('duplicatePick');
     if (mine.some((a) => e.exclude?.includes(a))) errors.push('excludedAbility');
   }
+  if (picks.length > i) errors.push('tooManyPicks');
+  const used = picks.slice(0, i); // +1 twice to one ability is never allowed
+  if (new Set(used).size !== used.length) errors.push('duplicatePick');
   return errors;
 }
 

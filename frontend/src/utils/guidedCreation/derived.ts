@@ -34,12 +34,13 @@ export function armorClass(
     ac = body.baseAc;
     if (body.addDex) {
       const dex = mod('dex');
-      ac += body.maxDex !== undefined ? Math.min(dex, body.maxDex) : dex;
+      const cap = body.maxDex ?? (body.category === 'medium' ? 2 : undefined);
+      ac += cap !== undefined ? Math.min(dex, cap) : dex;
     }
   } else {
     ac = 10 + mod('dex');
     for (const e of effects) {
-      if (e.type === 'unarmoredAC') {
+      if (e.type === 'unarmoredAC' && !(e.noShield && shield)) {
         ac = Math.max(ac, e.base + e.abilities.reduce((s, k) => s + mod(k), 0));
       }
     }

@@ -26,6 +26,15 @@ describe('derived', () => {
     expect(armorClass(undefined, false, sc(10), [{ type: 'acBonus', amount: 1, whenArmored: true }])).toBe(10);
     expect(armorClass(undefined, true, sc(10), [])).toBe(12);
   });
+  it('keeps monk Unarmored Defense off when a shield is carried', () => {
+    const monk: Effect[] = [{ type: 'unarmoredAC', base: 10, abilities: ['dex', 'wis'], noShield: true }];
+    expect(armorClass(undefined, true, sc(16, 10, 16), monk)).toBe(15);
+    const barb: Effect[] = [{ type: 'unarmoredAC', base: 10, abilities: ['dex', 'con'] }];
+    expect(armorClass(undefined, true, sc(14, 16), barb)).toBe(17);
+  });
+  it('caps medium armor dex at 2 when the data has no maxDex', () => {
+    expect(armorClass(armor('medium', 14, true), false, sc(18), [])).toBe(16);
+  });
   it('counts a skill once and keeps expertise to proficient skills', () => {
     const r = resolveSkills(['stealth', 'insight'], ['stealth', 'arcana'], ['history'], ['stealth', 'athletics']);
     expect(r.proficient).toEqual(['arcana', 'history', 'insight', 'stealth']);
