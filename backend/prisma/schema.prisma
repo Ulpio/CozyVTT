@@ -141,6 +141,7 @@ model User {
   messages            Message[]
   receivedMessages    Message[]              @relation("MessageRecipient")
   diceRolls           DiceRoll[]
+  abilityRolls        AbilityRoll[]
   uploadedAssets      Asset[]
   passwordResetTokens PasswordResetToken[]
   creatureFavorites   CreatureFavorite[]
@@ -262,6 +263,7 @@ model Campaign {
   characters         Character[]
   messages           Message[]
   diceRolls          DiceRoll[]
+  abilityRolls       AbilityRoll[]
   assets             Asset[]
   sessions           Session[]
   creatureTemplates  CreatureTemplate[]
@@ -755,6 +757,28 @@ model DiceRoll {
   rolledAt DateTime @default(now())
 
   @@index([campaignId, rolledAt])
+}
+
+// A player's 4d6-drop-lowest ability roll, made once on the server and kept
+// until a character is created from it. One per player and campaign ("none"
+// outside any), so reopening the wizard shows the same dice.
+model AbilityRoll {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // The campaign's id, or "none" for a roll made outside a campaign
+  scope      String
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // Six { dice: number[4], kept: number[3], total: number }
+  rolls Json
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, scope])
 }
 
 // ============================================

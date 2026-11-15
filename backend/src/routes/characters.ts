@@ -140,7 +140,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
         message: parsed.error.issues[0]?.message ?? 'Invalid character data',
       });
     }
-    const { name, data, tokenImageUrl, gameSystem, campaignId } = parsed.data;
+    const { name, data, tokenImageUrl, gameSystem, campaignId, abilityRollId } = parsed.data;
 
     // Determine final gameSystem value
     let finalGameSystem = gameSystem;
@@ -287,6 +287,9 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
       });
 
       if (campaignId && membershipToJoin) await addToMemberCharacters(tx, userId, campaignId, created.id);
+
+      // The roll this character was built from is spent, if it is the caller's.
+      if (abilityRollId) await tx.abilityRoll.deleteMany({ where: { id: abilityRollId, userId } });
 
       return created;
     });

@@ -7,7 +7,7 @@ through the `pg` driver (`src/config/prismaClient.ts`).
 
 ## Models
 
-The schema is in [`schema.prisma`](./schema.prisma) — 27 models grouped by domain:
+The schema is in [`schema.prisma`](./schema.prisma) — 28 models grouped by domain:
 
 **User & auth**
 - `User` — accounts with optional MFA, which an administrator must turn on within 7 days
@@ -22,6 +22,7 @@ The schema is in [`schema.prisma`](./schema.prisma) — 27 models grouped by dom
 
 **Game content**
 - `Character` — flexible JSON-backed character sheets, optionally bound to a campaign + game system
+- `AbilityRoll` — a player's 4d6-drop-lowest ability roll, made once on the server and deleted when a character is created from it; one per player and campaign (`scope` is the campaign id or `none`)
 - `Map` — base + spirit layer, tokens, walls, lights, fog, annotations; per-map switches for fog of war, Global Illumination and explored memory (`fogEnabled`, `globalIllumination`, `explorationEnabled`, all default on so existing maps keep their behaviour); `drawnBackground`, the colour a map drawn in CozyVTT is made in (null for one made from a picture)
 - `MapExploration` — one player's explored cells on one map; never read when deciding which tokens to send
 - `MapDrawing` — one drawing on one map (a stroke, a shape or a text label): its kind, colours, width and points in whole map pixels from the top-left, who drew it (`authorId`, null once their account is deleted) and who is sent it (`audience`, `ALL` or `GM`). It goes with its map. `layer` is `MARKUP` for everything drawn so far; `GROUND`, `pattern` and `stamp` are kept for GM-drawn map art and not accepted yet

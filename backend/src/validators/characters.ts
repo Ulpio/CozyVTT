@@ -17,6 +17,8 @@ export const CreateCharacterSchema = z.object({
   tokenImageUrl: z.string().nullish(),
   gameSystem: GameSystemSchema.nullish(),
   campaignId: z.string().nullish(),
+  // The saved ability roll this character was built from; it is used up with the character.
+  abilityRollId: z.string().nullish(),
 });
 
 /** PUT /api/characters/:id */

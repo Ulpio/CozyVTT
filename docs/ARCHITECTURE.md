@@ -701,6 +701,15 @@ erDiagram
         string bookId PK,FK
     }
 
+    AbilityRoll {
+        string id PK
+        string userId FK
+        string scope
+        string campaignId FK
+        json rolls
+        datetime createdAt
+    }
+
     CreatureFavorite {
         string id PK
         string campaignId FK
@@ -770,6 +779,8 @@ erDiagram
     User ||--o{ Message : "writes"
     User ||--o{ Message : "receives whispers"
     Campaign ||--o{ DiceRoll : "has"
+    User ||--o{ AbilityRoll : "rolls"
+    Campaign ||--o{ AbilityRoll : "holds"
     User ||--o{ DiceRoll : "rolls"
     Campaign ||--o{ Session : "has"
     Campaign ||--o{ PersonalNote : "has"

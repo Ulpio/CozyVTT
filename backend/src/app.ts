@@ -28,6 +28,7 @@ import campaignRoutes from './routes/campaigns';
 import campaignMacroRoutes from './routes/campaignMacros';
 import campaignDocumentRoutes from './routes/campaignDocuments';
 import userRoutes from './routes/users';
+import abilityRollRoutes from './routes/abilityRolls';
 import characterRoutes from './routes/characters';
 import characterTemplateRoutes from './routes/characterTemplates';
 import invitationRoutes from './routes/invitations';
@@ -238,6 +239,8 @@ export function createApp(options: AppOptions): express.Express {
   app.use('/api/campaigns', campaignDocumentRoutes);
 
   // Characters
+  // Before the character routes, so `ability-roll` is not read as a character id.
+  app.use('/api/characters/ability-roll', abilityRollRoutes);
   app.use('/api/characters', characterRoutes);
   // Distinct from GET /api/characters/templates/:system/:name, which serves the
   // hardcoded starter presets rather than these user-published ones.

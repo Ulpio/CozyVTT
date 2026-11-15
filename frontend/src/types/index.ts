@@ -1238,12 +1238,20 @@ export interface UpdateCampaignRequest {
 }
 
 // Character
+/** A saved 4d6-drop-lowest ability roll: six scores, each with its four dice and the three kept. */
+export interface AbilityRollDto {
+  id: string;
+  rolls: { dice: number[]; kept: number[]; total: number }[];
+}
+
 export interface CreateCharacterRequest {
   name: string;
   data?: CharacterData;
   tokenImageUrl?: string;
   gameSystem?: GameSystem | null;
   campaignId?: string;
+  /** The saved ability roll this character is built from; it is used up with it. */
+  abilityRollId?: string;
 }
 
 export interface UpdateCharacterRequest {

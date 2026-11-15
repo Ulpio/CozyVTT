@@ -811,6 +811,16 @@ A `tokenImageUrl` naming an existing asset must name one uploaded as a token pic
 
 ---
 
+### `GET /api/characters/ability-roll`
+
+The caller's saved ability roll for `?campaignId=` (or for none): `{ "roll": { "id", "rolls": [{ "dice": [4 dice], "kept": [3 highest], "total" }] } }`, or `{ "roll": null }`. A campaign the caller is not a member of answers `404`.
+
+### `POST /api/characters/ability-roll`
+
+Body `{ "campaignId"? }`. Rolls six scores (4d6, lowest dropped) once on the server and returns `{ roll }`; asking again returns the same roll, even from two requests at once, until a character is created with `abilityRollId` set to its id (`POST /api/characters`), which deletes it. A campaign whose `abilityScoreMethods` lacks `ROLL` answers `403` unless the caller already has a roll; a campaign the caller is not in answers `404`. In a campaign a new roll is also stored as six `4d6kh3` dice rolls with the purpose `Atributos` and sent to the campaign as `dice.rolled`.
+
+---
+
 ### `GET /api/characters/:id`
 
 Get a single character, with its sheet in `data`, its `campaign` (`{ id, name }` or null) and its owner as `user` (`{ id, displayName, avatarUrl }`). The owner may always read it, and so may any member of its campaign while the owner is still a member there; anyone else gets `404`, as for an id that names nothing. On a Horror d100 sheet the GM's Notes (`notes`) are sent only to the GM of the character's campaign, and are left out for everyone else, its owner included.

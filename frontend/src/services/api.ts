@@ -25,6 +25,7 @@ import type {
   UpdateCampaignRequest,
   Character,
   CharacterSummary,
+  AbilityRollDto,
   CreateCharacterRequest,
   UpdateCharacterRequest,
   Asset,
@@ -945,6 +946,20 @@ class ApiClient {
   async createCharacter(data: CreateCharacterRequest): Promise<{ message: string; character: Character }> {
     const response = await this.client.post('/api/characters', data);
     return response.data;
+  }
+
+  /** The caller's saved ability roll for the campaign (or for none), or null. */
+  async getAbilityRoll(campaignId?: string): Promise<AbilityRollDto | null> {
+    const response = await this.client.get<{ roll: AbilityRollDto | null }>('/api/characters/ability-roll', {
+      params: campaignId ? { campaignId } : undefined,
+    });
+    return response.data.roll;
+  }
+
+  /** Rolls the ability scores once; asking again returns the same roll until a character is created from it. */
+  async rollAbilities(campaignId?: string): Promise<AbilityRollDto> {
+    const response = await this.client.post<{ roll: AbilityRollDto }>('/api/characters/ability-roll', campaignId ? { campaignId } : {});
+    return response.data.roll;
   }
 
   async getCharacter(id: string): Promise<{ character: Character }> {

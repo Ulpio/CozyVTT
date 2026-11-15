@@ -466,6 +466,26 @@
       ]
     },
     {
+      "method": "GET",
+      "path": "/api/campaigns/:campaignId/books",
+      "handlers": [
+        "requireAuth",
+        "loadCampaignMembership",
+        "requireCampaignMember",
+        "<anonymous>"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/campaigns/:campaignId/books",
+      "handlers": [
+        "requireAuth",
+        "loadCampaignMembership",
+        "requireGM",
+        "<anonymous>"
+      ]
+    },
+    {
       "method": "PUT",
       "path": "/api/campaigns/:campaignId/vibe",
       "handlers": [
@@ -832,6 +852,22 @@
         "requireAuth",
         "loadCampaignMembership",
         "requireGM",
+        "<anonymous>"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters/ability-roll",
+      "handlers": [
+        "requireAuth",
+        "<anonymous>"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/characters/ability-roll",
+      "handlers": [
+        "requireAuth",
         "<anonymous>"
       ]
     },
@@ -1699,6 +1735,11 @@
     {
       "name": "router",
       "path": "/api/campaigns",
+      "route": false
+    },
+    {
+      "name": "router",
+      "path": "/api/characters/ability-roll",
       "route": false
     },
     {

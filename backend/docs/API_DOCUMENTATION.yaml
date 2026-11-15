@@ -5209,6 +5209,14 @@ paths:
                   format: uuid
                   nullable: true
                   description: Optional campaign to assign character to immediately
+                abilityRollId:
+                  type: string
+                  nullable: true
+                  description: >-
+                    The saved ability roll (`POST /api/characters/ability-roll`)
+                    this character was built from. It is deleted in the same
+                    transaction as the character is created, when it is the
+                    caller's; another player's id is ignored.
                 data:
                   type: object
                   description: |
@@ -5274,6 +5282,71 @@ paths:
             No campaign the caller is a member of has the id given in
             `campaignId` (`Campaign not found`): one that exists and one that
             does not are answered alike. Nothing is created.
+
+  /api/characters/ability-roll:
+    get:
+      tags:
+        - Characters
+      summary: Read the saved ability roll
+      description: >-
+        The caller's saved 4d6-drop-lowest ability roll for the campaign in
+        `campaignId` (or for none, when it is left out), or `null`.
+      parameters:
+        - in: query
+          name: campaignId
+          schema: { type: string }
+      responses:
+        '200':
+          description: The roll, or null.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roll:
+                    nullable: true
+                    allOf:
+                      - $ref: '#/components/schemas/AbilityRoll'
+        '404':
+          description: No campaign the caller is a member of has that id (`Campaign not found`).
+    post:
+      tags:
+        - Characters
+      summary: Roll the ability scores once
+      description: >-
+        Rolls six scores (4d6, lowest die dropped) on the server and saves
+        them for the caller and campaign. Asking again returns the same roll
+        until a character is created from it (`abilityRollId` on
+        `POST /api/characters`); two requests at once make one roll. In a
+        campaign, a new roll is also written to its dice history as six
+        `4d6kh3` rolls with the purpose `Atributos` and sent to the campaign
+        as `dice.rolled`.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                campaignId:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: The roll, new or the one already saved.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roll:
+                    $ref: '#/components/schemas/AbilityRoll'
+        '400':
+          description: '`campaignId` is not a string.'
+        '403':
+          description: The campaign does not allow rolling (`abilityScoreMethods` lacks `ROLL`) and the caller has no saved roll.
+        '404':
+          description: No campaign the caller is a member of has that id (`Campaign not found`).
 
   /api/characters/{id}:
     get:
@@ -12989,6 +13062,25 @@ components:
       description: Items per page (max 100)
 
   schemas:
+    AbilityRoll:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        rolls:
+          type: array
+          description: Six scores, in the order they were rolled.
+          items:
+            type: object
+            properties:
+              dice:
+                type: array
+                items: { type: integer, minimum: 1, maximum: 6 }
+                description: The four dice.
+              kept:
+                type: array
+                items: { type: integer }
+                description: The three highest.
+              total: { type: integer, minimum: 3, maximum: 18 }
     User:
       type: object
       properties:
