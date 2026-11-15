@@ -1,0 +1,323 @@
+{
+  "characterName": "Teste guerreiro",
+  "class": "Guerreiro",
+  "level": 3,
+  "race": "Humano",
+  "background": "Soldado",
+  "experiencePoints": 900,
+  "proficiencyBonus": 2,
+  "stats": {
+    "strength": {
+      "score": 16,
+      "modifier": 3
+    },
+    "dexterity": {
+      "score": 14,
+      "modifier": 2
+    },
+    "constitution": {
+      "score": 15,
+      "modifier": 2
+    },
+    "intelligence": {
+      "score": 9,
+      "modifier": -1
+    },
+    "wisdom": {
+      "score": 13,
+      "modifier": 1
+    },
+    "charisma": {
+      "score": 11,
+      "modifier": 0
+    }
+  },
+  "savingThrows": {
+    "strength": {
+      "proficient": true,
+      "bonus": 5
+    },
+    "dexterity": {
+      "proficient": false,
+      "bonus": 2
+    },
+    "constitution": {
+      "proficient": true,
+      "bonus": 4
+    },
+    "intelligence": {
+      "proficient": false,
+      "bonus": -1
+    },
+    "wisdom": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "charisma": {
+      "proficient": false,
+      "bonus": 0
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "animalHandling": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "arcana": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "athletics": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "deception": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "history": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "insight": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "intimidation": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 2
+    },
+    "investigation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "medicine": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "nature": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "perception": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "performance": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "persuasion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "religion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "sleightOfHand": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "stealth": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "survival": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    }
+  },
+  "passivePerception": 13,
+  "armorClass": 17,
+  "initiative": 2,
+  "initiativeBonus": 0,
+  "speed": 30,
+  "hp": {
+    "maximum": 28,
+    "current": 28,
+    "temporary": 0
+  },
+  "hitDice": [
+    {
+      "class": "Guerreiro",
+      "die": "d10",
+      "maximum": 3,
+      "remaining": 3
+    }
+  ],
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "attacks": [
+    {
+      "name": "Espada longa",
+      "attackBonus": 5,
+      "damageRoll": "1d8+3",
+      "damageType": "cortante",
+      "properties": [
+        "versátil"
+      ],
+      "additionalDamage": [
+        {
+          "label": "Duas mãos",
+          "damageRoll": "1d10+3",
+          "damageType": "cortante"
+        }
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "espada-longa"
+      }
+    },
+    {
+      "name": "Machado grande",
+      "attackBonus": 5,
+      "damageRoll": "1d12+3",
+      "damageType": "cortante",
+      "properties": [
+        "pesada",
+        "duas mãos"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "machado-grande"
+      }
+    }
+  ],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "inventory": [
+    {
+      "name": "A cota-de-malha",
+      "quantity": 1,
+      "weight": 55,
+      "equippable": true,
+      "equipped": true,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "cota-de-malha"
+      }
+    },
+    {
+      "name": "Espada longa",
+      "quantity": 1,
+      "weight": 3,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "espada-longa"
+      }
+    },
+    {
+      "name": "Machado grande",
+      "quantity": 1,
+      "weight": 7,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "machado-grande"
+      }
+    },
+    {
+      "name": "P aventureiro",
+      "quantity": 1,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "pacote-de-aventureiro"
+      }
+    }
+  ],
+  "proficiencies": {
+    "armor": "Armaduras leves, armaduras médias, armaduras pesadas, escudos",
+    "weapons": "Armas simples, armas marciais",
+    "tools": "Kit de jogo: conjunto de dados, Veículos (terrestres)",
+    "languages": "Comum, Élfico"
+  },
+  "proficienciesAndLanguages": [
+    "Armaduras leves",
+    "armaduras médias",
+    "armaduras pesadas",
+    "escudos",
+    "Armas simples",
+    "armas marciais",
+    "Kit de jogo: conjunto de dados",
+    "Veículos (terrestres)",
+    "Comum",
+    "Élfico"
+  ],
+  "featuresAndTraits": [
+    {
+      "name": "Humano traço",
+      "description": "Texto de exemplo, inventado para os testes. (Humano traço)"
+    },
+    {
+      "name": "Guerreiro 1",
+      "description": "Texto de exemplo, inventado para os testes. (Guerreiro 1)"
+    },
+    {
+      "name": "Guerreiro 2",
+      "description": "Texto de exemplo, inventado para os testes. (Guerreiro 2)"
+    },
+    {
+      "name": "campeao 3",
+      "description": "Texto de exemplo, inventado para os testes. (campeao 3)"
+    },
+    {
+      "name": "Soldado característica",
+      "description": "Texto de exemplo, inventado para os testes. (Soldado característica)"
+    },
+    {
+      "name": "Estilo de Luta: Defesa",
+      "description": ""
+    }
+  ],
+  "origin": {
+    "race": {
+      "bookId": "book-test",
+      "slug": "humano"
+    },
+    "class": {
+      "bookId": "book-test",
+      "slug": "guerreiro"
+    },
+    "subclass": {
+      "bookId": "book-test",
+      "slug": "campeao"
+    },
+    "background": {
+      "bookId": "book-test",
+      "slug": "soldado"
+    }
+  }
+}

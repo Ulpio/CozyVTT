@@ -1,0 +1,495 @@
+{
+  "characterName": "Teste mago",
+  "class": "Mago",
+  "level": 3,
+  "race": "Alto Elfo",
+  "background": "Sábio",
+  "experiencePoints": 900,
+  "proficiencyBonus": 2,
+  "stats": {
+    "strength": {
+      "score": 8,
+      "modifier": -1
+    },
+    "dexterity": {
+      "score": 16,
+      "modifier": 3
+    },
+    "constitution": {
+      "score": 13,
+      "modifier": 1
+    },
+    "intelligence": {
+      "score": 16,
+      "modifier": 3
+    },
+    "wisdom": {
+      "score": 12,
+      "modifier": 1
+    },
+    "charisma": {
+      "score": 10,
+      "modifier": 0
+    }
+  },
+  "savingThrows": {
+    "strength": {
+      "proficient": false,
+      "bonus": -1
+    },
+    "dexterity": {
+      "proficient": false,
+      "bonus": 3
+    },
+    "constitution": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "intelligence": {
+      "proficient": true,
+      "bonus": 5
+    },
+    "wisdom": {
+      "proficient": true,
+      "bonus": 3
+    },
+    "charisma": {
+      "proficient": false,
+      "bonus": 0
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "animalHandling": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "arcana": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "athletics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "deception": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "history": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "insight": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "intimidation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "investigation": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "medicine": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "nature": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "perception": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "performance": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "persuasion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "religion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "sleightOfHand": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "stealth": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "survival": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    }
+  },
+  "passivePerception": 13,
+  "armorClass": 13,
+  "initiative": 3,
+  "initiativeBonus": 0,
+  "speed": 30,
+  "hp": {
+    "maximum": 17,
+    "current": 17,
+    "temporary": 0
+  },
+  "hitDice": [
+    {
+      "class": "Mago",
+      "die": "d6",
+      "maximum": 3,
+      "remaining": 3
+    }
+  ],
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "attacks": [
+    {
+      "name": "Bordao",
+      "attackBonus": 1,
+      "damageRoll": "1d6-1",
+      "damageType": "concussão",
+      "properties": [
+        "versátil"
+      ],
+      "additionalDamage": [
+        {
+          "label": "Duas mãos",
+          "damageRoll": "1d8-1",
+          "damageType": "concussão"
+        }
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "bordao"
+      }
+    },
+    {
+      "name": "S raio-de-fogo",
+      "attackBonus": 5,
+      "damageRoll": "1d10",
+      "damageType": "fogo",
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "raio-de-fogo"
+      }
+    }
+  ],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "inventory": [
+    {
+      "name": "Bordao",
+      "quantity": 1,
+      "weight": 4,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "bordao"
+      }
+    },
+    {
+      "name": "P estudioso",
+      "quantity": 1,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "pacote-de-estudioso"
+      }
+    }
+  ],
+  "proficiencies": {
+    "armor": "",
+    "weapons": "Adaga, Dardo, funda, Bordao, Besta leve, Espada longa, Arco longo",
+    "tools": "",
+    "languages": "Comum, Élfico, Dracônico, Anão, Orc"
+  },
+  "proficienciesAndLanguages": [
+    "Adaga",
+    "Dardo",
+    "funda",
+    "Bordao",
+    "Besta leve",
+    "Espada longa",
+    "Arco longo",
+    "Comum",
+    "Élfico",
+    "Dracônico",
+    "Anão",
+    "Orc"
+  ],
+  "featuresAndTraits": [
+    {
+      "name": "Elfo traço",
+      "description": "Texto de exemplo, inventado para os testes. (Elfo traço)"
+    },
+    {
+      "name": "Alto Elfo traço",
+      "description": "Texto de exemplo, inventado para os testes. (Alto Elfo traço)"
+    },
+    {
+      "name": "Mago 1",
+      "description": "Texto de exemplo, inventado para os testes. (Mago 1)"
+    },
+    {
+      "name": "Mago 2",
+      "description": "Texto de exemplo, inventado para os testes. (Mago 2)"
+    },
+    {
+      "name": "escola-de-evocacao 3",
+      "description": "Texto de exemplo, inventado para os testes. (escola-de-evocacao 3)"
+    },
+    {
+      "name": "Sábio característica",
+      "description": "Texto de exemplo, inventado para os testes. (Sábio característica)"
+    }
+  ],
+  "spellcasting": {
+    "class": "Mago",
+    "ability": "intelligence",
+    "spellSaveDC": 13,
+    "spellAttackBonus": 5,
+    "cantrips": [
+      "S raio-de-fogo",
+      "S luz",
+      "S maos-magicas",
+      "S prestidigitacao"
+    ],
+    "cantripRefs": [
+      {
+        "name": "S raio-de-fogo",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "raio-de-fogo"
+        }
+      },
+      {
+        "name": "S luz",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "luz"
+        }
+      },
+      {
+        "name": "S maos-magicas",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "maos-magicas"
+        }
+      },
+      {
+        "name": "S prestidigitacao",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "prestidigitacao"
+        }
+      }
+    ],
+    "slots": {
+      "1": {
+        "total": 4,
+        "expended": 0
+      },
+      "2": {
+        "total": 2,
+        "expended": 0
+      },
+      "3": {
+        "total": 0,
+        "expended": 0
+      },
+      "4": {
+        "total": 0,
+        "expended": 0
+      },
+      "5": {
+        "total": 0,
+        "expended": 0
+      },
+      "6": {
+        "total": 0,
+        "expended": 0
+      },
+      "7": {
+        "total": 0,
+        "expended": 0
+      },
+      "8": {
+        "total": 0,
+        "expended": 0
+      },
+      "9": {
+        "total": 0,
+        "expended": 0
+      }
+    },
+    "spells": [
+      {
+        "level": 1,
+        "name": "S magia-1-01",
+        "prepared": true,
+        "ritual": true,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-01"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-02",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-02"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-03",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-03"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-04",
+        "prepared": true,
+        "ritual": false,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-04"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-05",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-05"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-06",
+        "prepared": true,
+        "ritual": true,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-06"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-07",
+        "prepared": false,
+        "ritual": false,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-07"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-08",
+        "prepared": false,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-08"
+        }
+      },
+      {
+        "level": 2,
+        "name": "S magia-2-01",
+        "prepared": false,
+        "ritual": false,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-2-01"
+        }
+      },
+      {
+        "level": 2,
+        "name": "S magia-2-02",
+        "prepared": false,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-2-02"
+        }
+      }
+    ]
+  },
+  "origin": {
+    "race": {
+      "bookId": "book-test",
+      "slug": "elfo"
+    },
+    "subrace": {
+      "bookId": "book-test",
+      "slug": "alto-elfo"
+    },
+    "class": {
+      "bookId": "book-test",
+      "slug": "mago"
+    },
+    "subclass": {
+      "bookId": "book-test",
+      "slug": "escola-de-evocacao"
+    },
+    "background": {
+      "bookId": "book-test",
+      "slug": "sabio"
+    }
+  }
+}

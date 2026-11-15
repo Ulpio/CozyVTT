@@ -22,6 +22,10 @@ export interface SpellcastingAt3 {
   maxLevel: number;
   /** Slots by spell level 1..9 (the warlock's pact slots included). */
   slots: number[];
+  /**
+   * The warlock's Pact Magic, descriptive only: those slots are already counted
+   * in `slots`, so never add them again.
+   */
   pact?: { slots: 2; level: 2 };
   /** Leveled known spells must be of these schools, except `freeSchoolPicks` of them. */
   schools?: string[];

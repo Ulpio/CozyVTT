@@ -1,0 +1,314 @@
+{
+  "characterName": "Teste monge",
+  "class": "Monge",
+  "level": 3,
+  "race": "Humano Variante",
+  "background": "Soldado",
+  "experiencePoints": 900,
+  "proficiencyBonus": 2,
+  "stats": {
+    "strength": {
+      "score": 12,
+      "modifier": 1
+    },
+    "dexterity": {
+      "score": 16,
+      "modifier": 3
+    },
+    "constitution": {
+      "score": 13,
+      "modifier": 1
+    },
+    "intelligence": {
+      "score": 10,
+      "modifier": 0
+    },
+    "wisdom": {
+      "score": 15,
+      "modifier": 2
+    },
+    "charisma": {
+      "score": 8,
+      "modifier": -1
+    }
+  },
+  "savingThrows": {
+    "strength": {
+      "proficient": true,
+      "bonus": 3
+    },
+    "dexterity": {
+      "proficient": true,
+      "bonus": 5
+    },
+    "constitution": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "intelligence": {
+      "proficient": false,
+      "bonus": 0
+    },
+    "wisdom": {
+      "proficient": false,
+      "bonus": 2
+    },
+    "charisma": {
+      "proficient": false,
+      "bonus": -1
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "animalHandling": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "arcana": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "athletics": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "deception": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "history": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "insight": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "intimidation": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 1
+    },
+    "investigation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "medicine": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "nature": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "perception": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 4
+    },
+    "performance": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "persuasion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "religion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "sleightOfHand": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "stealth": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "survival": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    }
+  },
+  "passivePerception": 14,
+  "armorClass": 15,
+  "initiative": 3,
+  "initiativeBonus": 0,
+  "speed": 50,
+  "hp": {
+    "maximum": 21,
+    "current": 21,
+    "temporary": 0
+  },
+  "hitDice": [
+    {
+      "class": "Monge",
+      "die": "d8",
+      "maximum": 3,
+      "remaining": 3
+    }
+  ],
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "attacks": [
+    {
+      "name": "Espada curta",
+      "attackBonus": 5,
+      "damageRoll": "1d6+3",
+      "damageType": "perfurante",
+      "properties": [
+        "acuidade",
+        "leve"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "espada-curta"
+      }
+    },
+    {
+      "name": "Dardo",
+      "attackBonus": 5,
+      "damageRoll": "1d4+3",
+      "damageType": "perfurante",
+      "range": 20,
+      "properties": [
+        "acuidade",
+        "arremesso"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "dardo"
+      }
+    },
+    {
+      "name": "Ataque Desarmado",
+      "attackBonus": 5,
+      "damageRoll": "1d4+3",
+      "damageType": "concussão"
+    }
+  ],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "inventory": [
+    {
+      "name": "Espada curta",
+      "quantity": 1,
+      "weight": 2,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "espada-curta"
+      }
+    },
+    {
+      "name": "Dardo",
+      "quantity": 10,
+      "weight": 0.25,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "dardo"
+      }
+    }
+  ],
+  "proficiencies": {
+    "armor": "",
+    "weapons": "Armas simples, Espada curta",
+    "tools": "Kit de jogo: conjunto de dados, Um tipo de ferramenta à escolha, Veículos (terrestres)",
+    "languages": "Comum, Élfico"
+  },
+  "proficienciesAndLanguages": [
+    "Armas simples",
+    "Espada curta",
+    "Kit de jogo: conjunto de dados",
+    "Um tipo de ferramenta à escolha",
+    "Veículos (terrestres)",
+    "Comum",
+    "Élfico"
+  ],
+  "featuresAndTraits": [
+    {
+      "name": "Humano traço",
+      "description": "Texto de exemplo, inventado para os testes. (Humano traço)"
+    },
+    {
+      "name": "Humano Variante traço",
+      "description": "Texto de exemplo, inventado para os testes. (Humano Variante traço)"
+    },
+    {
+      "name": "Monge 1",
+      "description": "Texto de exemplo, inventado para os testes. (Monge 1)"
+    },
+    {
+      "name": "Monge 2",
+      "description": "Texto de exemplo, inventado para os testes. (Monge 2)"
+    },
+    {
+      "name": "caminho-dos-quatro-elementos 3",
+      "description": "Texto de exemplo, inventado para os testes. (caminho-dos-quatro-elementos 3)"
+    },
+    {
+      "name": "Soldado característica",
+      "description": "Texto de exemplo, inventado para os testes. (Soldado característica)"
+    },
+    {
+      "name": "Mobilidade",
+      "description": "Texto de exemplo, inventado para os testes."
+    },
+    {
+      "name": "Disciplina Elemental: Punho do Ar Contínuo",
+      "description": ""
+    }
+  ],
+  "origin": {
+    "race": {
+      "bookId": "book-test",
+      "slug": "humano"
+    },
+    "subrace": {
+      "bookId": "book-test",
+      "slug": "humano-variante"
+    },
+    "class": {
+      "bookId": "book-test",
+      "slug": "monge"
+    },
+    "subclass": {
+      "bookId": "book-test",
+      "slug": "caminho-dos-quatro-elementos"
+    },
+    "background": {
+      "bookId": "book-test",
+      "slug": "soldado"
+    }
+  }
+}

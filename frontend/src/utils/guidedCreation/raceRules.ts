@@ -59,3 +59,6 @@ export function abilityIncreaseEffects(
 export function raceEffects(raceSlug: string, subraceSlug?: string): Effect[] {
   return [...(RACE_EFFECTS[raceSlug] ?? []), ...(subraceSlug ? (RACE_EFFECTS[subraceSlug] ?? []) : [])];
 }
+
+/** Subraces whose own ability choices replace the race's increases (the variant human). */
+export const REPLACES_RACE_INCREASES: readonly string[] = ['humano-variante'];

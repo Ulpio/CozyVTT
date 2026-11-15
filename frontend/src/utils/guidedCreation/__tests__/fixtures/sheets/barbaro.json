@@ -1,0 +1,305 @@
+{
+  "characterName": "Teste barbaro",
+  "class": "Bárbaro",
+  "level": 3,
+  "race": "Meio-Orc",
+  "background": "Forasteiro",
+  "experiencePoints": 900,
+  "proficiencyBonus": 2,
+  "stats": {
+    "strength": {
+      "score": 17,
+      "modifier": 3
+    },
+    "dexterity": {
+      "score": 13,
+      "modifier": 1
+    },
+    "constitution": {
+      "score": 15,
+      "modifier": 2
+    },
+    "intelligence": {
+      "score": 8,
+      "modifier": -1
+    },
+    "wisdom": {
+      "score": 12,
+      "modifier": 1
+    },
+    "charisma": {
+      "score": 10,
+      "modifier": 0
+    }
+  },
+  "savingThrows": {
+    "strength": {
+      "proficient": true,
+      "bonus": 5
+    },
+    "dexterity": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "constitution": {
+      "proficient": true,
+      "bonus": 4
+    },
+    "intelligence": {
+      "proficient": false,
+      "bonus": -1
+    },
+    "wisdom": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "charisma": {
+      "proficient": false,
+      "bonus": 0
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "animalHandling": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "arcana": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "athletics": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "deception": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "history": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "insight": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "intimidation": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 2
+    },
+    "investigation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "medicine": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "nature": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 1
+    },
+    "perception": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "performance": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "persuasion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "religion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "sleightOfHand": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "stealth": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "survival": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    }
+  },
+  "passivePerception": 13,
+  "armorClass": 13,
+  "initiative": 1,
+  "initiativeBonus": 0,
+  "speed": 30,
+  "hp": {
+    "maximum": 32,
+    "current": 32,
+    "temporary": 0
+  },
+  "hitDice": [
+    {
+      "class": "Bárbaro",
+      "die": "d12",
+      "maximum": 3,
+      "remaining": 3
+    }
+  ],
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "attacks": [
+    {
+      "name": "Machado grande",
+      "attackBonus": 5,
+      "damageRoll": "1d12+3",
+      "damageType": "cortante",
+      "properties": [
+        "pesada",
+        "duas mãos"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "machado-grande"
+      }
+    },
+    {
+      "name": "Azagaia",
+      "attackBonus": 5,
+      "damageRoll": "1d6+3",
+      "damageType": "perfurante",
+      "range": 30,
+      "properties": [
+        "arremesso"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "azagaia"
+      }
+    }
+  ],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "inventory": [
+    {
+      "name": "Machado grande",
+      "quantity": 1,
+      "weight": 7,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "machado-grande"
+      }
+    },
+    {
+      "name": "Azagaia",
+      "quantity": 4,
+      "weight": 2,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "azagaia"
+      }
+    },
+    {
+      "name": "P aventureiro",
+      "quantity": 1,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "pacote-de-aventureiro"
+      }
+    }
+  ],
+  "proficiencies": {
+    "armor": "Armaduras leves, armaduras médias, escudos",
+    "weapons": "Armas simples, armas marciais",
+    "tools": "Flauta",
+    "languages": "Comum, Orc, Gigante"
+  },
+  "proficienciesAndLanguages": [
+    "Armaduras leves",
+    "armaduras médias",
+    "escudos",
+    "Armas simples",
+    "armas marciais",
+    "Flauta",
+    "Comum",
+    "Orc",
+    "Gigante"
+  ],
+  "featuresAndTraits": [
+    {
+      "name": "Meio-Orc traço",
+      "description": "Texto de exemplo, inventado para os testes. (Meio-Orc traço)"
+    },
+    {
+      "name": "Bárbaro 1",
+      "description": "Texto de exemplo, inventado para os testes. (Bárbaro 1)"
+    },
+    {
+      "name": "Bárbaro 2",
+      "description": "Texto de exemplo, inventado para os testes. (Bárbaro 2)"
+    },
+    {
+      "name": "caminho-do-guerreiro-totemico 3",
+      "description": "Texto de exemplo, inventado para os testes. (caminho-do-guerreiro-totemico 3)"
+    },
+    {
+      "name": "Forasteiro característica",
+      "description": "Texto de exemplo, inventado para os testes. (Forasteiro característica)"
+    },
+    {
+      "name": "Espírito Totêmico: Urso",
+      "description": ""
+    }
+  ],
+  "origin": {
+    "race": {
+      "bookId": "book-test",
+      "slug": "meio-orc"
+    },
+    "class": {
+      "bookId": "book-test",
+      "slug": "barbaro"
+    },
+    "subclass": {
+      "bookId": "book-test",
+      "slug": "caminho-do-guerreiro-totemico"
+    },
+    "background": {
+      "bookId": "book-test",
+      "slug": "forasteiro"
+    }
+  }
+}

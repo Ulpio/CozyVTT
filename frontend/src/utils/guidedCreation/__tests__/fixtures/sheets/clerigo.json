@@ -1,0 +1,493 @@
+{
+  "characterName": "Teste clerigo",
+  "class": "Clérigo",
+  "level": 3,
+  "race": "Anão da Colina",
+  "background": "Acólito",
+  "experiencePoints": 900,
+  "proficiencyBonus": 2,
+  "stats": {
+    "strength": {
+      "score": 13,
+      "modifier": 1
+    },
+    "dexterity": {
+      "score": 10,
+      "modifier": 0
+    },
+    "constitution": {
+      "score": 16,
+      "modifier": 3
+    },
+    "intelligence": {
+      "score": 8,
+      "modifier": -1
+    },
+    "wisdom": {
+      "score": 16,
+      "modifier": 3
+    },
+    "charisma": {
+      "score": 12,
+      "modifier": 1
+    }
+  },
+  "savingThrows": {
+    "strength": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "dexterity": {
+      "proficient": false,
+      "bonus": 0
+    },
+    "constitution": {
+      "proficient": false,
+      "bonus": 3
+    },
+    "intelligence": {
+      "proficient": false,
+      "bonus": -1
+    },
+    "wisdom": {
+      "proficient": true,
+      "bonus": 5
+    },
+    "charisma": {
+      "proficient": true,
+      "bonus": 3
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "animalHandling": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "arcana": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "athletics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "deception": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "history": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 1
+    },
+    "insight": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "intimidation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "investigation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "medicine": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "nature": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "perception": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "performance": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "persuasion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "religion": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 1
+    },
+    "sleightOfHand": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "stealth": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "survival": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    }
+  },
+  "passivePerception": 13,
+  "armorClass": 18,
+  "initiative": 0,
+  "initiativeBonus": 0,
+  "speed": 25,
+  "hp": {
+    "maximum": 30,
+    "current": 30,
+    "temporary": 0
+  },
+  "hitDice": [
+    {
+      "class": "Clérigo",
+      "die": "d8",
+      "maximum": 3,
+      "remaining": 3
+    }
+  ],
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "attacks": [
+    {
+      "name": "Maca",
+      "attackBonus": 3,
+      "damageRoll": "1d6+1",
+      "damageType": "concussão",
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "maca"
+      }
+    }
+  ],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "inventory": [
+    {
+      "name": "A cota-de-malha",
+      "quantity": 1,
+      "weight": 55,
+      "equippable": true,
+      "equipped": true,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "cota-de-malha"
+      }
+    },
+    {
+      "name": "Maca",
+      "quantity": 1,
+      "weight": 4,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "maca"
+      }
+    },
+    {
+      "name": "A escudo",
+      "quantity": 1,
+      "weight": 6,
+      "equippable": true,
+      "equipped": true,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "escudo"
+      }
+    },
+    {
+      "name": "G simbolo",
+      "quantity": 1,
+      "weight": 1,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "simbolo-sagrado"
+      }
+    }
+  ],
+  "proficiencies": {
+    "armor": "Armaduras leves, armaduras médias, armaduras pesadas, escudos",
+    "weapons": "Armas simples, Machado grande",
+    "tools": "Uma ferramenta à escolha entre algumas",
+    "languages": "Comum, Anão, Élfico, Gigante"
+  },
+  "proficienciesAndLanguages": [
+    "Armaduras leves",
+    "armaduras médias",
+    "armaduras pesadas",
+    "escudos",
+    "Armas simples",
+    "Machado grande",
+    "Uma ferramenta à escolha entre algumas",
+    "Comum",
+    "Anão",
+    "Élfico",
+    "Gigante"
+  ],
+  "featuresAndTraits": [
+    {
+      "name": "Anão traço",
+      "description": "Texto de exemplo, inventado para os testes. (Anão traço)"
+    },
+    {
+      "name": "Anão da Colina traço",
+      "description": "Texto de exemplo, inventado para os testes. (Anão da Colina traço)"
+    },
+    {
+      "name": "Clérigo 1",
+      "description": "Texto de exemplo, inventado para os testes. (Clérigo 1)"
+    },
+    {
+      "name": "Clérigo 2",
+      "description": "Texto de exemplo, inventado para os testes. (Clérigo 2)"
+    },
+    {
+      "name": "dominio-da-vida 3",
+      "description": "Texto de exemplo, inventado para os testes. (dominio-da-vida 3)"
+    },
+    {
+      "name": "Magias de Domínio",
+      "description": "Texto de exemplo, inventado para os testes. (Magias de Domínio)"
+    },
+    {
+      "name": "Acólito característica",
+      "description": "Texto de exemplo, inventado para os testes. (Acólito característica)"
+    }
+  ],
+  "spellcasting": {
+    "class": "Clérigo",
+    "ability": "wisdom",
+    "spellSaveDC": 13,
+    "spellAttackBonus": 5,
+    "cantrips": [
+      "S luz",
+      "S chama-sagrada",
+      "S orientacao"
+    ],
+    "cantripRefs": [
+      {
+        "name": "S luz",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "luz"
+        }
+      },
+      {
+        "name": "S chama-sagrada",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "chama-sagrada"
+        }
+      },
+      {
+        "name": "S orientacao",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "orientacao"
+        }
+      }
+    ],
+    "slots": {
+      "1": {
+        "total": 4,
+        "expended": 0
+      },
+      "2": {
+        "total": 2,
+        "expended": 0
+      },
+      "3": {
+        "total": 0,
+        "expended": 0
+      },
+      "4": {
+        "total": 0,
+        "expended": 0
+      },
+      "5": {
+        "total": 0,
+        "expended": 0
+      },
+      "6": {
+        "total": 0,
+        "expended": 0
+      },
+      "7": {
+        "total": 0,
+        "expended": 0
+      },
+      "8": {
+        "total": 0,
+        "expended": 0
+      },
+      "9": {
+        "total": 0,
+        "expended": 0
+      }
+    },
+    "spells": [
+      {
+        "level": 1,
+        "name": "S magia-1-01",
+        "prepared": true,
+        "ritual": true,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-01"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-02",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-02"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-03",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-03"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-04",
+        "prepared": true,
+        "ritual": false,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-04"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-05",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-05"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-06",
+        "prepared": true,
+        "ritual": true,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-06"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-11",
+        "prepared": true,
+        "ritual": true,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-11"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-12",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-12"
+        }
+      },
+      {
+        "level": 2,
+        "name": "S magia-2-01",
+        "prepared": true,
+        "ritual": false,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-2-01"
+        }
+      },
+      {
+        "level": 2,
+        "name": "S magia-2-02",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-2-02"
+        }
+      }
+    ]
+  },
+  "origin": {
+    "race": {
+      "bookId": "book-test",
+      "slug": "anao"
+    },
+    "subrace": {
+      "bookId": "book-test",
+      "slug": "anao-da-colina"
+    },
+    "class": {
+      "bookId": "book-test",
+      "slug": "clerigo"
+    },
+    "subclass": {
+      "bookId": "book-test",
+      "slug": "dominio-da-vida"
+    },
+    "background": {
+      "bookId": "book-test",
+      "slug": "acolito"
+    }
+  }
+}

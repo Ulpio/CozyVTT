@@ -84,7 +84,8 @@ const FINESSE = 'acuidade';
 const TWO_HANDED = 'duas mãos';
 const HEAVY = 'pesada';
 
-const normalize = (s: string) =>
+/** Lowercase without accents, for matching a prose line to an entry name. */
+export const normalizeName = (s: string) =>
   s
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
@@ -108,8 +109,8 @@ export function proficienciesFor(
     if (e.type === 'armorProficiency') armor.add(e.armor);
     if (e.type === 'weaponProficiency') weaponSet.add(e.weapon);
   }
-  const lines = new Set(raceLines.map(normalize));
-  for (const w of weapons) if (lines.has(normalize(w.name))) weaponSet.add(w.slug);
+  const lines = new Set(raceLines.map(normalizeName));
+  for (const w of weapons) if (lines.has(normalizeName(w.name))) weaponSet.add(w.slug);
   const kinds: ArmorKind[] = ['light', 'medium', 'heavy', 'shield'];
   return { armor: kinds.filter((k) => armor.has(k)), weapons: [...weaponSet] };
 }
@@ -130,8 +131,23 @@ export function anyOfKey(choice: number, item: number, unit: number): string {
   return `${choice}.${item}.${unit}`;
 }
 
-/** The compendium items an anyOf line can be filled with. */
-export function anyOfOptions(anyOf: EquipmentAnyOf, items: EquipmentItems): RulesEntry<unknown>[] {
+/**
+ * The compendium items an anyOf line can be filled with. With `proficiencies`,
+ * weapons the character is not proficient with are left out, unless none would
+ * remain.
+ */
+export function anyOfOptions(
+  anyOf: EquipmentAnyOf,
+  items: EquipmentItems,
+  proficiencies?: Proficiencies,
+): RulesEntry<unknown>[] {
+  const all = anyOfKind(anyOf, items);
+  if (!proficiencies || !anyOf.endsWith('Weapon')) return all;
+  const usable = (all as RulesEntry<WeaponData>[]).filter((w) => isProficient(w, proficiencies.weapons));
+  return usable.length ? usable : all;
+}
+
+function anyOfKind(anyOf: EquipmentAnyOf, items: EquipmentItems): RulesEntry<unknown>[] {
   const weapons = items.weapons ?? [];
   switch (anyOf) {
     case 'simpleWeapon':
@@ -193,9 +209,11 @@ const weightOf = (entry: RulesEntry<unknown> | undefined): number | undefined =>
 
 /**
  * The starting equipment the picks give: `picks[i]` is the option index of
- * choice i (`equipmentChoicesOf` order; a single option needs no pick), and each
- * anyOf unit is filled from `anyOfPicks[anyOfKey(...)]` when the pick is of the
- * right kind. Repeated items are merged. `armor` is the body armor, `shield`
+ * choice i (`equipmentChoicesOf` order; a single option needs no pick). Only
+ * options `offeredOptions` gives count: a pick it does not offer falls back to
+ * the first one it does. Each anyOf unit is filled from
+ * `anyOfPicks[anyOfKey(...)]` when the pick is among `anyOfOptions` for these
+ * proficiencies. Repeated items are merged. `armor` is the body armor, `shield`
  * whether a shield came with it.
  */
 export function resolveEquipment(
@@ -204,7 +222,9 @@ export function resolveEquipment(
   picks: number[],
   anyOfPicks: Record<string, string>,
   items: EquipmentItems,
+  proficiencies: Proficiencies,
 ): { inventory: InventoryItem[]; armor?: RulesEntry<ArmorData>; shield: boolean; weapons: WeaponEntry[]; gp: number } {
+  const offered = offeredOptions(classData, backgroundData, proficiencies, items);
   const inventory: InventoryItem[] = [];
   let gp = 0;
   const add = (type: EquipmentItemType, slug: string, quantity: number) => {
@@ -219,7 +239,8 @@ export function resolveEquipment(
   };
 
   equipmentChoicesOf(classData, backgroundData).forEach((choice, c) => {
-    const index = choice.options.length === 1 ? (picks[c] ?? 0) : picks[c];
+    const pick = choice.options.length === 1 ? (picks[c] ?? 0) : picks[c];
+    const index = pick === undefined || offered[c].includes(pick) ? pick : offered[c][0];
     const bundle = index !== undefined ? choice.options[index] : undefined;
     if (!bundle) return;
     gp += bundle.gp ?? 0;
@@ -229,7 +250,7 @@ export function resolveEquipment(
         return;
       }
       if (!item.anyOf) return;
-      const options = anyOfOptions(item.anyOf, items);
+      const options = anyOfOptions(item.anyOf, items, proficiencies);
       const type: EquipmentItemType = item.anyOf.endsWith('Weapon') ? 'weapon' : 'tool';
       for (let unit = 0; unit < item.quantity; unit++) {
         const slug = anyOfPicks[anyOfKey(c, i, unit)];
@@ -271,8 +292,9 @@ const isMonkWeapon = (w: { slug: string; data: WeaponData }) =>
     !w.data.properties.includes(HEAVY));
 
 /**
- * One attack per weapon: ranged weapons use DEX, finesse the better of STR and
- * DEX, others STR (Martial Arts may let monk weapons use DEX); the proficiency
+ * One attack per weapon: finesse weapons (darts too) use the better of STR and
+ * DEX, other ranged weapons DEX, others STR (Martial Arts may let monk weapons
+ * use DEX); the proficiency
  * bonus only when proficient; Archery to hit with ranged weapons and Dueling to
  * one-handed melee damage. Plus an unarmed strike when an effect changes it.
  */
@@ -291,7 +313,7 @@ export function attacksFor(
   for (const w of weapons) {
     const { data } = w;
     const ranged = data.range === 'ranged';
-    const keys: AbilityKey[] = ranged ? ['dex'] : data.properties.includes(FINESSE) ? ['str', 'dex'] : ['str'];
+    const keys: AbilityKey[] = data.properties.includes(FINESSE) ? ['str', 'dex'] : ranged ? ['dex'] : ['str'];
     if (!ranged && isMonkWeapon(w)) {
       for (const e of of('monkWeapon')) if (e.ability) keys.push(e.ability);
     }

@@ -1,0 +1,440 @@
+{
+  "characterName": "Teste feiticeiro",
+  "class": "Feiticeiro",
+  "level": 3,
+  "race": "Draconato",
+  "background": "Sábio",
+  "experiencePoints": 900,
+  "proficiencyBonus": 2,
+  "stats": {
+    "strength": {
+      "score": 10,
+      "modifier": 0
+    },
+    "dexterity": {
+      "score": 13,
+      "modifier": 1
+    },
+    "constitution": {
+      "score": 14,
+      "modifier": 2
+    },
+    "intelligence": {
+      "score": 12,
+      "modifier": 1
+    },
+    "wisdom": {
+      "score": 10,
+      "modifier": 0
+    },
+    "charisma": {
+      "score": 16,
+      "modifier": 3
+    }
+  },
+  "savingThrows": {
+    "strength": {
+      "proficient": false,
+      "bonus": 0
+    },
+    "dexterity": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "constitution": {
+      "proficient": true,
+      "bonus": 4
+    },
+    "intelligence": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "wisdom": {
+      "proficient": false,
+      "bonus": 0
+    },
+    "charisma": {
+      "proficient": true,
+      "bonus": 5
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "animalHandling": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "arcana": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "athletics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "deception": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "history": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "insight": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "intimidation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "investigation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "medicine": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "nature": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "perception": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "performance": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "persuasion": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "religion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "sleightOfHand": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "stealth": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "survival": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    }
+  },
+  "passivePerception": 10,
+  "armorClass": 14,
+  "initiative": 1,
+  "initiativeBonus": 0,
+  "speed": 30,
+  "hp": {
+    "maximum": 23,
+    "current": 23,
+    "temporary": 0
+  },
+  "hitDice": [
+    {
+      "class": "Feiticeiro",
+      "die": "d6",
+      "maximum": 3,
+      "remaining": 3
+    }
+  ],
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "attacks": [
+    {
+      "name": "Adaga",
+      "attackBonus": 3,
+      "damageRoll": "1d4+1",
+      "damageType": "perfurante",
+      "range": 20,
+      "properties": [
+        "acuidade",
+        "leve",
+        "arremesso"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "adaga"
+      }
+    },
+    {
+      "name": "Dardo",
+      "attackBonus": 3,
+      "damageRoll": "1d4+1",
+      "damageType": "perfurante",
+      "range": 20,
+      "properties": [
+        "acuidade",
+        "arremesso"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "dardo"
+      }
+    },
+    {
+      "name": "S raio-de-fogo",
+      "attackBonus": 5,
+      "damageRoll": "1d10",
+      "damageType": "fogo",
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "raio-de-fogo"
+      }
+    }
+  ],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "inventory": [
+    {
+      "name": "Adaga",
+      "quantity": 2,
+      "weight": 1,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "adaga"
+      }
+    },
+    {
+      "name": "Dardo",
+      "quantity": 10,
+      "weight": 0.25,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "dardo"
+      }
+    }
+  ],
+  "proficiencies": {
+    "armor": "",
+    "weapons": "Adaga, Dardo, funda, Bordao, Besta leve",
+    "tools": "",
+    "languages": "Comum, Dracônico, Anão, Gigante"
+  },
+  "proficienciesAndLanguages": [
+    "Adaga",
+    "Dardo",
+    "funda",
+    "Bordao",
+    "Besta leve",
+    "Comum",
+    "Dracônico",
+    "Anão",
+    "Gigante"
+  ],
+  "featuresAndTraits": [
+    {
+      "name": "Draconato traço",
+      "description": "Texto de exemplo, inventado para os testes. (Draconato traço)"
+    },
+    {
+      "name": "Feiticeiro 1",
+      "description": "Texto de exemplo, inventado para os testes. (Feiticeiro 1)"
+    },
+    {
+      "name": "Feiticeiro 2",
+      "description": "Texto de exemplo, inventado para os testes. (Feiticeiro 2)"
+    },
+    {
+      "name": "linhagem-draconica 3",
+      "description": "Texto de exemplo, inventado para os testes. (linhagem-draconica 3)"
+    },
+    {
+      "name": "Sábio característica",
+      "description": "Texto de exemplo, inventado para os testes. (Sábio característica)"
+    },
+    {
+      "name": "Ancestral Dracônico: Vermelho",
+      "description": ""
+    },
+    {
+      "name": "Ancestral Dracônico: Vermelho",
+      "description": ""
+    }
+  ],
+  "spellcasting": {
+    "class": "Feiticeiro",
+    "ability": "charisma",
+    "spellSaveDC": 13,
+    "spellAttackBonus": 5,
+    "cantrips": [
+      "S raio-de-fogo",
+      "S luz",
+      "S maos-magicas",
+      "S mensagem"
+    ],
+    "cantripRefs": [
+      {
+        "name": "S raio-de-fogo",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "raio-de-fogo"
+        }
+      },
+      {
+        "name": "S luz",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "luz"
+        }
+      },
+      {
+        "name": "S maos-magicas",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "maos-magicas"
+        }
+      },
+      {
+        "name": "S mensagem",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "mensagem"
+        }
+      }
+    ],
+    "slots": {
+      "1": {
+        "total": 4,
+        "expended": 0
+      },
+      "2": {
+        "total": 2,
+        "expended": 0
+      },
+      "3": {
+        "total": 0,
+        "expended": 0
+      },
+      "4": {
+        "total": 0,
+        "expended": 0
+      },
+      "5": {
+        "total": 0,
+        "expended": 0
+      },
+      "6": {
+        "total": 0,
+        "expended": 0
+      },
+      "7": {
+        "total": 0,
+        "expended": 0
+      },
+      "8": {
+        "total": 0,
+        "expended": 0
+      },
+      "9": {
+        "total": 0,
+        "expended": 0
+      }
+    },
+    "spells": [
+      {
+        "level": 1,
+        "name": "S magia-1-01",
+        "prepared": true,
+        "ritual": true,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-01"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-02",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-02"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-03",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-03"
+        }
+      },
+      {
+        "level": 2,
+        "name": "S magia-2-02",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-2-02"
+        }
+      }
+    ]
+  },
+  "origin": {
+    "race": {
+      "bookId": "book-test",
+      "slug": "draconato"
+    },
+    "class": {
+      "bookId": "book-test",
+      "slug": "feiticeiro"
+    },
+    "subclass": {
+      "bookId": "book-test",
+      "slug": "linhagem-draconica"
+    },
+    "background": {
+      "bookId": "book-test",
+      "slug": "sabio"
+    }
+  }
+}

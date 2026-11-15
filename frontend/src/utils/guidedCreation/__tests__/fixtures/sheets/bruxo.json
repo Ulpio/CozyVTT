@@ -1,0 +1,482 @@
+{
+  "characterName": "Teste bruxo",
+  "class": "Bruxo",
+  "level": 3,
+  "race": "Tiefling",
+  "background": "Criminoso",
+  "experiencePoints": 900,
+  "proficiencyBonus": 2,
+  "stats": {
+    "strength": {
+      "score": 8,
+      "modifier": -1
+    },
+    "dexterity": {
+      "score": 13,
+      "modifier": 1
+    },
+    "constitution": {
+      "score": 14,
+      "modifier": 2
+    },
+    "intelligence": {
+      "score": 11,
+      "modifier": 0
+    },
+    "wisdom": {
+      "score": 12,
+      "modifier": 1
+    },
+    "charisma": {
+      "score": 17,
+      "modifier": 3
+    }
+  },
+  "savingThrows": {
+    "strength": {
+      "proficient": false,
+      "bonus": -1
+    },
+    "dexterity": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "constitution": {
+      "proficient": false,
+      "bonus": 2
+    },
+    "intelligence": {
+      "proficient": false,
+      "bonus": 0
+    },
+    "wisdom": {
+      "proficient": true,
+      "bonus": 3
+    },
+    "charisma": {
+      "proficient": true,
+      "bonus": 5
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "animalHandling": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "arcana": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 2
+    },
+    "athletics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "deception": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "history": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "insight": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "intimidation": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "investigation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "medicine": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "nature": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "perception": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "performance": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "persuasion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "religion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "sleightOfHand": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "stealth": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "survival": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    }
+  },
+  "customSkills": [
+    {
+      "name": "Ferramentas de ladrão",
+      "ability": "dexterity",
+      "proficient": true,
+      "expertise": false
+    }
+  ],
+  "passivePerception": 11,
+  "armorClass": 14,
+  "initiative": 1,
+  "initiativeBonus": 0,
+  "speed": 30,
+  "hp": {
+    "maximum": 24,
+    "current": 24,
+    "temporary": 0
+  },
+  "hitDice": [
+    {
+      "class": "Bruxo",
+      "die": "d8",
+      "maximum": 3,
+      "remaining": 3
+    }
+  ],
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "attacks": [
+    {
+      "name": "Besta leve",
+      "attackBonus": 3,
+      "damageRoll": "1d8+1",
+      "damageType": "perfurante",
+      "range": 80,
+      "properties": [
+        "munição",
+        "duas mãos"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "besta-leve"
+      }
+    },
+    {
+      "name": "Adaga",
+      "attackBonus": 3,
+      "damageRoll": "1d4+1",
+      "damageType": "perfurante",
+      "range": 20,
+      "properties": [
+        "acuidade",
+        "leve",
+        "arremesso"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "adaga"
+      }
+    },
+    {
+      "name": "S rajada-mistica",
+      "attackBonus": 5,
+      "damageRoll": "1d10+3",
+      "damageType": "energia",
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "rajada-mistica"
+      }
+    },
+    {
+      "name": "S toque-arrepiante",
+      "attackBonus": 5,
+      "damageRoll": "1d8",
+      "damageType": "necrótico",
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "toque-arrepiante"
+      }
+    }
+  ],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "inventory": [
+    {
+      "name": "Besta leve",
+      "quantity": 1,
+      "weight": 5,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "besta-leve"
+      }
+    },
+    {
+      "name": "A couro",
+      "quantity": 1,
+      "weight": 10,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "couro"
+      }
+    },
+    {
+      "name": "Adaga",
+      "quantity": 2,
+      "weight": 1,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "adaga"
+      }
+    }
+  ],
+  "proficiencies": {
+    "armor": "Armaduras leves",
+    "weapons": "Armas simples",
+    "tools": "Ferramentas de ladrão, Kit de jogo: conjunto de dados",
+    "languages": "Comum, Infernal"
+  },
+  "proficienciesAndLanguages": [
+    "Armaduras leves",
+    "Armas simples",
+    "Ferramentas de ladrão",
+    "Kit de jogo: conjunto de dados",
+    "Comum",
+    "Infernal"
+  ],
+  "featuresAndTraits": [
+    {
+      "name": "Tiefling traço",
+      "description": "Texto de exemplo, inventado para os testes. (Tiefling traço)"
+    },
+    {
+      "name": "Bruxo 1",
+      "description": "Texto de exemplo, inventado para os testes. (Bruxo 1)"
+    },
+    {
+      "name": "Bruxo 2",
+      "description": "Texto de exemplo, inventado para os testes. (Bruxo 2)"
+    },
+    {
+      "name": "o-corruptor 3",
+      "description": "Texto de exemplo, inventado para os testes. (o-corruptor 3)"
+    },
+    {
+      "name": "Lista Expandida",
+      "description": "Texto de exemplo, inventado para os testes. (Lista Expandida)"
+    },
+    {
+      "name": "Criminoso característica",
+      "description": "Texto de exemplo, inventado para os testes. (Criminoso característica)"
+    },
+    {
+      "name": "Invocação Mística: Explosão Agonizante",
+      "description": ""
+    },
+    {
+      "name": "Invocação Mística: Armadura de Sombras",
+      "description": ""
+    },
+    {
+      "name": "Dádiva do Pacto: Pacto do Tomo",
+      "description": ""
+    }
+  ],
+  "spellcasting": {
+    "class": "Bruxo",
+    "ability": "charisma",
+    "spellSaveDC": 13,
+    "spellAttackBonus": 5,
+    "cantrips": [
+      "S rajada-mistica",
+      "S toque-arrepiante",
+      "S chama-sagrada",
+      "S orientacao",
+      "S arte-druidica"
+    ],
+    "cantripRefs": [
+      {
+        "name": "S rajada-mistica",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "rajada-mistica"
+        }
+      },
+      {
+        "name": "S toque-arrepiante",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "toque-arrepiante"
+        }
+      },
+      {
+        "name": "S chama-sagrada",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "chama-sagrada"
+        }
+      },
+      {
+        "name": "S orientacao",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "orientacao"
+        }
+      },
+      {
+        "name": "S arte-druidica",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "arte-druidica"
+        }
+      }
+    ],
+    "slots": {
+      "1": {
+        "total": 0,
+        "expended": 0
+      },
+      "2": {
+        "total": 2,
+        "expended": 0
+      },
+      "3": {
+        "total": 0,
+        "expended": 0
+      },
+      "4": {
+        "total": 0,
+        "expended": 0
+      },
+      "5": {
+        "total": 0,
+        "expended": 0
+      },
+      "6": {
+        "total": 0,
+        "expended": 0
+      },
+      "7": {
+        "total": 0,
+        "expended": 0
+      },
+      "8": {
+        "total": 0,
+        "expended": 0
+      },
+      "9": {
+        "total": 0,
+        "expended": 0
+      }
+    },
+    "spells": [
+      {
+        "level": 1,
+        "name": "S magia-1-01",
+        "prepared": true,
+        "ritual": true,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-01"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S patrono-1",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "patrono-1"
+        }
+      },
+      {
+        "level": 2,
+        "name": "S magia-2-01",
+        "prepared": true,
+        "ritual": false,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-2-01"
+        }
+      },
+      {
+        "level": 2,
+        "name": "S patrono-2",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "patrono-2"
+        }
+      }
+    ]
+  },
+  "origin": {
+    "race": {
+      "bookId": "book-test",
+      "slug": "tiefling"
+    },
+    "class": {
+      "bookId": "book-test",
+      "slug": "bruxo"
+    },
+    "subclass": {
+      "bookId": "book-test",
+      "slug": "o-corruptor"
+    },
+    "background": {
+      "bookId": "book-test",
+      "slug": "criminoso"
+    }
+  }
+}

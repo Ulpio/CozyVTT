@@ -1,0 +1,472 @@
+{
+  "characterName": "Teste druida",
+  "class": "Druida",
+  "level": 3,
+  "race": "Elfo da Floresta",
+  "background": "Eremita",
+  "experiencePoints": 900,
+  "proficiencyBonus": 2,
+  "stats": {
+    "strength": {
+      "score": 8,
+      "modifier": -1
+    },
+    "dexterity": {
+      "score": 15,
+      "modifier": 2
+    },
+    "constitution": {
+      "score": 14,
+      "modifier": 2
+    },
+    "intelligence": {
+      "score": 12,
+      "modifier": 1
+    },
+    "wisdom": {
+      "score": 16,
+      "modifier": 3
+    },
+    "charisma": {
+      "score": 10,
+      "modifier": 0
+    }
+  },
+  "savingThrows": {
+    "strength": {
+      "proficient": false,
+      "bonus": -1
+    },
+    "dexterity": {
+      "proficient": false,
+      "bonus": 2
+    },
+    "constitution": {
+      "proficient": false,
+      "bonus": 2
+    },
+    "intelligence": {
+      "proficient": true,
+      "bonus": 3
+    },
+    "wisdom": {
+      "proficient": true,
+      "bonus": 5
+    },
+    "charisma": {
+      "proficient": false,
+      "bonus": 0
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "animalHandling": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "arcana": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "athletics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "deception": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "history": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "insight": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "intimidation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "investigation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "medicine": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "nature": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "perception": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "performance": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "persuasion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "religion": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "sleightOfHand": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "stealth": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "survival": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    }
+  },
+  "passivePerception": 15,
+  "armorClass": 13,
+  "initiative": 2,
+  "initiativeBonus": 0,
+  "speed": 35,
+  "hp": {
+    "maximum": 24,
+    "current": 24,
+    "temporary": 0
+  },
+  "hitDice": [
+    {
+      "class": "Druida",
+      "die": "d8",
+      "maximum": 3,
+      "remaining": 3
+    }
+  ],
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "attacks": [
+    {
+      "name": "Bordao",
+      "attackBonus": 1,
+      "damageRoll": "1d6-1",
+      "damageType": "concussão",
+      "properties": [
+        "versátil"
+      ],
+      "additionalDamage": [
+        {
+          "label": "Duas mãos",
+          "damageRoll": "1d8-1",
+          "damageType": "concussão"
+        }
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "bordao"
+      }
+    },
+    {
+      "name": "S produzir-chamas",
+      "attackBonus": 5,
+      "damageRoll": "1d8",
+      "damageType": "fogo",
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "produzir-chamas"
+      }
+    }
+  ],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "inventory": [
+    {
+      "name": "A couro",
+      "quantity": 1,
+      "weight": 10,
+      "equippable": true,
+      "equipped": true,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "couro"
+      }
+    },
+    {
+      "name": "Bordao",
+      "quantity": 1,
+      "weight": 4,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "bordao"
+      }
+    }
+  ],
+  "proficiencies": {
+    "armor": "Armaduras leves, armaduras médias, escudos",
+    "weapons": "Porrete, Adaga, Dardo, Azagaia, Maca, Bordao, cimitarra, foice-curta, funda, lanca, Espada longa, Arco longo",
+    "tools": "Kit de herbalismo",
+    "languages": "Comum, Élfico, Silvestre"
+  },
+  "proficienciesAndLanguages": [
+    "Armaduras leves",
+    "armaduras médias",
+    "escudos",
+    "Porrete",
+    "Adaga",
+    "Dardo",
+    "Azagaia",
+    "Maca",
+    "Bordao",
+    "cimitarra",
+    "foice-curta",
+    "funda",
+    "lanca",
+    "Espada longa",
+    "Arco longo",
+    "Kit de herbalismo",
+    "Comum",
+    "Élfico",
+    "Silvestre"
+  ],
+  "featuresAndTraits": [
+    {
+      "name": "Elfo traço",
+      "description": "Texto de exemplo, inventado para os testes. (Elfo traço)"
+    },
+    {
+      "name": "Elfo da Floresta traço",
+      "description": "Texto de exemplo, inventado para os testes. (Elfo da Floresta traço)"
+    },
+    {
+      "name": "Druida 1",
+      "description": "Texto de exemplo, inventado para os testes. (Druida 1)"
+    },
+    {
+      "name": "Druida 2",
+      "description": "Texto de exemplo, inventado para os testes. (Druida 2)"
+    },
+    {
+      "name": "circulo-da-terra 3",
+      "description": "Texto de exemplo, inventado para os testes. (circulo-da-terra 3)"
+    },
+    {
+      "name": "Magias de Círculo",
+      "description": "Texto de exemplo, inventado para os testes. (Magias de Círculo)"
+    },
+    {
+      "name": "Eremita característica",
+      "description": "Texto de exemplo, inventado para os testes. (Eremita característica)"
+    },
+    {
+      "name": "Círculo da Terra: Floresta",
+      "description": ""
+    }
+  ],
+  "spellcasting": {
+    "class": "Druida",
+    "ability": "wisdom",
+    "spellSaveDC": 13,
+    "spellAttackBonus": 5,
+    "cantrips": [
+      "S produzir-chamas",
+      "S orientacao",
+      "S arte-druidica"
+    ],
+    "cantripRefs": [
+      {
+        "name": "S produzir-chamas",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "produzir-chamas"
+        }
+      },
+      {
+        "name": "S orientacao",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "orientacao"
+        }
+      },
+      {
+        "name": "S arte-druidica",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "arte-druidica"
+        }
+      }
+    ],
+    "slots": {
+      "1": {
+        "total": 4,
+        "expended": 0
+      },
+      "2": {
+        "total": 2,
+        "expended": 0
+      },
+      "3": {
+        "total": 0,
+        "expended": 0
+      },
+      "4": {
+        "total": 0,
+        "expended": 0
+      },
+      "5": {
+        "total": 0,
+        "expended": 0
+      },
+      "6": {
+        "total": 0,
+        "expended": 0
+      },
+      "7": {
+        "total": 0,
+        "expended": 0
+      },
+      "8": {
+        "total": 0,
+        "expended": 0
+      },
+      "9": {
+        "total": 0,
+        "expended": 0
+      }
+    },
+    "spells": [
+      {
+        "level": 1,
+        "name": "S magia-1-01",
+        "prepared": true,
+        "ritual": true,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-01"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-02",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-02"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-03",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-03"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-04",
+        "prepared": true,
+        "ritual": false,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-04"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-05",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-05"
+        }
+      },
+      {
+        "level": 2,
+        "name": "S magia-2-01",
+        "prepared": true,
+        "ritual": false,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-2-01"
+        }
+      },
+      {
+        "level": 2,
+        "name": "S magia-2-02",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-2-02"
+        }
+      }
+    ]
+  },
+  "origin": {
+    "race": {
+      "bookId": "book-test",
+      "slug": "elfo"
+    },
+    "subrace": {
+      "bookId": "book-test",
+      "slug": "elfo-da-floresta"
+    },
+    "class": {
+      "bookId": "book-test",
+      "slug": "druida"
+    },
+    "subclass": {
+      "bookId": "book-test",
+      "slug": "circulo-da-terra"
+    },
+    "background": {
+      "bookId": "book-test",
+      "slug": "eremita"
+    }
+  }
+}

@@ -113,6 +113,9 @@ const FIGHTER = cls(
   ['Todas as armaduras', 'escudos'],
 );
 
+const CLERIC_PROFS = proficienciesFor('clerigo', CLERIC, [], [], ITEMS.weapons);
+const FIGHTER_PROFS = proficienciesFor('guerreiro', FIGHTER, [], [], ITEMS.weapons);
+
 describe('offeredOptions', () => {
   it('a cleric without heavy armor is not offered chain mail, nor a warhammer without martial weapons', () => {
     const profs = proficienciesFor('clerigo', CLERIC, [], [], ITEMS.weapons);
@@ -152,11 +155,18 @@ describe('anyOfOptions', () => {
     expect(anyOfOptions('simpleMeleeWeapon', ITEMS).map((w) => w.slug)).toEqual(['maca', 'adaga', 'bordao']);
     expect(anyOfOptions('instrument', ITEMS).map((w) => w.slug)).toEqual(['alaude']);
   });
+
+  it('with proficiencies, weapons are filtered unless none would remain', () => {
+    const wizard = proficienciesFor('mago', cls([]), [], [], ITEMS.weapons);
+    expect(anyOfOptions('simpleWeapon', ITEMS, wizard).map((w) => w.slug)).toEqual(['adaga', 'besta-leve', 'bordao']);
+    expect(anyOfOptions('martialWeapon', ITEMS, wizard).map((w) => w.slug)).toContain('rapieira');
+    expect(anyOfOptions('instrument', ITEMS, wizard).map((w) => w.slug)).toEqual(['alaude']);
+  });
 });
 
 describe('resolveEquipment', () => {
   it('collects the picked options of the class and the background', () => {
-    const out = resolveEquipment(CLERIC, BACKGROUND, [0, 0, 1, 0, 0, 0], { [anyOfKey(2, 0, 0)]: 'adaga' }, ITEMS);
+    const out = resolveEquipment(CLERIC, BACKGROUND, [0, 0, 1, 0, 0, 0], { [anyOfKey(2, 0, 0)]: 'adaga' }, ITEMS, CLERIC_PROFS);
     expect(out.armor?.slug).toBe('brunea');
     expect(out.shield).toBe(true);
     expect(out.gp).toBe(15);
@@ -181,6 +191,7 @@ describe('resolveEquipment', () => {
       [0, 1],
       { [anyOfKey(1, 0, 0)]: 'rapieira', [anyOfKey(1, 0, 1)]: 'maca' },
       ITEMS,
+      FIGHTER_PROFS,
     );
     expect(out.armor?.slug).toBe('cota-de-malha');
     expect(out.shield).toBe(false);
@@ -188,8 +199,25 @@ describe('resolveEquipment', () => {
   });
 
   it('a choice with several options and no pick gives nothing', () => {
-    const out = resolveEquipment(FIGHTER, undefined, [], {}, ITEMS);
+    const out = resolveEquipment(FIGHTER, undefined, [], {}, ITEMS, FIGHTER_PROFS);
     expect(out.inventory).toEqual([]);
+  });
+
+  it('a pick that is not offered falls back to the first offered option', () => {
+    // Chain mail (option 2) is not offered to a cleric without heavy armor.
+    const out = resolveEquipment(CLERIC, BACKGROUND, [0, 2, 0, 0, 0, 0], {}, ITEMS, CLERIC_PROFS);
+    expect(out.armor?.slug).toBe('brunea');
+    const life = proficienciesFor('clerigo', CLERIC, SUBCLASS_EFFECTS['dominio-da-vida'], [], ITEMS.weapons);
+    expect(resolveEquipment(CLERIC, BACKGROUND, [0, 2, 0, 0, 0, 0], {}, ITEMS, life).armor?.slug).toBe('cota-de-malha');
+  });
+
+  it('an anyOf weapon pick the character is not proficient with is dropped when another fits', () => {
+    const wizardClass = cls([{ options: [{ items: [{ anyOf: 'simpleWeapon', quantity: 1 }] }] }]);
+    const wizard = proficienciesFor('mago', wizardClass, [], [], ITEMS.weapons);
+    const out = resolveEquipment(wizardClass, undefined, [], { [anyOfKey(0, 0, 0)]: 'maca' }, ITEMS, wizard);
+    expect(out.weapons).toEqual([]);
+    const ok = resolveEquipment(wizardClass, undefined, [], { [anyOfKey(0, 0, 0)]: 'bordao' }, ITEMS, wizard);
+    expect(ok.weapons.map((w) => w.slug)).toEqual(['bordao']);
   });
 });
 
@@ -246,6 +274,12 @@ describe('attacksFor', () => {
     const [bordao, unarmed] = attacksFor([entry('bordao')], scores({ dex: 16 }), ['simple'], monk);
     expect(bordao).toMatchObject({ attackBonus: 5, damageRoll: '1d6+3' });
     expect(unarmed).toMatchObject({ source: 'unarmed', attackBonus: 5, damageRoll: '1d4+3' });
+  });
+
+  it('a ranged finesse weapon (darts) uses the better of STR and DEX', () => {
+    const dart: WeaponEntry = { ...weapon('dardo', 'simple', 'ranged', '1d4', ['acuidade', 'arremesso']), quantity: 10 };
+    expect(attacksFor([dart], scores({ str: 16, dex: 12 }), ['simple'], [])[0]).toMatchObject({ attackBonus: 5, damageRoll: '1d4+3' });
+    expect(attacksFor([dart], scores({ str: 8, dex: 14 }), ['simple'], [])[0]).toMatchObject({ attackBonus: 4, damageRoll: '1d4+2' });
   });
 
   it('no unarmed attack without an unarmed effect', () => {

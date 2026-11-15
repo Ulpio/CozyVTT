@@ -1,0 +1,416 @@
+{
+  "characterName": "Teste patrulheiro",
+  "class": "Patrulheiro",
+  "level": 3,
+  "race": "Pés Leves",
+  "background": "Forasteiro",
+  "experiencePoints": 900,
+  "proficiencyBonus": 2,
+  "stats": {
+    "strength": {
+      "score": 12,
+      "modifier": 1
+    },
+    "dexterity": {
+      "score": 17,
+      "modifier": 3
+    },
+    "constitution": {
+      "score": 13,
+      "modifier": 1
+    },
+    "intelligence": {
+      "score": 10,
+      "modifier": 0
+    },
+    "wisdom": {
+      "score": 14,
+      "modifier": 2
+    },
+    "charisma": {
+      "score": 9,
+      "modifier": -1
+    }
+  },
+  "savingThrows": {
+    "strength": {
+      "proficient": true,
+      "bonus": 3
+    },
+    "dexterity": {
+      "proficient": true,
+      "bonus": 5
+    },
+    "constitution": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "intelligence": {
+      "proficient": false,
+      "bonus": 0
+    },
+    "wisdom": {
+      "proficient": false,
+      "bonus": 2
+    },
+    "charisma": {
+      "proficient": false,
+      "bonus": -1
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "animalHandling": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "arcana": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "athletics": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "deception": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "history": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "insight": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "intimidation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "investigation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "medicine": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "nature": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 2
+    },
+    "perception": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 4
+    },
+    "performance": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "persuasion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "religion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "sleightOfHand": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3
+    },
+    "stealth": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "survival": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 4
+    }
+  },
+  "passivePerception": 14,
+  "armorClass": 14,
+  "initiative": 3,
+  "initiativeBonus": 0,
+  "speed": 25,
+  "hp": {
+    "maximum": 25,
+    "current": 25,
+    "temporary": 0
+  },
+  "hitDice": [
+    {
+      "class": "Patrulheiro",
+      "die": "d10",
+      "maximum": 3,
+      "remaining": 3
+    }
+  ],
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "attacks": [
+    {
+      "name": "Arco longo",
+      "attackBonus": 7,
+      "damageRoll": "1d8+3",
+      "damageType": "perfurante",
+      "range": 150,
+      "properties": [
+        "munição",
+        "pesada",
+        "duas mãos"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "arco-longo"
+      }
+    },
+    {
+      "name": "Espada curta",
+      "attackBonus": 5,
+      "damageRoll": "1d6+3",
+      "damageType": "perfurante",
+      "properties": [
+        "acuidade",
+        "leve"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "espada-curta"
+      }
+    }
+  ],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "inventory": [
+    {
+      "name": "A couro",
+      "quantity": 1,
+      "weight": 10,
+      "equippable": true,
+      "equipped": true,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "couro"
+      }
+    },
+    {
+      "name": "Arco longo",
+      "quantity": 1,
+      "weight": 2,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "arco-longo"
+      }
+    },
+    {
+      "name": "G flechas",
+      "quantity": 20,
+      "weight": 1,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "aljava-flechas"
+      }
+    },
+    {
+      "name": "Espada curta",
+      "quantity": 2,
+      "weight": 2,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "espada-curta"
+      }
+    }
+  ],
+  "proficiencies": {
+    "armor": "Armaduras leves, armaduras médias, escudos",
+    "weapons": "Armas simples, armas marciais",
+    "tools": "Flauta",
+    "languages": "Comum, Halfling, Élfico"
+  },
+  "proficienciesAndLanguages": [
+    "Armaduras leves",
+    "armaduras médias",
+    "escudos",
+    "Armas simples",
+    "armas marciais",
+    "Flauta",
+    "Comum",
+    "Halfling",
+    "Élfico"
+  ],
+  "featuresAndTraits": [
+    {
+      "name": "Halfling traço",
+      "description": "Texto de exemplo, inventado para os testes. (Halfling traço)"
+    },
+    {
+      "name": "Pés Leves traço",
+      "description": "Texto de exemplo, inventado para os testes. (Pés Leves traço)"
+    },
+    {
+      "name": "Patrulheiro 1",
+      "description": "Texto de exemplo, inventado para os testes. (Patrulheiro 1)"
+    },
+    {
+      "name": "Patrulheiro 2",
+      "description": "Texto de exemplo, inventado para os testes. (Patrulheiro 2)"
+    },
+    {
+      "name": "conclave-do-cacador 3",
+      "description": "Texto de exemplo, inventado para os testes. (conclave-do-cacador 3)"
+    },
+    {
+      "name": "Forasteiro característica",
+      "description": "Texto de exemplo, inventado para os testes. (Forasteiro característica)"
+    },
+    {
+      "name": "Inimigo Favorito: Bestas",
+      "description": ""
+    },
+    {
+      "name": "Estilo de Luta: Arquearia",
+      "description": ""
+    },
+    {
+      "name": "Presa do Caçador: Assassino de Colossos",
+      "description": ""
+    }
+  ],
+  "spellcasting": {
+    "class": "Patrulheiro",
+    "ability": "wisdom",
+    "spellSaveDC": 12,
+    "spellAttackBonus": 4,
+    "cantrips": [],
+    "cantripRefs": [],
+    "slots": {
+      "1": {
+        "total": 3,
+        "expended": 0
+      },
+      "2": {
+        "total": 0,
+        "expended": 0
+      },
+      "3": {
+        "total": 0,
+        "expended": 0
+      },
+      "4": {
+        "total": 0,
+        "expended": 0
+      },
+      "5": {
+        "total": 0,
+        "expended": 0
+      },
+      "6": {
+        "total": 0,
+        "expended": 0
+      },
+      "7": {
+        "total": 0,
+        "expended": 0
+      },
+      "8": {
+        "total": 0,
+        "expended": 0
+      },
+      "9": {
+        "total": 0,
+        "expended": 0
+      }
+    },
+    "spells": [
+      {
+        "level": 1,
+        "name": "S magia-1-01",
+        "prepared": true,
+        "ritual": true,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-01"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-02",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-02"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-03",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-03"
+        }
+      }
+    ]
+  },
+  "origin": {
+    "race": {
+      "bookId": "book-test",
+      "slug": "halfling"
+    },
+    "subrace": {
+      "bookId": "book-test",
+      "slug": "halfling-pes-leves"
+    },
+    "class": {
+      "bookId": "book-test",
+      "slug": "patrulheiro"
+    },
+    "subclass": {
+      "bookId": "book-test",
+      "slug": "conclave-do-cacador"
+    },
+    "background": {
+      "bookId": "book-test",
+      "slug": "forasteiro"
+    }
+  }
+}

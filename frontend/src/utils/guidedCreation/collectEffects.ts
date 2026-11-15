@@ -10,7 +10,7 @@ import type {
 } from './compendiumData';
 import { CLASS_EFFECTS } from './classRules';
 import { FEAT_EFFECTS, FEAT_REQUIRES } from './featRules';
-import { abilityIncreaseEffects, RACE_EFFECTS } from './raceRules';
+import { abilityIncreaseEffects, RACE_EFFECTS, REPLACES_RACE_INCREASES } from './raceRules';
 import { SUBCLASS_EFFECTS } from './subclassRules';
 import { backgroundToolCategory, TOOL_CATEGORIES } from './toolRules';
 import {
@@ -63,6 +63,16 @@ export interface PendingChoice {
 
 /** The `optionPicks` key of the variant human's feat. */
 export const FEAT_PICK = 'feat';
+
+/**
+ * A choice that has picks: option ids for `option`, the feat slug for
+ * `featChoice`, spell, weapon, tool or language slugs for the other kinds.
+ */
+export interface ChoicePicks {
+  id: string;
+  effect: Effect;
+  picks: string[];
+}
 
 /** Subclasses that cast from 3rd level in a class without spellcasting. */
 const CASTING_SUBCLASSES = ['cavaleiro-arcano', 'trapaceiro-arcano'];
@@ -198,10 +208,11 @@ function sources(ctx: Context): Array<[string, Effect[]]> {
   const background = bySlug(data.backgrounds, choices.backgroundSlug);
   const out: Array<[string, Effect[]]> = [];
   if (race) {
+    const ownSubrace = subrace?.data.parent === race.slug ? subrace.slug : undefined;
     out.push([
       'race',
       [
-        ...abilityIncreaseEffects(race.data.abilityIncreases),
+        ...(REPLACES_RACE_INCREASES.includes(ownSubrace ?? '') ? [] : abilityIncreaseEffects(race.data.abilityIncreases)),
         ...skillEffects(race.data.proficiencies),
         ...(RACE_EFFECTS[race.slug] ?? []),
       ],
@@ -401,12 +412,13 @@ const skillOptions = (keep: (s: SkillKey) => boolean) => SKILL_KEYS.filter(keep)
  * picks), class (1st–3rd level, with its saves and skill choice), subclass and
  * the variant human's feat, including the effects of picked options and the
  * proficiencies picked weapons, tools and languages give, plus expertise from
- * skill choices that grant it; and what the player still has to pick.
+ * skill choices that grant it; what the player still has to pick; and the
+ * picks each choice ended up with (`picks`).
  */
 export function collectEffects(
   choices: CreationChoices,
   data: RulesData,
-): { effects: Effect[]; pending: PendingChoice[] } {
+): { effects: Effect[]; pending: PendingChoice[]; picks: ChoicePicks[] } {
   const { ctx, tagged, effects, skillSlots, skills, proficient, autoExpertise, expertiseSlots, expertise } = resolve(
     choices,
     data,
@@ -460,7 +472,8 @@ export function collectEffects(
         break;
     }
   }
-  return { effects, pending };
+  const picks = tagged.filter((t) => t.picks.length).map(({ effect, id, picks }) => ({ effect, id, picks }));
+  return { effects, pending, picks };
 }
 
 const sameList = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i]);

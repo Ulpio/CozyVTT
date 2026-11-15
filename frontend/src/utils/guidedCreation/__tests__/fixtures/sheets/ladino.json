@@ -1,0 +1,449 @@
+{
+  "characterName": "Teste ladino",
+  "class": "Ladino",
+  "level": 3,
+  "race": "Elfo da Floresta",
+  "background": "Criminoso",
+  "experiencePoints": 900,
+  "proficiencyBonus": 2,
+  "stats": {
+    "strength": {
+      "score": 8,
+      "modifier": -1
+    },
+    "dexterity": {
+      "score": 17,
+      "modifier": 3
+    },
+    "constitution": {
+      "score": 13,
+      "modifier": 1
+    },
+    "intelligence": {
+      "score": 14,
+      "modifier": 2
+    },
+    "wisdom": {
+      "score": 13,
+      "modifier": 1
+    },
+    "charisma": {
+      "score": 10,
+      "modifier": 0
+    }
+  },
+  "savingThrows": {
+    "strength": {
+      "proficient": false,
+      "bonus": -1
+    },
+    "dexterity": {
+      "proficient": true,
+      "bonus": 5
+    },
+    "constitution": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "intelligence": {
+      "proficient": true,
+      "bonus": 4
+    },
+    "wisdom": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "charisma": {
+      "proficient": false,
+      "bonus": 0
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "animalHandling": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "arcana": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "athletics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "deception": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 2
+    },
+    "history": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "insight": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "intimidation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "investigation": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 4
+    },
+    "medicine": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "nature": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "perception": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 3
+    },
+    "performance": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "persuasion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "religion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "sleightOfHand": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "stealth": {
+      "proficient": true,
+      "expertise": true,
+      "bonus": 7
+    },
+    "survival": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    }
+  },
+  "customSkills": [
+    {
+      "name": "Ferramentas de ladrão",
+      "ability": "dexterity",
+      "proficient": true,
+      "expertise": true
+    }
+  ],
+  "passivePerception": 13,
+  "armorClass": 14,
+  "initiative": 3,
+  "initiativeBonus": 0,
+  "speed": 35,
+  "hp": {
+    "maximum": 21,
+    "current": 21,
+    "temporary": 0
+  },
+  "hitDice": [
+    {
+      "class": "Ladino",
+      "die": "d8",
+      "maximum": 3,
+      "remaining": 3
+    }
+  ],
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "attacks": [
+    {
+      "name": "Rapieira",
+      "attackBonus": 5,
+      "damageRoll": "1d8+3",
+      "damageType": "perfurante",
+      "properties": [
+        "acuidade"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "rapieira"
+      }
+    },
+    {
+      "name": "Adaga",
+      "attackBonus": 5,
+      "damageRoll": "1d4+3",
+      "damageType": "perfurante",
+      "range": 20,
+      "properties": [
+        "acuidade",
+        "leve",
+        "arremesso"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "adaga"
+      }
+    },
+    {
+      "name": "S raio-de-fogo",
+      "attackBonus": 4,
+      "damageRoll": "1d10",
+      "damageType": "fogo",
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "raio-de-fogo"
+      }
+    }
+  ],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "inventory": [
+    {
+      "name": "Rapieira",
+      "quantity": 1,
+      "weight": 2,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "rapieira"
+      }
+    },
+    {
+      "name": "A couro",
+      "quantity": 1,
+      "weight": 10,
+      "equippable": true,
+      "equipped": true,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "couro"
+      }
+    },
+    {
+      "name": "Adaga",
+      "quantity": 2,
+      "weight": 1,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "adaga"
+      }
+    },
+    {
+      "name": "Ferramentas de ladrão",
+      "quantity": 1,
+      "weight": 1,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "ferramentas-de-ladrao"
+      }
+    }
+  ],
+  "proficiencies": {
+    "armor": "Armaduras leves",
+    "weapons": "Armas simples, besta-de-mao, Espada longa, Rapieira, Espada curta, Arco longo",
+    "tools": "Ferramentas de ladrão, Kit de jogo: conjunto de dados",
+    "languages": "Comum, Élfico"
+  },
+  "proficienciesAndLanguages": [
+    "Armaduras leves",
+    "Armas simples",
+    "besta-de-mao",
+    "Espada longa",
+    "Rapieira",
+    "Espada curta",
+    "Arco longo",
+    "Ferramentas de ladrão",
+    "Kit de jogo: conjunto de dados",
+    "Comum",
+    "Élfico"
+  ],
+  "featuresAndTraits": [
+    {
+      "name": "Elfo traço",
+      "description": "Texto de exemplo, inventado para os testes. (Elfo traço)"
+    },
+    {
+      "name": "Elfo da Floresta traço",
+      "description": "Texto de exemplo, inventado para os testes. (Elfo da Floresta traço)"
+    },
+    {
+      "name": "Ladino 1",
+      "description": "Texto de exemplo, inventado para os testes. (Ladino 1)"
+    },
+    {
+      "name": "Ladino 2",
+      "description": "Texto de exemplo, inventado para os testes. (Ladino 2)"
+    },
+    {
+      "name": "trapaceiro-arcano 3",
+      "description": "Texto de exemplo, inventado para os testes. (trapaceiro-arcano 3)"
+    },
+    {
+      "name": "Criminoso característica",
+      "description": "Texto de exemplo, inventado para os testes. (Criminoso característica)"
+    }
+  ],
+  "spellcasting": {
+    "class": "Ladino",
+    "ability": "intelligence",
+    "spellSaveDC": 12,
+    "spellAttackBonus": 4,
+    "cantrips": [
+      "S maos-magicas",
+      "S raio-de-fogo",
+      "S luz"
+    ],
+    "cantripRefs": [
+      {
+        "name": "S maos-magicas",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "maos-magicas"
+        }
+      },
+      {
+        "name": "S raio-de-fogo",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "raio-de-fogo"
+        }
+      },
+      {
+        "name": "S luz",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "luz"
+        }
+      }
+    ],
+    "slots": {
+      "1": {
+        "total": 2,
+        "expended": 0
+      },
+      "2": {
+        "total": 0,
+        "expended": 0
+      },
+      "3": {
+        "total": 0,
+        "expended": 0
+      },
+      "4": {
+        "total": 0,
+        "expended": 0
+      },
+      "5": {
+        "total": 0,
+        "expended": 0
+      },
+      "6": {
+        "total": 0,
+        "expended": 0
+      },
+      "7": {
+        "total": 0,
+        "expended": 0
+      },
+      "8": {
+        "total": 0,
+        "expended": 0
+      },
+      "9": {
+        "total": 0,
+        "expended": 0
+      }
+    },
+    "spells": [
+      {
+        "level": 1,
+        "name": "S magia-1-01",
+        "prepared": true,
+        "ritual": true,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-01"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-02",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-02"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-03",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-03"
+        }
+      }
+    ]
+  },
+  "origin": {
+    "race": {
+      "bookId": "book-test",
+      "slug": "elfo"
+    },
+    "subrace": {
+      "bookId": "book-test",
+      "slug": "elfo-da-floresta"
+    },
+    "class": {
+      "bookId": "book-test",
+      "slug": "ladino"
+    },
+    "subclass": {
+      "bookId": "book-test",
+      "slug": "trapaceiro-arcano"
+    },
+    "background": {
+      "bookId": "book-test",
+      "slug": "criminoso"
+    }
+  }
+}

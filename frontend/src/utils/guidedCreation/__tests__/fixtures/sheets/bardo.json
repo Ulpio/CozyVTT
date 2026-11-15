@@ -1,0 +1,457 @@
+{
+  "characterName": "Teste bardo",
+  "class": "Bardo",
+  "level": 3,
+  "race": "Meio-Elfo",
+  "background": "Artista",
+  "experiencePoints": 900,
+  "proficiencyBonus": 2,
+  "stats": {
+    "strength": {
+      "score": 12,
+      "modifier": 1
+    },
+    "dexterity": {
+      "score": 15,
+      "modifier": 2
+    },
+    "constitution": {
+      "score": 14,
+      "modifier": 2
+    },
+    "intelligence": {
+      "score": 8,
+      "modifier": -1
+    },
+    "wisdom": {
+      "score": 10,
+      "modifier": 0
+    },
+    "charisma": {
+      "score": 17,
+      "modifier": 3
+    }
+  },
+  "savingThrows": {
+    "strength": {
+      "proficient": false,
+      "bonus": 1
+    },
+    "dexterity": {
+      "proficient": true,
+      "bonus": 4
+    },
+    "constitution": {
+      "proficient": false,
+      "bonus": 2
+    },
+    "intelligence": {
+      "proficient": false,
+      "bonus": -1
+    },
+    "wisdom": {
+      "proficient": false,
+      "bonus": 0
+    },
+    "charisma": {
+      "proficient": true,
+      "bonus": 5
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 4
+    },
+    "animalHandling": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1,
+      "otherBonus": 1
+    },
+    "arcana": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 1
+    },
+    "athletics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2,
+      "otherBonus": 1
+    },
+    "deception": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "history": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 1
+    },
+    "insight": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 2
+    },
+    "intimidation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 4,
+      "otherBonus": 1
+    },
+    "investigation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0,
+      "otherBonus": 1
+    },
+    "medicine": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 2
+    },
+    "nature": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0,
+      "otherBonus": 1
+    },
+    "perception": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 2
+    },
+    "performance": {
+      "proficient": true,
+      "expertise": true,
+      "bonus": 7
+    },
+    "persuasion": {
+      "proficient": true,
+      "expertise": true,
+      "bonus": 7
+    },
+    "religion": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0,
+      "otherBonus": 1
+    },
+    "sleightOfHand": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 3,
+      "otherBonus": 1
+    },
+    "stealth": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 4
+    },
+    "survival": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1,
+      "otherBonus": 1
+    }
+  },
+  "passivePerception": 12,
+  "armorClass": 13,
+  "initiative": 3,
+  "initiativeBonus": 1,
+  "speed": 30,
+  "hp": {
+    "maximum": 24,
+    "current": 24,
+    "temporary": 0
+  },
+  "hitDice": [
+    {
+      "class": "Bardo",
+      "die": "d8",
+      "maximum": 3,
+      "remaining": 3
+    }
+  ],
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "attacks": [
+    {
+      "name": "Rapieira",
+      "attackBonus": 4,
+      "damageRoll": "1d8+2",
+      "damageType": "perfurante",
+      "properties": [
+        "acuidade"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "rapieira"
+      }
+    },
+    {
+      "name": "Adaga",
+      "attackBonus": 4,
+      "damageRoll": "1d4+2",
+      "damageType": "perfurante",
+      "range": 20,
+      "properties": [
+        "acuidade",
+        "leve",
+        "arremesso"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "adaga"
+      }
+    }
+  ],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "inventory": [
+    {
+      "name": "Rapieira",
+      "quantity": 1,
+      "weight": 2,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "rapieira"
+      }
+    },
+    {
+      "name": "Alaúde",
+      "quantity": 1,
+      "weight": 2,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "alaude"
+      }
+    },
+    {
+      "name": "A couro",
+      "quantity": 1,
+      "weight": 10,
+      "equippable": true,
+      "equipped": true,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "couro"
+      }
+    },
+    {
+      "name": "Adaga",
+      "quantity": 1,
+      "weight": 1,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "adaga"
+      }
+    }
+  ],
+  "proficiencies": {
+    "armor": "Armaduras leves",
+    "weapons": "Armas simples, besta-de-mao, Espada longa, Rapieira, Espada curta",
+    "tools": "Kit de disfarce, Alaúde, Três instrumentos à escolha",
+    "languages": "Comum, Élfico, Anão"
+  },
+  "proficienciesAndLanguages": [
+    "Armaduras leves",
+    "Armas simples",
+    "besta-de-mao",
+    "Espada longa",
+    "Rapieira",
+    "Espada curta",
+    "Kit de disfarce",
+    "Alaúde",
+    "Três instrumentos à escolha",
+    "Comum",
+    "Élfico",
+    "Anão"
+  ],
+  "featuresAndTraits": [
+    {
+      "name": "Meio-Elfo traço",
+      "description": "Texto de exemplo, inventado para os testes. (Meio-Elfo traço)"
+    },
+    {
+      "name": "Bardo 1",
+      "description": "Texto de exemplo, inventado para os testes. (Bardo 1)"
+    },
+    {
+      "name": "Bardo 2",
+      "description": "Texto de exemplo, inventado para os testes. (Bardo 2)"
+    },
+    {
+      "name": "colegio-do-conhecimento 3",
+      "description": "Texto de exemplo, inventado para os testes. (colegio-do-conhecimento 3)"
+    },
+    {
+      "name": "Artista característica",
+      "description": "Texto de exemplo, inventado para os testes. (Artista característica)"
+    }
+  ],
+  "spellcasting": {
+    "class": "Bardo",
+    "ability": "charisma",
+    "spellSaveDC": 13,
+    "spellAttackBonus": 5,
+    "cantrips": [
+      "S maos-magicas",
+      "S luz"
+    ],
+    "cantripRefs": [
+      {
+        "name": "S maos-magicas",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "maos-magicas"
+        }
+      },
+      {
+        "name": "S luz",
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "luz"
+        }
+      }
+    ],
+    "slots": {
+      "1": {
+        "total": 4,
+        "expended": 0
+      },
+      "2": {
+        "total": 2,
+        "expended": 0
+      },
+      "3": {
+        "total": 0,
+        "expended": 0
+      },
+      "4": {
+        "total": 0,
+        "expended": 0
+      },
+      "5": {
+        "total": 0,
+        "expended": 0
+      },
+      "6": {
+        "total": 0,
+        "expended": 0
+      },
+      "7": {
+        "total": 0,
+        "expended": 0
+      },
+      "8": {
+        "total": 0,
+        "expended": 0
+      },
+      "9": {
+        "total": 0,
+        "expended": 0
+      }
+    },
+    "spells": [
+      {
+        "level": 1,
+        "name": "S magia-1-01",
+        "prepared": true,
+        "ritual": true,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-01"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-02",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-02"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-03",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-03"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-04",
+        "prepared": true,
+        "ritual": false,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-04"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-05",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-05"
+        }
+      },
+      {
+        "level": 2,
+        "name": "S magia-2-01",
+        "prepared": true,
+        "ritual": false,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-2-01"
+        }
+      }
+    ]
+  },
+  "origin": {
+    "race": {
+      "bookId": "book-test",
+      "slug": "meio-elfo"
+    },
+    "class": {
+      "bookId": "book-test",
+      "slug": "bardo"
+    },
+    "subclass": {
+      "bookId": "book-test",
+      "slug": "colegio-do-conhecimento"
+    },
+    "background": {
+      "bookId": "book-test",
+      "slug": "artista"
+    }
+  }
+}

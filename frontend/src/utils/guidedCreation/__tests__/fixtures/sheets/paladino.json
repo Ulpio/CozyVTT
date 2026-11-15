@@ -1,0 +1,422 @@
+{
+  "characterName": "Teste paladino",
+  "class": "Paladino",
+  "level": 3,
+  "race": "Humano",
+  "background": "Soldado",
+  "experiencePoints": 900,
+  "proficiencyBonus": 2,
+  "stats": {
+    "strength": {
+      "score": 16,
+      "modifier": 3
+    },
+    "dexterity": {
+      "score": 11,
+      "modifier": 0
+    },
+    "constitution": {
+      "score": 14,
+      "modifier": 2
+    },
+    "intelligence": {
+      "score": 9,
+      "modifier": -1
+    },
+    "wisdom": {
+      "score": 13,
+      "modifier": 1
+    },
+    "charisma": {
+      "score": 15,
+      "modifier": 2
+    }
+  },
+  "savingThrows": {
+    "strength": {
+      "proficient": false,
+      "bonus": 3
+    },
+    "dexterity": {
+      "proficient": false,
+      "bonus": 0
+    },
+    "constitution": {
+      "proficient": false,
+      "bonus": 2
+    },
+    "intelligence": {
+      "proficient": false,
+      "bonus": -1
+    },
+    "wisdom": {
+      "proficient": true,
+      "bonus": 3
+    },
+    "charisma": {
+      "proficient": true,
+      "bonus": 4
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "animalHandling": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "arcana": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "athletics": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 5
+    },
+    "deception": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "history": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "insight": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "intimidation": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 4
+    },
+    "investigation": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "medicine": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "nature": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": -1
+    },
+    "perception": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    },
+    "performance": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 2
+    },
+    "persuasion": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 4
+    },
+    "religion": {
+      "proficient": true,
+      "expertise": false,
+      "bonus": 1
+    },
+    "sleightOfHand": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "stealth": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 0
+    },
+    "survival": {
+      "proficient": false,
+      "expertise": false,
+      "bonus": 1
+    }
+  },
+  "passivePerception": 11,
+  "armorClass": 18,
+  "initiative": 0,
+  "initiativeBonus": 0,
+  "speed": 30,
+  "hp": {
+    "maximum": 28,
+    "current": 28,
+    "temporary": 0
+  },
+  "hitDice": [
+    {
+      "class": "Paladino",
+      "die": "d10",
+      "maximum": 3,
+      "remaining": 3
+    }
+  ],
+  "deathSaves": {
+    "successes": 0,
+    "failures": 0
+  },
+  "attacks": [
+    {
+      "name": "Espada longa",
+      "attackBonus": 5,
+      "damageRoll": "1d8+5",
+      "damageType": "cortante",
+      "properties": [
+        "versátil"
+      ],
+      "additionalDamage": [
+        {
+          "label": "Duas mãos",
+          "damageRoll": "1d10+3",
+          "damageType": "cortante"
+        }
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "espada-longa"
+      }
+    },
+    {
+      "name": "Azagaia",
+      "attackBonus": 5,
+      "damageRoll": "1d6+5",
+      "damageType": "perfurante",
+      "range": 30,
+      "properties": [
+        "arremesso"
+      ],
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "azagaia"
+      }
+    }
+  ],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "ep": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "inventory": [
+    {
+      "name": "Espada longa",
+      "quantity": 1,
+      "weight": 3,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "espada-longa"
+      }
+    },
+    {
+      "name": "A escudo",
+      "quantity": 1,
+      "weight": 6,
+      "equippable": true,
+      "equipped": true,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "escudo"
+      }
+    },
+    {
+      "name": "A cota-de-malha",
+      "quantity": 1,
+      "weight": 55,
+      "equippable": true,
+      "equipped": true,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "cota-de-malha"
+      }
+    },
+    {
+      "name": "Azagaia",
+      "quantity": 5,
+      "weight": 2,
+      "equippable": true,
+      "equipped": false,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "azagaia"
+      }
+    }
+  ],
+  "proficiencies": {
+    "armor": "Armaduras leves, armaduras médias, armaduras pesadas, escudos",
+    "weapons": "Armas simples, armas marciais",
+    "tools": "Kit de jogo: conjunto de dados, Veículos (terrestres)",
+    "languages": "Comum, Anão"
+  },
+  "proficienciesAndLanguages": [
+    "Armaduras leves",
+    "armaduras médias",
+    "armaduras pesadas",
+    "escudos",
+    "Armas simples",
+    "armas marciais",
+    "Kit de jogo: conjunto de dados",
+    "Veículos (terrestres)",
+    "Comum",
+    "Anão"
+  ],
+  "featuresAndTraits": [
+    {
+      "name": "Humano traço",
+      "description": "Texto de exemplo, inventado para os testes. (Humano traço)"
+    },
+    {
+      "name": "Paladino 1",
+      "description": "Texto de exemplo, inventado para os testes. (Paladino 1)"
+    },
+    {
+      "name": "Paladino 2",
+      "description": "Texto de exemplo, inventado para os testes. (Paladino 2)"
+    },
+    {
+      "name": "juramento-de-devocao 3",
+      "description": "Texto de exemplo, inventado para os testes. (juramento-de-devocao 3)"
+    },
+    {
+      "name": "Magias de Juramento",
+      "description": "Texto de exemplo, inventado para os testes. (Magias de Juramento)"
+    },
+    {
+      "name": "Soldado característica",
+      "description": "Texto de exemplo, inventado para os testes. (Soldado característica)"
+    },
+    {
+      "name": "Estilo de Luta: Duelismo",
+      "description": ""
+    }
+  ],
+  "spellcasting": {
+    "class": "Paladino",
+    "ability": "charisma",
+    "spellSaveDC": 12,
+    "spellAttackBonus": 4,
+    "cantrips": [],
+    "cantripRefs": [],
+    "slots": {
+      "1": {
+        "total": 3,
+        "expended": 0
+      },
+      "2": {
+        "total": 0,
+        "expended": 0
+      },
+      "3": {
+        "total": 0,
+        "expended": 0
+      },
+      "4": {
+        "total": 0,
+        "expended": 0
+      },
+      "5": {
+        "total": 0,
+        "expended": 0
+      },
+      "6": {
+        "total": 0,
+        "expended": 0
+      },
+      "7": {
+        "total": 0,
+        "expended": 0
+      },
+      "8": {
+        "total": 0,
+        "expended": 0
+      },
+      "9": {
+        "total": 0,
+        "expended": 0
+      }
+    },
+    "spells": [
+      {
+        "level": 1,
+        "name": "S magia-1-01",
+        "prepared": true,
+        "ritual": true,
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-01"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-02",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-02"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-03",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-03"
+        }
+      },
+      {
+        "level": 1,
+        "name": "S magia-1-12",
+        "prepared": true,
+        "ritual": false,
+        "concentration": false,
+        "compendiumRef": {
+          "bookId": "book-test",
+          "slug": "magia-1-12"
+        }
+      }
+    ]
+  },
+  "origin": {
+    "race": {
+      "bookId": "book-test",
+      "slug": "humano"
+    },
+    "class": {
+      "bookId": "book-test",
+      "slug": "paladino"
+    },
+    "subclass": {
+      "bookId": "book-test",
+      "slug": "juramento-de-devocao"
+    },
+    "background": {
+      "bookId": "book-test",
+      "slug": "soldado"
+    }
+  }
+}

@@ -246,6 +246,29 @@ describe('collectEffects, review round 1', () => {
     expect(feats({ ...weakWizard, racialChoices: { abilityPicks: ['str', 'dex'] } })).toContain('imobilizador');
   });
 
+  it("the variant human's two +1 picks replace the human's +1 to every score", () => {
+    const withIncreases: RulesData = {
+      ...data,
+      races: data.races!.map((r) =>
+        r.slug === 'humano'
+          ? { ...r, data: { ...r.data, abilityIncreases: { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 } } }
+          : r,
+      ),
+    };
+    const human = collectEffects(base(), withIncreases).effects.filter((e) => e.type === 'ability');
+    expect(human).toHaveLength(6);
+    const variant = collectEffects(base({ subraceSlug: 'humano-variante' }), withIncreases).effects;
+    expect(variant.filter((e) => e.type === 'ability')).toEqual([]);
+    expect(variant).toContainEqual({ type: 'abilityChoice', count: 2, amount: 1 });
+  });
+
+  it('reports the picks each choice ended up with', () => {
+    const { picks } = collectEffects(base({ optionPicks: { fightingStyle: ['defesa', 'arquearia'] } }), data);
+    expect(picks).toEqual([
+      { id: 'fightingStyle', effect: expect.objectContaining({ type: 'option' }), picks: ['defesa'] },
+    ]);
+  });
+
   it('drops a feat whose prerequisite went away', () => {
     const fighter = base({ subraceSlug: 'humano-variante', optionPicks: { feat: ['maestria-em-armadura-pesada'] } });
     expect(pruneChoices(fighter, data)).toBe(fighter);
