@@ -23,6 +23,7 @@ import { normaliseGameSystem } from '../legacy/gameSystemAliases';
 import { GAME_SYSTEM_NOT_SUPPORTED, SUPPORTED_GAME_SYSTEMS } from '../game-systems';
 import logger from '../utils/logger';
 import { escapeLikePattern } from '../utils/likePattern';
+import { creatureBookScope } from '../compendium/campaignBooks';
 
 const router = Router({ mergeParams: true });
 
@@ -136,6 +137,7 @@ router.get('/', campaignGM, async (req: AuthenticatedRequest, res: Response) => 
     // Two independent scopes, so they are ANDed rather than sharing one OR:
     //  - visibility: global creatures (campaignId null) plus this campaign's own
     //  - game system: the requested system plus system-agnostic creatures
+    //  - books: only the books the campaign uses
     const scopes: Array<Record<string, unknown>> = [
       { OR: [{ campaignId: null }, { campaignId }] },
     ];
@@ -146,6 +148,10 @@ router.get('/', campaignGM, async (req: AuthenticatedRequest, res: Response) => 
       // are excluded.
       scopes.push({ OR: [{ gameSystem }, { gameSystem: null }] });
     }
+
+    // A book the campaign has turned off keeps its creatures out of the list;
+    // the campaign's own and the homemade ones always stay.
+    scopes.push(await creatureBookScope(campaignId));
 
     const where: Prisma.CreatureTemplateWhereInput = { AND: scopes };
 

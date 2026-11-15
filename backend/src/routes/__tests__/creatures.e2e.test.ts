@@ -57,6 +57,8 @@ describe('Creature template routes', () => {
 
     const campaign = await createTestCampaign(gmId, { gameSystem: GameSystem.FIFTH_EDITION });
     campaignId = campaign.id;
+    // The list shows only the campaign's books, and the SRD creatures here come from the SRD book.
+    await prisma.campaignBook.create({ data: { campaignId, bookId: 'srd' } });
 
     await prisma.campaignMembership.createMany({
       data: [

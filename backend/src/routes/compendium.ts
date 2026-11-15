@@ -22,6 +22,7 @@ import { issueMessages } from '../validators/issueMessages';
 import { searchKey } from '../compendium/searchKey';
 import { validateEntries } from '../compendium/schemas';
 import { isCompendiumType } from '../compendium/types';
+import { enabledBookIds } from '../compendium/campaignBooks';
 import logger from '../utils/logger';
 
 const router = Router();
@@ -35,6 +36,8 @@ const isAdmin = (req: AuthenticatedRequest) => req.session.platformRole === 'ADM
 const SearchQuery = z.object({
   type: z.string().optional(),
   book: z.string().optional(),
+  // Search only the books this campaign uses; members only.
+  campaignId: z.string().max(100).optional(),
   q: z.string().max(200).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
@@ -62,7 +65,7 @@ router.get('/books', authenticated, async (_req: AuthenticatedRequest, res: Resp
 router.get('/entries', authenticated, async (req: AuthenticatedRequest, res: Response) => {
   const parsed = SearchQuery.safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: 'Validation Error', message: issueMessages(parsed.error) });
-  const { type, book, q, page, pageSize } = parsed.data;
+  const { type, book, campaignId, q, page, pageSize } = parsed.data;
 
   const where: Prisma.CompendiumEntryWhereInput = {};
   if (type) where.type = type;
@@ -72,6 +75,18 @@ router.get('/entries', authenticated, async (req: AuthenticatedRequest, res: Res
   if (key) where.search = { contains: key };
 
   try {
+    if (campaignId) {
+      const membership = await prisma.campaignMembership.findUnique({
+        where: { userId_campaignId: { userId: req.session.userId!, campaignId } },
+        select: { userId: true },
+      });
+      if (!membership) {
+        return res.status(403).json({ error: 'Forbidden', message: "Only a member can search a campaign's books" });
+      }
+      const enabled = await enabledBookIds(campaignId);
+      where.bookId = { in: book ? enabled.filter((id) => id === book) : enabled };
+    }
+
     const [items, total] = await Promise.all([
       prisma.compendiumEntry.findMany({
         where,

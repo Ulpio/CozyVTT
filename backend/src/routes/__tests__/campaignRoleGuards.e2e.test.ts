@@ -25,6 +25,7 @@ import { requireGM, requireCampaignMember, requireGMOrPlayer } from '../../middl
 const GM_ONLY = [
   'PUT /api/campaigns/:campaignId',
   'PUT /api/campaigns/:campaignId/vibe',
+  'PUT /api/campaigns/:campaignId/books',
   'GET /api/campaigns/:campaignId/invitable-users',
   'POST /api/campaigns/:campaignId/invite',
   'GET /api/campaigns/:campaignId/invitations',
@@ -81,6 +82,7 @@ const GM_ONLY = [
 /** Routes any member of the campaign may use, spectators included. */
 const ANY_MEMBER = [
   'GET /api/campaigns/:campaignId',
+  'GET /api/campaigns/:campaignId/books',
   'GET /api/campaigns/:campaignId/characters',
   'GET /api/campaigns/:campaignId/messages',
   'GET /api/campaigns/:campaignId/dice-rolls',
