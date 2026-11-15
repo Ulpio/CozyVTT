@@ -233,7 +233,11 @@
           "damageRoll": "damageRoll 3100",
           "damageType": "damageType 3101"
         }
-      ]
+      ],
+      "compendiumRef": {
+        "bookId": "bookId 3200",
+        "slug": "slug 3201"
+      }
     }
   ],
   "currency": {
@@ -253,7 +257,11 @@
       "equipped": false,
       "requiresAttunement": true,
       "attuned": false,
-      "value": 108
+      "value": 108,
+      "compendiumRef": {
+        "bookId": "bookId 3202",
+        "slug": "slug 3203"
+      }
     }
   ],
   "proficiencies": {
@@ -281,6 +289,15 @@
     "spellAttackOtherBonus": 16,
     "cantrips": [
       "cantrips 3126"
+    ],
+    "cantripRefs": [
+      {
+        "name": "name 3206",
+        "compendiumRef": {
+          "bookId": "bookId 3207",
+          "slug": "slug 3208"
+        }
+      }
     ],
     "slots": {
       "1": {
@@ -326,9 +343,35 @@
         "name": "name 3146",
         "prepared": true,
         "ritual": false,
-        "concentration": true
+        "concentration": true,
+        "compendiumRef": {
+          "bookId": "bookId 3204",
+          "slug": "slug 3205"
+        }
       }
     ]
+  },
+  "origin": {
+    "race": {
+      "bookId": "bookId 3210",
+      "slug": "slug 3211"
+    },
+    "subrace": {
+      "bookId": "bookId 3212",
+      "slug": "slug 3213"
+    },
+    "class": {
+      "bookId": "bookId 3214",
+      "slug": "slug 3215"
+    },
+    "subclass": {
+      "bookId": "bookId 3216",
+      "slug": "slug 3217"
+    },
+    "background": {
+      "bookId": "bookId 3218",
+      "slug": "slug 3219"
+    }
   },
   "appearance": {
     "age": "age 3147",
