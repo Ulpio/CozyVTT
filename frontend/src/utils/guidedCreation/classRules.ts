@@ -1,4 +1,4 @@
-import type { Effect, OptionEffect } from './types';
+import type { Effect, OptionEffect, Requirement } from './types';
 
 /**
  * What a class gains from 1st to 3rd level beyond its compendium data: choices
@@ -6,7 +6,10 @@ import type { Effect, OptionEffect } from './types';
  * them; the UI shows the feature text from the compendium beside them.
  */
 
-const opt = (id: string, name: string, effects: Effect[] = []): OptionEffect => ({ id, name, effects });
+const opt = (id: string, name: string, effects: Effect[] = [], requires?: Requirement[]): OptionEffect =>
+  requires ? { id, name, effects, requires } : { id, name, effects };
+
+const BLAST: Requirement[] = [{ kind: 'cantrip', slug: 'rajada-mistica' }];
 
 const STYLE: Record<string, OptionEffect> = {
   arquearia: opt('arquearia', 'Arquearia', [{ type: 'attackBonus', attack: 'ranged', toHit: 2 }]),
@@ -22,16 +25,18 @@ const fightingStyle = (options: OptionEffect[]): Effect => ({ type: 'option', id
 /** Invocations a 2nd/3rd-level warlock can take (no level prerequisite). */
 const INVOCATIONS: OptionEffect[] = [
   opt('armadura-de-sombras', 'Armadura de Sombras', [{ type: 'unarmoredAC', base: 13, abilities: ['dex'] }]),
-  opt('explosao-agonizante', 'Explosão Agonizante', [{ type: 'attackBonus', attack: 'eldritchBlast', damage: 'ability' }]),
-  opt('explosao-repulsiva', 'Explosão Repulsiva'),
+  opt('explosao-agonizante', 'Explosão Agonizante', [{ type: 'attackBonus', attack: 'eldritchBlast', damage: 'ability' }], BLAST),
+  opt('explosao-repulsiva', 'Explosão Repulsiva', [], BLAST),
   opt('idioma-bestial', 'Idioma Bestial'),
   opt('influencia-enganadora', 'Influência Enganadora', [
     { type: 'skill', skill: 'deception' },
     { type: 'skill', skill: 'persuasion' },
   ]),
-  opt('lanca-mistica', 'Lança Mística'),
+  opt('lanca-mistica', 'Lança Mística', [], BLAST),
   opt('larapio-dos-cinco-destinos', 'Larápio dos Cinco Destinos'),
-  opt('livro-de-segredos-antigos', 'Livro de Segredos Antigos'),
+  opt('livro-de-segredos-antigos', 'Livro de Segredos Antigos', [], [
+    { kind: 'option', id: 'pactBoon', pick: 'pacto-do-tomo' },
+  ]),
   opt('mascara-das-muitas-faces', 'Máscara das Muitas Faces'),
   opt('olhar-de-duas-mentes', 'Olhar de Duas Mentes'),
   opt('olhos-do-guardiao-das-runas', 'Olhos do Guardião das Runas'),
@@ -39,7 +44,9 @@ const INVOCATIONS: OptionEffect[] = [
   opt('visao-diabolica', 'Visão Diabólica'),
   opt('visao-mistica', 'Visão Mística'),
   opt('visoes-nas-brumas', 'Visões nas Brumas'),
-  opt('voz-do-mestre-das-correntes', 'Voz do Mestre das Correntes'),
+  opt('voz-do-mestre-das-correntes', 'Voz do Mestre das Correntes', [], [
+    { kind: 'option', id: 'pactBoon', pick: 'pacto-da-corrente' },
+  ]),
 ];
 
 const PACT_BOONS: OptionEffect[] = [
@@ -79,11 +86,11 @@ export const CLASS_EFFECTS: Record<string, Effect[]> = {
   guerreiro: [
     fightingStyle([STYLE.arquearia, STYLE.defesa, STYLE.duelismo, STYLE.armasGrandes, STYLE.protecao, STYLE.duasArmas]),
   ],
-  ladino: [{ type: 'expertiseChoice', count: 2 }],
+  ladino: [{ type: 'expertiseChoice', count: 2, tool: 'ferramentas-de-ladrao' }],
   monge: [
     { type: 'unarmoredAC', base: 10, abilities: ['dex', 'wis'], noShield: true },
     { type: 'attackBonus', attack: 'unarmed', die: '1d4', ability: 'dex' },
-    { type: 'speed', meters: 3 },
+    { type: 'speed', meters: 3, noArmor: true },
   ],
   paladino: [fightingStyle([STYLE.defesa, STYLE.duelismo, STYLE.armasGrandes, STYLE.protecao])],
   patrulheiro: [

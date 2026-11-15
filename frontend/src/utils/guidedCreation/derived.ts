@@ -34,7 +34,10 @@ export function armorClass(
     ac = body.baseAc;
     if (body.addDex) {
       const dex = mod('dex');
-      const cap = body.maxDex ?? (body.category === 'medium' ? 2 : undefined);
+      let cap = body.maxDex ?? (body.category === 'medium' ? 2 : undefined);
+      if (body.category === 'medium') {
+        for (const e of effects) if (e.type === 'mediumArmorMaxDex') cap = Math.max(cap ?? 0, e.max);
+      }
       ac += cap !== undefined ? Math.min(dex, cap) : dex;
     }
   } else {

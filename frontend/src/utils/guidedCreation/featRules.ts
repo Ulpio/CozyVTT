@@ -1,6 +1,6 @@
 import { ABILITY_KEYS } from '@/utils/rules/fifthEdition';
 import { MANEUVERS } from './subclassRules';
-import type { AbilityKey, Effect, OptionEffect } from './types';
+import type { AbilityKey, Effect, OptionEffect, Requirement } from './types';
 
 /**
  * PHB feats (variant human only) that change a number or add a choice. Feats
@@ -31,22 +31,29 @@ const RESILIENT: OptionEffect[] = ABILITY_KEYS.map((ability) => ({
   effects: [plusOne(ability), { type: 'save', ability }],
 }));
 
-const MAGIC_INITIATE: OptionEffect[] = (
-  [
-    ['bardo', 'Bardo', 'cha'],
-    ['bruxo', 'Bruxo', 'cha'],
-    ['clerigo', 'Clérigo', 'wis'],
-    ['druida', 'Druida', 'wis'],
-    ['feiticeiro', 'Feiticeiro', 'cha'],
-    ['mago', 'Mago', 'int'],
-  ] as const
-).map(([list, name, ability]) => ({
+const CASTER_LISTS = [
+  ['bardo', 'Bardo', 'cha'],
+  ['bruxo', 'Bruxo', 'cha'],
+  ['clerigo', 'Clérigo', 'wis'],
+  ['druida', 'Druida', 'wis'],
+  ['feiticeiro', 'Feiticeiro', 'cha'],
+  ['mago', 'Mago', 'int'],
+] as const;
+
+const MAGIC_INITIATE: OptionEffect[] = CASTER_LISTS.map(([list, name, ability]) => ({
   id: list,
   name,
   effects: [
     { type: 'cantripChoice', count: 2, list, ability },
     { type: 'spellChoice', count: 1, level: 1, list },
   ],
+}));
+
+/** Spell Sniper: one attack cantrip from one of these lists. */
+const SPELL_SNIPER: OptionEffect[] = CASTER_LISTS.map(([list, name, ability]) => ({
+  id: list,
+  name,
+  effects: [{ type: 'cantripChoice', count: 1, list, ability }],
 }));
 
 export const FEAT_EFFECTS: Record<string, Effect[]> = {
@@ -60,9 +67,11 @@ export const FEAT_EFFECTS: Record<string, Effect[]> = {
     { type: 'attackBonus', attack: 'unarmed', die: '1d4' },
   ],
   'iniciado-em-magia': [{ type: 'option', id: 'magicInitiateClass', choose: 1, options: MAGIC_INITIATE }],
+  'atirador-de-magia': [{ type: 'option', id: 'spellSniperClass', choose: 1, options: SPELL_SNIPER }],
+  'maestria-em-armadura-media': [{ type: 'mediumArmorMaxDex', max: 3 }],
   'maestria-em-armadura-pesada': [plusOne('str')],
   'mente-afiada': [plusOne('int')],
-  'mestre-de-armas': [plusOneOf('str', 'dex')],
+  'mestre-de-armas': [plusOneOf('str', 'dex'), { type: 'weaponChoice', count: 4 }],
   mobilidade: [{ type: 'speed', meters: 3 }],
   observador: [plusOneOf('int', 'wis'), { type: 'passivePerception', amount: 5 }],
   perito: [{ type: 'skillChoice', count: 3, orTool: true }],
@@ -77,4 +86,23 @@ export const FEAT_EFFECTS: Record<string, Effect[]> = {
   resiliente: [{ type: 'option', id: 'resilientAbility', choose: 1, options: RESILIENT }],
   resistente: [plusOne('con')],
   robusto: [{ type: 'hpPerLevel', amount: 2 }],
+};
+
+const score = (min: number, ...abilities: AbilityKey[]): Requirement => ({ kind: 'score', abilities, min });
+const SPELLCASTING: Requirement = { kind: 'spellcasting' };
+
+/** PHB feat prerequisites, checked at 3rd level before the feat is taken. */
+export const FEAT_REQUIRES: Record<string, Requirement[]> = {
+  'adepto-elemental': [SPELLCASTING],
+  'atirador-de-magia': [SPELLCASTING],
+  'conjurador-de-guerra': [SPELLCASTING],
+  'conjurador-de-ritual': [score(13, 'int', 'wis')],
+  'duelista-defensivo': [score(13, 'dex')],
+  imobilizador: [score(13, 'str')],
+  'lider-inspirador': [score(13, 'cha')],
+  'maestria-em-armadura-media': [{ kind: 'armor', armor: 'medium' }],
+  'maestria-em-armadura-pesada': [{ kind: 'armor', armor: 'heavy' }],
+  'protecao-moderada': [{ kind: 'armor', armor: 'light' }],
+  'protecao-pesada': [{ kind: 'armor', armor: 'medium' }],
+  sorrateiro: [score(13, 'dex')],
 };

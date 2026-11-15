@@ -26,6 +26,7 @@ export const RACE_EFFECTS: Record<string, Effect[]> = {
     { type: 'skillChoice', count: 2 },
     { type: 'languageChoice', count: 1 },
   ],
+  humano: [{ type: 'languageChoice', count: 1 }],
   'humano-variante': [
     { type: 'abilityChoice', count: 2, amount: 1 },
     { type: 'skillChoice', count: 1 },

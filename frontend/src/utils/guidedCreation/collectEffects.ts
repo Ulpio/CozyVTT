@@ -1,9 +1,28 @@
-import type { BackgroundData, ClassData, FeatData, RaceData, SubclassData, SubraceData } from './compendiumData';
+import { finalScores } from './abilities';
+import type {
+  BackgroundData,
+  ClassData,
+  FeatData,
+  RaceData,
+  SubclassData,
+  SubraceData,
+  WeaponData,
+} from './compendiumData';
 import { CLASS_EFFECTS } from './classRules';
-import { FEAT_EFFECTS } from './featRules';
+import { FEAT_EFFECTS, FEAT_REQUIRES } from './featRules';
 import { abilityIncreaseEffects, RACE_EFFECTS } from './raceRules';
 import { SUBCLASS_EFFECTS } from './subclassRules';
-import { SKILL_KEYS, type CreationChoices, type Effect, type OptionEffect, type SkillKey } from './types';
+import { backgroundToolCategory, TOOL_CATEGORIES } from './toolRules';
+import {
+  SKILL_KEYS,
+  type AbilityKey,
+  type ArmorKind,
+  type CreationChoices,
+  type Effect,
+  type OptionEffect,
+  type Requirement,
+  type SkillKey,
+} from './types';
 
 /** A compendium entry as the rules read it. */
 export interface RulesEntry<T> {
@@ -20,16 +39,20 @@ export interface RulesData {
   subclasses: RulesEntry<SubclassData>[];
   backgrounds?: RulesEntry<BackgroundData>[];
   feats?: RulesEntry<FeatData>[];
+  weapons?: RulesEntry<WeaponData>[];
+  tools?: RulesEntry<unknown>[];
 }
 
 /**
  * Something the player still has to pick. Where the picks go, by `kind`:
  * `option` → `optionPicks[id]` (option ids); `featChoice` → `optionPicks.feat`
  * (one feat slug); `cantripChoice`/`spellChoice` → `optionPicks[id]` (spell
- * slugs); `skillChoice` → `skillPicks`; `expertiseChoice` → `expertisePicks`;
- * `languageChoice` → `languagePicks`; `toolChoice` → `toolPicks`.
+ * slugs); `weaponChoice` → `optionPicks[id]` (weapon slugs); `languageChoice` and
+ * `toolChoice` → `languagePicks`/`toolPicks` when the background owes them (ids
+ * start with `background:`), else `optionPicks[id]`; `skillChoice` →
+ * `skillPicks`; `expertiseChoice` → `expertisePicks`.
  * `abilityChoice` is not listed: the abilities step checks it with
- * `validateAbilityPicks`.
+ * `validateAbilityPicks` over `abilityPicksOf(choices)`.
  */
 export interface PendingChoice {
   id: string;
@@ -41,40 +64,137 @@ export interface PendingChoice {
 /** The `optionPicks` key of the variant human's feat. */
 export const FEAT_PICK = 'feat';
 
+/** Subclasses that cast from 3rd level in a class without spellcasting. */
+const CASTING_SUBCLASSES = ['cavaleiro-arcano', 'trapaceiro-arcano'];
+
 const SKILLS = new Set<string>(SKILL_KEYS);
 const isSkill = (s: string): s is SkillKey => SKILLS.has(s);
 const skillEffects = (list: string[] | undefined): Effect[] =>
   (list ?? []).filter(isSkill).map((skill) => ({ type: 'skill', skill }));
+const ABILITIES = new Set<string>(['str', 'dex', 'con', 'int', 'wis', 'cha']);
 
-/** An effect and the id its picks are stored under. */
+/** The abilityChoice picks, in effect order: `racialChoices.abilityPicks`. */
+export function abilityPicksOf(choices: CreationChoices): AbilityKey[] {
+  const picks = choices.racialChoices.abilityPicks;
+  return Array.isArray(picks) ? picks.filter((p): p is AbilityKey => ABILITIES.has(p as string)) : [];
+}
+
+/** An effect, the id its picks are stored under, and its counted picks. */
 interface Tagged {
   effect: Effect;
   id: string;
+  picks: string[];
 }
 
 const bySlug = <T>(list: RulesEntry<T>[] | undefined, slug: string | undefined) =>
   slug ? list?.find((e) => e.slug === slug) : undefined;
 
-function pickedOptions(e: Extract<Effect, { type: 'option' }>, picks: string[] | undefined): OptionEffect[] {
-  const ids = [...new Set(picks ?? [])];
-  return ids
-    .map((id) => e.options.find((o) => o.id === id))
-    .filter((o): o is OptionEffect => o !== undefined)
-    .slice(0, e.choose);
+const unique = (list: string[] | undefined) => [...new Set(list ?? [])];
+
+/** Armor kinds a class's proficiency lines grant ("Todas as armaduras", "armaduras médias", ...). */
+function classArmor(lines: string[]): ArmorKind[] {
+  const out: ArmorKind[] = [];
+  for (const raw of lines) {
+    const line = raw.toLowerCase();
+    if (line.includes('todas as armaduras')) out.push('light', 'medium', 'heavy');
+    if (line.includes('leves')) out.push('light');
+    if (line.includes('médias')) out.push('medium');
+    if (line.includes('pesadas')) out.push('heavy');
+    if (line.includes('escudos')) out.push('shield');
+  }
+  return out;
 }
 
-function pickedFeat(choices: CreationChoices, data: RulesData): string | undefined {
-  const slug = choices.optionPicks[FEAT_PICK]?.[0];
-  if (!slug) return undefined;
-  return !data.feats || data.feats.some((f) => f.slug === slug) ? slug : undefined;
+/** What the rules read while walking the effects. */
+class Context {
+  readonly cls?: RulesEntry<ClassData>;
+  readonly subclass?: RulesEntry<SubclassData>;
+  readonly knownCantrips: Set<string>;
+  private beforeFeatCache?: Effect[];
+
+  constructor(
+    readonly choices: CreationChoices,
+    readonly data: RulesData,
+  ) {
+    this.cls = bySlug(data.classes, choices.classSlug);
+    const subclass = bySlug(data.subclasses, choices.subclassSlug);
+    this.subclass = this.cls && subclass?.data.parent === this.cls.slug ? subclass : undefined;
+    this.knownCantrips = new Set([
+      ...choices.cantripSlugs,
+      ...Object.entries(choices.optionPicks)
+        .filter(([key]) => key.includes(':cantripChoice:'))
+        .flatMap(([, slugs]) => slugs),
+    ]);
+  }
+
+  /** Every effect but the feat's: what a feat prerequisite is checked against. */
+  beforeFeat(): Effect[] {
+    this.beforeFeatCache ??= tagAll(this, false).map((t) => t.effect);
+    return this.beforeFeatCache;
+  }
+
+  meets(requires: Requirement[] | undefined): boolean {
+    return (requires ?? []).every((r) => this.meetsOne(r));
+  }
+
+  private meetsOne(req: Requirement): boolean {
+    switch (req.kind) {
+      case 'option':
+        return this.choices.optionPicks[req.id]?.includes(req.pick) ?? false;
+      case 'cantrip':
+        return this.knownCantrips.has(req.slug);
+      case 'armor':
+        return (
+          classArmor(this.cls?.data.proficiencies.armor ?? []).includes(req.armor) ||
+          this.beforeFeat().some((e) => e.type === 'armorProficiency' && e.armor === req.armor)
+        );
+      case 'score': {
+        const scores = finalScores(this.choices.baseScores, this.beforeFeat(), abilityPicksOf(this.choices));
+        return req.abilities.some((a) => scores[a] >= req.min);
+      }
+      case 'spellcasting':
+        return !!this.cls?.data.spellcasting || CASTING_SUBCLASSES.includes(this.subclass?.slug ?? '');
+      default: {
+        const unreachable: never = req;
+        throw new Error(`Unknown requirement: ${JSON.stringify(unreachable)}`);
+      }
+    }
+  }
+
+  availableOptions(e: Extract<Effect, { type: 'option' }>): OptionEffect[] {
+    return e.options.filter((o) => this.meets(o.requires));
+  }
+
+  availableFeats(): RulesEntry<FeatData>[] {
+    return (this.data.feats ?? []).filter((f) => this.meets(FEAT_REQUIRES[f.slug]));
+  }
+
+  pickedFeat(): string | undefined {
+    const slug = this.choices.optionPicks[FEAT_PICK]?.[0];
+    if (!slug || !this.meets(FEAT_REQUIRES[slug])) return undefined;
+    return !this.data.feats || this.data.feats.some((f) => f.slug === slug) ? slug : undefined;
+  }
+
+  toolOptions(category: Extract<Effect, { type: 'toolChoice' }>['category']): { id: string; name: string }[] {
+    const tools = (this.data.tools ?? []).map((t) => ({ id: t.slug, name: t.name }));
+    return category ? tools.filter((t) => TOOL_CATEGORIES[category].includes(t.id)) : tools;
+  }
+
+  validTool(slug: string, category: Extract<Effect, { type: 'toolChoice' }>['category']): boolean {
+    if (category) return TOOL_CATEGORIES[category].includes(slug);
+    return !this.data.tools || this.data.tools.some((t) => t.slug === slug);
+  }
+
+  validWeapon(slug: string): boolean {
+    return !this.data.weapons || this.data.weapons.some((w) => w.slug === slug);
+  }
 }
 
 /** Fixed race, background, class and subclass effects by scope; the subrace/subclass only when it belongs. */
-function sources(choices: CreationChoices, data: RulesData): Array<[string, Effect[]]> {
+function sources(ctx: Context): Array<[string, Effect[]]> {
+  const { choices, data, cls, subclass } = ctx;
   const race = bySlug(data.races, choices.raceSlug);
   const subrace = bySlug(data.subraces, choices.subraceSlug);
-  const cls = bySlug(data.classes, choices.classSlug);
-  const subclass = bySlug(data.subclasses, choices.subclassSlug);
   const background = bySlug(data.backgrounds, choices.backgroundSlug);
   const out: Array<[string, Effect[]]> = [];
   if (race) {
@@ -97,7 +217,16 @@ function sources(choices: CreationChoices, data: RulesData): Array<[string, Effe
       ],
     ]);
   }
-  if (background) out.push(['background', skillEffects(background.data.proficiencies.skills)]);
+  if (background) {
+    const { languages, proficiencies } = background.data;
+    const effects: Effect[] = skillEffects(proficiencies.skills);
+    if (typeof languages === 'number' && languages > 0) effects.push({ type: 'languageChoice', count: languages });
+    for (const line of proficiencies.tools) {
+      const category = backgroundToolCategory(line);
+      if (category) effects.push({ type: 'toolChoice', count: 1, category });
+    }
+    out.push(['background', effects]);
+  }
   if (cls) {
     out.push([
       'class',
@@ -108,126 +237,207 @@ function sources(choices: CreationChoices, data: RulesData): Array<[string, Effe
       ],
     ]);
   }
-  if (cls && subclass?.data.parent === cls.slug) {
-    out.push(['subclass', SUBCLASS_EFFECTS[subclass.slug] ?? []]);
-  }
+  if (subclass) out.push(['subclass', SUBCLASS_EFFECTS[subclass.slug] ?? []]);
   return out;
 }
 
-/** Every effect with its pick id, picked options' and the picked feat's effects included. */
-function tagAll(choices: CreationChoices, data: RulesData): Tagged[] {
+/**
+ * Every effect with its pick id and counted picks, picked options' and (with
+ * `withFeat`) the picked feat's effects included. Picked weapons, tools and
+ * languages are added as weaponProficiency, tool and language effects.
+ */
+function tagAll(ctx: Context, withFeat: boolean): Tagged[] {
+  const { choices } = ctx;
   const out: Tagged[] = [];
+  const background = { languageChoice: 0, toolChoice: 0 };
   const walk = (effects: Effect[], scope: string) => {
     const seen: Partial<Record<Effect['type'], number>> = {};
     for (const effect of effects) {
       const n = (seen[effect.type] = (seen[effect.type] ?? -1) + 1);
       const id =
         effect.type === 'option' ? effect.id : effect.type === 'featChoice' ? FEAT_PICK : `${scope}:${effect.type}:${n}`;
-      out.push({ effect, id });
-      if (effect.type === 'option') {
-        for (const o of pickedOptions(effect, choices.optionPicks[effect.id])) walk(o.effects, `${effect.id}.${o.id}`);
-      } else if (effect.type === 'featChoice') {
-        const feat = pickedFeat(choices, data);
-        if (feat) walk(FEAT_EFFECTS[feat] ?? [], 'feat');
+      const stored = choices.optionPicks[id];
+      const tagged: Tagged = { effect, id, picks: [] };
+      out.push(tagged);
+      switch (effect.type) {
+        case 'option': {
+          const available = ctx.availableOptions(effect);
+          const picked = unique(stored)
+            .map((pick) => available.find((o) => o.id === pick))
+            .filter((o): o is OptionEffect => o !== undefined)
+            .slice(0, effect.choose);
+          tagged.picks = picked.map((o) => o.id);
+          for (const o of picked) walk(o.effects, `${effect.id}.${o.id}`);
+          break;
+        }
+        case 'featChoice': {
+          // Without the feat (what its prerequisites are checked against) the pick is not read.
+          const feat = withFeat ? ctx.pickedFeat() : undefined;
+          if (feat) {
+            tagged.picks = [feat];
+            walk(FEAT_EFFECTS[feat] ?? [], 'feat');
+          }
+          break;
+        }
+        case 'cantripChoice':
+        case 'spellChoice':
+          tagged.picks = unique(stored).slice(0, effect.count);
+          break;
+        case 'weaponChoice':
+          tagged.picks = unique(stored).filter((w) => ctx.validWeapon(w)).slice(0, effect.count);
+          for (const weapon of tagged.picks) out.push({ effect: { type: 'weaponProficiency', weapon }, id, picks: [] });
+          break;
+        case 'languageChoice':
+        case 'toolChoice': {
+          let source = stored;
+          if (scope === 'background') {
+            const pool = effect.type === 'languageChoice' ? choices.languagePicks : choices.toolPicks;
+            source = pool.slice(background[effect.type], background[effect.type] + effect.count);
+            background[effect.type] += effect.count;
+          }
+          const valid =
+            effect.type === 'toolChoice' ? unique(source).filter((t) => ctx.validTool(t, effect.category)) : unique(source);
+          tagged.picks = valid.slice(0, effect.count);
+          for (const pick of tagged.picks) {
+            const derived: Effect =
+              effect.type === 'toolChoice' ? { type: 'tool', tool: pick } : { type: 'language', language: pick };
+            out.push({ effect: derived, id, picks: [] });
+          }
+          break;
+        }
+        default:
+          break;
       }
     }
   };
-  for (const [scope, effects] of sources(choices, data)) walk(effects, scope);
+  for (const [scope, effects] of sources(ctx)) walk(effects, scope);
   return out;
 }
 
 interface Slot {
   id: string;
   count: number;
-  allowed: (s: SkillKey) => boolean;
-  /** Restricted slots take picks first, so an open slot does not steal them. */
-  width: number;
+  allowed: (pick: string) => boolean;
 }
 
-/** Hands each pick to the first slot that accepts it; picks no slot accepts are left out. */
-function allocate(picks: SkillKey[], slots: Slot[], blocked: Set<SkillKey>) {
-  const taken = new Map<string, SkillKey[]>(slots.map((s) => [s.id, []]));
-  const used = new Set<SkillKey>();
-  const order = [...slots].sort((a, b) => a.width - b.width);
+/**
+ * The largest assignment of picks to slots (bipartite matching by augmenting
+ * paths). Picks are tried in order and slots in effect order, so picks keep the
+ * slot they first fit unless moving them makes room for another; picks no slot
+ * can take, repeats and `blocked` ones are left out.
+ */
+function allocate(picks: string[], slots: Slot[], blocked: Set<string>) {
+  const taken = new Map<string, string[]>(slots.map((s) => [s.id, []]));
+  const place = (pick: string, visited: Set<string>): boolean => {
+    for (const slot of slots) {
+      if (visited.has(slot.id) || !slot.allowed(pick)) continue;
+      visited.add(slot.id);
+      const list = taken.get(slot.id) ?? [];
+      if (list.length < slot.count) {
+        list.push(pick);
+        return true;
+      }
+      for (let i = 0; i < list.length; i++) {
+        if (place(list[i], visited)) {
+          list[i] = pick;
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  const used = new Set<string>();
   for (const pick of picks) {
     if (used.has(pick) || blocked.has(pick)) continue;
-    const slot = order.find((s) => s.allowed(pick) && (taken.get(s.id)?.length ?? 0) < s.count);
-    if (!slot) continue;
-    taken.get(slot.id)?.push(pick);
-    used.add(pick);
+    if (place(pick, new Set())) used.add(pick);
   }
   return { taken, used };
 }
 
 function resolve(choices: CreationChoices, data: RulesData) {
-  const tagged = tagAll(choices, data);
-  const effects = tagged.map((t) => t.effect);
+  const ctx = new Context(choices, data);
+  const tagged = tagAll(ctx, true);
   const of = <K extends Effect['type']>(type: K) =>
-    tagged.filter((t): t is { effect: Extract<Effect, { type: K }>; id: string } => t.effect.type === type);
+    tagged.filter((t): t is Tagged & { effect: Extract<Effect, { type: K }> } => t.effect.type === type);
 
-  const fixed = new Set(of('skill').map((t) => t.effect.skill));
-  const skillSlots: Slot[] = of('skillChoice').map(({ effect, id }) => ({
+  const fixed = new Set<string>(of('skill').map((t) => t.effect.skill));
+  const skillChoices = of('skillChoice');
+  const skillSlots: Slot[] = skillChoices.map(({ effect, id }) => ({
     id,
     count: effect.count,
-    allowed: (s) => !effect.from || effect.from.includes(s),
-    width: effect.from?.length ?? SKILL_KEYS.length,
+    allowed: (s) => isSkill(s) && (!effect.from || effect.from.includes(s)),
   }));
   const skills = allocate(choices.skillPicks, skillSlots, fixed);
   const proficient = new Set([...fixed, ...skills.used]);
 
+  // Skills a skillChoice with `expertise` ended up with also get expertise.
+  const autoExpertise = new Set<string>(of('expertise').map((t) => t.effect.skill));
+  const derived: Effect[] = [];
+  for (const { effect, id } of skillChoices) {
+    if (!effect.expertise) continue;
+    for (const skill of skills.taken.get(id) ?? []) {
+      if (isSkill(skill) && !autoExpertise.has(skill)) {
+        autoExpertise.add(skill);
+        derived.push({ type: 'expertise', skill });
+      }
+    }
+  }
+
   const expertiseSlots: Slot[] = of('expertiseChoice').map(({ effect, id }) => ({
     id,
     count: effect.count,
-    allowed: (s) => proficient.has(s) && (!effect.from || effect.from.includes(s)),
-    width: effect.from?.length ?? SKILL_KEYS.length,
+    allowed: (s) => proficient.has(s) || s === effect.tool,
   }));
-  const expertise = allocate(choices.expertisePicks, expertiseSlots, new Set());
+  const expertise = allocate(choices.expertisePicks, expertiseSlots, autoExpertise);
 
-  return { tagged, effects, of, skillSlots, skills, proficient, expertiseSlots, expertise };
+  const effects = [...tagged.map((t) => t.effect), ...derived];
+  return { ctx, tagged, effects, skillSlots, skills, proficient, autoExpertise, expertiseSlots, expertise };
 }
 
-const skillOptions = (keep: (s: SkillKey) => boolean) =>
-  SKILL_KEYS.filter(keep).map((s) => ({ id: s, name: s }));
+const skillOptions = (keep: (s: SkillKey) => boolean) => SKILL_KEYS.filter(keep).map((s) => ({ id: s, name: s }));
 
 /**
- * Every effect of the race, subrace, background skills, class (1st–3rd level, with
- * its saves and skill choice), subclass and the variant human's feat, including
- * the effects of picked options; and what the player still has to pick.
+ * Every effect of the race, subrace, background (skills, language and tool
+ * picks), class (1st–3rd level, with its saves and skill choice), subclass and
+ * the variant human's feat, including the effects of picked options and the
+ * proficiencies picked weapons, tools and languages give, plus expertise from
+ * skill choices that grant it; and what the player still has to pick.
  */
 export function collectEffects(
   choices: CreationChoices,
   data: RulesData,
 ): { effects: Effect[]; pending: PendingChoice[] } {
-  const { tagged, effects, skillSlots, skills, proficient, expertiseSlots, expertise } = resolve(choices, data);
+  const { ctx, tagged, effects, skillSlots, skills, proficient, autoExpertise, expertiseSlots, expertise } = resolve(
+    choices,
+    data,
+  );
   const pending: PendingChoice[] = [];
-  const consumed = { languageChoice: 0, toolChoice: 0 };
-  const pools = { languageChoice: choices.languagePicks.length, toolChoice: choices.toolPicks.length };
 
-  for (const { effect, id } of tagged) {
+  for (const { effect, id, picks } of tagged) {
     const add = (count: number, options?: PendingChoice['options']) => {
       if (count > 0) pending.push({ id, kind: effect.type, count, ...(options ? { options } : {}) });
     };
     switch (effect.type) {
       case 'option':
         add(
-          effect.choose - pickedOptions(effect, choices.optionPicks[id]).length,
-          effect.options.map((o) => ({ id: o.id, name: o.name })),
+          effect.choose - picks.length,
+          ctx.availableOptions(effect).map((o) => ({ id: o.id, name: o.name })),
         );
         break;
       case 'featChoice':
-        if (!pickedFeat(choices, data)) add(1, (data.feats ?? []).map((f) => ({ id: f.slug, name: f.name })));
+        add(1 - picks.length, ctx.availableFeats().map((f) => ({ id: f.slug, name: f.name })));
         break;
       case 'cantripChoice':
       case 'spellChoice':
-        add(effect.count - (choices.optionPicks[id]?.length ?? 0));
-        break;
       case 'languageChoice':
-      case 'toolChoice': {
-        const got = Math.min(effect.count, pools[effect.type] - consumed[effect.type]);
-        consumed[effect.type] += got;
-        add(effect.count - got);
+        add(effect.count - picks.length);
         break;
-      }
+      case 'toolChoice':
+        add(effect.count - picks.length, ctx.toolOptions(effect.category));
+        break;
+      case 'weaponChoice':
+        add(effect.count - picks.length, (data.weapons ?? []).map((w) => ({ id: w.slug, name: w.name })));
+        break;
       case 'skillChoice': {
         const slot = skillSlots.find((s) => s.id === id);
         add(
@@ -238,10 +448,12 @@ export function collectEffects(
       }
       case 'expertiseChoice': {
         const slot = expertiseSlots.find((s) => s.id === id);
-        add(
-          effect.count - (expertise.taken.get(id)?.length ?? 0),
-          skillOptions((s) => !expertise.used.has(s) && !!slot?.allowed(s)),
-        );
+        const skillsLeft = skillOptions((s) => !expertise.used.has(s) && !autoExpertise.has(s) && !!slot?.allowed(s));
+        const tool =
+          effect.tool && !expertise.used.has(effect.tool)
+            ? [{ id: effect.tool, name: data.tools?.find((t) => t.slug === effect.tool)?.name ?? effect.tool }]
+            : [];
+        add(effect.count - (expertise.taken.get(id)?.length ?? 0), [...skillsLeft, ...tool]);
         break;
       }
       default:
@@ -253,23 +465,21 @@ export function collectEffects(
 
 const sameList = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 
-/** The picks that still count: valid option ids, the feat, and spell picks of choices that still exist. */
-function prunedOptionPicks(choices: CreationChoices, data: RulesData): Record<string, string[]> {
-  const out: Record<string, string[]> = {};
-  for (const { effect, id } of tagAll(choices, data)) {
-    const picks = choices.optionPicks[id];
-    if (!picks?.length) continue;
-    if (effect.type === 'option') {
-      const kept = pickedOptions(effect, picks).map((o) => o.id);
-      if (kept.length) out[id] = kept;
-    } else if (effect.type === 'featChoice') {
-      const feat = pickedFeat(choices, data);
-      if (feat) out[id] = [feat];
-    } else if (effect.type === 'cantripChoice' || effect.type === 'spellChoice') {
-      out[id] = picks;
-    }
+/** Kinds whose picks live in `optionPicks` (background languages and tools do not). */
+function storedInOptionPicks(t: Tagged): boolean {
+  switch (t.effect.type) {
+    case 'option':
+    case 'featChoice':
+    case 'cantripChoice':
+    case 'spellChoice':
+    case 'weaponChoice':
+      return true;
+    case 'languageChoice':
+    case 'toolChoice':
+      return !t.id.startsWith('background:');
+    default:
+      return false;
   }
-  return out;
 }
 
 function sameOptionPicks(a: Record<string, string[]>, b: Record<string, string[]>): boolean {
@@ -277,12 +487,19 @@ function sameOptionPicks(a: Record<string, string[]>, b: Record<string, string[]
   return ka.length === Object.keys(b).length && ka.every((k) => b[k] !== undefined && sameList(a[k], b[k]));
 }
 
+/** Background-owed picks of one kind, in order. */
+function backgroundPicks(tagged: Tagged[], type: 'languageChoice' | 'toolChoice'): string[] {
+  return tagged.filter((t) => t.effect.type === type && t.id.startsWith('background:')).flatMap((t) => t.picks);
+}
+
 /**
  * Drops the picks a change made invalid: a subrace or subclass of another race or
- * class, option picks (and their nested picks) no longer offered, the feat without
- * the variant human, skill picks no choice accepts and expertise in skills no longer
- * proficient. Returns `choices` itself when nothing changed. Spell picks outside
- * `optionPicks`, languages and tools are left to their steps.
+ * class; option picks (and their nested picks) no longer offered or whose
+ * prerequisite went away; the feat without the variant human or its
+ * prerequisite; spell, weapon, language and tool picks of choices that are gone
+ * or beyond what is owed; skill picks no choice accepts and expertise no longer
+ * valid. Returns `choices` itself when nothing changed. Class spell picks
+ * (`cantripSlugs`/`spellSlugs`) are left to the spell rules.
  */
 export function pruneChoices(choices: CreationChoices, data: RulesData): CreationChoices {
   let out = choices;
@@ -291,17 +508,26 @@ export function pruneChoices(choices: CreationChoices, data: RulesData): Creatio
   const subclass = bySlug(data.subclasses, out.subclassSlug);
   if (out.subclassSlug && subclass?.data.parent !== out.classSlug) out = { ...out, subclassSlug: '' };
 
-  // Dropping a pick can remove the nested choices under it: repeat until stable.
+  // Dropping a pick can remove the choices under it or a prerequisite: repeat until stable.
   for (let i = 0; i < 10; i++) {
-    const optionPicks = prunedOptionPicks(out, data);
+    const optionPicks: Record<string, string[]> = {};
+    for (const t of tagAll(new Context(out, data), true)) {
+      if (t.picks.length && storedInOptionPicks(t)) optionPicks[t.id] = t.picks;
+    }
     if (sameOptionPicks(optionPicks, out.optionPicks)) break;
     out = { ...out, optionPicks };
   }
 
-  const { skills, expertise } = resolve(out, data);
+  const { tagged, skills, expertise } = resolve(out, data);
+  const languagePicks = backgroundPicks(tagged, 'languageChoice');
+  if (!sameList(languagePicks, out.languagePicks)) out = { ...out, languagePicks };
+  const toolPicks = backgroundPicks(tagged, 'toolChoice');
+  if (!sameList(toolPicks, out.toolPicks)) out = { ...out, toolPicks };
   const skillPicks = out.skillPicks.filter((s, i) => skills.used.has(s) && out.skillPicks.indexOf(s) === i);
   if (!sameList(skillPicks, out.skillPicks)) out = { ...out, skillPicks };
-  const expertisePicks = out.expertisePicks.filter((s, i) => expertise.used.has(s) && out.expertisePicks.indexOf(s) === i);
+  const expertisePicks = out.expertisePicks.filter(
+    (s, i) => expertise.used.has(s) && out.expertisePicks.indexOf(s) === i,
+  );
   if (!sameList(expertisePicks, out.expertisePicks)) out = { ...out, expertisePicks };
   return out;
 }

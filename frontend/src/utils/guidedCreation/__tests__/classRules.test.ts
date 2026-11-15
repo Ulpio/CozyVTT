@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import phbSlugs from './fixtures/phbSlugs.json';
 import { CLASS_EFFECTS } from '../classRules';
 import { SUBCLASS_EFFECTS } from '../subclassRules';
-import { FEAT_EFFECTS } from '../featRules';
+import { FEAT_EFFECTS, FEAT_REQUIRES } from '../featRules';
+import { TOOL_CATEGORIES } from '../toolRules';
 import type { Effect } from '../types';
 
 const optionOf = (effects: Effect[], id: string) =>
@@ -20,6 +21,8 @@ describe('class, subclass and feat tables', () => {
     for (const k of Object.keys(CLASS_EFFECTS)) expect(phbSlugs.class).toContain(k);
     for (const k of Object.keys(SUBCLASS_EFFECTS)) expect(phbSlugs.subclass).toContain(k);
     for (const k of Object.keys(FEAT_EFFECTS)) expect(phbSlugs.feat).toContain(k);
+    for (const k of Object.keys(FEAT_REQUIRES)) expect(phbSlugs.feat).toContain(k);
+    for (const slug of Object.values(TOOL_CATEGORIES).flat()) expect(phbSlugs.tool).toContain(slug);
   });
 
   it('points always-prepared spells at real spell slugs', () => {
@@ -53,7 +56,7 @@ describe('class, subclass and feat tables', () => {
   });
 
   it('has the class numbers up to 3rd level', () => {
-    expect(CLASS_EFFECTS.ladino).toContainEqual({ type: 'expertiseChoice', count: 2 });
+    expect(CLASS_EFFECTS.ladino).toContainEqual({ type: 'expertiseChoice', count: 2, tool: 'ferramentas-de-ladrao' });
     expect(CLASS_EFFECTS.bardo).toContainEqual({ type: 'expertiseChoice', count: 2 });
     expect(CLASS_EFFECTS.bardo).toContainEqual({ type: 'jackOfAllTrades' });
     expect(optionOf(CLASS_EFFECTS.bruxo, 'invocations')?.choose).toBe(2);
@@ -67,6 +70,7 @@ describe('class, subclass and feat tables', () => {
   it('keeps the monk unarmored defense off with a shield, but not the barbarian one', () => {
     expect(CLASS_EFFECTS.monge).toContainEqual({ type: 'unarmoredAC', base: 10, abilities: ['dex', 'wis'], noShield: true });
     expect(CLASS_EFFECTS.monge).toContainEqual({ type: 'attackBonus', attack: 'unarmed', die: '1d4', ability: 'dex' });
+    expect(CLASS_EFFECTS.monge).toContainEqual({ type: 'speed', meters: 3, noArmor: true });
     expect(CLASS_EFFECTS.barbaro).toContainEqual({ type: 'unarmoredAC', base: 10, abilities: ['dex', 'con'] });
   });
 
@@ -75,10 +79,17 @@ describe('class, subclass and feat tables', () => {
     expect(SUBCLASS_EFFECTS['linhagem-draconica']).toContainEqual({ type: 'unarmoredAC', base: 13, abilities: ['dex'] });
     expect(SUBCLASS_EFFECTS['dominio-da-vida']).toContainEqual({ type: 'armorProficiency', armor: 'heavy' });
     expect(SUBCLASS_EFFECTS['dominio-da-tempestade']).toContainEqual({ type: 'armorProficiency', armor: 'heavy' });
-    expect(SUBCLASS_EFFECTS['dominio-do-conhecimento']).toContainEqual({ type: 'languageChoice', count: 2 });
+    expect(SUBCLASS_EFFECTS['dominio-do-conhecimento']).toEqual([
+      { type: 'languageChoice', count: 2 },
+      { type: 'skillChoice', count: 2, from: ['arcana', 'history', 'nature', 'religion'], expertise: true },
+    ]);
+    expect(SUBCLASS_EFFECTS.assassino).toEqual([
+      { type: 'tool', tool: 'kit-de-disfarce' },
+      { type: 'tool', tool: 'kit-de-venenos' },
+    ]);
     expect(SUBCLASS_EFFECTS['colegio-do-conhecimento']).toEqual([{ type: 'skillChoice', count: 3 }]);
     expect(optionOf(SUBCLASS_EFFECTS['mestre-de-batalha'], 'maneuvers')?.choose).toBe(3);
-    expect(SUBCLASS_EFFECTS['mestre-de-batalha']).toContainEqual({ type: 'toolChoice', count: 1 });
+    expect(SUBCLASS_EFFECTS['mestre-de-batalha']).toContainEqual({ type: 'toolChoice', count: 1, category: 'artisanTool' });
     expect(optionOf(SUBCLASS_EFFECTS['circulo-da-terra'], 'landTerrain')?.options).toHaveLength(8);
     expect(optionOf(SUBCLASS_EFFECTS['caminho-dos-quatro-elementos'], 'elementalDiscipline')?.choose).toBe(1);
   });
@@ -104,5 +115,23 @@ describe('class, subclass and feat tables', () => {
           (e.type === 'option' && e.options.every((o) => plusOne(o.effects))),
       );
     for (const slug of half) expect(plusOne(FEAT_EFFECTS[slug]), slug).toBe(true);
+  });
+
+  it('has the feat prerequisites and the other numbers', () => {
+    expect(FEAT_EFFECTS['maestria-em-armadura-media']).toEqual([{ type: 'mediumArmorMaxDex', max: 3 }]);
+    expect(FEAT_EFFECTS['mestre-de-armas']).toContainEqual({ type: 'weaponChoice', count: 4 });
+    expect(optionOf(FEAT_EFFECTS['atirador-de-magia'], 'spellSniperClass')?.options).toHaveLength(6);
+    expect(FEAT_REQUIRES['maestria-em-armadura-pesada']).toEqual([{ kind: 'armor', armor: 'heavy' }]);
+    expect(FEAT_REQUIRES.imobilizador).toEqual([{ kind: 'score', abilities: ['str'], min: 13 }]);
+    expect(FEAT_REQUIRES['conjurador-de-guerra']).toEqual([{ kind: 'spellcasting' }]);
+  });
+
+  it('gives invocations their prerequisites', () => {
+    const req = (id: string) => optionOf(CLASS_EFFECTS.bruxo, 'invocations')?.options.find((o) => o.id === id)?.requires;
+    expect(req('explosao-agonizante')).toEqual([{ kind: 'cantrip', slug: 'rajada-mistica' }]);
+    expect(req('lanca-mistica')).toEqual([{ kind: 'cantrip', slug: 'rajada-mistica' }]);
+    expect(req('livro-de-segredos-antigos')).toEqual([{ kind: 'option', id: 'pactBoon', pick: 'pacto-do-tomo' }]);
+    expect(req('voz-do-mestre-das-correntes')).toEqual([{ kind: 'option', id: 'pactBoon', pick: 'pacto-da-corrente' }]);
+    expect(req('visao-diabolica')).toBeUndefined();
   });
 });

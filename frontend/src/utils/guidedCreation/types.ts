@@ -30,25 +30,54 @@ export const SKILL_KEYS: readonly SkillKey[] = FIFTH_EDITION_SKILLS.map((s) => s
 
 export type ArmorKind = 'light' | 'medium' | 'heavy' | 'shield';
 
+/** A prerequisite of an option or feat; all of an entry's must hold. */
+export type Requirement =
+  /** This option id was picked under `optionPicks[id]`. */
+  | { kind: 'option'; id: string; pick: string }
+  /** The character knows this cantrip. */
+  | { kind: 'cantrip'; slug: string }
+  /** Proficiency with this armor kind. */
+  | { kind: 'armor'; armor: ArmorKind }
+  /** A final score (before the feat) of at least `min` in any of `abilities`. */
+  | { kind: 'score'; abilities: AbilityKey[]; min: number }
+  /** Can cast at least one spell from the class or subclass at 3rd level. */
+  | { kind: 'spellcasting' };
+
 export interface OptionEffect {
   id: string;
   name: string;
   effects: Effect[];
+  requires?: Requirement[];
 }
+
+/** Tool groups a tool choice can be limited to (slugs in toolRules.ts). */
+export type ToolCategory = 'artisanTool' | 'instrument' | 'gamingSet';
 
 /** One mechanical consequence of a race, class, subclass or background pick. */
 export type Effect =
   | { type: 'ability'; ability: AbilityKey; amount: number }
   | { type: 'abilityChoice'; count: number; amount: number; exclude?: AbilityKey[] }
   | { type: 'skill'; skill: SkillKey }
-  /** `orTool`: each pick may be a tool instead (Skilled). */
-  | { type: 'skillChoice'; count: number; from?: SkillKey[]; orTool?: true }
-  | { type: 'expertiseChoice'; count: number; from?: SkillKey[] }
+  /**
+   * `orTool`: each pick may be a tool instead (Skilled). `expertise`: the skills
+   * this choice ends up with also get expertise (Knowledge Domain).
+   */
+  | { type: 'skillChoice'; count: number; from?: SkillKey[]; orTool?: true; expertise?: true }
+  /** Expertise in a skill, fixed or from a skillChoice with `expertise`. */
+  | { type: 'expertise'; skill: SkillKey }
+  /** `tool`: a tool slug a pick may take instead of a skill (rogue: thieves' tools). */
+  | { type: 'expertiseChoice'; count: number; tool?: string }
   | { type: 'save'; ability: AbilityKey }
   | { type: 'armorProficiency'; armor: ArmorKind }
+  /** Medium armor adds DEX up to `max` instead of 2 (Medium Armor Master). */
+  | { type: 'mediumArmorMaxDex'; max: number }
   /** `weapon`: 'simple', 'martial', 'improvised', 'pactWeapon' or a weapon slug. */
   | { type: 'weaponProficiency'; weapon: string }
-  | { type: 'toolChoice'; count: number }
+  /** Weapons of the player's choice (slugs), each a weaponProficiency. */
+  | { type: 'weaponChoice'; count: number }
+  /** A fixed tool proficiency (tool slug). */
+  | { type: 'tool'; tool: string }
+  | { type: 'toolChoice'; count: number; category?: ToolCategory }
   | { type: 'language'; language: string }
   | { type: 'languageChoice'; count: number }
   | { type: 'hpPerLevel'; amount: number }
@@ -56,7 +85,8 @@ export type Effect =
   | { type: 'acBonus'; amount: number; whenArmored: boolean }
   | { type: 'initiative'; amount: number }
   | { type: 'passivePerception'; amount: number }
-  | { type: 'speed'; meters: number }
+  /** `noArmor`: only while wearing no armor and carrying no shield (Unarmored Movement). */
+  | { type: 'speed'; meters: number; noArmor?: true }
   | { type: 'jackOfAllTrades' }
   /** `list`: a class slug, or 'any' for every class list (Pact of the Tome). */
   | { type: 'cantripChoice'; count: number; list: string; ability: AbilityKey }
@@ -102,7 +132,8 @@ export interface CreationChoices {
   abilityRollId?: string;
   racialChoices: Record<string, unknown>;
   skillPicks: SkillKey[];
-  expertisePicks: SkillKey[];
+  /** Skill keys, or the tool slug an expertiseChoice allows. */
+  expertisePicks: string[];
   languagePicks: string[];
   toolPicks: string[];
   optionPicks: Record<string, string[]>;

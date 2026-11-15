@@ -1,51 +1,77 @@
 import { describe, expect, it } from 'vitest';
-import type { BackgroundData, ClassData, FeatData, RaceData, SubclassData, SubraceData } from '../compendiumData';
+import type { BackgroundData, ClassData, FeatData, RaceData, SubclassData, SubraceData, WeaponData } from '../compendiumData';
 import { collectEffects, pruneChoices, type RulesData } from '../collectEffects';
 import type { CreationChoices, SkillKey } from '../types';
 
 // Invented placeholder entries: just the fields the rules read, no book text.
-const cls = (slug: string, choose: number, from: SkillKey[], savingThrows: ClassData['savingThrows']) => ({
+const cls = (
+  slug: string,
+  choose: number,
+  from: SkillKey[],
+  savingThrows: ClassData['savingThrows'],
+  caster = false,
+  armor: string[] = [],
+) => ({
   slug,
   name: slug,
   data: {
     hitDie: 8,
     savingThrows,
-    proficiencies: { armor: [], weapons: [], tools: [] },
+    proficiencies: { armor, weapons: [], tools: [] },
     skills: { choose, from },
     startingEquipment: [],
     subclassLevel: 3,
     features: [],
+    ...(caster ? { spellcasting: { ability: 'int' } } : {}),
   } as ClassData,
 });
 
 const data: RulesData = {
   races: [
-    { slug: 'humano', name: 'Humano', data: { size: 'Médio', speed: 9, traits: [], abilityIncreases: {} } as RaceData },
+    { slug: 'humano', name: 'Humano', data: { size: 'Médio', speed: 9, traits: [], languages: ['Comum', 'x'] } as RaceData },
     { slug: 'elfo', name: 'Elfo', data: { size: 'Médio', speed: 9, traits: [], proficiencies: ['perception'], abilityIncreases: { dex: 2 } } as RaceData },
   ],
   subraces: [
     { slug: 'humano-variante', name: 'Variante', data: { parent: 'humano', traits: [] } as SubraceData },
   ],
   classes: [
-    cls('guerreiro', 2, ['athletics', 'perception', 'survival'], ['str', 'con']),
-    cls('mago', 2, ['arcana', 'history'], ['int', 'wis']),
+    cls('guerreiro', 2, ['athletics', 'perception', 'survival'], ['str', 'con'], false, ['Todas as armaduras', 'escudos']),
+    cls('mago', 2, ['arcana', 'history'], ['int', 'wis'], true),
     cls('ladino', 4, ['acrobatics', 'stealth', 'deception', 'perception', 'investigation'], ['dex', 'int']),
-    cls('feiticeiro', 2, ['arcana', 'deception'], ['con', 'cha']),
+    cls('feiticeiro', 2, ['arcana', 'deception'], ['con', 'cha'], true),
+    cls('clerigo', 2, ['history', 'insight', 'medicine', 'persuasion', 'religion'], ['wis', 'cha'], true),
+    cls('bruxo', 2, ['arcana', 'deception'], ['wis', 'cha'], true),
   ],
   subclasses: [
     { slug: 'linhagem-draconica', name: 'Linhagem', data: { parent: 'feiticeiro', features: [] } as SubclassData },
     { slug: 'campeao', name: 'Campeão', data: { parent: 'guerreiro', features: [] } as SubclassData },
+    { slug: 'mestre-de-batalha', name: 'Mestre', data: { parent: 'guerreiro', features: [] } as SubclassData },
+    { slug: 'dominio-do-conhecimento', name: 'Conhecimento', data: { parent: 'clerigo', features: [] } as SubclassData },
+    { slug: 'dominio-da-vida', name: 'Vida', data: { parent: 'clerigo', features: [] } as SubclassData },
   ],
   backgrounds: [
     {
       slug: 'acolito',
       name: 'Acólito',
-      data: { proficiencies: { skills: ['insight', 'religion'], tools: [] }, equipment: [], feature: { name: 'x', description: 'x' } } as BackgroundData,
+      data: { proficiencies: { skills: ['insight', 'religion'], tools: [] }, languages: 2, equipment: [], feature: { name: 'x', description: 'x' } } as BackgroundData,
     },
   ],
   feats: [
     { slug: 'robusto', name: 'Robusto', data: {} as FeatData },
     { slug: 'alerta', name: 'Alerta', data: {} as FeatData },
+    { slug: 'maestria-em-armadura-pesada', name: 'Maestria', data: {} as FeatData },
+    { slug: 'imobilizador', name: 'Imobilizador', data: {} as FeatData },
+    { slug: 'atirador-de-magia', name: 'Atirador', data: {} as FeatData },
+    { slug: 'mestre-de-armas', name: 'Mestre de Armas', data: {} as FeatData },
+  ],
+  weapons: [
+    { slug: 'espada-longa', name: 'Espada Longa', data: {} as WeaponData },
+    { slug: 'arco-longo', name: 'Arco Longo', data: {} as WeaponData },
+  ],
+  tools: [
+    { slug: 'ferramentas-de-ferreiro', name: 'Ferreiro', data: {} },
+    { slug: 'alaude', name: 'Alaúde', data: {} },
+    { slug: 'ferramentas-de-ladrao', name: 'Ladrão', data: {} },
   ],
 };
 
@@ -97,7 +123,7 @@ describe('collectEffects', () => {
     const expertise = collectEffects(choices, data).pending.find((p) => p.kind === 'expertiseChoice');
     expect(expertise?.count).toBe(2);
     expect(expertise?.options?.map((o) => o.id).sort()).toEqual(
-      ['acrobatics', 'deception', 'insight', 'investigation', 'perception', 'religion', 'stealth'].sort(),
+      ['acrobatics', 'deception', 'insight', 'investigation', 'perception', 'religion', 'stealth', 'ferramentas-de-ladrao'].sort(),
     );
     const done = collectEffects({ ...choices, expertisePicks: ['stealth', 'perception'] }, data).pending;
     expect(done.find((p) => p.kind === 'expertiseChoice')).toBeUndefined();
@@ -118,7 +144,7 @@ describe('collectEffects', () => {
     const vh = base({ subraceSlug: 'humano-variante' });
     const before = collectEffects(vh, data).pending.find((p) => p.id === 'feat');
     expect(before).toMatchObject({ kind: 'featChoice', count: 1 });
-    expect(before?.options).toEqual([{ id: 'robusto', name: 'Robusto' }, { id: 'alerta', name: 'Alerta' }]);
+    expect(before?.options).toContainEqual({ id: 'robusto', name: 'Robusto' });
     const { effects, pending } = collectEffects({ ...vh, optionPicks: { feat: ['robusto'] } }, data);
     expect(effects).toContainEqual({ type: 'hpPerLevel', amount: 2 });
     expect(pending.find((p) => p.id === 'feat')).toBeUndefined();
@@ -132,10 +158,8 @@ describe('collectEffects', () => {
   });
 
   it('gives nested choices an id under their option', () => {
-    const tome = collectEffects(base({ classSlug: 'bruxo', optionPicks: { pactBoon: ['pacto-do-tomo'] } }), {
-      ...data,
-      classes: [...data.classes, cls('bruxo', 2, ['arcana'], ['wis', 'cha'])],
-    }).pending.find((p) => p.kind === 'cantripChoice');
+    const tome = collectEffects(base({ classSlug: 'bruxo', optionPicks: { pactBoon: ['pacto-do-tomo'] } }), data)
+      .pending.find((p) => p.kind === 'cantripChoice');
     expect(tome).toMatchObject({ id: 'pactBoon.pacto-do-tomo:cantripChoice:0', count: 3 });
   });
 });
@@ -168,5 +192,107 @@ describe('pruneChoices', () => {
     const fighter = pruneChoices({ ...rogue, classSlug: 'guerreiro', subraceSlug: undefined }, data);
     expect(fighter.expertisePicks).toEqual([]);
     expect(fighter.optionPicks.feat).toBeUndefined();
+  });
+});
+
+describe('collectEffects, review round 1', () => {
+  const ids = (p: { options?: { id: string }[] } | undefined) => p?.options?.map((o) => o.id) ?? [];
+
+  it('matches skill picks to choices so no legal pick is lost', () => {
+    const knowledge = base({
+      classSlug: 'clerigo',
+      subclassSlug: 'dominio-do-conhecimento',
+      backgroundSlug: '',
+      skillPicks: ['history', 'religion', 'arcana'],
+    });
+    expect(pruneChoices(knowledge, data)).toBe(knowledge);
+    const { effects, pending } = collectEffects(knowledge, data);
+    const skillPending = pending.filter((p) => p.kind === 'skillChoice');
+    expect(skillPending.map((p) => p.count)).toEqual([1]);
+    expect(effects).toContainEqual({ type: 'expertise', skill: 'arcana' });
+    expect(effects.filter((e) => e.type === 'expertise')).toHaveLength(1);
+  });
+
+  it('offers invocations only when their prerequisite is met', () => {
+    const warlock = base({ classSlug: 'bruxo', optionPicks: { pactBoon: ['pacto-da-corrente'] } });
+    const offered = ids(collectEffects(warlock, data).pending.find((p) => p.id === 'invocations'));
+    expect(offered).not.toContain('explosao-agonizante');
+    expect(offered).not.toContain('livro-de-segredos-antigos');
+    expect(offered).toContain('voz-do-mestre-das-correntes');
+    const blast = { ...warlock, cantripSlugs: ['rajada-mistica'] };
+    expect(ids(collectEffects(blast, data).pending.find((p) => p.id === 'invocations'))).toContain('explosao-agonizante');
+  });
+
+  it('drops invocations whose prerequisite went away', () => {
+    const tome = base({
+      classSlug: 'bruxo',
+      cantripSlugs: ['rajada-mistica'],
+      optionPicks: { pactBoon: ['pacto-do-tomo'], invocations: ['livro-de-segredos-antigos', 'explosao-agonizante'] },
+    });
+    expect(pruneChoices(tome, data)).toBe(tome);
+    const chain = pruneChoices({ ...tome, optionPicks: { ...tome.optionPicks, pactBoon: ['pacto-da-corrente'] } }, data);
+    expect(chain.optionPicks.invocations).toEqual(['explosao-agonizante']);
+    const noBlast = pruneChoices({ ...chain, cantripSlugs: [] }, data);
+    expect(noBlast.optionPicks.invocations).toBeUndefined();
+  });
+
+  it('offers only the feats whose prerequisites are met', () => {
+    const vh = (over: Partial<CreationChoices>) => base({ subraceSlug: 'humano-variante', ...over });
+    const feats = (c: CreationChoices) => ids(collectEffects(c, data).pending.find((p) => p.id === 'feat'));
+    expect(feats(vh({}))).toEqual(['robusto', 'alerta', 'maestria-em-armadura-pesada', 'imobilizador', 'mestre-de-armas']);
+    const weakWizard = vh({ classSlug: 'mago', baseScores: { str: 12, dex: 14, con: 13, int: 15, wis: 10, cha: 8 } });
+    expect(feats(weakWizard)).toEqual(['robusto', 'alerta', 'atirador-de-magia', 'mestre-de-armas']);
+    // +1 STR from the variant human's own increase reaches 13 before the feat.
+    expect(feats({ ...weakWizard, racialChoices: { abilityPicks: ['str', 'dex'] } })).toContain('imobilizador');
+  });
+
+  it('drops a feat whose prerequisite went away', () => {
+    const fighter = base({ subraceSlug: 'humano-variante', optionPicks: { feat: ['maestria-em-armadura-pesada'] } });
+    expect(pruneChoices(fighter, data)).toBe(fighter);
+    expect(pruneChoices({ ...fighter, classSlug: 'mago' }, data).optionPicks.feat).toBeUndefined();
+  });
+
+  it('turns Weapon Master picks into weapon proficiencies', () => {
+    const vh = base({ subraceSlug: 'humano-variante', optionPicks: { feat: ['mestre-de-armas'] } });
+    const weapons = collectEffects(vh, data).pending.find((p) => p.kind === 'weaponChoice');
+    expect(weapons).toMatchObject({ id: 'feat:weaponChoice:0', count: 4 });
+    expect(ids(weapons)).toEqual(['espada-longa', 'arco-longo']);
+    const picked = { ...vh, optionPicks: { ...vh.optionPicks, 'feat:weaponChoice:0': ['espada-longa'] } };
+    const out = collectEffects(picked, data);
+    expect(out.effects).toContainEqual({ type: 'weaponProficiency', weapon: 'espada-longa' });
+    expect(out.pending.find((p) => p.kind === 'weaponChoice')?.count).toBe(3);
+  });
+
+  it('keeps only the language picks still owed after a subclass change', () => {
+    const knowledge = base({
+      classSlug: 'clerigo',
+      subclassSlug: 'dominio-do-conhecimento',
+      languagePicks: ['Anão', 'Gnômico'],
+      optionPicks: { 'race:languageChoice:0': ['Élfico'], 'subclass:languageChoice:0': ['Orc', 'Infernal'] },
+    });
+    expect(pruneChoices(knowledge, data)).toBe(knowledge);
+    const life = pruneChoices({ ...knowledge, subclassSlug: 'dominio-da-vida' }, data);
+    expect(life.optionPicks).toEqual({ 'race:languageChoice:0': ['Élfico'] });
+    expect(life.languagePicks).toEqual(['Anão', 'Gnômico']);
+    const noBackground = pruneChoices({ ...life, backgroundSlug: 'nenhum' }, data);
+    expect(noBackground.languagePicks).toEqual([]);
+    expect(pruneChoices(base({ languagePicks: ['a', 'b', 'c'] }), data).languagePicks).toEqual(['a', 'b']);
+  });
+
+  it('limits the Battle Master tool to artisan tools', () => {
+    const bm = base({ subclassSlug: 'mestre-de-batalha' });
+    const tool = collectEffects(bm, data).pending.find((p) => p.kind === 'toolChoice');
+    expect(tool).toMatchObject({ id: 'subclass:toolChoice:0', count: 1 });
+    expect(ids(tool)).toEqual(['ferramentas-de-ferreiro']);
+  });
+
+  it("lets rogue expertise take thieves' tools", () => {
+    const rogue = base({ classSlug: 'ladino', skillPicks: ['stealth', 'acrobatics', 'deception', 'investigation'] });
+    expect(ids(collectEffects(rogue, data).pending.find((p) => p.kind === 'expertiseChoice'))).toContain(
+      'ferramentas-de-ladrao',
+    );
+    const done = { ...rogue, expertisePicks: ['stealth', 'ferramentas-de-ladrao'] };
+    expect(collectEffects(done, data).pending.find((p) => p.kind === 'expertiseChoice')).toBeUndefined();
+    expect(pruneChoices(done, data)).toBe(done);
   });
 });

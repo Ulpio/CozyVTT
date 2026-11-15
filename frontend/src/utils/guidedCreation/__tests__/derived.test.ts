@@ -35,6 +35,13 @@ describe('derived', () => {
   it('caps medium armor dex at 2 when the data has no maxDex', () => {
     expect(armorClass(armor('medium', 14, true), false, sc(18), [])).toBe(16);
   });
+  it('lets Medium Armor Master add up to +3 DEX in medium armor', () => {
+    const halfPlate = armor('medium', 15, true, 2);
+    expect(armorClass(halfPlate, false, sc(16), [])).toBe(17);
+    expect(armorClass(halfPlate, false, sc(16), [{ type: 'mediumArmorMaxDex', max: 3 }])).toBe(18);
+    expect(armorClass(armor('medium', 14, true), false, sc(18), [{ type: 'mediumArmorMaxDex', max: 3 }])).toBe(17);
+    expect(armorClass(chain, false, sc(16), [{ type: 'mediumArmorMaxDex', max: 3 }])).toBe(16);
+  });
   it('counts a skill once and keeps expertise to proficient skills', () => {
     const r = resolveSkills(['stealth', 'insight'], ['stealth', 'arcana'], ['history'], ['stealth', 'athletics']);
     expect(r.proficient).toEqual(['arcana', 'history', 'insight', 'stealth']);

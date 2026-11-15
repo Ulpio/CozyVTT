@@ -92,7 +92,13 @@ const COMPANIONS = options([
 
 const heavyArmor: Effect = { type: 'armorProficiency', armor: 'heavy' };
 const martial: Effect = { type: 'weaponProficiency', weapon: 'martial' };
-const KNOWLEDGE_SKILLS: Effect = { type: 'skillChoice', count: 2, from: ['arcana', 'history', 'nature', 'religion'] };
+/** Knowledge Domain: two of these skills, with expertise in both. */
+const KNOWLEDGE_SKILLS: Effect = {
+  type: 'skillChoice',
+  count: 2,
+  from: ['arcana', 'history', 'nature', 'religion'],
+  expertise: true,
+};
 
 export const SUBCLASS_EFFECTS: Record<string, Effect[]> = {
   // Bard
@@ -116,7 +122,6 @@ export const SUBCLASS_EFFECTS: Record<string, Effect[]> = {
   'dominio-do-conhecimento': [
     { type: 'languageChoice', count: 2 },
     KNOWLEDGE_SKILLS,
-    { type: 'expertiseChoice', count: 2, from: ['arcana', 'history', 'nature', 'religion'] },
   ],
   // Druid
   'circulo-da-terra': [
@@ -126,10 +131,15 @@ export const SUBCLASS_EFFECTS: Record<string, Effect[]> = {
   // Fighter
   'mestre-de-batalha': [
     { type: 'option', id: 'maneuvers', choose: 3, options: MANEUVERS },
-    { type: 'toolChoice', count: 1 },
+    { type: 'toolChoice', count: 1, category: 'artisanTool' },
   ],
   // Monk
   'caminho-dos-quatro-elementos': [{ type: 'option', id: 'elementalDiscipline', choose: 1, options: DISCIPLINES }],
+  // Rogue
+  assassino: [
+    { type: 'tool', tool: 'kit-de-disfarce' },
+    { type: 'tool', tool: 'kit-de-venenos' },
+  ],
   // Ranger
   'conclave-do-cacador': [{ type: 'option', id: 'huntersPrey', choose: 1, options: HUNTERS_PREY }],
   'conclave-da-besta': [{ type: 'option', id: 'animalCompanion', choose: 1, options: COMPANIONS }],
