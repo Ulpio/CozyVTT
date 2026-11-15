@@ -9,6 +9,7 @@ import api from '@/services/api';
 import type { CompendiumEntry } from '@/types';
 import type { CreationData } from '@/utils/guidedCreation/buildSheet';
 import { errorSummary } from '@/utils/errors';
+import { cleanCompendiumEntry } from '@/utils/guidedCreation/compendiumText';
 
 const PAGE_SIZE = 200;
 
@@ -37,8 +38,13 @@ async function loadType(type: string, campaignId: string | undefined): Promise<C
   }
 }
 
-/** The entries as the rules read them; `data` is trusted to match its type (the server checks it). */
-const asCreationEntry = (e: CompendiumEntry) => ({ bookId: e.bookId, slug: e.slug, name: e.name, text: e.text, data: e.data });
+/**
+ * The entries as the rules read them; `data` is trusted to match its type (the
+ * server checks it). The PDFs' private-use glyphs are cleaned out here, so the
+ * wizard never shows them and the sheet it saves never holds them.
+ */
+const asCreationEntry = (e: CompendiumEntry) =>
+  cleanCompendiumEntry({ bookId: e.bookId, slug: e.slug, name: e.name, text: e.text, data: e.data });
 
 async function loadAll(campaignId: string | undefined): Promise<CreationData> {
   const types = Object.keys(LISTS) as Array<keyof typeof LISTS>;
