@@ -286,6 +286,10 @@ O dono escolheu B com o editor de correções de C.
 - Os jogadores criam os próprios personagens.
 - Livros ativados por campanha, no estilo do Roll20.
 - Os livros em `materiais/` são a fonte de regras.
+- Nível de detalhe por campanha: Fiel (peso, carga, rações, munição contados) ou
+  Flexível (estilo BG3, sem esses controles). Decidido no design do P4; pesa
+  sobretudo no inventário e na barra de ações do P5.
+- Sem refazer rolagem de atributos e sem respec de personagem criado.
 - Compêndio pelo caminho B, com editor de correções.
 - Inventário com ícones fornecidos por ele.
 - Automação do P5 como descrita no P5; dano entra direto, mestre desfaz;
