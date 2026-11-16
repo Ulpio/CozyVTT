@@ -94,14 +94,30 @@ const SpellMechanics = z.object({
   healingAddsModifier: z.boolean().optional(),
   halfOnSave: z.boolean().optional(),
   targets: z.number().int().min(1).optional(),
-  area: z.object({ shape: z.string(), size: z.string() }).optional(),
+  // Extra targets per slot level above the spell's own (Hold Person).
+  targetsPerSlot: z.number().int().min(1).optional(),
+  // One attack (or dart) per ray; cantripLevels is Eldritch Blast's 1/2/3/4.
+  rays: z
+    .object({
+      count: z.number().int().min(1),
+      perSlot: z.number().int().min(1).optional(),
+      cantripLevels: z.boolean().optional(),
+    })
+    .optional(),
+  // No attack roll (Magic Missile).
+  autoHit: z.boolean().optional(),
+  // The caster heals for half the damage dealt (Vampiric Touch).
+  selfHeal: z.literal('half-damage').optional(),
+  // Width is the line's width text ("1,5 m").
+  area: z.object({ shape: z.string(), size: z.string(), width: z.string().optional() }).optional(),
+  // Why the spell stays "conjurar"; the catalogue treats it as 'cast'.
+  castOnly: z.string().optional(),
   // Dice added per slot level above the spell's own, or, for a cantrip,
   // whether it grows at character levels 5, 11 and 17.
   scaling: z.object({ perSlot: z.string().optional(), cantrip: z.boolean().optional() }).optional(),
 });
 
-const Spell = z
-  .object({
+const Spell = z.object({
     level: z.number().int().min(0).max(9),
     school: z.string().min(1),
     castingTime: z.string().min(1),
@@ -113,11 +129,7 @@ const Spell = z
     classes: z.array(z.string()).default([]),
     higherLevels: z.string().optional(),
     mechanics: SpellMechanics.optional(),
-  })
-  .refine((s) => s.mechanics === undefined || s.level <= 2, {
-    message: 'mechanics are only kept for spells of level 0 to 2',
-    path: ['mechanics'],
-  });
+});
 
 const RaceFields = {
   abilityIncreases: z.partialRecord(Ability, z.number().int()).optional(),

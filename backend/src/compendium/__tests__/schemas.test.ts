@@ -50,8 +50,28 @@ it('accepts a valid level-1 spell with mechanics', () => {
   expect(validateEntries([spell()], known)).toEqual([]);
 });
 
-it('rejects mechanics on a level-3 spell', () => {
-  expect(validateEntries([spell({ level: 3 })], known)).not.toEqual([]);
+it('accepts mechanics on a level-3 spell with a save, an area and scaling', () => {
+  const mechanics = {
+    save: 'dex',
+    damage: [{ dice: '8d6', type: 'fogo' }],
+    halfOnSave: true,
+    area: { shape: 'esfera', size: '6 m de raio' },
+    scaling: { perSlot: '1d6' },
+  };
+  expect(validateEntries([spell({ level: 3, mechanics })], known)).toEqual([]);
+});
+
+it('accepts rays, autoHit, castOnly, targetsPerSlot, selfHeal and a line width', () => {
+  const mechanics = {
+    damage: [{ dice: '1d4+1', type: 'energia' }],
+    rays: { count: 3, perSlot: 1, cantripLevels: false },
+    autoHit: true,
+    castOnly: 'invented reason',
+    targetsPerSlot: 1,
+    selfHeal: 'half-damage',
+    area: { shape: 'linha', size: '30 m', width: '1,5 m' },
+  };
+  expect(validateEntries([spell({ level: 3, mechanics })], known)).toEqual([]);
 });
 
 it('rejects damage dice "1d"', () => {
