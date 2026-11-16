@@ -105,6 +105,8 @@ export function monsterState(current: number, max: number): MonsterState {
 }
 
 function canSeeHp(t: ActionCardTarget, viewer: Viewer): boolean {
+  // A masked target ("something") shows players a state only: exact HP would say which creature it is.
+  if (t.maskedName) return false;
   if (t.showHpBar) return true;
   return t.isCharacter && viewer.role === 'PLAYER' && t.ownerUserId !== undefined && t.ownerUserId === viewer.userId;
 }

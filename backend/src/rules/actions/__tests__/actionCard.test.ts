@@ -72,6 +72,17 @@ describe('projectActionCard', () => {
     expect(p.targets[0].state).toBeUndefined();
   });
 
+  it('shows a masked target only as a state, even with its bar on', () => {
+    for (const maskedName of ['something', 'something-invisible'] as const) {
+      const p: any = projectActionCard(card([goblin({ showHpBar: true, maskedName })]), bob);
+      expect(p.targets[0].hp).toBeUndefined();
+      expect(p.targets[0].state).toBe('badly-wounded');
+    }
+    const statue: any = projectActionCard(card([goblin({ showHpBar: true, maskedName: 'something', hpMax: 0, hpAfter: 0 })]), bob);
+    expect(statue.targets[0].hp).toBeUndefined();
+    expect(statue.targets[0].state).toBeUndefined();
+  });
+
   it('shows a character HP to its owner only, unless the bar is on', () => {
     const pc = goblin({ tokenId: 't-pc2', name: 'Cleo', isCharacter: true, ownerUserId: 'ann', ac: 18 });
     const c = card([pc]);
