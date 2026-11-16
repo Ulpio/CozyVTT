@@ -53,18 +53,24 @@ async function emitToReaders(
   event: 'chat.message' | 'chat.message.updated',
   payload: (metadata: unknown) => Record<string, unknown>,
   stored: unknown,
+  onlyUserId?: string,
 ): Promise<void> {
   for (const s of await campaignSockets(io, campaignId)) {
     const reader = s as unknown as AuthenticatedSocket;
+    if (onlyUserId !== undefined && reader.userId !== onlyUserId) continue;
     s.emit(event, payload(metadataFor(stored, viewerOf(reader.role, reader.userId!))));
   }
 }
 
-/** A message just posted, as `chat.message` to each reader. */
+/**
+ * A message just posted, as `chat.message` to each reader. A whisper (a
+ * recharge roll for a token players are not sent) goes to its sender and
+ * recipient alone, as chat whispers do.
+ */
 async function announceMessage(io: Server, campaignId: string, messageId: string, stored: unknown): Promise<void> {
   const message = await prisma.message.findUnique({
     where: { id: messageId },
-    select: { id: true, userId: true, content: true, type: true, createdAt: true, user: { select: { displayName: true } } },
+    select: { id: true, userId: true, content: true, type: true, createdAt: true, recipientId: true, user: { select: { displayName: true } } },
   });
   if (!message) return;
   await emitToReaders(
@@ -78,9 +84,12 @@ async function announceMessage(io: Server, campaignId: string, messageId: string
       content: message.content,
       type: message.type,
       timestamp: message.createdAt.toISOString(),
+      ...(message.recipientId ? { recipientId: message.recipientId } : {}),
       metadata,
     }),
     stored,
+    // A whisper whose sender is gone reaches nobody.
+    message.type === 'WHISPER' ? message.userId ?? '' : undefined,
   );
 }
 

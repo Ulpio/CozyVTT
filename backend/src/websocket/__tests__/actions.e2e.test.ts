@@ -402,6 +402,26 @@ describe('saves, areas and recharge', () => {
     expect(await gm.timeout(3000).emitWithAck('action.rechargeReset', recharge)).toMatchObject({ ok: false, error: 'This action is not spent' });
   });
 
+  it('keeps the recharge roll of a hidden creature to the GM alone', async () => {
+    await breathTable();
+    const map = await prisma.map.findUniqueOrThrow({ where: { id: mapId } });
+    await prisma.map.update({ where: { id: mapId }, data: { tokens: (map.tokens as any[]).map((t) => (t.id === 'drake' ? { ...t, visible: false } : t)) } });
+    const [gm, p1] = await Promise.all([connect('gm'), connect('p1')]);
+    await gm.timeout(5000).emitWithAck('action.resolve', breath());
+    const toGm = ofType(gm, 'chat.message', (m: Msg) => m.metadata?.kind === 'recharge');
+    const rolled = await gm.timeout(5000).emitWithAck('action.recharge', { mapId, tokenId: 'drake', optionId: 'npc:actions:0' });
+    expect(rolled).toMatchObject({ ok: true, messageId: expect.any(String) });
+    const g = await toGm;
+    expect(g).toMatchObject({ type: 'WHISPER', recipientId: gmId, metadata: { kind: 'recharge', name: 'Draco' } });
+    await expectNoEvent(p1, 'chat.message', 300);
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: p1Id } });
+    const agent = request.agent(createTestApp());
+    expect((await agent.post('/api/auth/login').send({ email: user.email, password: TEST_PASSWORD })).status).toBe(200);
+    const history = await agent.get(`/api/campaigns/${campaignId}/messages`);
+    expect(history.body.messages.some((m: any) => m.id === rolled.messageId)).toBe(false);
+    expect(JSON.stringify(history.body)).not.toContain('Draco');
+  });
+
   it('refuses an area sent with target ids, and malformed save payloads', async () => {
     await breathTable();
     const gm = await connect('gm');

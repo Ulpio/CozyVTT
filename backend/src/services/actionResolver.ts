@@ -50,7 +50,6 @@ import {
   actingPlayer,
   afterCommit,
   announce,
-  armourClass,
   boundCharacterTx,
   cardOf,
   changeHitPoints,
@@ -62,6 +61,7 @@ import {
   holdSheets,
   loadActor,
   maskFor,
+  newEntry,
   refuse,
   rolesIn,
   spendSlotAndConcentration,
@@ -226,21 +226,9 @@ export async function resolveAction(
     const cardTargets: ActionCardTarget[] = [];
     const edits = tokenEdits(tokens);
     if (target && (option.resolution === 'attack' || option.resolution === 'heal')) {
-      const sheet = targetSheet?.data ?? null;
-      const ac = armourClass(target, sheet);
-      const entry: ActionCardTarget = {
-        tokenId: target.id,
-        name: target.name,
-        isCharacter: targetSheet !== null,
-        showHpBar: target.showHpBar === true,
-        ac,
-        hpBefore: 0,
-        hpAfter: 0,
-        hpMax: 0,
-      };
-      const masked = maskFor(target);
-      if (masked) entry.maskedName = masked;
-      if (targetSheet && roles.get(targetSheet.character.userId) === 'PLAYER') entry.ownerUserId = targetSheet.character.userId;
+      // Who answers for the target, and whether players are sent it at all (a hidden one leaves their cards).
+      const entry = newEntry(target, targetSheet, targetCharacter, roles);
+      const ac = entry.ac;
 
       let delta = 0;
       if (option.resolution === 'attack') {
@@ -291,7 +279,8 @@ export async function resolveAction(
     if (edits.changed) await tx.map.update({ where: { id: mapId }, data: { tokens: toJson(edits.tokens) } });
     const written = await writeSheets(tx, held);
     const actorLabel = chatName(actorToken.name, actorMask);
-    const content = cardTargets.length > 0
+    // The line every reader receives as stored names no target players are not sent.
+    const content = cardTargets.length > 0 && !cardTargets[0].concealed
       ? `${actorLabel} → ${chatName(cardTargets[0].name, cardTargets[0].maskedName)}: ${option.name}`
       : `${actorLabel}: ${option.name}`;
     const message = await tx.message.create({

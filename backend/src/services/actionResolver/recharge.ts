@@ -27,7 +27,7 @@ import {
   type Refusal,
 } from './common';
 
-/** The small card a recharge roll posts. A token players are not sent is named as "something invisible", and its id is left out. */
+/** The small card a recharge roll posts. For a token players are not sent, it is a whisper to the GM alone. */
 export interface RechargeCard {
   kind: 'recharge';
   tokenId?: string;
@@ -88,28 +88,31 @@ export async function rollRecharge(
   requester: Viewer,
   input: RechargeInput,
   rng: Rng = defaultRng,
-): Promise<{ ok: true; messageId: string; card: RechargeCard; recharged: boolean; d6: number } | Refusal> {
+): Promise<{ ok: true; messageId: string; card: RechargeCard; recharged: boolean; d6: number; gmOnly: boolean } | Refusal> {
   if (requester.role !== 'GM') return refuse(GM_ONLY);
   const outcome = await onSpentRecharge(campaignId, input, async (tx, token, actionName, min) => {
     const d6 = rng(6);
     const recharged = d6 >= min;
-    const masked = maskFor(token);
-    const card: RechargeCard = { kind: 'recharge', actionName, min, d6, recharged };
+    // A token players are not sent: the roll is the GM's alone, a whisper to
+    // themselves, or it would tell the table something hidden has a breath.
+    const gmOnly = maskFor(token) === 'something-invisible';
+    const masked = gmOnly ? undefined : maskFor(token);
+    const card: RechargeCard = { kind: 'recharge', tokenId: token.id, actionName, min, d6, recharged };
     if (masked) card.maskedName = masked;
     else card.name = token.name;
-    if (masked !== 'something-invisible') card.tokenId = token.id;
     const range = min < 6 ? `${min}–6` : '6';
     const created = await tx.message.create({
       data: {
         campaignId,
         userId: requester.userId,
-        type: 'CHARACTER_ACTION',
+        type: gmOnly ? 'WHISPER' : 'CHARACTER_ACTION',
+        recipientId: gmOnly ? requester.userId : null,
         content: `${chatName(token.name, masked)}: recarga de ${actionName} (${range}): ${d6}, ${recharged ? 'recarregou' : 'ainda gasta'}`,
         metadata: toJson(card),
       },
       select: { id: true },
     });
-    return { back: recharged, result: { messageId: created.id, card, recharged, d6 } };
+    return { back: recharged, result: { messageId: created.id, card, recharged, d6, gmOnly } };
   });
   if (!outcome.ok) return outcome;
   if (outcome.result.recharged) await tellTable(campaignId, requester, input);

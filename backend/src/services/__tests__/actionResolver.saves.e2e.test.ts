@@ -517,6 +517,19 @@ describe('a monster attack with a save on the hit', () => {
   });
 });
 
+describe('a single attack on a hidden token', () => {
+  it("leaves players' cards and the stored chat line", async () => {
+    await setTable([hero(), goblin('g1', 30, 30), goblin('hidden-goblin', 31, 30, { visible: false })]);
+    const out = ok(await resolveAction(campaignId, gm, { mapId, actorTokenId: 'g1', actionId: 'npc:actions:0', mode: 'normal', targetTokenId: 'hidden-goblin' }, seq(15, 3)));
+    expect(out.card.targets[0]).toMatchObject({ tokenId: 'hidden-goblin', concealed: true, controllerUserIds: [], hpAfter: 15 });
+    const theirs: any = projectActionCard(out.card, p1);
+    expect(theirs.targets).toEqual([]);
+    expect(JSON.stringify(theirs)).not.toContain('hidden-goblin');
+    const message = await prisma.message.findUniqueOrThrow({ where: { id: out.messageId } });
+    expect(message.content).toBe('Goblin g1: Cimitarra');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Undo, and the pending list
 // ---------------------------------------------------------------------------

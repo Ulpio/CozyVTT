@@ -40,6 +40,17 @@ const tokenA = randomUUID();
 const tokenB = randomUUID();
 /** On the map and not in the fight, so the GM can add it. */
 const tokenC = randomUUID();
+/** A creature whose breath is spent, for the recharge events. */
+const tokenD = randomUUID();
+const breathBlock = {
+  actions: [{
+    name: 'Sopro (Recarrega 6)',
+    description: 'A criatura sopra gelo num cone de 9 metros. Cada criatura na área faz um teste de resistência de Constituição CD 12; em caso de falha sofre 10 (3d6) de dano de frio, e em caso de sucesso sofre metade desse dano.',
+  }],
+};
+const recharge = () => ({ mapId, tokenId: tokenD, optionId: 'npc:actions:0' });
+/** One stored action card per card event, so the undo of one leaves the others to act on. */
+const cardIds: Record<'undo' | 'saveRemaining' | 'undoTarget', string> = { undo: '', saveRemaining: '', undoTarget: '' };
 const wall = { id: wallId, x1: 100, y1: 100, x2: 200, y2: 100, type: 'wall' };
 const light = { id: lightId, x: 300, y: 300, brightRadius: 2, dimRadius: 4, color: '#ffcc66', enabled: true };
 const token = (id: string) => ({ id, name: id, x: 1, y: 1, size: 1, imageUrl: '', type: 'npc', visible: true });
@@ -49,7 +60,7 @@ const entry = (tokenId: string, initiative: number): CombatantEntry => ({
 
 /** What the map holds at the start of every test, with one drawing (below). */
 const MAP_CONTENTS = {
-  tokens: toJson([token(tokenA), token(tokenB), token(tokenC)]),
+  tokens: toJson([token(tokenA), token(tokenB), token(tokenC), { ...token(tokenD), statBlock: breathBlock, rechargeSpent: ['npc:actions:0'] }]),
   wallSegments: toJson([wall]),
   lights: toJson([light]),
   fogData: Prisma.DbNull,
@@ -57,6 +68,11 @@ const MAP_CONTENTS = {
 
 /** One payload per GM-only event, naming things that exist. */
 const PAYLOADS: Record<string, () => unknown> = {
+  'action.recharge': recharge,
+  'action.rechargeReset': recharge,
+  'action.saveRemaining': () => ({ messageId: cardIds.saveRemaining }),
+  'action.undo': () => ({ messageId: cardIds.undo }),
+  'action.undoTarget': () => ({ messageId: cardIds.undoTarget, targetTokenId: tokenA }),
   'atmosphere.audio.set': () => ({ assetId: null }),
   'atmosphere.effect.set': () => ({ effect: 'rain' }),
   'dice.clearHistory': () => undefined,
@@ -89,6 +105,11 @@ const PAYLOADS: Record<string, () => unknown> = {
  * here, so a payload that the handler refuses from the GM too fails below.
  */
 const REACHES_TABLE_AS: Record<string, string> = {
+  'action.recharge': 'chat.message',
+  'action.rechargeReset': 'map.changed',
+  'action.saveRemaining': 'chat.message.updated',
+  'action.undo': 'chat.message.updated',
+  'action.undoTarget': 'chat.message.updated',
   'atmosphere.audio.set': 'atmosphere.audio.updated',
   'atmosphere.effect.set': 'atmosphere.effect.updated',
   'dice.clearHistory': 'dice.historyCleared',
@@ -165,6 +186,23 @@ beforeAll(async () => {
     },
   })).id;
   await prisma.campaign.update({ where: { id: campaignId }, data: { currentMapId: mapId } });
+  // A goblin's card with a save still pending on tokenA, for each card event.
+  const card = {
+    kind: 'action',
+    actor: { tokenId: tokenB, name: tokenB },
+    actionName: 'Sopro',
+    mode: 'normal',
+    save: { ability: 'dex', dc: 10, halfOnSave: true },
+    damageRoll: [{ total: 4, breakdown: '1d4: 4' }],
+    targets: [{
+      tokenId: tokenA, name: tokenA, isCharacter: false, showHpBar: false, ac: 10, hpBefore: 5, hpAfter: 3, hpMax: 5,
+      controllerUserIds: [], concealed: false, save: { ability: 'dex', dc: 10, bonus: 0, status: 'pending' },
+    }],
+    undo: { mapId, hp: [{ tokenId: tokenA, before: { current: 5, temp: 0 }, after: { current: 3, temp: 0 } }] },
+  };
+  for (const key of Object.keys(cardIds) as (keyof typeof cardIds)[]) {
+    cardIds[key] = (await prisma.message.create({ data: { campaignId, userId: users[0].id, type: 'CHARACTER_ACTION', content: 'Sopro', metadata: toJson(card) } })).id;
+  }
 
   server = await createWsTestServer();
   for (const [i, role] of roles.entries()) cookies[role] = await server.loginAs(users[i].id);
@@ -182,6 +220,7 @@ beforeEach(async () => {
 afterAll(async () => {
   await server.close();
   clearState(campaignId);
+  await prisma.message.deleteMany({ where: { campaignId } });
   await prisma.diceRoll.deleteMany({ where: { campaignId } });
   await prisma.campaign.update({ where: { id: campaignId }, data: { currentMapId: null } });
   await prisma.map.deleteMany({ where: { campaignId } });

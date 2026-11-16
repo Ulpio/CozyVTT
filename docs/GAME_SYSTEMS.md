@@ -1085,7 +1085,8 @@ The Horror d100 sheet follows the open d100 rules: its characteristics and their
 | Fantasy d20 | `frontend/src/utils/rules/fantasyD20.ts`, `backend/src/utils/rules/fantasyD20.ts` | The sheet's arithmetic |
 | Fantasy d20 | `frontend/src/components/campaign/npc-stat-blocks/fantasyD20StatBlock.ts`, `frontend/src/components/campaign/npc-stat-blocks/FantasyD20ProficiencyEditor.tsx` | Creature stat blocks: level, printed modifiers, the three saves |
 | Fantasy d20 | `frontend/src/utils/rollModes.ts` | Fortune and Misfortune on a d20 roll |
-| Fantasy d20 | `frontend/src/components/campaign/map/aoeGeometry.ts` | A cone as a quarter circle |
+| Fantasy d20 | `frontend/src/utils/aoeGeometry.ts`, `backend/src/utils/aoeGeometry.ts` | A cone as a quarter circle |
+| Fantasy d20 | `frontend/src/utils/areaGeometry.ts`, `backend/src/utils/areaGeometry.ts` | A spell area placed with the cone above |
 | Fantasy d20 | `frontend/src/utils/geometry.ts` | Diagonal movement where every second diagonal costs double |
 | Both | `frontend/src/utils/rules/hitPoints.ts`, `backend/src/utils/rules/hitPoints.ts`, `backend/src/websocket/handlers/characters.ts` | Fantasy d20: temporary hit points and damage. Horror d100: hit points that go below 0, and no temporary ones |
 | Fantasy d20 | `frontend/src/utils/npcRolls.ts`, `frontend/src/utils/rollPurposes.ts` | The rolls a creature offers, its saves among them, and the names rolls carry, such as a Strike |

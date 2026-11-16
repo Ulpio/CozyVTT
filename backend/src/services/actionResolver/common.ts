@@ -179,6 +179,26 @@ export function combineModes(a: RollMode, b: RollMode): RollMode {
   return 'normal';
 }
 
+/** What one target's entry starts as: who it is, who answers for it, and what players may know of it. */
+export function newEntry(token: Token, sheet: HeldSheet | null, character: Character | null, roles: Map<string, string>): ActionCardTarget {
+  const entry: ActionCardTarget = {
+    tokenId: token.id,
+    name: token.name,
+    isCharacter: sheet !== null,
+    showHpBar: token.showHpBar === true,
+    ac: armourClass(token, sheet?.data ?? null),
+    hpBefore: 0,
+    hpAfter: 0,
+    hpMax: 0,
+    controllerUserIds: controllersOf(token, character, roles),
+    concealed: maskFor(token) === 'something-invisible',
+  };
+  const masked = maskFor(token);
+  if (masked) entry.maskedName = masked;
+  if (sheet && roles.get(sheet.character.userId) === 'PLAYER') entry.ownerUserId = sheet.character.userId;
+  return entry;
+}
+
 // ---------------------------------------------------------------------------
 // Holding the characters' rows
 // ---------------------------------------------------------------------------

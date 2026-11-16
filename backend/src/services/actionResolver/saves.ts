@@ -51,12 +51,10 @@ import {
   actingPlayer,
   afterCommit,
   announce,
-  armourClass,
   boundCharacterTx,
   changeHitPoints,
   chatName,
   combineModes,
-  controllersOf,
   damageLines,
   defaultRng,
   footprint,
@@ -64,6 +62,7 @@ import {
   holdSheets,
   mapTokensTx,
   maskFor,
+  newEntry,
   refuse,
   rolesIn,
   spendSlotAndConcentration,
@@ -146,26 +145,6 @@ function rollSaveFor(
   const parts = partsTaken(card.damageRoll ?? [], success, card.save?.halfOnSave ?? false);
   if (parts.length > 0) entry.damage = [...(entry.damage ?? []), ...parts];
   if (token) changeHitPoints(entry, token, sheet, -parts.reduce((s, d) => s + d.total, 0), edits, card.undo);
-}
-
-/** What one target's entry starts as: who it is, who answers for it, and what players may know of it. */
-function newEntry(token: Token, sheet: HeldSheet | null, character: Character | null, roles: Map<string, string>): ActionCardTarget {
-  const entry: ActionCardTarget = {
-    tokenId: token.id,
-    name: token.name,
-    isCharacter: sheet !== null,
-    showHpBar: token.showHpBar === true,
-    ac: armourClass(token, sheet?.data ?? null),
-    hpBefore: 0,
-    hpAfter: 0,
-    hpMax: 0,
-    controllerUserIds: controllersOf(token, character, roles),
-    concealed: maskFor(token) === 'something-invisible',
-  };
-  const masked = maskFor(token);
-  if (masked) entry.maskedName = masked;
-  if (sheet && roles.get(sheet.character.userId) === 'PLAYER') entry.ownerUserId = sheet.character.userId;
-  return entry;
 }
 
 /**
