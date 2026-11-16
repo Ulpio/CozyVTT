@@ -985,7 +985,7 @@ A request sent with an acknowledgement is answered through it, once, with
 `{ ok: true, ... }` or `{ ok: false, error }` (`websocket/ack.ts`), and then
 sends no `error` event: `chat.message`, `dice.roll`, `dice.clearHistory`,
 `wall:add`, `walls:replace`, `light:add`, `drawing:add`, `drawing:remove`,
-`drawing:clear_mine` and `drawing:clear` take one, and the web client shows the answer where the request was made
+`drawing:clear_mine`, `drawing:clear`, `action.list`, `action.resolve`, `action.undo` and `action.concentration` take one, and the web client shows the answer where the request was made
 (the chat row's **Not sent**, the Dice panel's banner, `hooks/useTableRoll.ts`
 for rolls from a sheet or a menu, which sends none the shared dice parser
 refuses and gives its reason in the same message, the draw tool, which takes back a
@@ -1011,6 +1011,17 @@ This filtering lives in `src/utils/spirit-layer.ts` and is applied before each c
 
 Walls and lights are not filtered by sight, since each browser works out its own sight from the walls, but two of their details are the GM's: `wallsSentTo` sends anyone but the GM a `door-locked` door as `door-closed`, and `lightsSentTo` sends them only the lights that are on (`spirit-layer.ts`). Every path that sends walls or lights applies them: the map fetch and `map.changed` (`filterMapData`), `walls:request` and `lights:request`, the REST reads, and the live edits, which go out per reader through `emitToMapReadersAs` (`websocket/utils.ts`), so a light turned on or off reaches a player as `light:added` or `light:removed` (`lightChangeSentTo`). A player is sent nothing for a change that leaves their copy as it was: a closed door locked or unlocked (`wallChangeSentTo`), a light that is off added, changed or deleted, or one that is on set to the values it has (`lightReachesPlayers`, `lightChangeReachesPlayers`, `lightChangeSentTo`, `lightRemovalSentTo`), or a whole list replaced with one that is the same for them (`wallsReplacedSentTo`, `lightsReplacedSentTo`), since the event alone would tell them something had happened there. On a lit map the same tests (`wallChangeReachesPlayers`, `lightChangeReachesPlayers`, `lightReachesPlayers`, `wallListChangeReachesPlayers`, `lightListChangeReachesPlayers`) decide whether players are sent the map again afterwards (`resendSightAfterChange` in `websocket/shared.ts`), which would tell them the same.
 
+
+### Action bar events
+
+The bar's four events are in `websocket/handlers/actions.ts`; the roll, the comparison, the change and the record are `services/actionResolver.ts`'s, and the client sends only ids and choices, never a bonus or dice. All four are under their own flood ceilings, and each is answered through its acknowledgement:
+
+- `action.list` `{ mapId, actorTokenId }` is answered `{ ok: true, options }`; the NPC `summary` of an option is left out for anyone but the GM.
+- `action.resolve` `{ mapId, actorTokenId, actionId, targetTokenId?, mode, slotLevel?, grip?, replaceConcentration? }` is answered `{ ok: true, messageId }`, or `{ ok: false, error, code? }` (`code: 'needs-concentration-confirm'` asks the player to confirm dropping another spell). The card is never in the answer: each connection to the campaign is sent a `chat.message` of type `CHARACTER_ACTION` whose `metadata` is the card as that reader may see it.
+- `action.undo` `{ messageId }` is the GM's alone (anyone else is answered `GM only`); each reader is sent `chat.message.updated` `{ id, metadata }`.
+- `action.concentration` `{ messageId, targetTokenId }` posts the small `kind: 'concentration'` card as a `chat.message` and re-sends the action's card as `chat.message.updated`, since it now records the roll.
+
+A spectator is refused every one of them but `action.undo`, which is the GM's anyway. The stored card is the GM's, with each target's AC and hit chance and the record that undoes the action. `projectActionCard` (`rules/actions/actionCard.ts`) gives everyone else a card without them, and `metadataFor` (`services/actionMessages.ts`) applies it to every message whose metadata is `kind: 'action'`: on every live emit above and in `GET /api/campaigns/:campaignId/messages`. A card that cannot be projected is withheld from a player, not sent whole.
 A whisper is a `chat.message` with a `recipientId`. The server checks the recipient is a current member of the campaign other than the sender (`whisperRecipient` in `services/permissions.ts`), stores it as a `WHISPER` with `Message.recipientId`, whatever the payload says of its type, and sends it to the sender's and the recipient's sockets in this campaign alone: never through the user room, which spans every campaign the user has open, and to the GM only when the GM is one of the two. `GET /api/campaigns/:campaignId/messages` leaves out every whisper the caller neither sent nor received. Whispers are ordinary rows, so they are in the database and its backups.
 
 A map is read by the GM always, and by anyone else only while it is the campaign's current map (`canReadMap` in `services/permissions.ts`). The map routes, the walls, lights, fog and exploration requests and the asset reads a map's use grants all ask it, and `emitToMapReaders` sends a live edit of any other map to the GM's sockets alone, so a map the GM prepares sends players nothing until the table moves to it.

@@ -237,6 +237,24 @@ export const SOCKET_CEILINGS = {
     windows: [{ limit: 50, windowMs: SECOND }, { limit: 200, windowMs: MINUTE }],
     refusal: 'Rate limit exceeded: too many dice rolls at once. Wait a few seconds, then roll again.',
   },
+  // The action bar. One resolve per click, which is a write under the map's
+  // lock; a list per token the bar opens.
+  'action.list': {
+    windows: [{ limit: 20, windowMs: SECOND }, { limit: 300, windowMs: MINUTE }],
+    refusal: 'Too many action requests at once. Wait a moment, then try again.',
+  },
+  'action.resolve': {
+    windows: [{ limit: 10, windowMs: SECOND }, { limit: 200, windowMs: MINUTE }],
+    refusal: 'Too many actions at once. Wait a moment, then try again.',
+  },
+  'action.undo': {
+    windows: [{ limit: 10, windowMs: SECOND }],
+    refusal: 'Too many undo requests at once. Wait a moment, then try again.',
+  },
+  'action.concentration': {
+    windows: [{ limit: 10, windowMs: SECOND }],
+    refusal: 'Too many concentration rolls at once. Wait a moment, then try again.',
+  },
   'character.hp.update': {
     windows: [{ limit: 50, windowMs: SECOND }],
     refusal: 'Too many hit point changes at once. Wait a moment, then try again.',

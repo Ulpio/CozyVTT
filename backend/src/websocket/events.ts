@@ -17,6 +17,7 @@ import { boundOutgoingQueue } from './outgoingQueue';
 import { registerTokenHandlers } from './handlers/tokens';
 import { registerDiceHandlers } from './handlers/dice';
 import { registerChatHandlers } from './handlers/chat';
+import { registerActionHandlers } from './handlers/actions';
 import { registerSpiritHandlers } from './handlers/spirit';
 import { registerVibeHandlers } from './handlers/vibe';
 import { registerMapHandlers } from './handlers/maps';
@@ -325,6 +326,7 @@ export function registerEventHandlers(io: Server): void {
     registerTokenHandlers(io, socket);
     registerDiceHandlers(io, socket);
     registerChatHandlers(io, socket);
+    registerActionHandlers(io, socket);
     registerSpiritHandlers(io, socket);
     registerVibeHandlers(io, socket);
     registerMapHandlers(io, socket);

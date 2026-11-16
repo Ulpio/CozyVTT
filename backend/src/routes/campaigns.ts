@@ -55,6 +55,7 @@ import { randomUUID } from 'crypto';
 import path from 'path';
 import fsp from 'fs/promises';
 import { resendDrawings } from '../services/mapDrawings';
+import { metadataFor, viewerOf } from '../services/actionMessages';
 const router = Router();
 
 /**
@@ -1529,6 +1530,7 @@ router.get('/:campaignId/messages', campaignMember, async (req: AuthenticatedReq
       take: limitNum + 1,
     });
 
+    const viewer = viewerOf(req.campaignMembership!.role, userId);
     const hasMore = rows.length > limitNum;
     const page = hasMore ? rows.slice(0, limitNum) : rows;
     const last = page[page.length - 1];
@@ -1549,7 +1551,8 @@ router.get('/:campaignId/messages', campaignMember, async (req: AuthenticatedReq
         } : null,
         content: msg.content,
         type: msg.type,
-        metadata: msg.metadata || null,
+        // An action card is stored whole, for the GM: each reader gets it projected (services/actionMessages.ts).
+        metadata: metadataFor(msg.metadata, viewer) || null,
         createdAt: msg.createdAt.toISOString(),
       }));
 
