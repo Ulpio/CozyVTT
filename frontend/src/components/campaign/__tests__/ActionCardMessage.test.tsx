@@ -28,7 +28,7 @@ const playerCard = {
 const gmCard = {
   kind: 'action', actor: { tokenId: 'a1', name: 'Mara', userId: 'u1' }, actionName: 'Longsword', mode: 'normal', extraText: 'Goblin bleeds',
   targets: [
-    { tokenId: 'g1', name: 'Goblin', isCharacter: false, showHpBar: false, ac: 15, hitChance: 55, hpBefore: 7, hpAfter: 0, hpMax: 7, attack: { d20s: [18], natural: 18, total: 22, hit: true, critical: false }, damage: [{ total: 7, type: 'slashing', breakdown: '1d8+3' }] },
+    { tokenId: 'g1', name: 'Goblin', isCharacter: false, showHpBar: false, ac: 15, hitChance: 0.5774999999999999, hpBefore: 7, hpAfter: 0, hpMax: 7, attack: { d20s: [18], natural: 18, total: 22, hit: true, critical: false }, damage: [{ total: 7, type: 'slashing', breakdown: '1d8+3' }] },
     { tokenId: 'c1t', name: 'Mara', isCharacter: true, showHpBar: true, ac: 14, hpBefore: 9, hpAfter: 4, hpMax: 12, concentrationCheckDc: 10 },
   ],
   undo: { hp: [] },
@@ -68,7 +68,7 @@ describe('an action card in chat', () => {
     undo.mockResolvedValue({ ok: true });
     render(<ChatMessage message={msg(gmCard)} />);
     expect(screen.getByText(/against AC 15/)).toBeInTheDocument();
-    expect(screen.getByText(/55%/)).toBeInTheDocument();
+    expect(screen.getByText('58% chance')).toBeInTheDocument();
     expect(screen.getByText(/HP 7 → 0/)).toBeInTheDocument();
     expect(screen.getByText('Goblin bleeds')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));

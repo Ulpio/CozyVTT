@@ -88,7 +88,7 @@ export default function ActionCardMessage({ messageId, card }: { messageId: stri
                 <span className="font-medium">{tg.attack.critical ? t('actionCard.critical') : tg.attack.hit ? t('actionCard.hit') : t('actionCard.miss')}</span>
                 {modeWord && <> · <span>{modeWord}</span></>}
                 {gm && <> · <span>{t('actionCard.againstAc', { ac: gm.ac })}</span></>}
-                {gm?.hitChance !== undefined && <> · <span>{t('actionCard.chance', { chance: gm.hitChance })}</span></>}
+                {gm?.hitChance !== undefined && <> · <span>{t('actionCard.chance', { chance: Math.round(gm.hitChance * 100) })}</span></>}
               </p>
             )}
             {tg.damage && tg.damage.length > 0 && (
