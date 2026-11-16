@@ -7,7 +7,7 @@
 
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
-import { parseMonsterAction } from '../monsterActions';
+import { parseMonsterAction, parseMonsterSaveAction } from '../monsterActions';
 
 const FILE = resolve(__dirname, '../../../../../materiais/.compendio/data/mm/monster.json');
 
@@ -48,4 +48,44 @@ if (!present) console.warn(`monsterActions.db: ${FILE} not found (the compendium
   console.log(`monsterActions.db: ${monsters.length} monsters, ${total} attacks checked, ${allowed.length} known defects, ${unparsed.length} unparsed`);
   expect(unparsed).toEqual([]);
   expect(allowed.sort()).toEqual([...KNOWN_DEFECTS].sort());
+});
+
+// "Creature: Action" pairs with a save DC whose text is not one readable save.
+const KNOWN_SAVE_DEFECTS = new Set<string>([
+  'Goristro: Ataques Múltiplos', // a multiattack with a save inside one of its attacks
+  'Observador: Raios Oculares', // a menu of ten rays, each with its own save
+  'Observador Zumbi: Raios Oculares',
+  'Tirano da Morte: Raios Oculares',
+]);
+
+interface RawMonsterAll {
+  name: string;
+  statBlock?: Record<string, { name?: string; description?: string }[] | undefined>;
+}
+
+(present ? it : it.skip)('reads every action that names a "teste de resistência … CD"', () => {
+  const monsters: RawMonsterAll[] = JSON.parse(readFileSync(FILE, 'utf8'));
+  let total = 0;
+  let read = 0;
+  const allowed: string[] = [];
+  const unread: string[] = [];
+  for (const m of monsters) {
+    for (const list of ['actions', 'bonusActions', 'reactions']) {
+      for (const a of m.statBlock?.[list] ?? []) {
+        const d = a.description ?? '';
+        if (!/teste de resist[êe]ncia[^.]{0,40}CD\s*\d/i.test(d)) continue;
+        total += 1;
+        const key = `${m.name}: ${a.name}`;
+        if (parseMonsterSaveAction(a.name ?? '', d) || parseMonsterAction(d)?.onHitSave) {
+          read += 1;
+          continue;
+        }
+        (KNOWN_SAVE_DEFECTS.has(key) ? allowed : unread).push(key);
+      }
+    }
+  }
+  console.log(`monsterActions.db: ${total} save actions, ${read} read, ${allowed.length} known defects, ${unread.length} unread`);
+  if (unread.length) console.log(unread.join('\n'));
+  expect(unread).toEqual([]);
+  expect(allowed.sort()).toEqual([...KNOWN_SAVE_DEFECTS].sort());
 });
