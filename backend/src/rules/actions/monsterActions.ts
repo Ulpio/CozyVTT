@@ -145,9 +145,9 @@ function readDamage(region: string): { parts: { dice: string; type: string }[]; 
 }
 
 /**
- * Reads "teste de resistência de Destreza CD 21" and the damage it deals on a
- * failure ("sofrendo 63 (18d6) de dano de fogo se falhar, ou metade desse dano
- * se obtiver sucesso"). Text with no such save gives null.
+ * Reads a save clause (its ability and DC), the damage a failed save deals,
+ * and whether a success still takes half of it. Text with no such save gives
+ * null.
  */
 function readSave(text: string): SaveEffect | null {
   const m = SAVE_RE.exec(text);
@@ -157,7 +157,7 @@ function readSave(text: string): SaveEffect | null {
   let regionEnd = sentenceEnd(text, afterAt);
   let dmg = readDamage(text.slice(afterAt, regionEnd));
   if (dmg.parts.length === 0) {
-    // "Se falhar, um alvo sofre 13 (2d8) de dano ..." in the following sentence.
+    // The damage can come in the next sentence, after a separate failure clause.
     const nextEnd = sentenceEnd(text, regionEnd);
     const next = text.slice(regionEnd, nextEnd);
     if (/^\s*(?:(?:Se|Em caso de|Caso)\s+(?:o alvo\s+|a criatura\s+|ele\s+|ela\s+)?(?:falh|fracass)|(?:A criatura|O alvo|Ela|Ele)\s+sofre)/i.test(next)) {
