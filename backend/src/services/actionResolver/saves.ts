@@ -277,6 +277,8 @@ export async function resolveTargetedAction(
       const index = tokens.findIndex((t) => t?.id === actorToken.id);
       tokens[index] = { ...tokens[index], rechargeSpent: [...(tokens[index].rechargeSpent ?? []), option.id] };
       edits.changed = true;
+      // The map goes out again even when only sheets took damage, so the bar shows the button spent.
+      if (!edits.changedTokenIds.includes(actorToken.id)) edits.changedTokenIds.push(actorToken.id);
       undo.recharge = { mapId, tokenId: actorToken.id, optionId: option.id };
       card.recharge = { tokenId: actorToken.id, optionId: option.id };
     }

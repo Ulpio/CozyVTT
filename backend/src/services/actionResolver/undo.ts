@@ -40,6 +40,7 @@ function restoreRecharge(card: ActionCard, edits: TokenEdits): void {
   if (!list?.includes(spent.optionId)) return;
   edits.tokens[index] = { ...edits.tokens[index], rechargeSpent: list.filter((id) => id !== spent.optionId) };
   edits.changed = true;
+  if (!edits.changedTokenIds.includes(spent.tokenId)) edits.changedTokenIds.push(spent.tokenId);
 }
 
 /** The GM takes an action back: hit points that nothing changed since, and the slot, concentration and recharge always. */

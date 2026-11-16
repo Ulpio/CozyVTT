@@ -235,6 +235,33 @@ describe('the action bar for the GM', () => {
   });
 });
 
+describe("a player's bar with a recharge on it", () => {
+  // A player's bar lists their characters' tokens; a recharge there stands in for a breath they control.
+  const fighter = () => token({ id: 'tok-fighter', characterId: 'c-fighter', name: 'Brienne', type: 'PC' as never });
+  const goblin = () => token({ id: 'goblin', name: 'Goblin', hp: { current: 7, max: 7, temp: 0 }, statBlock: { ac: 15 } as never });
+
+  it("lists again when the map comes again with the token (the spent mark itself is the GM's)", async () => {
+    h.options['tok-fighter'] = [longsword, { ...fireBreath, recharge: { min: 5, spent: false } }];
+    render(<ActionBar />);
+    await screen.findByRole('button', { name: 'Fire Breath' });
+    const calls = h.list.mock.calls.length;
+    h.options['tok-fighter'] = [longsword, fireBreath];
+    act(() => { useGameStore.getState().setTokens([fighter(), goblin()], 'map-1'); });
+    expect(await screen.findByRole('button', { name: /^Fire Breath\s*Spent until it recharges$/ })).toBeDisabled();
+    expect(h.list.mock.calls.length).toBe(calls + 1);
+  });
+
+  it('does not list again on a resend or a move when nothing on the bar recharges', async () => {
+    render(<ActionBar />);
+    await screen.findByRole('button', { name: 'Longsword' });
+    const calls = h.list.mock.calls.length;
+    act(() => { useGameStore.getState().applyTokenMove('tok-fighter', { x: 3, y: 3 }); });
+    act(() => { useGameStore.getState().setTokens([fighter(), goblin()], 'map-1'); });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(h.list.mock.calls.length).toBe(calls);
+  });
+});
+
 describe('the rest of the bar', () => {
   it("shows a player a spent recharge as spent, with nothing to roll", async () => {
     h.options['tok-fighter'] = [fireBreath];

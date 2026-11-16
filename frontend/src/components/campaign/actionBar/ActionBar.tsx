@@ -45,8 +45,9 @@ export default function ActionBar() {
   const characterId = actor?.kind === 'character' ? actor.token.characterId : null;
   const sheet = useActorSheet(characterId);
   // Listed again when the sheet changes, or the token's spent recharges do (the GM's copy of the map carries them).
+  // A player is never sent the spent mark, so a bar with a recharge on it is listed again whenever the token comes again.
   const spentKey = (actor?.token.rechargeSpent ?? []).join(',');
-  const options = useActionOptions(currentMap?.id, actor?.token.id ?? null, `${sheet?.updatedAt ?? ''}|${spentKey}`);
+  const options = useActionOptions(currentMap?.id, actor?.token.id ?? null, `${sheet?.updatedAt ?? ''}|${spentKey}`, actor?.token);
   const characterHp = useCharacterHp();
   const mode = useActionStore((s) => s.mode);
   const pending = useActionStore((s) => s.pending);

@@ -402,6 +402,20 @@ describe('saves, areas and recharge', () => {
     expect(await gm.timeout(3000).emitWithAck('action.rechargeReset', recharge)).toMatchObject({ ok: false, error: 'This action is not spent' });
   });
 
+  it("resends the map when a breath catches only player characters, and when it is undone, so the GM's button follows", async () => {
+    await breathTable();
+    const map = await prisma.map.findUniqueOrThrow({ where: { id: mapId } });
+    await prisma.map.update({ where: { id: mapId }, data: { tokens: (map.tokens as any[]).filter((t) => t.id !== SECRET) } });
+    const gm = await connect('gm');
+    const drakeIn = (m: any) => m.mapData.tokens.find((t: any) => t.id === 'drake');
+    const spent = ofType(gm, 'map.changed', (m: any) => m.mapId === mapId && drakeIn(m)?.rechargeSpent?.includes('npc:actions:0'));
+    const { messageId } = await gm.timeout(5000).emitWithAck('action.resolve', breath());
+    await spent;
+    const back = ofType(gm, 'map.changed', (m: any) => m.mapId === mapId && !(drakeIn(m)?.rechargeSpent ?? []).includes('npc:actions:0'));
+    expect(await gm.timeout(5000).emitWithAck('action.undo', { messageId })).toMatchObject({ ok: true });
+    await back;
+  });
+
   it('keeps the recharge roll of a hidden creature to the GM alone', async () => {
     await breathTable();
     const map = await prisma.map.findUniqueOrThrow({ where: { id: mapId } });
