@@ -1,37 +1,51 @@
 /**
- * Every attack in the imported monster books reads: each creature action whose
- * text says "para atingir" must parse. Requires PostgreSQL at DATABASE_URL with
- * the compendium imported; with no creatures it skips.
+ * Every attack in the monster book reads: each creature action whose text says
+ * "para atingir" must parse, except the few entries the book itself got wrong
+ * (listed by name below). Reads the compendium's monster data file
+ * (materiais/.compendio/data/mm/monster.json, git-ignored); skips when absent.
  */
 
-import { prisma } from '../../../__tests__/helpers/db';
+import { existsSync, readFileSync } from 'fs';
+import { resolve } from 'path';
 import { parseMonsterAction } from '../monsterActions';
 
-afterAll(async () => {
-  await prisma.$disconnect();
-});
+const FILE = resolve(__dirname, '../../../../../materiais/.compendio/data/mm/monster.json');
 
-it('parses every action that says "para atingir"', async () => {
-  const creatures = await prisma.creatureTemplate.findMany({ select: { name: true, statBlock: true } });
-  if (creatures.length === 0) {
-    console.warn('monsterActions.db: no creatures in the database (run compendium:import); skipping.');
-    return;
-  }
+// "Creature: Action" pairs whose source text is not one readable attack.
+const KNOWN_DEFECTS = new Set<string>([
+  'Abolete: Cauda', // the bonus is a stray symbol, not a number
+  'Goristro: Ataques Múltiplos', // a multiattack, with its attacks inside its text
+  'Marilith: Ataques Múltiplos',
+  'Dragão de Bronze Adulto: Ataques Múltiplos',
+  'Dragão de Latão Adulto: Ataques Múltiplos',
+  'Dao: Ataques Múltiplos',
+  'Gorila Gigante: Ataques Múltiplos',
+  'Inumano: Imitar', // the book merged it with the kenku's Espada Curta attack
+]);
+
+interface RawMonster {
+  name: string;
+  statBlock?: { actions?: { name?: string; description?: string }[] };
+}
+
+const present = existsSync(FILE);
+if (!present) console.warn(`monsterActions.db: ${FILE} not found (the compendium data is private); skipping.`);
+
+(present ? it : it.skip)('parses every action that says "para atingir"', () => {
+  const monsters: RawMonster[] = JSON.parse(readFileSync(FILE, 'utf8'));
   let total = 0;
-  const failed: string[] = [];
-  for (const c of creatures) {
-    const actions = ((c.statBlock as { actions?: { name?: string; description?: string }[] })?.actions ?? []);
-    for (const a of actions) {
+  const allowed: string[] = [];
+  const unparsed: string[] = [];
+  for (const m of monsters) {
+    for (const a of m.statBlock?.actions ?? []) {
       if (!a.description?.includes('para atingir')) continue;
-      // A multiattack, or text the book merged with another action, carries its
-      // attacks inside other text: it does not start as one attack.
-      if (!/^\s*(Ataque\s+)?(Corpo|[àa]\s+Dist)/i.test(a.description)) continue;
-      // A bonus the book printed unreadably (a stray symbol instead of a number).
-      if (!/[+\-−–]\s*\d+\s+para atingir/.test(a.description)) continue;
       total += 1;
-      if (!parseMonsterAction(a.description)) failed.push(`${c.name}: ${a.name}`);
+      const key = `${m.name}: ${a.name}`;
+      if (parseMonsterAction(a.description)) continue;
+      (KNOWN_DEFECTS.has(key) ? allowed : unparsed).push(key);
     }
   }
-  console.log(`monsterActions.db: ${total} attacks, ${failed.length} unparsed`);
-  expect(failed).toEqual([]);
+  console.log(`monsterActions.db: ${monsters.length} monsters, ${total} attacks checked, ${allowed.length} known defects, ${unparsed.length} unparsed`);
+  expect(unparsed).toEqual([]);
+  expect(allowed.sort()).toEqual([...KNOWN_DEFECTS].sort());
 });
