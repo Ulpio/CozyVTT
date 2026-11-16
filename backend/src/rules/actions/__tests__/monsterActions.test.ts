@@ -168,13 +168,13 @@ describe('save wording variants', () => {
   it('reads a line written with "por" for the width and an unnamed-shape radius', () => {
     const line = parseMonsterSaveAction('Sopro (Recarrega 5–6)', 'A serpente cospe uma linha de faíscas de 9 metros de comprimento por 3 metros de largura. Quem estiver na linha faz um teste de resistência de Destreza CD 13 e sofre 20 (3d12) de dano elétrico em caso de falha, ou metade em caso de sucesso.');
     expect(line?.area).toEqual({ shape: 'line', sizeFt: 30, widthFt: 10 });
-    const cloud = parseMonsterSaveAction('Esporos', 'Uma nuvem, com 4,5 metros de raio, sai do monstro. Cada criatura na área deve ser bem sucedida num teste de resistência de Constituição CD 14 ou ficará envenenada.');
-    expect(cloud?.area).toEqual({ shape: 'sphere', sizeFt: 15 });
+    const cloud = parseMonsterSaveAction('Pólen', 'Um véu de pólen dourado, com 6 metros de raio, se espalha a partir da flor. Quem estiver dentro dele faz um teste de resistência de Sabedoria CD 12 ou cai no sono.');
+    expect(cloud?.area).toEqual({ shape: 'sphere', sizeFt: 20 });
   });
 
   it('reads half damage stated in a later sentence', () => {
-    const a = parseMonsterSaveAction('Rugido', 'Cada criatura realiza um teste de resistência de Constituição CD 18. Se falhar, a criatura sofre 44 (8d10) de dano trovejante. Se obtiver sucesso, a criatura sofre metade desse dano.');
-    expect(a?.save).toMatchObject({ damage: [{ dice: '8d10', type: 'trovejante' }], halfOnSave: true });
+    const a = parseMonsterSaveAction('Brado', 'O gigante bate os punhos e grita. Quem o ouvir faz um teste de resistência de Força CD 15. Se falhar, sofre 27 (6d8) de dano trovejante. Se obtiver sucesso, sofre metade desse dano.');
+    expect(a?.save).toMatchObject({ ability: 'str', dc: 15, damage: [{ dice: '6d8', type: 'trovejante' }], halfOnSave: true });
   });
 
   it('gives a menu of different saves no single reading', () => {
