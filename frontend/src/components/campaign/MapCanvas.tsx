@@ -529,7 +529,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     if (!actionPending || !currentMap) return null;
     const actor = tokens.find((t) => t.id === actionPending.actorTokenId);
     if (!actor) return null;
-    return { actorTokenId: actor.id, inReach: tokensInReach(actor, tokens, actionPending.option.reach, currentMap) };
+    return { actorTokenId: actor.id, inReach: tokensInReach(actor, tokens, actionPending.option.reach, currentMap, actionPending.option.resolution) };
   }, [actionPending, tokens, currentMap]);
   // A bar action the server refused.
   useEffect(() => {

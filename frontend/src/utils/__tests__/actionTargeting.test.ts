@@ -43,6 +43,11 @@ describe('tokensInReach', () => {
     expect(tokensInReach(actor, all, { kind: 'feet', normal: 60 }, map).has('me')).toBe(false);
     expect(tokensInReach(actor, all, { kind: 'self' }, map).size).toBe(0);
   });
+  it('a heal reaches the actor too, by touch or at range', () => {
+    expect([...tokensInReach(actor, all, { kind: 'touch' }, map, 'heal')].sort()).toEqual(['me', 'near']);
+    expect(tokensInReach(actor, all, { kind: 'feet', normal: 60 }, map, 'heal').has('me')).toBe(true);
+    expect(tokensInReach(actor, all, { kind: 'feet', normal: 60 }, map, 'attack').has('me')).toBe(false);
+  });
   it('no reach known means every other token', () => {
     expect([...tokensInReach(actor, all, undefined, map)].sort()).toEqual(['far', 'near']);
   });

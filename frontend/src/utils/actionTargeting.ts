@@ -5,7 +5,7 @@
 // ============================================
 
 import type { Token } from '@/types';
-import type { ActionReach } from '@/types/actions';
+import type { ActionOption, ActionReach } from '@/types/actions';
 
 interface Footprint { x: number; y: number; width: number; height: number }
 interface MapRules { feetPerSquare: number; diagonalRule: string }
@@ -39,11 +39,19 @@ export function tokenDistanceFeet(a: Token, b: Token, map: MapRules): number {
 /**
  * The ids of the tokens within an action's reach of `actor`: touch is 5 ft,
  * long range counts as in reach, self reaches no one, an option with no known
- * reach leaves every other token in. The actor is never in the set.
+ * reach leaves every other token in. The actor is in the set only for a
+ * heal, which it may cast on itself.
  */
-export function tokensInReach(actor: Token, tokens: Token[], reach: ActionReach | undefined, map: MapRules): Set<string> {
+export function tokensInReach(
+  actor: Token,
+  tokens: Token[],
+  reach: ActionReach | undefined,
+  map: MapRules,
+  resolution?: ActionOption['resolution'],
+): Set<string> {
   const result = new Set<string>();
   if (reach?.kind === 'self') return result;
+  if (resolution === 'heal') result.add(actor.id);
   const limit = !reach ? Infinity : reach.kind === 'feet' ? (reach.long ?? reach.normal) : 5;
   for (const token of tokens) {
     if (token.id === actor.id) continue;
