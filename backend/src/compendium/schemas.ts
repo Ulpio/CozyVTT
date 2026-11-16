@@ -90,6 +90,8 @@ const SpellMechanics = z.object({
   save: Ability.optional(),
   damage: z.array(Damage).default([]),
   healing: z.string().optional(),
+  // Whether the healing adds the caster's spellcasting modifier (Cure Wounds, Healing Word).
+  healingAddsModifier: z.boolean().optional(),
   halfOnSave: z.boolean().optional(),
   targets: z.number().int().min(1).optional(),
   area: z.object({ shape: z.string(), size: z.string() }).optional(),

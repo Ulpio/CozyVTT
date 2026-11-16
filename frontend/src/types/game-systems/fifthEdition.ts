@@ -371,6 +371,8 @@ export interface FifthEditionCharacterData extends SheetChrome {
    */
   featuresAndTraits?: Array<string | FeatureEntry>;
   spellcasting?: FifthEditionSpellcasting;
+  /** The spell the character is concentrating on, if any; a new one ends it. */
+  concentratingOn?: { name: string; compendiumRef?: { bookId: string; slug: string } } | null;
   /** Where the guided creation took the character from. */
   origin?: {
     race?: CompendiumRef;

@@ -461,6 +461,8 @@ export const fifthEditionCharacterDataSchema = z.object({
   // See utils/featureEntries.
   featuresAndTraits: sheetList(featureEntrySchema).optional(),
   spellcasting: spellcastingSchema.optional(),
+  // The spell the character is concentrating on, if any; a new one ends it.
+  concentratingOn: z.object({ name: shortText.min(1), compendiumRef: compendiumRefSchema.optional() }).nullable().optional(),
   // Where the guided creation took the character from.
   origin: z
     .object({
