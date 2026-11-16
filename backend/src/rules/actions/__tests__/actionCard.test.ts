@@ -210,4 +210,34 @@ describe('projectActionCard saving throws', () => {
   it('adds no pendingSaves to a card without a save', () => {
     expect((projectActionCard(card(), bob) as any).pendingSaves).toBeUndefined();
   });
+
+  it('says an undo was partial only when a target the player sees was left', () => {
+    const h = hidden(); h.undoneAt = 'now'; h.undoSkipped = true;
+    const seen = hero(); seen.undoneAt = 'now';
+    const c = saveCard([h, seen]); c.undoneAt = 'now'; c.undoPartial = true;
+    expect((projectActionCard(c, bob) as any).undoPartial).toBeUndefined();
+    expect(JSON.stringify(projectActionCard(c, bob))).not.toContain('undoSkipped');
+    seen.undoSkipped = true;
+    expect((projectActionCard(c, bob) as any).undoPartial).toBe(true);
+    expect(projectActionCard(c, gm)).toEqual(c);
+  });
+
+  it('hides the mode of a monster roll, which would tell a Magic Resistance', () => {
+    const g = goblin({ save: sv({ mode: 'advantage', advantageReason: 'magic-resistance', d20s: [3, 15] }) });
+    const p: any = projectActionCard(saveCard([g]), bob);
+    expect(p.targets[0].save).toEqual({ ability: 'dex', dc: 14, status: 'rolled', success: true });
+    const h = hero(); h.save = sv({ mode: 'advantage', d20s: [3, 15] });
+    expect((projectActionCard(saveCard([h]), bob) as any).targets[0].save.mode).toBe('advantage');
+  });
+
+  it('asks nobody to roll once the whole card is undone', () => {
+    const c = saveCard([hero()]); c.undoneAt = 'now';
+    const p: any = projectActionCard(c, ann);
+    expect(p.targets[0].yourSave).toBeUndefined();
+    expect(p.pendingSaves).toBe(0);
+  });
+
+  it('passes the self-healing of a draining touch to players', () => {
+    expect((projectActionCard(card([goblin()], { selfHealing: 5 }), bob) as any).selfHealing).toBe(5);
+  });
 });

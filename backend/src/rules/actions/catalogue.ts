@@ -193,6 +193,8 @@ function spellSpec(
     if (area) {
       const targeting: ActionTargeting = { kind: 'area', area, origin: reach?.kind === 'self' ? 'self' : 'point' };
       if (reach?.kind === 'feet') targeting.rangeFeet = reach.normal;
+      // An area cast by touch is placed at a point beside the caster.
+      else if (reach?.kind === 'touch') targeting.rangeFeet = 5;
       option.targeting = targeting;
     } else if (mech.rays) {
       spec.rays = mech.rays;
@@ -337,7 +339,10 @@ export function npcActions(statBlock: NpcStatBlockInput, rechargeSpent: readonly
         const damage = saveAction.save.damage.map((d) => damageOf(d.dice, d.type)).filter((d): d is Damage => d !== null);
         let targeting: ActionTargeting;
         if (saveAction.area) {
-          targeting = { kind: 'area', area: saveAction.area, origin: 'self' };
+          // A sphere, cylinder or cube "a até N metros" is placed at a point in
+          // range; a cone or line, and a shape with no range, leave the monster.
+          const atPoint = saveAction.rangeFeet !== undefined && saveAction.area.shape !== 'cone' && saveAction.area.shape !== 'line';
+          targeting = { kind: 'area', area: saveAction.area, origin: atPoint ? 'point' : 'self' };
           if (saveAction.rangeFeet !== undefined) targeting.rangeFeet = saveAction.rangeFeet;
         } else if (saveAction.targets === 'many') {
           targeting = { kind: 'multi', count: MANY_TARGETS_CAP, distinct: true };

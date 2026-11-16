@@ -62,6 +62,8 @@ export interface ActionCardTarget {
   rays?: number;
   attacks?: AttackResult[];
   undoneAt?: string;
+  /** GM-only: the undo left this target's hit points, which had changed since. */
+  undoSkipped?: boolean;
 }
 
 export interface UndoRecord {
@@ -92,6 +94,8 @@ export interface ActionCard {
   area?: AreaSpec;
   /** GM-only. */
   recharge?: { tokenId: string; optionId: string };
+  /** What the actor healed itself by draining its target (Vampiric Touch). */
+  selfHealing?: number;
   extraText?: string;
   undo: UndoRecord;
   undoneAt?: string;
@@ -146,6 +150,7 @@ export interface PlayerActionCard {
   damageRoll?: DamagePart[];
   area?: AreaSpec;
   pendingSaves?: number;
+  selfHealing?: number;
   extraText?: string;
   undoneAt?: string;
   undoPartial?: boolean;
@@ -165,7 +170,7 @@ function canSeeHp(t: ActionCardTarget, viewer: Viewer): boolean {
   return t.isCharacter && viewer.role === 'PLAYER' && t.ownerUserId !== undefined && t.ownerUserId === viewer.userId;
 }
 
-function projectTarget(t: ActionCardTarget, viewer: Viewer): PlayerActionCardTarget {
+function projectTarget(t: ActionCardTarget, viewer: Viewer, cardUndone: boolean): PlayerActionCardTarget {
   const out: PlayerActionCardTarget = { tokenId: t.tokenId, isCharacter: t.isCharacter };
   if (t.maskedName) out.maskedName = t.maskedName;
   else out.name = t.name;
@@ -180,15 +185,16 @@ function projectTarget(t: ActionCardTarget, viewer: Viewer): PlayerActionCardTar
   if (t.save) {
     const s = t.save;
     const save: PlayerTargetSave = { ability: s.ability, dc: s.dc, status: s.status };
-    if (s.mode !== undefined) save.mode = s.mode;
+    // A monster's roll stays with the GM, its mode too: an advantage would tell a Magic Resistance.
+    const publicRoll = t.isCharacter || (t.controllerUserIds?.length ?? 0) > 0;
+    if (publicRoll && s.mode !== undefined) save.mode = s.mode;
     if (s.success !== undefined) save.success = s.success;
     if (s.rolledAt !== undefined) save.rolledAt = s.rolledAt;
-    const publicRoll = t.isCharacter || (t.controllerUserIds?.length ?? 0) > 0;
     if (publicRoll && s.d20s) save.d20s = [...s.d20s];
     if (publicRoll && s.total !== undefined) save.total = s.total;
     out.save = save;
     if (
-      s.status === 'pending' && viewer.role === 'PLAYER' && !t.undoneAt &&
+      s.status === 'pending' && viewer.role === 'PLAYER' && !t.undoneAt && !cardUndone &&
       t.controllerUserIds?.includes(viewer.userId)
     ) out.yourSave = true;
   }
@@ -220,11 +226,11 @@ export function projectActionCard(card: ActionCard, viewer: Viewer): PlayerActio
     actor,
     actionName: card.actionName,
     mode: card.mode,
-    targets: visible.map((t) => projectTarget(t, viewer)),
+    targets: visible.map((t) => projectTarget(t, viewer, card.undoneAt !== undefined)),
   };
   if (card.save) {
     out.save = { ...card.save };
-    out.pendingSaves = visible.filter((t) => t.save?.status === 'pending' && !t.undoneAt).length;
+    out.pendingSaves = card.undoneAt ? 0 : visible.filter((t) => t.save?.status === 'pending' && !t.undoneAt).length;
   }
   if (card.damageRoll) out.damageRoll = card.damageRoll.map((d) => ({ ...d }));
   if (card.area) out.area = JSON.parse(JSON.stringify(card.area));
@@ -233,6 +239,11 @@ export function projectActionCard(card: ActionCard, viewer: Viewer): PlayerActio
   // A GM NPC's extra text is GM-only; a player character's is public.
   if (card.extraText !== undefined && card.actor.userId !== undefined) out.extraText = card.extraText;
   if (card.undoneAt !== undefined) out.undoneAt = card.undoneAt;
-  if (card.undoPartial !== undefined) out.undoPartial = card.undoPartial;
+  if (card.selfHealing !== undefined) out.selfHealing = card.selfHealing;
+  // "Partial" names a target whose hit points the undo left: only one this
+  // viewer sees, or a hidden one would show through. A card from before
+  // targets were marked one by one keeps its own flag.
+  const marked = card.targets.some((t) => t.undoSkipped !== undefined);
+  if (card.undoPartial && (!marked || visible.some((t) => t.undoSkipped))) out.undoPartial = true;
   return out;
 }

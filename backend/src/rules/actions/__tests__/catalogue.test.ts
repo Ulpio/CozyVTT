@@ -253,6 +253,7 @@ describe('save spells, rays and areas', () => {
     ['book-test/rajada-mistica', spell({ range: '36 metros', mechanics: { attack: 'ranged', damage: [{ dice: '1d10', type: 'energia' }], rays: { count: 1, cantripLevels: true } } }, 'Rajada Mística')],
     ['book-test/misseis-magicos', spell({ level: 1, range: '36 metros', mechanics: { damage: [{ dice: '1d4+1', type: 'energia' }], rays: { count: 3, perSlot: 1 }, autoHit: true } }, 'Mísseis Mágicos')],
     ['book-test/raio-ardente', spell({ level: 2, range: '36 metros', mechanics: { attack: 'ranged', damage: [{ dice: '2d6', type: 'fogo' }], rays: { count: 3, perSlot: 1 } } }, 'Raio Ardente')],
+    ['book-test/toque-gelido', spell({ level: 1, range: 'Toque', mechanics: { save: 'con', damage: [{ dice: '2d8', type: 'frio' }], halfOnSave: true, area: { shape: 'esfera', size: '1,5 m de raio' } } }, 'Toque Gélido')],
     ['book-test/imobilizar-pessoa', spell({ level: 2, concentration: true, range: '18 metros', mechanics: { save: 'wis', damage: [], targets: 1, targetsPerSlot: 1 } }, 'Imobilizar Pessoa')],
     ['book-test/chuva-de-meteoros', spell({ level: 9, range: '1,5 quilômetro', mechanics: { damage: [], castOnly: 'dois efeitos de área' } }, 'Chuva de Meteoros')],
     ['book-test/corrente-de-relampagos', spell({ level: 6, range: '45 metros', mechanics: { save: 'dex', damage: [{ dice: '10d8', type: 'elétrico' }], halfOnSave: true, targets: 4 } }, 'Corrente de Relâmpagos')],
@@ -282,6 +283,11 @@ describe('save spells, rays and areas', () => {
     expect(s.save).toEqual({ ability: 'dex', dc: fifthEditionSpellSaveDC(wiz), damage: [{ dice: '8d6', type: 'fogo' }], halfOnSave: true });
     expect(s.scaling).toEqual({ perSlot: '1d6' });
     expect(s.source).toBe('spell');
+  });
+
+  it('places a touch area at a point within 5 feet', () => {
+    const s = optionOf(caster('mago', 5, ['toque-gelido']), 'toque-gelido');
+    expect(s.option.targeting).toEqual({ kind: 'area', area: { shape: 'sphere', sizeFt: 5 }, origin: 'point', rangeFeet: 5 });
   });
 
   it('lists Burning Hands as a cone from the caster', () => {
@@ -370,6 +376,12 @@ describe('npcActions saves', () => {
   it('marks the recharge spent when the token lists the option id', () => {
     expect(npcActions(block as any, ['npc:actions:1'])[1].option.recharge).toEqual({ min: 5, spent: true });
     expect(npcActions(block as any, ['npc:actions:0'])[1].option.recharge).toEqual({ min: 5, spent: false });
+  });
+
+  it('places a ranged monster sphere at a point, and keeps a cone at the monster', () => {
+    const out = npcActions({ actions: [{ name: 'Granizo', description: 'O monstro lança uma bola de gelo num ponto a até 36 metros dele; cada criatura numa esfera de 6 metros de raio ali faz um teste de resistência de Destreza CD 15, sofrendo 22 (5d8) de dano de frio se falhar, ou metade desse dano se passar.' }] } as any);
+    expect(out[0].option.targeting).toEqual({ kind: 'area', area: { shape: 'sphere', sizeFt: 20 }, origin: 'point', rangeFeet: 120 });
+    expect(npcActions(block as any)[1].option.targeting).toMatchObject({ origin: 'self' });
   });
 
   it('lists a save with no damage as a single-target save for the GM to read', () => {
