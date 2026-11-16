@@ -13,6 +13,7 @@ import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampai
 import { createTestApp } from '../../__tests__/helpers/test-app';
 import { createWsTestServer, expectNoEvent, WsTestServer } from '../../__tests__/helpers/websocket-test-server';
 import type { Socket as ClientSocket } from 'socket.io-client';
+import * as wsUtils from '../utils';
 
 jest.setTimeout(30000);
 
@@ -179,6 +180,22 @@ describe('action.resolve', () => {
     expect(await spec.timeout(3000).emitWithAck('action.resolve', attack())).toMatchObject({ ok: false, error: 'Spectators cannot use actions' });
     expect(await p2.timeout(3000).emitWithAck('action.resolve', attack())).toMatchObject({ ok: false, error: 'Not your token' });
   });
+});
+
+describe('announcing', () => {
+  it('answers ok once the action is stored, even when telling the table fails', async () => {
+    // The GM acts, so this file's player stays under the one-second resolve ceiling.
+    const gm = await connect('gm');
+    const spy = jest.spyOn(wsUtils, 'campaignSockets').mockRejectedValueOnce(new Error('socket lookup failed'));
+    try {
+      const answer = await gm.timeout(5000).emitWithAck('action.resolve', attack());
+      expect(answer).toEqual({ ok: true, messageId: expect.any(String) });
+      expect(await prisma.message.count({ where: { campaignId, id: answer.messageId } })).toBe(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
 });
 
 describe('action.list', () => {

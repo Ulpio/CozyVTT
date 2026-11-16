@@ -130,7 +130,13 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
       if (!ack) socket.emit('error', { message: outcome.error });
       return;
     }
-    await announceMessage(io, campaignId, outcome.messageId, outcome.card);
+    // The action is stored: a failure to tell the table must not read as a
+    // failed action, or a retry would apply it twice.
+    try {
+      await announceMessage(io, campaignId, outcome.messageId, outcome.card);
+    } catch (err) {
+      logger.warn('action.resolve: card not announced; the action stands', { err, messageId: outcome.messageId });
+    }
     answer(ack, { ok: true, messageId: outcome.messageId });
   });
 
