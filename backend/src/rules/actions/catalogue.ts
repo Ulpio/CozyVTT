@@ -8,6 +8,9 @@ import { parseMonsterAction, parseMonsterSaveAction, type Ability, type SaveEffe
 import { metresToFeet, parseRangeText } from './rangeText';
 import { cantripTier } from '../../services/actionResolver/dice';
 
+/** The abilities as a pt-BR sheet shortens them, for the GM's line under a save button (its damage types are pt-BR too). */
+const ABILITY_SHORT: Record<Ability, string> = { str: 'For', dex: 'Des', con: 'Con', int: 'Int', wis: 'Sab', cha: 'Car' };
+
 export type ActionId = string;
 
 /** Who an action can reach: one target, a number of them, or whatever a shape covers. */
@@ -349,7 +352,7 @@ export function npcActions(statBlock: NpcStatBlockInput, rechargeSpent: readonly
         } else {
           targeting = { kind: 'single' };
         }
-        const summary = [`CD ${saveAction.save.dc} ${saveAction.save.ability}`, ...damage.map((d) => (d.type ? `${d.dice} ${d.type}` : d.dice))].join(', ');
+        const summary = [`CD ${saveAction.save.dc} ${ABILITY_SHORT[saveAction.save.ability]}`, ...damage.map((d) => (d.type ? `${d.dice} ${d.type}` : d.dice))].join(', ');
         const option: ActionOption = { id, name: entry.name, group: 'npc', resolution: 'save', saveAbility: saveAction.save.ability, targeting, summary };
         if (saveAction.recharge) option.recharge = { min: saveAction.recharge.min, spent: rechargeSpent.includes(id) };
         const spec: ResolvedActionSpec = { option, damage, save: saveAction.save, description: entry.description, source: 'monster' };

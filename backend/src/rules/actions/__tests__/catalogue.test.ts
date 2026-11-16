@@ -368,6 +368,8 @@ describe('npcActions saves', () => {
       recharge: { min: 5, spent: false },
     });
     expect(out[1].option.saveDc).toBeUndefined();
+    // The GM's line under the button, in pt-BR like the damage types in it.
+    expect(out[1].option.summary).toBe('CD 21 Des, 18d6 fogo');
     expect(out[1].save).toMatchObject({ ability: 'dex', dc: 21, damage: [{ dice: '18d6', type: 'fogo' }], halfOnSave: true });
     expect(out[1].source).toBe('monster');
     expect(out[0].source).toBe('monster');
