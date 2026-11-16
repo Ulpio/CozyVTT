@@ -568,6 +568,20 @@ const en = {
       initiative: 'Initiative',
     },
   },
+
+  actionBar: {
+    errors: {
+      generic: 'That action could not be carried out.',
+      notYourToken: 'You can only act with a token you control.',
+      invalidTarget: 'That is not a valid target.',
+      outOfRange: 'The target is out of range.',
+      noSpellSlot: 'You have no spell slot of that level left.',
+      cannotResolve: 'This action cannot be rolled here.',
+      alreadyUndone: 'That action was already undone.',
+      alreadyRolled: 'That roll was already made.',
+      gmOnly: 'Only the GM can do that.',
+    },
+  },
 };
 
 export default en;

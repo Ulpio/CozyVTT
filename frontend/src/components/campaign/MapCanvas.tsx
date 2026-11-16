@@ -11,6 +11,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { campaignHasCharacter as campaignHasTokenCharacter, canRollTokenCharacter } from '@/utils/tokenCharacter';
 import { tokenTemporaryHp, type TemporaryHpTarget } from '@/utils/temporaryHp';
 import { useTableRoll } from '@/hooks/useTableRoll';
+import { useActionStore } from '@/stores/actionStore';
+import { tokensInReach, actionErrorKey } from '@/utils/actionTargeting';
+import i18n from '@/i18n';
 import { useGameStore, useTokenList, useCurrentTurnTokenId, useMapPeekTokenId, useCharacterHp, useSelectedTokenId } from '@/stores/gameStore';
 import { useMapControls } from '@/hooks/useMapControls';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
@@ -238,6 +241,9 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   const peekTokenId = useMapPeekTokenId();
   // The token this page has selected, which the keyboard acts on.
   const selectedTokenId = useSelectedTokenId();
+  // A bar action waiting for its target (stores/actionStore.ts holds the logic).
+  const actionPending = useActionStore((s) => s.pending);
+  const actionError = useActionStore((s) => s.lastError);
   const prefersReducedMotion = useReducedMotion();
   // joinedEpoch is 0 until this connection has authenticated into the campaign,
   // and a new number after each rejoin. Anything that asks the server for map
@@ -518,6 +524,20 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   const { toast, showToast, hideToast } = useToast();
   // Why a wall or light tool drew nothing, or took back what the server refused.
   const refuseMapEdit = useCallback((message: string) => showToast(message, 'error'), [showToast]);
+  // What the picked action reaches, for the rings and the dimming.
+  const targeting = useMemo(() => {
+    if (!actionPending || !currentMap) return null;
+    const actor = tokens.find((t) => t.id === actionPending.actorTokenId);
+    if (!actor) return null;
+    return { actorTokenId: actor.id, inReach: tokensInReach(actor, tokens, actionPending.option.reach, currentMap) };
+  }, [actionPending, tokens, currentMap]);
+  // A bar action the server refused.
+  useEffect(() => {
+    if (!actionError) return;
+    showToast(i18n.t(actionErrorKey(actionError.message)), 'error');
+    useActionStore.setState({ lastError: null }); // shown once, not again on a remount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionError]);
   /** GM "Preview player view" toggle — when true, GM sees lighting as players do. */
   const [gmPreviewPlayerView, setGmPreviewPlayerView] = useState(false);
   const [previewSelection, setPreviewSelection] = useState<PreviewSelection | null>(null);
@@ -1701,6 +1721,11 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     if (e.key === 'Escape') {
       // A picker, a menu or a dialog that closed on this press has used it.
       if (e.defaultPrevented) return;
+      // A bar action waiting for its target is let go of first.
+      if (useActionStore.getState().pending) {
+        useActionStore.getState().cancel();
+        return;
+      }
       // Each press lets go of one thing, the most transient first: a menu
       // open on the map, then the armed Ping, then a held token, then the
       // tools, then the selection.
@@ -1997,9 +2022,10 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         pulsePhase: prefersReducedMotion ? 0.5 : pulsePhaseAt(Date.now()),
         peekTokenId,
         selectedTokenId,
+        targeting,
       }, viewport);
     });
-  }, [currentMap, mapShown, mapControls.panOffset, mapControls.zoom, dpr, campaign?.spiritLayerStyle, tokens, tokenImages, animatingTokens, heldAt, draggedToken, dragOffset, carrierSquare, hoverToken, viewerRevealed, viewerOwn, previewing, previewedPlane, ruleFor, gmShowSpiritTokens, gmViewBothPlanes, characterHpCache, currentTurnTokenId, prefersReducedMotion, peekTokenId, selectedTokenId, isGM, previewControls]);
+  }, [currentMap, mapShown, mapControls.panOffset, mapControls.zoom, dpr, campaign?.spiritLayerStyle, tokens, tokenImages, animatingTokens, heldAt, draggedToken, dragOffset, carrierSquare, hoverToken, viewerRevealed, viewerOwn, previewing, previewedPlane, ruleFor, gmShowSpiritTokens, gmViewBothPlanes, characterHpCache, currentTurnTokenId, prefersReducedMotion, peekTokenId, selectedTokenId, targeting, isGM, previewControls]);
 
   /**
    * Draw the OVERLAY layer (top canvas): dynamic-lighting darkness, GM light
@@ -2754,7 +2780,24 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
    * when two tools are up at once. When the button lifts each finishes what
    * it holds, in the same order.
    */
-  const pointerTools: MapTool[] = [paint.tool, pingTool, drawTool.tool, wallTool, lightTool, doorTool, fogTool, measuring, tokenTool];
+  // Picking a target for a bar action: a click on a token resolves the action
+  // against it, empty ground does nothing, a finger's drag still pans. Esc and
+  // a right click cancel (below). The logic is the action store's.
+  const targetingTool: MapTool = {
+    down({ e, via, gridCoords }: PointerAt) {
+      if (!useActionStore.getState().pending) return false;
+      if (via === 'drag') {
+        groundPressRef.current = { x: e.clientX, y: e.clientY, panned: false, clears: false };
+        mapControls.startDrag(e);
+        return true;
+      }
+      const seen = getHoverTokenAt(gridCoords.x, gridCoords.y);
+      if (seen) void useActionStore.getState().resolvePending(seen.id);
+      return true;
+    },
+  };
+
+  const pointerTools: MapTool[] = [targetingTool, paint.tool, pingTool, drawTool.tool, wallTool, lightTool, doorTool, fogTool, measuring, tokenTool];
 
   // A mouse and a pen reach the tools as they happen. The mouse is never
   // captured, so a press that leaves the canvas behaves as it always has: a
@@ -3770,6 +3813,11 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   const handleContextMenu = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const e = fromMouseEvent(event);
     e.preventDefault();
+    // Right click cancels a bar action waiting for its target.
+    if (useActionStore.getState().pending) {
+      useActionStore.getState().cancel();
+      return;
+    }
     if (!canvasRef.current || !currentMap) return;
     // The right button pans while a wall, fog, light or draw tool is up, so no menu
     // opens: some browsers send this event as the button goes down, before
@@ -4384,6 +4432,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         <canvas
           ref={canvasRef}
           className={`absolute inset-0 touch-none ${
+            actionPending ? 'cursor-crosshair' :
             pingArmed ? 'cursor-crosshair' :
             draggedToken ? 'cursor-grabbing' :
             paint.on ? 'cursor-crosshair' :

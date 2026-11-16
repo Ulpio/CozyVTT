@@ -74,7 +74,20 @@ export interface TokenDrawState {
    * this viewer cannot see shows nothing.
    */
   selectedTokenId: string | null;
+  /**
+   * A bar action is waiting for its target: the tokens in its reach are
+   * ringed, every other token but the actor's is dimmed.
+   */
+  targeting?: { actorTokenId: string; inReach: ReadonlySet<string> } | null;
 }
+
+// ── Targeting (a bar action waiting for its target) ─────────────────────────
+const TARGETING_DIM_ALPHA = 0.35;
+const TARGET_RING_CASING = 'rgba(0, 0, 0, 0.9)';
+const TARGET_RING_CORE = '#6bd48a';
+const TARGET_RING_GAP = 5;
+const TARGET_RING_CASING_WIDTH = 6;
+const TARGET_RING_CORE_WIDTH = 3;
 
 // ── Turn highlight ──────────────────────────────────────────────────────────
 // Fixed colors, deliberately not themed. The ring's whole job is to stay
@@ -291,6 +304,11 @@ export function drawTokens(
       ctx.globalAlpha *= DOWNED_TOKEN_ALPHA;
     }
     if (heldHere) ctx.globalAlpha *= HELD_TOKEN_ALPHA;
+    // Picking a target: what the action cannot reach is dimmed.
+    const targeting = state.targeting;
+    if (targeting && token.id !== targeting.actorTokenId && !targeting.inReach.has(token.id)) {
+      ctx.globalAlpha *= TARGETING_DIM_ALPHA;
+    }
     // Which way the token faces: its picture, or its letter, turns about its
     // centre. The restore below undoes it, so the rings, the hit point bar
     // and the badges drawn after stay upright. An obscured token reaches a
@@ -377,6 +395,19 @@ export function drawTokens(
 
       ctx.strokeStyle = PEEK_RING_CORE;
       ctx.lineWidth = PEEK_RING_CORE_WIDTH / zoom;
+      traceTokenOutline(ctx, displayMode, gap, zoom, geom);
+      ctx.stroke();
+    }
+
+    // Targeting: a solid green ring on each token the action reaches.
+    if (targeting?.inReach.has(token.id)) {
+      const gap = TARGET_RING_GAP / zoom;
+      ctx.strokeStyle = TARGET_RING_CASING;
+      ctx.lineWidth = TARGET_RING_CASING_WIDTH / zoom;
+      traceTokenOutline(ctx, displayMode, gap, zoom, geom);
+      ctx.stroke();
+      ctx.strokeStyle = TARGET_RING_CORE;
+      ctx.lineWidth = TARGET_RING_CORE_WIDTH / zoom;
       traceTokenOutline(ctx, displayMode, gap, zoom, geom);
       ctx.stroke();
     }

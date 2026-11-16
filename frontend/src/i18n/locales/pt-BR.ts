@@ -570,6 +570,20 @@ const ptBR: Messages = {
       initiative: 'Iniciativa',
     },
   },
+
+  actionBar: {
+    errors: {
+      generic: 'Não foi possível realizar essa ação.',
+      notYourToken: 'Você só pode agir com um token que controla.',
+      invalidTarget: 'Esse não é um alvo válido.',
+      outOfRange: 'O alvo está fora de alcance.',
+      noSpellSlot: 'Você não tem mais espaço de magia desse nível.',
+      cannotResolve: 'Esta ação não pode ser rolada aqui.',
+      alreadyUndone: 'Essa ação já foi desfeita.',
+      alreadyRolled: 'Essa rolagem já foi feita.',
+      gmOnly: 'Só o mestre pode fazer isso.',
+    },
+  },
 };
 
 export default ptBR;

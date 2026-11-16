@@ -3,6 +3,7 @@ import type { ManagerOptions, SocketOptions } from 'socket.io-client';
 import { socketTarget } from '@/utils/socketTarget';
 import { api } from '@/services/api';
 import { apiErrorStatus, errorMessage } from '@/utils/errors';
+import type { ActionOption, ActionRequest, ActionResolveAck } from '@/types/actions';
 import type {
   CampaignMap,
   TokenMoveStartEvent,
@@ -105,6 +106,8 @@ const CHAT_ANSWER_TIMEOUT_MS = 10_000;
 const ROLL_ANSWER_TIMEOUT_MS = 10_000;
 /** How long a drawing, an erase or a clear waits for its answer. */
 const DRAWING_ANSWER_TIMEOUT_MS = 10_000;
+/** How long an action waits for its answer. */
+const ACTION_ANSWER_TIMEOUT_MS = 10_000;
 
 /**
  * A listener as the registry holds it, once its payload type has been erased.
@@ -559,6 +562,30 @@ class SocketClient {
       if (data === undefined) socket.timeout(timeoutMs).emit(event, answered);
       else socket.timeout(timeoutMs).emit(event, data, answered);
     });
+  }
+
+  // ============================================
+  // Action bar
+  // ============================================
+
+  /** What a token the requester controls can do (`action.list`). */
+  listActions(data: { mapId: string; actorTokenId: string }): Promise<{ ok: true; options: ActionOption[] } | { ok: false; error: string }> {
+    return this.askFor<{ ok: true; options: ActionOption[] }>('action.list', data, ACTION_ANSWER_TIMEOUT_MS, "The action list didn't come back. Check your connection and try again.");
+  }
+
+  /** Roll, compare, apply and record an action (`action.resolve`); each reader gets the card as a chat message. */
+  resolveAction(data: ActionRequest): Promise<ActionResolveAck> {
+    return this.askFor<ActionResolveAck>('action.resolve', data, ACTION_ANSWER_TIMEOUT_MS, "The action didn't come back. Check your connection and try again.");
+  }
+
+  /** The GM takes an action back (`action.undo`). */
+  undoAction(messageId: string): Promise<{ ok: boolean; partial?: boolean; error?: string }> {
+    return this.askFor<{ ok: boolean; partial?: boolean }>('action.undo', { messageId }, ACTION_ANSWER_TIMEOUT_MS, 'No answer from the server');
+  }
+
+  /** A target rolls to keep concentration (`action.concentration`). */
+  rollConcentration(messageId: string, targetTokenId: string): Promise<{ ok: boolean; messageId?: string; kept?: boolean; dc?: number; total?: number; error?: string }> {
+    return this.askFor<{ ok: boolean; messageId?: string; kept?: boolean; dc?: number; total?: number }>('action.concentration', { messageId, targetTokenId }, ACTION_ANSWER_TIMEOUT_MS, 'No answer from the server');
   }
 
   onDiceHistoryCleared(callback: EventCallback<void>) {
