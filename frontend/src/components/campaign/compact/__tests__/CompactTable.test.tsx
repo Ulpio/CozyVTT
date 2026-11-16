@@ -21,6 +21,7 @@ const page = vi.hoisted(() => ({ role: 'PLAYER' as string | null, navigate: vi.f
 
 vi.mock('react-router', () => ({ useNavigate: () => page.navigate }));
 vi.mock('@/contexts/CampaignContext', () => ({ useCampaign: () => ({ userRole: page.role }) }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1' } }) }));
 vi.mock('@/contexts/WebSocketContext', () => ({ useWebSocket: () => ({ status: page.status, error: null, reconnect: () => undefined }) }));
 
 import CompactTable from '../CompactTable';

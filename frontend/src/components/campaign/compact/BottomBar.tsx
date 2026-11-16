@@ -16,7 +16,8 @@
 // the arrangement's header, smaller (`placement` 'header').
 // ============================================
 
-import { Ellipsis, Map as MapIcon, Users, type LucideIcon } from 'lucide-react';
+import { Ellipsis, Map as MapIcon, Swords, Users, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useGameStore } from '@/stores/gameStore';
 import { cn } from '@/utils/cn';
 import { SESSION_TAB_LOOKS, unreadBadge, type SessionTab } from '@/components/campaign/sessionTabs';
@@ -33,10 +34,13 @@ export type BarPanel = (typeof BAR_PANELS)[number];
 /** Whether the bar has a button for a session panel. */
 export const onTheBar = (tab: SessionTab): tab is BarPanel => BAR_PANELS.some((panel) => panel === tab);
 
-export type CompactTab = 'map' | BarPanel | 'party' | 'more';
+export type CompactTab = 'map' | 'actions' | BarPanel | 'party' | 'more';
 
 /** The bar's buttons, in order. */
 export const COMPACT_TABS: readonly CompactTab[] = ['map', ...BAR_PANELS, 'party', 'more'];
+
+/** The bar's buttons when the viewer has an action bar to open: Actions comes after Map. */
+export const COMPACT_TABS_WITH_ACTIONS: readonly CompactTab[] = ['map', 'actions', ...BAR_PANELS, 'party', 'more'];
 
 /**
  * The bar's height, its top rule and the safe area under it included: where
@@ -45,10 +49,12 @@ export const COMPACT_TABS: readonly CompactTab[] = ['map', ...BAR_PANELS, 'party
 export const BOTTOM_BAR_HEIGHT = 'calc(3.5rem + 1px + env(safe-area-inset-bottom, 0px))';
 
 /** A button's name and icon; a session panel's are the rail's tab's. */
-function tabLook(tab: CompactTab): { label: string; icon: LucideIcon } {
+function tabLook(tab: CompactTab, actionsLabel: string): { label: string; icon: LucideIcon } {
   switch (tab) {
     case 'map':
       return { label: 'Map', icon: MapIcon };
+    case 'actions':
+      return { label: actionsLabel, icon: Swords };
     case 'party':
       return { label: 'Party', icon: Users };
     case 'more':
@@ -72,9 +78,13 @@ export interface BottomBarProps {
   sheetIds?: Partial<Record<Exclude<CompactTab, 'map'>, string>>;
   /** Along the foot of the screen, or in the header on a screen too short for a bar. */
   placement?: 'foot' | 'header';
+  /** Whether the viewer has an action bar: the Actions button, which opens it, is drawn. */
+  withActions?: boolean;
 }
 
-export default function BottomBar({ active, expanded = active, onSelect, sheetIds, placement = 'foot' }: BottomBarProps) {
+export default function BottomBar({ active, expanded = active, onSelect, sheetIds, placement = 'foot', withActions = false }: BottomBarProps) {
+  const { t } = useTranslation();
+  const tabs = withActions ? COMPACT_TABS_WITH_ACTIONS : COMPACT_TABS;
   const unreadChat = useGameStore((s) => s.unreadChat);
   const inHeader = placement === 'header';
 
@@ -85,9 +95,9 @@ export default function BottomBar({ active, expanded = active, onSelect, sheetId
       // row runs past a narrow, short window's edge.
       className={inHeader ? 'min-w-0' : 'shrink-0 border-t border-brand/20 bg-parchment pb-[env(safe-area-inset-bottom)]'}
     >
-      <div className={inHeader ? 'flex items-center gap-0.5' : cn(SHEET_WIDTH, 'grid h-14 grid-cols-6')}>
-        {COMPACT_TABS.map((tab) => {
-          const { label, icon: Icon } = tabLook(tab);
+      <div className={inHeader ? 'flex items-center gap-0.5' : cn(SHEET_WIDTH, 'grid h-14', withActions ? 'grid-cols-7' : 'grid-cols-6')}>
+        {tabs.map((tab) => {
+          const { label, icon: Icon } = tabLook(tab, t('actionBar.title'));
           const open = active === tab;
           const badge = tab === 'chat' && unreadChat > 0 ? unreadBadge(unreadChat) : null;
           return (

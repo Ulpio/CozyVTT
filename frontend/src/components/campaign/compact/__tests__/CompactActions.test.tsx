@@ -1,0 +1,63 @@
+/**
+ * The compact layout's Actions button: drawn only for a viewer who has an
+ * action bar, and it opens the bar in a sheet.
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { TableHosts } from '@/components/campaign/tableHosts';
+import { LayoutProvider } from '@/contexts/LayoutContext';
+import { useGameStore } from '@/stores/gameStore';
+import { CampaignStatus } from '@/types';
+import type { Campaign } from '@/types';
+import { h, token, longsword } from '@/components/campaign/actionBar/__tests__/barHarness';
+
+vi.mock('react-router', () => ({ useNavigate: () => () => undefined }));
+vi.mock('@/contexts/CampaignContext', () => ({
+  useCampaign: () => ({ userRole: h.role, campaign: { id: 'camp-1', gameSystem: 'FIFTH_EDITION', characters: h.characters }, currentMap: { id: 'map-1' } }),
+}));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: h.userId } }) }));
+vi.mock('@/contexts/WebSocketContext', () => ({ useWebSocket: () => ({ status: 'connected', error: null, reconnect: () => undefined }) }));
+vi.mock('@/services/actions.service', () => ({ actionsService: { list: async () => [longsword], resolve: vi.fn() } }));
+vi.mock('@/services/api', () => ({ api: { getCharacter: async () => ({ character: { id: 'c1', gameSystem: 'FIFTH_EDITION', name: 'B', updatedAt: '1', data: {} } }) } }));
+vi.mock('@/hooks/useTableRoll', () => ({ useTableRoll: () => vi.fn() }));
+vi.mock('@/services/socket', () => ({ default: { on: () => undefined, off: () => undefined } }));
+
+import CompactTable from '../CompactTable';
+
+const campaign = { id: 'camp-1', name: 'The Sunken Crown', status: CampaignStatus.ACTIVE, ownerId: 'owner', memberships: [], characters: [] } as unknown as Campaign;
+
+function table() {
+  render(
+    <LayoutProvider compact>
+      <TableHosts parts={{ map: <div />, session: <div />, party: <div /> }}>
+        <CompactTable campaign={campaign} isOwner={false} onOpenTool={vi.fn()} onOpenDocuments={vi.fn()} onOpenShortcuts={vi.fn()} />
+      </TableHosts>
+    </LayoutProvider>
+  );
+}
+
+beforeEach(() => {
+  cleanup();
+  h.role = 'PLAYER';
+  h.userId = 'u1';
+  h.characters = [{ id: 'c1', userId: 'u1', name: 'B' }];
+  act(() => {
+    useGameStore.getState().clearGameState();
+    useGameStore.getState().setTokens([token({ id: 't1', characterId: 'c1', name: 'Brienne' })], 'map-1');
+  });
+});
+
+describe('the Actions button', () => {
+  it('opens the action bar in a sheet', async () => {
+    table();
+    const bar = screen.getByRole('navigation', { name: 'Table' });
+    fireEvent.click(within(bar).getByRole('button', { name: /^Actions/ }));
+    expect(await screen.findByRole('button', { name: 'Longsword' })).toBeInTheDocument();
+  });
+
+  it('is not there for a player with no token on the map', () => {
+    h.characters = [];
+    table();
+    expect(within(screen.getByRole('navigation', { name: 'Table' })).queryByRole('button', { name: /^Actions/ })).toBeNull();
+  });
+});

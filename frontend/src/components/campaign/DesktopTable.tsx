@@ -28,6 +28,7 @@ import {
 } from 'react-resizable-panels';
 import { useCampaign } from '@/contexts/CampaignContext';
 import SessionSidebar from '@/components/campaign/SessionSidebar';
+import ActionBar from '@/components/campaign/actionBar/ActionBar';
 import GmToolMenus from '@/components/campaign/GmToolMenus';
 import type { SessionToolKey } from '@/components/campaign/SessionToolbar';
 import { useTableSlot } from '@/components/campaign/tableHosts';
@@ -311,6 +312,9 @@ export default function DesktopTable({
           </Panel>
         </Group>
       </main>
+
+      {/* The action bar: the player's own character, or the GM's selected token. */}
+      <ActionBar />
     </>
   );
 }

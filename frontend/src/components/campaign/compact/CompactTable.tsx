@@ -47,6 +47,10 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { SIDEWAYS_QUERY } from '@/constants/layout';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useGameStore } from '@/stores/gameStore';
+import { useActionStore } from '@/stores/actionStore';
+import { useTranslation } from 'react-i18next';
+import ActionBar from '@/components/campaign/actionBar/ActionBar';
+import { useBarActor } from '@/components/campaign/actionBar/useBarActor';
 import { CampaignStatus } from '@/types';
 import type { Campaign } from '@/types';
 import { type SessionToolKey } from '@/components/campaign/SessionToolbar';
@@ -59,7 +63,7 @@ import CompactHeader from './CompactHeader';
 import MoreSheet, { type MorePanel } from './MoreSheet';
 
 /** The arrangement's sheets, of which one at most is open. */
-type CompactSheet = 'session' | 'party' | 'more';
+type CompactSheet = 'session' | 'party' | 'more' | 'actions';
 
 /** How high the session sheet opens on `tab`: Notes and Session, for long reading and writing, at full height. */
 const openingHeight = (tab: SessionTab): SheetHeight => (onTheBar(tab) ? 'half' : 'full');
@@ -91,7 +95,11 @@ export interface CompactTableProps {
 }
 
 export default function CompactTable({ campaign, isOwner, onOpenTool, onOpenDocuments, onOpenShortcuts }: CompactTableProps) {
+  const { t } = useTranslation();
   const { userRole } = useCampaign();
+  // Whether this viewer has an action bar, which the Actions button opens in a sheet.
+  const hasActionBar = useBarActor() !== null;
+  const targeting = useActionStore((s) => s.pending !== null);
   const sideways = useMediaQuery(SIDEWAYS_QUERY);
   const sessionTab = useGameStore((s) => s.sessionTab);
   const setSessionTab = useGameStore((s) => s.setSessionTab);
@@ -115,11 +123,21 @@ export default function CompactTable({ campaign, isOwner, onOpenTool, onOpenDocu
   // The desktop's rail, or another page, shows the panels again.
   useEffect(() => () => setSessionShown(true), [setSessionShown]);
 
+  // Picking an attack hands the map the target: the sheet gets out of its way.
+  useEffect(() => {
+    if (targeting) setSheet((open) => (open === 'actions' ? null : open));
+  }, [targeting]);
+  // The bar goes (the token is deselected) and its sheet with it.
+  useEffect(() => {
+    if (!hasActionBar) setSheet((open) => (open === 'actions' ? null : open));
+  }, [hasActionBar]);
+
   const [headerRef, headerHeight] = useHeight();
   const edges: SheetEdges = { top: `${headerHeight}px`, bottom: sideways ? '0px' : BOTTOM_BAR_HEIGHT };
 
   const sessionSheetId = useId();
   const partySheetId = useId();
+  const actionsSheetId = useId();
   const moreSheetId = useId();
 
   // A panel opens at its own height, a bar panel from Notes or Session
@@ -134,7 +152,7 @@ export default function CompactTable({ campaign, isOwner, onOpenTool, onOpenDocu
   const select = (tab: CompactTab) => {
     if (tab === 'map') {
       setSheet(null);
-    } else if (tab === 'party' || tab === 'more') {
+    } else if (tab === 'party' || tab === 'more' || tab === 'actions') {
       if (tab === 'party' && sheet !== 'party') setPartyHeight('half');
       setSheet(sheet === tab ? null : tab);
     } else if (sheet === 'session' && sessionTab === tab) {
@@ -154,7 +172,7 @@ export default function CompactTable({ campaign, isOwner, onOpenTool, onOpenDocu
   // Notes or Session is open in the session sheet.
   const expanded: CompactTab | null = sheet === 'session' ? (onTheBar(sessionTab) ? sessionTab : null) : sheet;
 
-  const sheetIds: NonNullable<BottomBarProps['sheetIds']> = { party: partySheetId, more: moreSheetId };
+  const sheetIds: NonNullable<BottomBarProps['sheetIds']> = { party: partySheetId, more: moreSheetId, actions: actionsSheetId };
   for (const panel of BAR_PANELS) sheetIds[panel] = sessionSheetId;
 
   const bar = (
@@ -163,6 +181,7 @@ export default function CompactTable({ campaign, isOwner, onOpenTool, onOpenDocu
       expanded={expanded}
       onSelect={select}
       placement={sideways ? 'header' : 'foot'}
+      withActions={hasActionBar}
       sheetIds={sheetIds}
     />
   );
@@ -203,6 +222,20 @@ export default function CompactTable({ campaign, isOwner, onOpenTool, onOpenDocu
         {/* The Party content is the page's, moved in here. */}
         <div ref={partySlot.ref} className="finger-controls px-4 pt-1 pb-4" />
       </BottomSheet>
+
+      {hasActionBar && (
+      <BottomSheet
+        id={actionsSheetId}
+        open={sheet === 'actions'}
+        title={t('actionBar.title')}
+        height="half"
+        onClose={() => setSheet(null)}
+        edges={edges}
+      >
+        {/* The bar's state lives in the stores, so it is drawn only while its sheet is open. */}
+        {sheet === 'actions' && <div className="finger-controls"><ActionBar /></div>}
+      </BottomSheet>
+      )}
 
       <MoreSheet
         id={moreSheetId}
