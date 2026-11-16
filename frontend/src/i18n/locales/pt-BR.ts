@@ -594,6 +594,7 @@ const ptBR: Messages = {
       pickCount: '{{picked}} de {{count}}',
       aimArea: 'Mire {{name}} e clique para conjurar',
       aimAreaTouch: 'Toque para mirar {{name}} e depois em Confirmar',
+      aroundCaster: '{{name}} em volta de quem conjura: Confirmar para conjurar',
       outOfRange: 'Fora de alcance',
       confirm: 'Confirmar',
     },

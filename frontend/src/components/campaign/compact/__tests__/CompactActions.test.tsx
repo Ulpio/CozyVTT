@@ -104,3 +104,15 @@ describe('the target hint with several targets', () => {
     act(() => { useActionStore.setState({ pending: null }); });
   });
 });
+
+describe('the target hint with an area around the caster', () => {
+  it('offers Confirm at once, with no tap', async () => {
+    const { useActionStore } = await import('@/stores/actionStore');
+    const aura = { id: 'spell:aura', name: 'Aura', group: 'spell' as const, resolution: 'save' as const, spellLevel: 1, reach: { kind: 'self' as const }, targeting: { kind: 'area' as const, area: { shape: 'sphere' as const, sizeFt: 10 }, origin: 'self' as const } };
+    table();
+    act(() => { useActionStore.getState().begin({ actorTokenId: 't1', option: aura, slotLevel: 1 }); });
+    expect(screen.getByText('Aura around the caster: Confirm to cast')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirm' })).toBeEnabled();
+    act(() => { useActionStore.setState({ pending: null }); });
+  });
+});

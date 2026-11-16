@@ -11,7 +11,7 @@ import { useCampaign } from '@/contexts/CampaignContext';
 import { useActionStore, targetsNeeded } from '@/stores/actionStore';
 import { useGameStore } from '@/stores/gameStore';
 import { placeActionArea } from '@/utils/areaGeometry';
-import { areaMapOf } from '@/utils/actionTargeting';
+import { areaMapOf, centredOnCaster } from '@/utils/actionTargeting';
 import Button from '@/components/ui/Button';
 
 interface TargetingHintProps {
@@ -37,11 +37,12 @@ export default function TargetingHint({ variant = 'sheet' }: TargetingHintProps)
     label = targeting.distinct ? t('actionBar.targeting.pickTargets', { name: option.name, count }) : t('actionBar.targeting.pickRays', { name: option.name });
     ready = targeting.distinct ? pending.picked.length > 0 : pending.picked.length === count;
   } else if (targeting?.kind === 'area') {
-    label = t(variant === 'bar' ? 'actionBar.targeting.aimArea' : 'actionBar.targeting.aimAreaTouch', { name: option.name });
-    if (pending.area && actor && currentMap) {
-      outOfRange = !placeActionArea(actor, targeting, pending.area, areaMapOf(currentMap)).inRange;
-      ready = !outOfRange;
-    }
+    label = centredOnCaster(option)
+      ? t('actionBar.targeting.aroundCaster', { name: option.name })
+      : t(variant === 'bar' ? 'actionBar.targeting.aimArea' : 'actionBar.targeting.aimAreaTouch', { name: option.name });
+    // Out of range only where it can be measured here; the server measures again.
+    if (pending.area && actor && currentMap) outOfRange = !placeActionArea(actor, targeting, pending.area, areaMapOf(currentMap)).inRange;
+    ready = pending.area !== null && !outOfRange;
   } else {
     label = t('actionBar.chooseTarget', { name: option.name });
   }

@@ -237,24 +237,47 @@ export function tokenPxRect(t: AreaToken, map: Pick<AreaMap, 'gridSize' | 'heigh
   return { x: t.position.x * map.gridSize, y: (map.height - t.position.y - height) * map.gridSize, width: width * map.gridSize, height: height * map.gridSize };
 }
 
+/** A token's squares: its bottom-left square and its size, in squares. */
+export interface SquareFootprint {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 /** Squares from one footprint's nearest edge to the other's; 0 where they overlap on that axis. */
 function axisSquares(aStart: number, aSize: number, bStart: number, bSize: number): number {
   const gap = Math.max(bStart - (aStart + aSize), aStart - (bStart + bSize));
   return gap >= 0 ? gap + 1 : 0;
 }
 
-/** Feet from a token to the square a map point falls in, measured as a reach is (rules/actions/distance.ts). */
-function feetToPoint(actor: AreaToken, p: Pt, map: AreaMap): number {
-  const col = Math.floor(p.x / map.gridSize);
-  const row = map.height - 1 - Math.floor(p.y / map.gridSize);
-  const dx = axisSquares(actor.position.x, actor.size?.width ?? 1, col, 1);
-  const dy = axisSquares(actor.position.y, actor.size?.height ?? 1, row, 1);
+/**
+ * Distance in feet between the nearest edges of two footprints: how far an
+ * action reaches (P5a). Diagonals follow the map: 'alternating' counts 1, 2,
+ * 1, 2 squares; anything else counts one. The server's reach rule
+ * (rules/actions/distance.ts) and the bar's rings (actionTargeting.ts) are
+ * this function.
+ */
+export function footprintDistanceFeet(
+  a: SquareFootprint,
+  b: SquareFootprint,
+  map: { feetPerSquare: number; diagonalRule: string },
+): number {
+  const dx = axisSquares(a.x, a.width, b.x, b.width);
+  const dy = axisSquares(a.y, a.height, b.y, b.height);
   const longer = Math.max(dx, dy);
   const shorter = Math.min(dx, dy);
   const squares = map.diagonalRule === 'alternating' ? longer + Math.floor(shorter / 2) : longer;
   return squares * map.feetPerSquare;
 }
 
+/** Feet from a token to the square a map point falls in, measured as a reach is. */
+function feetToPoint(actor: AreaToken, p: Pt, map: AreaMap): number {
+  const col = Math.floor(p.x / map.gridSize);
+  const row = map.height - 1 - Math.floor(p.y / map.gridSize);
+  const self = { x: actor.position.x, y: actor.position.y, width: actor.size?.width ?? 1, height: actor.size?.height ?? 1 };
+  return footprintDistanceFeet(self, { x: col, y: row, width: 1, height: 1 }, map);
+}
 /**
  * Where an action's area lands, and whether that is in range. A point area is
  * centred where it is aimed, within its range of the caster. One that leaves

@@ -182,3 +182,19 @@ describe('actionStore: areas', () => {
     expect(useActionStore.getState().pending?.option.id).toBe('spell:burning-hands');
   });
 });
+
+describe('actionStore: an area around the caster', () => {
+  const aura: ActionOption = {
+    id: 'spell:aura', name: 'Aura', group: 'spell', resolution: 'save', spellLevel: 1, saveAbility: 'con',
+    reach: { kind: 'self' }, targeting: { kind: 'area', area: { shape: 'sphere', sizeFt: 10 }, origin: 'self' },
+  };
+
+  it('is aimed from the start, so confirming sends it at once', async () => {
+    const store = useActionStore.getState();
+    store.begin({ actorTokenId: 'a', option: aura, slotLevel: 1 });
+    expect(h.resolve).not.toHaveBeenCalled();
+    expect(useActionStore.getState().pending?.area).not.toBeNull();
+    expect((await store.confirmPending()).ok).toBe(true);
+    expect(h.resolve.mock.calls[0][0].area).toBeDefined();
+  });
+});

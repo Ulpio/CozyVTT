@@ -592,6 +592,7 @@ const en = {
       pickCount: '{{picked}} of {{count}}',
       aimArea: 'Aim {{name}} and click to cast',
       aimAreaTouch: 'Tap to aim {{name}}, then Confirm',
+      aroundCaster: '{{name}} around the caster: Confirm to cast',
       outOfRange: 'Out of range',
       confirm: 'Confirm',
     },

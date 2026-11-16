@@ -15,7 +15,7 @@
 
 import { create } from 'zustand';
 import { actionsService } from '@/services/actions.service';
-import { AIM_THE_AREA, PICK_A_TARGET, PICK_EVERY_RAY } from '@/utils/actionTargeting';
+import { AIM_THE_AREA, PICK_A_TARGET, PICK_EVERY_RAY, centredOnCaster } from '@/utils/actionTargeting';
 import type { Pt } from '@/utils/aoeGeometry';
 import { useGameStore } from './gameStore';
 import type { ActionAreaPlacement, ActionOption, ActionRequest, ActionRollMode } from '@/types/actions';
@@ -131,7 +131,9 @@ export const useActionStore = create<ActionState>((set, get) => {
     lastError: null,
 
     begin: (p) => {
-      set({ pending: { ...p, picked: [], area: null }, concentrationConfirm: null });
+      // An area centred on its caster is aimed already: where the pointer is does not move it.
+      const area = centredOnCaster(p.option) ? { anchor: { x: 0, y: 0 } } : null;
+      set({ pending: { ...p, picked: [], area }, concentrationConfirm: null });
       if (resolvesAtOnce(p.option)) void get().resolvePending();
     },
 

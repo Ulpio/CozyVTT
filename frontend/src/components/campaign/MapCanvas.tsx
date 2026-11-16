@@ -12,7 +12,7 @@ import { campaignHasCharacter as campaignHasTokenCharacter, canRollTokenCharacte
 import { tokenTemporaryHp, type TemporaryHpTarget } from '@/utils/temporaryHp';
 import { useTableRoll } from '@/hooks/useTableRoll';
 import { useActionStore } from '@/stores/actionStore';
-import { tokensInReach, actionErrorKey, actionAreaPreview, areaMapOf, centredOnCaster, snapAreaAim } from '@/utils/actionTargeting';
+import { tokensInReach, actionErrorKey, actionAreaPreview, areaMapOf, snapAreaAim } from '@/utils/actionTargeting';
 import { placeActionArea } from '@/utils/areaGeometry';
 import i18n from '@/i18n';
 import { useGameStore, useTokenList, useCurrentTurnTokenId, useMapPeekTokenId, useCharacterHp, useSelectedTokenId } from '@/stores/gameStore';
@@ -529,15 +529,14 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   // Where a picked area action's template is and whom it catches, for the
   // overlay and the rings: the same rule the server decides with, over the
   // tokens this viewer has (a player is not sent stat blocks). A template
-  // centred on its caster shows before it is aimed; one aimed at a point
-  // shows once the pointer is over the map.
+  // centred on its caster is aimed from the start (actionStore.begin); one
+  // aimed elsewhere shows once the pointer is over the map.
   const actionArea = useMemo(() => {
     if (actionPending?.option.targeting?.kind !== 'area' || !currentMap) return null;
     const actor = tokens.find((t) => t.id === actionPending.actorTokenId);
     if (!actor) return null;
-    const placement = actionPending.area ?? (centredOnCaster(actionPending.option) ? { anchor: { x: 0, y: 0 } } : null);
-    if (!placement) return null;
-    return actionAreaPreview(tokens, actor, actionPending.option, placement, areaMapOf(currentMap), { knowsStatBlocks: isGM });
+    if (!actionPending.area) return null;
+    return actionAreaPreview(tokens, actor, actionPending.option, actionPending.area, areaMapOf(currentMap), { knowsStatBlocks: isGM });
   }, [actionPending, tokens, currentMap, isGM]);
   // What the picked action reaches, for the rings and the dimming: an area's
   // catch, else what is in reach, with a several-target pick's picks marked.

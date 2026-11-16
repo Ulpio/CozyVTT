@@ -1,40 +1,27 @@
 // ============================================
 // Which tokens an action can reach, for highlighting only. The server decides
-// (backend/src/rules/actions/distance.ts, services/actionResolver.ts); this is
-// the same measure so the ring agrees with what it will accept.
+// (backend/src/rules/actions/distance.ts, services/actionResolver.ts); the
+// distance is the shared utils/areaGeometry.ts rule, so the ring agrees with
+// what it will accept.
 // ============================================
 
 import type { Token } from '@/types';
 import type { ActionAreaPlacement, ActionOption, ActionReach } from '@/types/actions';
-import { isAreaCreature, placeActionArea, tokensCaught, type AreaMap, type PlacedArea } from './areaGeometry';
+import { footprintDistanceFeet, isAreaCreature, placeActionArea, tokensCaught, type AreaMap, type PlacedArea, type SquareFootprint } from './areaGeometry';
 
-interface Footprint { x: number; y: number; width: number; height: number }
 interface MapRules { feetPerSquare: number; diagonalRule: string }
 
 /** A token's footprint in grid squares (tokens are stored in squares). */
-const footprint = (t: Token): Footprint => ({
+const footprint = (t: Token): SquareFootprint => ({
   x: t.position.x,
   y: t.position.y,
   width: t.size?.width ?? 1,
   height: t.size?.height ?? 1,
 });
 
-/** Squares from one footprint's nearest edge to the other's; 0 where they overlap on that axis. */
-function axisSquares(aStart: number, aSize: number, bStart: number, bSize: number): number {
-  const gap = Math.max(bStart - (aStart + aSize), aStart - (bStart + bSize));
-  return gap >= 0 ? gap + 1 : 0;
-}
-
 /** Distance in feet between the nearest edges of two tokens, diagonals by the map's rule. */
 export function tokenDistanceFeet(a: Token, b: Token, map: MapRules): number {
-  const fa = footprint(a);
-  const fb = footprint(b);
-  const dx = axisSquares(fa.x, fa.width, fb.x, fb.width);
-  const dy = axisSquares(fa.y, fa.height, fb.y, fb.height);
-  const longer = Math.max(dx, dy);
-  const shorter = Math.min(dx, dy);
-  const squares = map.diagonalRule === 'alternating' ? longer + Math.floor(shorter / 2) : longer;
-  return squares * map.feetPerSquare;
+  return footprintDistanceFeet(footprint(a), footprint(b), map);
 }
 
 /**
