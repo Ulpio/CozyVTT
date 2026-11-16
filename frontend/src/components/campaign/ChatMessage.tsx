@@ -9,8 +9,8 @@ import { useCompactLayout } from '@/contexts/LayoutContext';
 import { Bot, Lock, Shield } from 'lucide-react';
 import type { Message, MessageType } from '@/types';
 import { formatRelativeTime } from '@/utils/format';
-import type { ActionCardView, ConcentrationCard } from '@/types/actions';
-import ActionCardMessage, { ConcentrationLine } from './ActionCardMessage';
+import type { ActionCardView, ConcentrationCard, RechargeCard } from '@/types/actions';
+import ActionCardMessage, { ConcentrationLine, RechargeLine } from './ActionCardMessage';
 
 interface ChatMessageProps {
   message: Message;
@@ -124,13 +124,16 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
 
   // A bar action's card, and the small line a concentration roll posts, are
   // drawn from the metadata; the Portuguese content is for readers without it.
-  const kind = message.type === 'CHARACTER_ACTION' ? (message.metadata?.kind as string | undefined) : undefined;
-  const actionCard = kind === 'action' ? <ActionCardMessage messageId={message.id} card={message.metadata as unknown as ActionCardView} /> : null;
-  const concentrationLine = kind === 'concentration' ? <ConcentrationLine card={message.metadata as unknown as ConcentrationCard} /> : null;
-  const body = concentrationLine ?? message.content;
+  // A recharge roll for a token players are not sent comes as the GM's own whisper.
+  const kind = message.type === 'CHARACTER_ACTION' || message.type === 'WHISPER' ? (message.metadata?.kind as string | undefined) : undefined;
+  const actionCard = kind === 'action' && message.type === 'CHARACTER_ACTION' ? <ActionCardMessage messageId={message.id} card={message.metadata as unknown as ActionCardView} /> : null;
+  const concentrationLine = kind === 'concentration' && message.type === 'CHARACTER_ACTION' ? <ConcentrationLine card={message.metadata as unknown as ConcentrationCard} /> : null;
+  const rechargeLine = kind === 'recharge' ? <RechargeLine card={message.metadata as unknown as RechargeCard} /> : null;
+  const smallLine = concentrationLine ?? rechargeLine;
+  const body = smallLine ?? message.content;
 
   // Metadata (e.g., dice roll results) - hide for internal system actions
-  const metadataBlock = !actionCard && !concentrationLine && message.metadata &&
+  const metadataBlock = !actionCard && !smallLine && message.metadata &&
     Object.keys(message.metadata).length > 0 &&
     message.metadata.action !== 'user.joined' &&
     message.metadata.action !== 'user.left' &&

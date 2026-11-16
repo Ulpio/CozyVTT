@@ -57,6 +57,8 @@ interface ActionState {
   /** Aim an area action at a map point and resolve it (a click). */
   placeArea: (p: Pt) => Promise<ResolveResult>;
   confirmConcentration: () => Promise<ResolveResult>;
+  /** A refusal from another bar request (a recharge roll), shown as the same toast. */
+  report: (error: string) => void;
 }
 
 /** How many targets the pick is for: the option's count, plus its per-slot extra for each slot above the spell's level. */
@@ -138,6 +140,8 @@ export const useActionStore = create<ActionState>((set, get) => {
     },
 
     cancel: () => set({ pending: null, concentrationConfirm: null }),
+
+    report: (error) => { refuseLocally(error); },
 
     setMode: (mode) => set({ mode }),
 

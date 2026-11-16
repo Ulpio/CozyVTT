@@ -108,7 +108,7 @@ export const PICK_EVERY_RAY = 'Pick a target for every ray';
 export const PICK_A_TARGET = 'Pick at least one target';
 export const AIM_THE_AREA = 'Aim the area first';
 
-type ErrorKey = 'notYourToken' | 'invalidTarget' | 'outOfRange' | 'noSpellSlot' | 'cannotResolve' | 'alreadyUndone' | 'alreadyRolled' | 'gmOnly' | 'rechargeSpent' | 'pickEveryRay' | 'pickATarget' | 'aimTheArea' | 'generic';
+type ErrorKey = 'notYourToken' | 'invalidTarget' | 'outOfRange' | 'noSpellSlot' | 'cannotResolve' | 'alreadyUndone' | 'alreadyRolled' | 'gmOnly' | 'rechargeSpent' | 'notSpent' | 'pickEveryRay' | 'pickATarget' | 'aimTheArea' | 'generic';
 
 const ERROR_KEYS: Record<string, ErrorKey> = {
   'Not your token': 'notYourToken',
@@ -120,6 +120,7 @@ const ERROR_KEYS: Record<string, ErrorKey> = {
   'Already rolled': 'alreadyRolled',
   'GM only': 'gmOnly',
   'This action is spent until it recharges': 'rechargeSpent',
+  'This action is not spent': 'notSpent',
   [PICK_EVERY_RAY]: 'pickEveryRay',
   [PICK_A_TARGET]: 'pickATarget',
   [AIM_THE_AREA]: 'aimTheArea',

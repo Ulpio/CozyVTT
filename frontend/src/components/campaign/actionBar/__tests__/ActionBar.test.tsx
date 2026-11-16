@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { useGameStore } from '@/stores/gameStore';
 import { useActionStore } from '@/stores/actionStore';
-import { h, token, longsword, fireBolt, magicMissile, scimitar, shortbow } from './barHarness';
+import { h, token, longsword, fireBolt, magicMissile, scimitar, shortbow, fireBreath } from './barHarness';
 
 vi.mock('@/contexts/CampaignContext', () => ({
   useCampaign: () => ({
@@ -16,7 +16,14 @@ vi.mock('@/contexts/CampaignContext', () => ({
   }),
 }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: h.userId } }) }));
-vi.mock('@/services/actions.service', () => ({ actionsService: { list: (...a: unknown[]) => h.list(...a), resolve: vi.fn(async () => ({ ok: true })) } }));
+vi.mock('@/services/actions.service', () => ({
+  actionsService: {
+    list: (...a: unknown[]) => h.list(...a),
+    resolve: vi.fn(async () => ({ ok: true })),
+    recharge: (...a: unknown[]) => h.recharge(...a),
+    rechargeReset: (...a: unknown[]) => h.rechargeReset(...a),
+  },
+}));
 vi.mock('@/services/api', () => ({ api: { getCharacter: (id: string) => h.getCharacter(id) } }));
 vi.mock('@/hooks/useTableRoll', () => ({ useTableRoll: () => h.roll }));
 vi.mock('@/services/socket', () => ({
@@ -55,6 +62,8 @@ function seed() {
   h.list.mockImplementation(async (_map: string, actor: string) => h.options[actor] ?? []);
   h.getCharacter.mockImplementation(async (id: string) => ({ character: h.sheets[id] }));
   h.roll.mockReset();
+  h.recharge.mockReset();
+  h.rechargeReset.mockReset();
   h.roll.mockResolvedValue(true);
   h.handlers.clear();
   window.localStorage.clear();
@@ -186,9 +195,54 @@ describe('the action bar for the GM', () => {
     expect(screen.getByText(/HP 7\/7/)).toBeInTheDocument();
     expect(screen.getByText(/AC 15/)).toBeInTheDocument();
   });
+
+  it('shows a spent recharge as Roll recharge, which rolls it rather than acting', async () => {
+    h.options.goblin = [scimitar, fireBreath];
+    h.recharge.mockResolvedValue({ ok: true, recharged: false, d6: 2 });
+    act(() => { useGameStore.getState().selectToken('goblin'); });
+    render(<ActionBar />);
+    const button = await screen.findByRole('button', { name: /^Fire Breath\s*Roll recharge \(5–6\)$/ });
+    fireEvent.click(button);
+    expect(h.recharge).toHaveBeenCalledWith('map-1', 'goblin', 'npc:2');
+    expect(useActionStore.getState().pending).toBeNull();
+  });
+
+  it('brings a spent recharge back by hand', async () => {
+    h.options.goblin = [fireBreath];
+    h.rechargeReset.mockResolvedValue({ ok: true });
+    act(() => { useGameStore.getState().selectToken('goblin'); });
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset the recharge of Fire Breath' }));
+    expect(h.rechargeReset).toHaveBeenCalledWith('map-1', 'goblin', 'npc:2');
+  });
+
+  it('keeps a recharge that is not spent a normal button', async () => {
+    h.options.goblin = [{ ...fireBreath, recharge: { min: 5, spent: false } }];
+    act(() => { useGameStore.getState().selectToken('goblin'); });
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Fire Breath' }));
+    expect(useActionStore.getState().pending?.option.id).toBe('npc:2');
+    expect(screen.queryByRole('button', { name: /Reset the recharge/ })).toBeNull();
+  });
+
+  it('lists again when the token\'s recharge changes', async () => {
+    act(() => { useGameStore.getState().selectToken('goblin'); });
+    render(<ActionBar />);
+    await screen.findByRole('button', { name: /Scimitar/ });
+    const calls = h.list.mock.calls.length;
+    act(() => { useGameStore.getState().patchToken('goblin', { rechargeSpent: ['npc:2'] } as never, 'map-1'); });
+    await waitFor(() => expect(h.list.mock.calls.length).toBe(calls + 1));
+  });
 });
 
 describe('the rest of the bar', () => {
+  it("shows a player a spent recharge as spent, with nothing to roll", async () => {
+    h.options['tok-fighter'] = [fireBreath];
+    render(<ActionBar />);
+    expect(await screen.findByRole('button', { name: /^Fire Breath\s*Spent until it recharges$/ })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /Reset the recharge/ })).toBeNull();
+  });
+
   it('says so when the actor has nothing to do', async () => {
     h.options = {};
     render(<ActionBar />);

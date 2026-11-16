@@ -29,6 +29,7 @@ import {
 import { useCampaign } from '@/contexts/CampaignContext';
 import SessionSidebar from '@/components/campaign/SessionSidebar';
 import ActionBar from '@/components/campaign/actionBar/ActionBar';
+import SavePrompt from '@/components/campaign/actionBar/SavePrompt';
 import ConcentrationDialog from '@/components/campaign/actionBar/ConcentrationDialog';
 import GmToolMenus from '@/components/campaign/GmToolMenus';
 import type { SessionToolKey } from '@/components/campaign/SessionToolbar';
@@ -292,9 +293,13 @@ export default function DesktopTable({
           <Separator className="w-1.5 bg-moss-green/10 transition-colors data-[separator=hover]:bg-brand/30 data-[separator=active]:bg-brand/50" />
 
           {/* Center Panel — map canvas, with the room the party leaves */}
-          <Panel id="map" defaultSize={75} minSize={35} className="h-full">
+          <Panel id="map" defaultSize={75} minSize={35} className="relative h-full">
             {/* The map is the page's, moved in here (tableHosts.tsx). */}
             <section ref={mapSlot.ref} className="h-full min-w-0 p-2" />
+            {/* The saves waiting on this player, over the map. */}
+            <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-4">
+              <SavePrompt className="pointer-events-auto max-w-full" />
+            </div>
           </Panel>
 
           <Separator className="w-1.5 bg-moss-green/10 transition-colors data-[separator=hover]:bg-brand/30 data-[separator=active]:bg-brand/50" />

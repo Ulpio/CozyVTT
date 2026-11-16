@@ -1,6 +1,6 @@
 /** A bar action's card in the chat: a player's view, the GM's view, undo and concentration. */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { useGameStore } from '@/stores/gameStore';
 import { MessageType, type Message } from '@/types';
 import type { ActionCardView } from '@/types/actions';
@@ -12,7 +12,18 @@ vi.mock('@/contexts/CampaignContext', () => ({
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: h.userId } }) }));
 const undo = vi.fn();
 const concentration = vi.fn();
-vi.mock('@/services/actions.service', () => ({ actionsService: { undo: (...a: unknown[]) => undo(...a), concentration: (...a: unknown[]) => concentration(...a) } }));
+const undoTarget = vi.fn();
+const save = vi.fn();
+const saveRemaining = vi.fn();
+vi.mock('@/services/actions.service', () => ({
+  actionsService: {
+    undo: (...a: unknown[]) => undo(...a),
+    concentration: (...a: unknown[]) => concentration(...a),
+    undoTarget: (...a: unknown[]) => undoTarget(...a),
+    save: (...a: unknown[]) => save(...a),
+    saveRemaining: (...a: unknown[]) => saveRemaining(...a),
+  },
+}));
 
 import ChatMessage from '../ChatMessage';
 
@@ -40,6 +51,9 @@ beforeEach(() => {
   cleanup();
   undo.mockReset();
   concentration.mockReset();
+  undoTarget.mockReset();
+  save.mockReset();
+  saveRemaining.mockReset();
   h.role = 'PLAYER';
   h.userId = 'u1';
   act(() => {
@@ -71,7 +85,7 @@ describe('an action card in chat', () => {
     expect(screen.getByText('58% chance')).toBeInTheDocument();
     expect(screen.getByText(/HP 7 → 0/)).toBeInTheDocument();
     expect(screen.getByText('Goblin bleeds')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Undo all' }));
     expect(undo).toHaveBeenCalledWith('m1');
   });
 
@@ -79,7 +93,7 @@ describe('an action card in chat', () => {
     h.role = 'GM';
     undo.mockResolvedValue({ ok: false, error: 'Already undone' });
     render(<ChatMessage message={msg(gmCard)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Undo all' }));
     expect(await screen.findByText('That action was already undone.')).toBeInTheDocument();
   });
 
@@ -87,7 +101,7 @@ describe('an action card in chat', () => {
     h.role = 'GM';
     const { rerender } = render(<ChatMessage message={msg(gmCard)} />);
     rerender(<ChatMessage message={msg({ ...gmCard, undoneAt: '2026-01-01T00:00:00Z' })} />);
-    expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Undo/ })).toBeNull();
     expect(screen.getByText('Undone')).toBeInTheDocument();
     rerender(<ChatMessage message={msg({ ...gmCard, undoneAt: '2026-01-01T00:00:00Z', undoPartial: true })} />);
     expect(screen.getByText('Partly undone: the HP changed afterwards')).toBeInTheDocument();
@@ -134,5 +148,104 @@ describe('masked tokens', () => {
     render(<ChatMessage message={msg(card)} />);
     expect(screen.getByText(/Mara → Goblin · Longsword/)).toBeInTheDocument();
     expect(screen.queryByText(/Something/)).toBeNull();
+  });
+});
+
+describe('a saving throw card', () => {
+  const playerSaveCard = {
+    kind: 'action', actor: { tokenId: 'w1', name: 'Merlin' }, actionName: 'Fireball', mode: 'normal',
+    save: { ability: 'dex', dc: 15, halfOnSave: true }, damageRoll: [{ total: 28, type: 'fire', breakdown: '8d6' }], pendingSaves: 2,
+    targets: [
+      { tokenId: 'c1t', name: 'Mara', isCharacter: true, save: { ability: 'dex', dc: 15, status: 'pending' }, yourSave: true },
+      { tokenId: 'c2t', name: 'Tobias', isCharacter: true, save: { ability: 'dex', dc: 15, status: 'pending' } },
+      { tokenId: 'g1', name: 'Goblin', isCharacter: false, state: 'down', save: { ability: 'dex', dc: 15, status: 'rolled', success: false }, damage: [{ total: 28, type: 'fire', breakdown: '8d6' }] },
+      { tokenId: 'c3t', name: 'Ilse', isCharacter: true, save: { ability: 'dex', dc: 15, status: 'rolled', success: true, mode: 'advantage', d20s: [9, 14], total: 17 }, damage: [{ total: 14, type: 'fire', breakdown: '8d6' }] },
+    ],
+  } as unknown as ActionCardView;
+
+  const gmSaveCard = {
+    kind: 'action', actor: { tokenId: 'w1', name: 'Merlin', userId: 'u3' }, actionName: 'Fireball', mode: 'normal',
+    save: { ability: 'dex', dc: 15, halfOnSave: true }, damageRoll: [{ total: 28, type: 'fire', breakdown: '8d6' }],
+    targets: [
+      { tokenId: 'c1t', name: 'Mara', isCharacter: true, showHpBar: true, ac: 14, hpBefore: 12, hpAfter: 12, hpMax: 12, save: { ability: 'dex', dc: 15, bonus: 2, status: 'pending' } },
+      { tokenId: 'g1', name: 'Goblin', isCharacter: false, showHpBar: false, ac: 15, hpBefore: 7, hpAfter: 0, hpMax: 7, save: { ability: 'dex', dc: 15, bonus: 2, status: 'rolled', d20s: [4], total: 6, success: false, rolledBy: 'auto' }, damage: [{ total: 28, type: 'fire', breakdown: '8d6' }] },
+    ],
+    undo: { hp: [] },
+  } as unknown as ActionCardView;
+
+  it('tells a player the save, the shared damage and how many saves it waits for', () => {
+    render(<ChatMessage message={msg(playerSaveCard)} />);
+    expect(screen.getByText('Dexterity saving throw DC 15 · half on a save')).toBeInTheDocument();
+    expect(screen.getByText('Damage rolled: 28 fire')).toBeInTheDocument();
+    expect(screen.getByText('Waiting for 2 saves')).toBeInTheDocument();
+  });
+
+  it("shows a character's total and a monster's result alone", () => {
+    render(<ChatMessage message={msg(playerSaveCard)} />);
+    expect(screen.getByText('Ilse: saved (17: 9, 14, advantage)')).toBeInTheDocument();
+    expect(screen.getByText('Goblin: failed')).toBeInTheDocument();
+    expect(screen.queryByText(/Goblin: failed \(/)).toBeNull();
+    expect(screen.getByText('Tobias: waiting for the save')).toBeInTheDocument();
+  });
+
+  it("gives the player the roll buttons on their own target only, and sends the mode", async () => {
+    save.mockResolvedValue({ ok: true });
+    render(<ChatMessage message={msg(playerSaveCard)} />);
+    const groups = screen.getAllByRole('group', { name: /saving throw/ });
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toHaveAccessibleName('Mara: Dexterity saving throw DC 15');
+    await act(async () => { fireEvent.click(within(groups[0]).getByRole('button', { name: 'Advantage' })); });
+    expect(save).toHaveBeenCalledWith('m1', 'c1t', 'advantage');
+  });
+
+  it('gives a player neither Roll the rest nor any Undo', () => {
+    render(<ChatMessage message={msg(playerSaveCard)} />);
+    expect(screen.queryByRole('button', { name: 'Roll the rest' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Undo/ })).toBeNull();
+  });
+
+  it('gives the GM Roll the rest, an Undo per target and Undo all', () => {
+    h.role = 'GM';
+    h.userId = 'gm';
+    saveRemaining.mockResolvedValue({ ok: true });
+    undoTarget.mockResolvedValue({ ok: true });
+    undo.mockResolvedValue({ ok: true });
+    render(<ChatMessage message={msg(gmSaveCard)} />);
+    expect(screen.getByText('Waiting for 1 save')).toBeInTheDocument();
+    expect(screen.getByText('Goblin: failed (6: 4, +2)')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Roll the rest' }));
+    expect(saveRemaining).toHaveBeenCalledWith('m1');
+    fireEvent.click(screen.getByRole('button', { name: 'Undo Goblin' }));
+    expect(undoTarget).toHaveBeenCalledWith('m1', 'g1');
+    fireEvent.click(screen.getByRole('button', { name: 'Undo all' }));
+    expect(undo).toHaveBeenCalledWith('m1');
+    // The GM rolls through Roll the rest, not the player's buttons.
+    expect(screen.queryByRole('group', { name: /saving throw/ })).toBeNull();
+  });
+
+  it('marks an undone target and drops its Undo; no Roll the rest once nothing waits', () => {
+    h.role = 'GM';
+    const card = { ...gmSaveCard, targets: [{ ...(gmSaveCard as { targets: object[] }).targets[0], undoneAt: 'now' }, (gmSaveCard as { targets: object[] }).targets[1]] };
+    render(<ChatMessage message={msg(card)} />);
+    expect(screen.getByText('Mara: undone')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Undo Mara' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Roll the rest' })).toBeNull();
+    expect(screen.queryByText(/Waiting for/)).toBeNull();
+  });
+});
+
+describe('a recharge roll', () => {
+  it('reads as one line for everyone', () => {
+    render(<ChatMessage message={msg({ kind: 'recharge', tokenId: 'd1', name: 'Dragon', actionName: 'Fire Breath', min: 5, d6: 6, recharged: true })} />);
+    expect(screen.getByText('Dragon: recharge of Fire Breath (5–6): 6, recharged')).toBeInTheDocument();
+    expect(screen.queryByText(/actionName/)).toBeNull();
+  });
+
+  it("reads as one line in the GM's own whisper, with the real name", () => {
+    h.role = 'GM';
+    const whisper = { ...msg({ kind: 'recharge', tokenId: 'd1', name: 'Hidden Dragon', actionName: 'Fire Breath', min: 6, d6: 3, recharged: false }), type: MessageType.WHISPER, recipientId: 'u1' } as Message;
+    render(<ChatMessage message={whisper} />);
+    expect(screen.getByText('Hidden Dragon: recharge of Fire Breath (6): 3, still spent')).toBeInTheDocument();
+    expect(screen.queryByText(/actionName/)).toBeNull();
   });
 });

@@ -73,6 +73,40 @@ export interface ActionResolveAck {
 // ---------------------------------------------------------------------------
 
 export type ActionMaskedName = 'something' | 'something-invisible';
+
+/** A target's saving throw on a card, as the GM reads it. */
+export interface ActionTargetSave {
+  ability: ActionAbility;
+  dc: number;
+  bonus: number;
+  status: 'pending' | 'rolled';
+  mode?: ActionRollMode;
+  advantageReason?: 'magic-resistance';
+  d20s?: number[];
+  total?: number;
+  success?: boolean;
+  rolledBy?: 'auto' | 'owner' | 'gm';
+  rolledAt?: string;
+}
+
+/** A target's saving throw as a player reads it: a monster's dice, total and mode stay with the GM. */
+export interface PlayerActionTargetSave {
+  ability: ActionAbility;
+  dc: number;
+  status: 'pending' | 'rolled';
+  mode?: ActionRollMode;
+  success?: boolean;
+  rolledAt?: string;
+  d20s?: number[];
+  total?: number;
+}
+
+/** The save an action asks of its targets, the same for each. */
+export interface ActionCardSave {
+  ability: ActionAbility;
+  dc: number;
+  halfOnSave: boolean;
+}
 export type ActionMonsterState = 'unharmed' | 'wounded' | 'badly-wounded' | 'down';
 
 export interface ActionAttackResult {
@@ -108,6 +142,13 @@ export interface ActionCardTarget {
   healing?: number;
   concentrationCheckDc?: number;
   concentrationRolledAt?: string;
+  controllerUserIds?: string[];
+  concealed?: boolean;
+  save?: ActionTargetSave;
+  rays?: number;
+  attacks?: ActionAttackResult[];
+  undoneAt?: string;
+  undoSkipped?: boolean;
 }
 
 export interface ActionCard {
@@ -118,6 +159,12 @@ export interface ActionCard {
   disadvantageReason?: 'long-range';
   slotLevel?: number;
   targets: ActionCardTarget[];
+  save?: ActionCardSave;
+  /** The one damage roll shared by every target of a save effect. */
+  damageRoll?: ActionDamagePart[];
+  area?: AreaSpec;
+  recharge?: { tokenId: string; optionId: string };
+  selfHealing?: number;
   extraText?: string;
   undo: unknown;
   undoneAt?: string;
@@ -137,6 +184,12 @@ export interface PlayerActionCardTarget {
   concentrationRolledAt?: string;
   hp?: { current: number; max: number; temp?: number };
   state?: ActionMonsterState;
+  rays?: number;
+  attacks?: ActionAttackResult[];
+  undoneAt?: string;
+  save?: PlayerActionTargetSave;
+  /** This viewer controls the target and its save is still pending. */
+  yourSave?: true;
 }
 
 export interface PlayerActionCard {
@@ -147,6 +200,12 @@ export interface PlayerActionCard {
   disadvantageReason?: 'long-range';
   slotLevel?: number;
   targets: PlayerActionCardTarget[];
+  save?: ActionCardSave;
+  damageRoll?: ActionDamagePart[];
+  area?: AreaSpec;
+  /** How many saves this viewer sees still pending. */
+  pendingSaves?: number;
+  selfHealing?: number;
   extraText?: string;
   undoneAt?: string;
   undoPartial?: boolean;
@@ -166,4 +225,22 @@ export interface ConcentrationCard {
   bonus: number;
   total: number;
   kept: boolean;
+}
+
+/** The small card a recharge roll posts (a whisper to the GM alone for a token players are not sent). */
+export interface RechargeCard {
+  kind: 'recharge';
+  tokenId?: string;
+  name?: string;
+  maskedName?: ActionMaskedName;
+  actionName: string;
+  min: number;
+  d6: number;
+  recharged: boolean;
+}
+
+/** One card with a save waiting on the requester, from `action.pendingSaves`. */
+export interface PendingSaveCard {
+  messageId: string;
+  card: ActionCardView;
 }

@@ -25,7 +25,8 @@ import { buildNpcRolls } from '@/utils/npcRolls';
 import { applyRollMode, ROLL_MODES } from '@/utils/rollModes';
 import type { ActionOption } from '@/types/actions';
 import type { FifthEditionCharacterData } from '@/types/game-systems';
-import ActionButton from './ActionButton';
+import ActionButton, { RechargeButtons } from './ActionButton';
+import { actionsService } from '@/services/actions.service';
 import ActorSummary from './ActorSummary';
 import SpellMenu from './SpellMenu';
 import ChecksMenu from './ChecksMenu';
@@ -39,11 +40,13 @@ const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().t
 
 export default function ActionBar() {
   const { t } = useTranslation();
-  const { campaign, currentMap } = useCampaign();
+  const { campaign, currentMap, userRole } = useCampaign();
   const { actor, candidates, choose } = useBarActorChoice();
   const characterId = actor?.kind === 'character' ? actor.token.characterId : null;
   const sheet = useActorSheet(characterId);
-  const options = useActionOptions(currentMap?.id, actor?.token.id ?? null, sheet?.updatedAt);
+  // Listed again when the sheet changes, or the token's spent recharges do (the GM's copy of the map carries them).
+  const spentKey = (actor?.token.rechargeSpent ?? []).join(',');
+  const options = useActionOptions(currentMap?.id, actor?.token.id ?? null, `${sheet?.updatedAt ?? ''}|${spentKey}`);
   const characterHp = useCharacterHp();
   const mode = useActionStore((s) => s.mode);
   const pending = useActionStore((s) => s.pending);
@@ -91,6 +94,15 @@ export default function ActionBar() {
 
   const toggle = (next: Menu) => { setMenu(menu === next ? null : next); setGripFor(null); };
 
+  /** The GM rolls a spent recharge (a d6 posted to the chat) or brings it back by hand; the map sent again lists the bar anew. */
+  const recharge = async (option: ActionOption, how: 'roll' | 'reset') => {
+    if (!currentMap) return;
+    const answer = how === 'roll'
+      ? await actionsService.recharge(currentMap.id, token.id, option.id)
+      : await actionsService.rechargeReset(currentMap.id, token.id, option.id);
+    if (!answer.ok) useActionStore.getState().report(answer.error ?? '');
+  };
+
   const items = (sheetData?.inventory ?? []).map((item) => ({ item, action: attacks.find((o) => o.group === 'attack' && sameName(o.name, item.name)) }));
 
 
@@ -125,7 +137,9 @@ export default function ActionBar() {
 
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
           {options.length === 0 && <p className="text-sm text-ink-muted">{t('actionBar.noActions')}</p>}
-          {attacks.map((option) => (
+          {attacks.map((option) => option.recharge?.spent ? (
+            <RechargeButtons key={option.id} option={option} isGm={userRole === 'GM'} onRoll={() => void recharge(option, 'roll')} onReset={() => void recharge(option, 'reset')} />
+          ) : (
             <ActionButton key={option.id} detail={option.summary} pressed={pending?.option.id === option.id} onClick={() => pick(option)}>{option.name}</ActionButton>
           ))}
           {spells.length > 0 && <ActionButton menu pressed={menu === 'spells'} onClick={() => toggle('spells')}>{t('actionBar.menus.spells')}</ActionButton>}

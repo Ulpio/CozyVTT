@@ -3,7 +3,7 @@ import type { ManagerOptions, SocketOptions } from 'socket.io-client';
 import { socketTarget } from '@/utils/socketTarget';
 import { api } from '@/services/api';
 import { apiErrorStatus, errorMessage } from '@/utils/errors';
-import type { ActionOption, ActionRequest, ActionResolveAck } from '@/types/actions';
+import type { ActionOption, ActionRequest, ActionResolveAck, ActionRollMode, PendingSaveCard } from '@/types/actions';
 import type {
   CampaignMap,
   TokenMoveStartEvent,
@@ -587,6 +587,36 @@ class SocketClient {
   /** A target rolls to keep concentration (`action.concentration`). */
   rollConcentration(messageId: string, targetTokenId: string): Promise<{ ok: boolean; messageId?: string; kept?: boolean; dc?: number; total?: number; error?: string }> {
     return this.askFor<{ ok: boolean; messageId?: string; kept?: boolean; dc?: number; total?: number }>('action.concentration', { messageId, targetTokenId }, ACTION_ANSWER_TIMEOUT_MS, 'No answer from the server');
+  }
+
+  /** A target's player (or the GM) rolls its pending save (`action.save`). */
+  rollSave(data: { messageId: string; targetTokenId: string; mode: ActionRollMode }): Promise<{ ok: boolean; error?: string }> {
+    return this.askFor<{ ok: boolean }>('action.save', data, ACTION_ANSWER_TIMEOUT_MS, 'No answer from the server');
+  }
+
+  /** The GM rolls every save still pending on a card (`action.saveRemaining`). */
+  rollRemainingSaves(messageId: string): Promise<{ ok: boolean; error?: string }> {
+    return this.askFor<{ ok: boolean }>('action.saveRemaining', { messageId }, ACTION_ANSWER_TIMEOUT_MS, 'No answer from the server');
+  }
+
+  /** The GM takes back what an action did to one target (`action.undoTarget`). */
+  undoActionTarget(messageId: string, targetTokenId: string): Promise<{ ok: boolean; partial?: boolean; error?: string }> {
+    return this.askFor<{ ok: boolean; partial?: boolean }>('action.undoTarget', { messageId, targetTokenId }, ACTION_ANSWER_TIMEOUT_MS, 'No answer from the server');
+  }
+
+  /** The cards with a save still waiting on this user (the GM: on anyone) (`action.pendingSaves`). */
+  pendingSaves(): Promise<{ ok: true; pending: PendingSaveCard[] } | { ok: false; error: string }> {
+    return this.askFor<{ ok: true; pending: PendingSaveCard[] }>('action.pendingSaves', undefined, ACTION_ANSWER_TIMEOUT_MS, 'No answer from the server');
+  }
+
+  /** The GM rolls a d6 for a monster's spent recharge (`action.recharge`). */
+  rollRecharge(data: { mapId: string; tokenId: string; optionId: string }): Promise<{ ok: boolean; recharged?: boolean; d6?: number; error?: string }> {
+    return this.askFor<{ ok: boolean; recharged?: boolean; d6?: number }>('action.recharge', data, ACTION_ANSWER_TIMEOUT_MS, 'No answer from the server');
+  }
+
+  /** The GM brings a monster's spent recharge back by hand (`action.rechargeReset`). */
+  resetRecharge(data: { mapId: string; tokenId: string; optionId: string }): Promise<{ ok: boolean; error?: string }> {
+    return this.askFor<{ ok: boolean }>('action.rechargeReset', data, ACTION_ANSWER_TIMEOUT_MS, 'No answer from the server');
   }
 
   onDiceHistoryCleared(callback: EventCallback<void>) {

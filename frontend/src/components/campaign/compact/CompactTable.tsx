@@ -50,6 +50,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { useActionStore } from '@/stores/actionStore';
 import { useTranslation } from 'react-i18next';
 import ActionBar from '@/components/campaign/actionBar/ActionBar';
+import SavePrompt from '@/components/campaign/actionBar/SavePrompt';
 import ConcentrationDialog from '@/components/campaign/actionBar/ConcentrationDialog';
 import TargetingHint from '@/components/campaign/actionBar/TargetingHint';
 import { useBarActor } from '@/components/campaign/actionBar/useBarActor';
@@ -198,6 +199,9 @@ export default function CompactTable({ campaign, isOwner, onOpenTool, onOpenDocu
       <main ref={mapSlot.ref} className="finger-controls relative min-h-0 flex-1 overflow-hidden" />
 
       <TargetingHint />
+
+      {/* The saves waiting on this player, the same as on the desktop. */}
+      <SavePrompt className="mx-2 my-1 shrink-0" />
 
       {!sideways && bar}
 

@@ -16,6 +16,8 @@ export const h = {
   list: vi.fn(),
   roll: vi.fn(),
   getCharacter: vi.fn(),
+  recharge: vi.fn(),
+  rechargeReset: vi.fn(),
   handlers: new Map<string, Set<(data: unknown) => void>>(),
 };
 
@@ -39,3 +41,7 @@ export const magicMissile: ActionOption = {
 };
 export const scimitar: ActionOption = { id: 'npc:0', name: 'Scimitar', group: 'npc', resolution: 'attack', reach: { kind: 'touch' } };
 export const shortbow: ActionOption = { id: 'npc:1', name: 'Shortbow', group: 'npc', resolution: 'attack', reach: { kind: 'feet', normal: 80, long: 320 } };
+export const fireBreath: ActionOption = {
+  id: 'npc:2', name: 'Fire Breath', group: 'npc', resolution: 'save', reach: { kind: 'self' }, recharge: { min: 5, spent: true },
+  targeting: { kind: 'area', area: { shape: 'cone', sizeFt: 15 }, origin: 'self' },
+};
