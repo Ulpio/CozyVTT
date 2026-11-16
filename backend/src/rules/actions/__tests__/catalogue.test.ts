@@ -51,6 +51,19 @@ describe('characterActions', () => {
     expect(out.find((x) => x.option.id === 'attack:1')).toBeUndefined();
   });
 
+  it('adds the sheet row\'s flat modifier to an attack cantrip it duplicates, keeping the book\'s dice', () => {
+    const withRow = (roll: string) => {
+      const w = sheet('mago');
+      w.attacks.find((a: any) => a.name === 'S raio-de-fogo').damageRoll = roll;
+      const found = characterActions(w, spells, weapons).find((x) => x.option.id === 'spell:book-test/raio-de-fogo')!;
+      return found.damage;
+    };
+    expect(withRow('1d10+3')).toEqual([{ dice: '1d10+3', type: 'fogo' }]);
+    expect(withRow('1d10 - 1')).toEqual([{ dice: '1d10-1', type: 'fogo' }]);
+    expect(withRow('1d10')).toEqual([{ dice: '1d10', type: 'fogo' }]);
+    expect(withRow('muito')).toEqual([{ dice: '1d10', type: 'fogo' }]);
+  });
+
   it('lists a healing spell with the modifier flag', () => {
     const c = sheet('clerigo');
     c.spellcasting.spells = [{ level: 1, name: 'Curar Ferimentos', prepared: true, ritual: false, concentration: false, compendiumRef: { bookId: 'book-test', slug: 'curar-ferimentos' } }];

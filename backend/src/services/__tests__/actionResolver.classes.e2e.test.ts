@@ -25,7 +25,7 @@ const BOOK = `p5a-cls-${randomUUID().slice(0, 8)}`;
 const CLASSES = ['barbaro', 'bardo', 'bruxo', 'clerigo', 'druida', 'feiticeiro', 'guerreiro', 'ladino', 'mago', 'monge', 'paladino', 'patrulheiro'];
 /** Classes whose sheet lists Raio de Fogo, which the compendium here gives as an attack cantrip. */
 const FIRE_BOLT = ['feiticeiro', 'ladino', 'mago'];
-/** Classes whose attack cantrips are only rows of the sheet's attacks (the compendium here holds no entry for them). */
+/** Classes whose attack cantrips are only rows of the sheet's attacks (the compendium here holds no entry for them; the bruxo's Rajada Mística is the exception, tested below). */
 const SHEET_CANTRIPS = ['bruxo', 'druida'];
 /** Classes with a first-circle slot and Curar Ferimentos on their list. */
 const HEALERS = ['bardo', 'clerigo', 'druida', 'paladino', 'patrulheiro'];
@@ -146,6 +146,7 @@ beforeAll(async () => {
   await prisma.compendiumEntry.createMany({
     data: [
       entry('raio-de-fogo', 'Raio de Fogo', { level: 0, range: '36 metros', concentration: false, mechanics: { attack: 'ranged', damage: [{ dice: '1d10', type: 'fogo' }], scaling: { cantrip: true } } }),
+      entry('rajada-mistica', 'Rajada Mística', { level: 0, range: '36 metros', concentration: false, mechanics: { attack: 'ranged', damage: [{ dice: '1d10', type: 'energia' }], scaling: { cantrip: true } } }),
       entry('curar-ferimentos', 'Curar Ferimentos', { level: 1, range: 'Toque', concentration: false, mechanics: { healing: '1d8', healingAddsModifier: true, scaling: { perSlot: '1d8' } } }),
     ],
   });
@@ -227,7 +228,7 @@ describe('attack cantrip', () => {
 
   test.each(SHEET_CANTRIPS)('%s rolls the attack cantrip row of its sheet', async (cls) => {
     const s = await playAs(cls);
-    const i = s.attacks.findIndex((a: any) => a.name.startsWith('S ') && a.attackBonus === s.spellcasting.spellAttackBonus);
+    const i = s.attacks.findIndex((a: any) => a.name.startsWith('S ') && a.name !== 'S rajada-mistica' && a.attackBonus === s.spellcasting.spellAttackBonus);
     expect(i).toBeGreaterThan(0);
     expect(s.attacks[i].attackBonus).toBe(s.proficiencyBonus + castingMod(s));
     await swingSheetAttack(cls, i);
@@ -274,5 +275,20 @@ describe("the goblin's turn", () => {
     }, seq(12)));
     expect(out.card.targets[0].attack).toMatchObject({ total: 16, hit: false });
     expect((await charData(heroId)).hp.current).toBe(s.hp.current);
+  });
+});
+
+describe('attack cantrip that the sheet also lists as an attack row', () => {
+  it("bruxo's Rajada Mística keeps the book's 1d10 and adds the row's +3", async () => {
+    const s = await playAs('bruxo');
+    const row = s.attacks.find((a: any) => a.name === 'S rajada-mistica');
+    expect(row.damageRoll).toBe('1d10+3');
+    const out = ok(await resolveAction(campaignId, p1, hero(`spell:${BOOK}/rajada-mistica`), seq(15, 4)));
+    const t = out.card.targets[0];
+    expect(out.card.actionName).toBe('Rajada Mística');
+    expect(t.attack!.total - t.attack!.natural).toBe(row.attackBonus);
+    expect(t.damage).toEqual([expect.objectContaining({ total: 7, type: 'energia' })]);
+    expect(t.damage![0].breakdown.replace(/\s+/g, '')).toContain('1d10+3');
+    expect(await goblinHp()).toEqual({ current: 0, max: 7, temp: 0 });
   });
 });

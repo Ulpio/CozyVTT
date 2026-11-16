@@ -96,6 +96,18 @@ export function characterLevel(sheet: FifthEditionCharacterData): number {
   return typeof sheet?.level === 'number' && sheet.level >= 1 ? sheet.level : 1;
 }
 
+/** The constant part of a damage roll beyond its dice ('1d10+3' is 3, '1d10' is 0, unreadable is 0). */
+function flatModifier(raw: unknown): number {
+  const dice = cleanDice(raw);
+  if (!dice) return 0;
+  let total = 0;
+  for (const m of dice.replace(/\s+/g, '').matchAll(/([+-]?)(\d*d\d+|\d+)/gi)) {
+    if (m[2].toLowerCase().includes('d')) continue;
+    total += (m[1] === '-' ? -1 : 1) * parseInt(m[2], 10);
+  }
+  return total;
+}
+
 const key = (ref: { bookId: string; slug: string }) => `${ref.bookId}/${ref.slug}`;
 
 function spellSpec(
@@ -158,7 +170,13 @@ export function characterActions(
   const attackSpellRefs = new Set(spellSpecs.filter((s) => s.option.resolution === 'attack').map((s) => s.option.id.slice('spell:'.length)));
 
   (sheet?.attacks ?? []).forEach((atk, i) => {
-    if (atk.compendiumRef && attackSpellRefs.has(key(atk.compendiumRef))) return;
+    if (atk.compendiumRef && attackSpellRefs.has(key(atk.compendiumRef))) {
+      // The spell keeps the book's dice; the sheet row's flat modifier (an invocation, say) is added.
+      const flat = flatModifier(atk.damageRoll);
+      const spell = spellSpecs.find((s) => s.option.id === `spell:${key(atk.compendiumRef!)}`);
+      if (flat !== 0 && spell?.damage[0]) spell.damage[0] = { ...spell.damage[0], dice: `${spell.damage[0].dice}${flat > 0 ? '+' : '-'}${Math.abs(flat)}` };
+      return;
+    }
     const wpn = atk.compendiumRef ? weapons.get(key(atk.compendiumRef)) : undefined;
     const props = new Set([...(atk.properties ?? []), ...(wpn?.data.properties ?? [])].map((p) => p.toLowerCase()));
 
