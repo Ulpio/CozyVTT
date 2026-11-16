@@ -124,6 +124,7 @@ export type TokenShapes = {
   statBlock?: unknown;
   sightRadius?: number | null;
   obscured?: boolean;
+  rechargeSpent?: string[];
   position?: z.infer<typeof TokenPositionSchema>;
   rotation?: number;
   visible?: boolean;
@@ -188,6 +189,10 @@ export function validateTokenShapes(
   const obscured = check('obscured', z.boolean());
   if ('failed' in obscured) return { ok: false, message: obscured.failed };
   if (obscured.parsed !== undefined) value.obscured = obscured.parsed ?? undefined;
+
+  const rechargeSpent = check('rechargeSpent', z.array(z.string().max(100)).max(100));
+  if ('failed' in rechargeSpent) return { ok: false, message: rechargeSpent.failed };
+  if (rechargeSpent.parsed) value.rechargeSpent = rechargeSpent.parsed;
 
   const position = check('position', TokenPositionSchema);
   if ('failed' in position) return { ok: false, message: position.failed };

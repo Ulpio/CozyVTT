@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import { characterActions, npcActions, spellcastingModifier, characterLevel, CompendiumSpell, CompendiumWeapon } from '../catalogue';
 import { fifthEditionCharacterDataSchema } from '../../../validators/game-systems/fifthEdition.schema';
+import { fifthEditionSpellSaveDC } from '../../../utils/rules/fifthEdition';
 
 const SHEETS = resolve(__dirname, '../../../../../frontend/src/utils/guidedCreation/__tests__/fixtures/sheets');
 const sheet = (name: string) => JSON.parse(readFileSync(resolve(SHEETS, `${name}.json`), 'utf8'));
@@ -241,6 +242,149 @@ describe('npcActions', () => {
     const out = npcActions({ actions: [{ name: 'X', description }] } as any);
     expect(out[0].option).toMatchObject({ id: 'npc:actions:0', resolution: 'post' });
     expect(out[0].description).toBe(description);
+  });
+});
+
+describe('save spells, rays and areas', () => {
+  const ref = (slug: string) => ({ bookId: 'book-test', slug });
+  const saveSpells = new Map<string, CompendiumSpell>([
+    ['book-test/bola-de-fogo', spell({ level: 3, range: '45 metros', mechanics: { save: 'dex', damage: [{ dice: '8d6', type: 'fogo' }], halfOnSave: true, area: { shape: 'esfera', size: '6 m de raio' }, scaling: { perSlot: '1d6' } } }, 'Bola de Fogo')],
+    ['book-test/maos-flamejantes', spell({ level: 1, range: 'Pessoal (cone de 4,5 metros)', mechanics: { save: 'dex', damage: [{ dice: '3d6', type: 'fogo' }], halfOnSave: true, area: { shape: 'cone', size: '4,5 m' } } }, 'Mãos Flamejantes')],
+    ['book-test/rajada-mistica', spell({ range: '36 metros', mechanics: { attack: 'ranged', damage: [{ dice: '1d10', type: 'energia' }], rays: { count: 1, cantripLevels: true } } }, 'Rajada Mística')],
+    ['book-test/misseis-magicos', spell({ level: 1, range: '36 metros', mechanics: { damage: [{ dice: '1d4+1', type: 'energia' }], rays: { count: 3, perSlot: 1 }, autoHit: true } }, 'Mísseis Mágicos')],
+    ['book-test/raio-ardente', spell({ level: 2, range: '36 metros', mechanics: { attack: 'ranged', damage: [{ dice: '2d6', type: 'fogo' }], rays: { count: 3, perSlot: 1 } } }, 'Raio Ardente')],
+    ['book-test/imobilizar-pessoa', spell({ level: 2, concentration: true, range: '18 metros', mechanics: { save: 'wis', damage: [], targets: 1, targetsPerSlot: 1 } }, 'Imobilizar Pessoa')],
+    ['book-test/chuva-de-meteoros', spell({ level: 9, range: '1,5 quilômetro', mechanics: { damage: [], castOnly: 'dois efeitos de área' } }, 'Chuva de Meteoros')],
+    ['book-test/corrente-de-relampagos', spell({ level: 6, range: '45 metros', mechanics: { save: 'dex', damage: [{ dice: '10d8', type: 'elétrico' }], halfOnSave: true, targets: 4 } }, 'Corrente de Relâmpagos')],
+    ['book-test/curar-ferimentos-em-massa', spell({ level: 5, range: '18 metros', mechanics: { damage: [], healing: '3d8', healingAddsModifier: true, targets: 6, scaling: { perSlot: '1d8' } } }, 'Curar Ferimentos em Massa')],
+    ['book-test/cura-completa', spell({ level: 6, range: '18 metros', mechanics: { damage: [], healing: '70', targets: 1, scaling: { perSlot: '10' } } }, 'Cura Completa')],
+    ['book-test/toque-vampirico', spell({ level: 3, range: 'Pessoal', mechanics: { attack: 'melee', damage: [{ dice: '3d6', type: 'necrótico' }], selfHeal: 'half-damage' } }, 'Toque Vampírico')],
+  ]);
+  const caster = (base: string, level: number, slugs: string[]) => {
+    const c = sheet(base);
+    c.level = level;
+    c.spellcasting.cantripRefs = [];
+    c.spellcasting.cantrips = [];
+    c.spellcasting.spells = slugs.map((slug) => ({ level: 1, name: slug, prepared: true, ritual: false, concentration: false, compendiumRef: ref(slug) }));
+    return c;
+  };
+  const optionOf = (c: any, slug: string) => characterActions(c, saveSpells, weapons).find((x) => x.option.id === `spell:book-test/${slug}`)!;
+
+  it('lists Fireball as a save with the caster DC and a point area', () => {
+    const wiz = caster('mago', 5, ['bola-de-fogo']);
+    const s = optionOf(wiz, 'bola-de-fogo');
+    expect(s.option).toMatchObject({
+      resolution: 'save',
+      saveAbility: 'dex',
+      saveDc: fifthEditionSpellSaveDC(wiz),
+      targeting: { kind: 'area', area: { shape: 'sphere', sizeFt: 20 }, origin: 'point', rangeFeet: 150 },
+    });
+    expect(s.save).toEqual({ ability: 'dex', dc: fifthEditionSpellSaveDC(wiz), damage: [{ dice: '8d6', type: 'fogo' }], halfOnSave: true });
+    expect(s.scaling).toEqual({ perSlot: '1d6' });
+    expect(s.source).toBe('spell');
+  });
+
+  it('lists Burning Hands as a cone from the caster', () => {
+    const s = optionOf(caster('mago', 5, ['maos-flamejantes']), 'maos-flamejantes');
+    expect(s.option.targeting).toEqual({ kind: 'area', area: { shape: 'cone', sizeFt: 15 }, origin: 'self' });
+    expect(s.option.reach).toEqual({ kind: 'self' });
+  });
+
+  it('gives Eldritch Blast 1, 2, 3 or 4 beams by character level and adds the sheet row modifier to each', () => {
+    const at = (level: number) => {
+      const lock = sheet('bruxo');
+      lock.level = level;
+      return characterActions(lock, saveSpells, weapons).find((x) => x.option.id === 'spell:book-test/rajada-mistica')!;
+    };
+    expect(at(1).option.targeting).toEqual({ kind: 'multi', count: 1, distinct: false });
+    expect(at(5).option.targeting).toEqual({ kind: 'multi', count: 2, distinct: false });
+    expect(at(11).option.targeting).toEqual({ kind: 'multi', count: 3, distinct: false });
+    expect(at(17).option.targeting).toEqual({ kind: 'multi', count: 4, distinct: false });
+    expect(at(5)).toMatchObject({ option: { resolution: 'attack' }, damage: [{ dice: '1d10+3', type: 'energia' }], rays: { count: 1, cantripLevels: true } });
+  });
+
+  it('lists Magic Missile as auto-hit darts and Scorching Ray as attack rays', () => {
+    const wiz = caster('mago', 5, ['misseis-magicos', 'raio-ardente']);
+    const mm = optionOf(wiz, 'misseis-magicos');
+    expect(mm.option).toMatchObject({ resolution: 'attack', targeting: { kind: 'multi', count: 3, perSlot: 1, distinct: false } });
+    expect(mm.autoHit).toBe(true);
+    expect(mm.attackBonus).toBeUndefined();
+    const sr = optionOf(wiz, 'raio-ardente');
+    expect(sr.option.targeting).toEqual({ kind: 'multi', count: 3, perSlot: 1, distinct: false });
+    expect(sr.attackBonus).toBe(5);
+    expect(sr.autoHit).toBeUndefined();
+  });
+
+  it('lists Hold Person and Chain Lightning with distinct targets', () => {
+    const wiz = caster('mago', 9, ['imobilizar-pessoa', 'corrente-de-relampagos']);
+    const hold = optionOf(wiz, 'imobilizar-pessoa');
+    expect(hold.option).toMatchObject({ resolution: 'save', saveAbility: 'wis', targeting: { kind: 'multi', count: 1, perSlot: 1, distinct: true } });
+    expect(hold.save?.damage).toEqual([]);
+    expect(optionOf(wiz, 'corrente-de-relampagos').option.targeting).toEqual({ kind: 'multi', count: 4, distinct: true });
+  });
+
+  it('keeps a cast-only spell a cast', () => {
+    const s = optionOf(caster('mago', 9, ['chuva-de-meteoros']), 'chuva-de-meteoros');
+    expect(s.option.resolution).toBe('cast');
+    expect(s.option.targeting).toBeUndefined();
+  });
+
+  it('gives a mass heal several distinct targets and a single heal none', () => {
+    const cle = caster('clerigo', 9, ['curar-ferimentos-em-massa', 'cura-completa']);
+    const mass = optionOf(cle, 'curar-ferimentos-em-massa');
+    expect(mass.option).toMatchObject({ resolution: 'heal', targeting: { kind: 'multi', count: 6, distinct: true } });
+    const heal = optionOf(cle, 'cura-completa');
+    expect(heal.option.targeting).toBeUndefined();
+    expect(heal.healing).toEqual({ dice: '70', addModifier: false });
+  });
+
+  it('carries the self-heal of a draining touch', () => {
+    expect(optionOf(caster('mago', 5, ['toque-vampirico']), 'toque-vampirico').selfHeal).toBe('half-damage');
+  });
+});
+
+describe('npcActions saves', () => {
+  const breath = 'O dragão exala fogo em um cone de 18 metros. Cada criatura na área deve fazer um teste de resistência de Destreza CD 21, sofrendo 63 (18d6) de dano de fogo se falhar, ou metade desse dano se obtiver sucesso.';
+  const block = {
+    actions: [
+      { name: 'Mordida', description: 'Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 1,5 m, um alvo. Acerto: 5 (1d6 + 2) de dano perfurante.' },
+      { name: 'Sopro de Fogo (Recarrega 5–6)', description: breath },
+    ],
+  };
+
+  it('lists a breath weapon as a save with an area from the monster and its recharge', () => {
+    const out = npcActions(block as any);
+    expect(out[1].option).toMatchObject({
+      id: 'npc:actions:1',
+      resolution: 'save',
+      saveAbility: 'dex',
+      targeting: { kind: 'area', area: { shape: 'cone', sizeFt: 60 }, origin: 'self' },
+      recharge: { min: 5, spent: false },
+    });
+    expect(out[1].option.saveDc).toBeUndefined();
+    expect(out[1].save).toMatchObject({ ability: 'dex', dc: 21, damage: [{ dice: '18d6', type: 'fogo' }], halfOnSave: true });
+    expect(out[1].source).toBe('monster');
+    expect(out[0].source).toBe('monster');
+  });
+
+  it('marks the recharge spent when the token lists the option id', () => {
+    expect(npcActions(block as any, ['npc:actions:1'])[1].option.recharge).toEqual({ min: 5, spent: true });
+    expect(npcActions(block as any, ['npc:actions:0'])[1].option.recharge).toEqual({ min: 5, spent: false });
+  });
+
+  it('lists a save with no damage as a single-target save for the GM to read', () => {
+    const out = npcActions({ actions: [{ name: 'Engolir', description: 'O monstro engole um alvo. O alvo deve ser bem-sucedido em um teste de resistência de Força CD 15 ou fica agarrado.' }] } as any);
+    expect(out[0].option).toMatchObject({ resolution: 'save', saveAbility: 'str', targeting: { kind: 'single' } });
+    expect(out[0].damage).toEqual([]);
+    expect(out[0].save?.extraText).toBeTruthy();
+    expect(out[0].extraText).toBe(out[0].save?.extraText);
+  });
+
+  it('keeps the save rider of an attack on the attack', () => {
+    const d = 'Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 1,5 m, um alvo. Acerto: 5 (1d6 + 2) de dano perfurante. O alvo deve ser bem-sucedido em um teste de resistência de Constituição CD 11, ou fica envenenado por 1 minuto.';
+    const out = npcActions({ actions: [{ name: 'Ferrão', description: d }] } as any);
+    expect(out[0].option.resolution).toBe('attack');
+    expect(out[0].onHitSave).toMatchObject({ ability: 'con', dc: 11 });
   });
 });
 

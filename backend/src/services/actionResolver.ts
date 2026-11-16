@@ -37,6 +37,7 @@ import type { Token } from '../websocket/shared';
 import type { FifthEditionCharacterData } from '../validators/game-systems/fifthEdition.schema';
 import { tokenDistanceFeet } from '../rules/actions/distance';
 import { rollAttack, attackHits, hitChance, rollDamage } from '../rules/actions/attackRoll';
+import { characterSaveBonus } from '../rules/actions/savingThrow';
 import { rollDice } from '../utils/dice-parser';
 import {
   characterLevel,
@@ -689,10 +690,7 @@ export interface ConcentrationCard {
 
 /** The character's Constitution saving throw bonus, from the sheet. */
 function constitutionSave(sheet: Sheet): number {
-  const save = (sheet.savingThrows as { constitution?: { bonus?: unknown } } | undefined)?.constitution?.bonus;
-  if (typeof save === 'number') return save;
-  const mod = (sheet.stats as { constitution?: { modifier?: unknown } } | undefined)?.constitution?.modifier;
-  return typeof mod === 'number' ? mod : 0;
+  return characterSaveBonus(sheet, 'con');
 }
 
 /** The target of a damaging action rolls to keep concentration: its owner, or the GM for them. */

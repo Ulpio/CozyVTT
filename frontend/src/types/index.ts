@@ -926,6 +926,8 @@ export interface Token {
    * sent it with its identity masked (utils/tokenMask.ts); only the GM may set it.
    */
   obscured?: boolean;
+  /** Option ids of recharge actions spent on this token. GM only; the server never sends it to players. */
+  rechargeSpent?: string[];
 }
 
 export interface Position {

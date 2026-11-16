@@ -1755,7 +1755,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
       // `size` and `sightRadius` are here because both decide what the server
       // sends this player: a token always sees half its own footprint, so a
       // player who could enlarge their token would enlarge their sight.
-      const restrictedFields = ['hp', 'notes', 'showHpBar', 'type', 'disposition', 'initiative', 'visible', 'name', 'imageUrl', 'layer', 'controlledBy', 'displayMode', 'statBlock', 'creatureTemplateId', 'metadata', 'sightRadius', 'size', 'obscured'];
+      const restrictedFields = ['hp', 'notes', 'showHpBar', 'type', 'disposition', 'initiative', 'visible', 'name', 'imageUrl', 'layer', 'controlledBy', 'displayMode', 'statBlock', 'creatureTemplateId', 'metadata', 'sightRadius', 'size', 'obscured', 'rechargeSpent'];
       for (const field of restrictedFields) {
         if (updates[field] !== undefined) {
           return res.status(403).json({ error: 'Forbidden', message: `Only the GM can update token field: ${field}` });
@@ -1817,6 +1817,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
       ...(updates.statBlock !== undefined && { statBlock: shapes.value.statBlock ?? null }),
       ...(updates.creatureTemplateId !== undefined && { creatureTemplateId: shapes.value.creatureTemplateId ?? null }),
       ...(shapes.value.obscured !== undefined && { obscured: shapes.value.obscured }),
+      ...(shapes.value.rechargeSpent && { rechargeSpent: shapes.value.rechargeSpent }),
     };
 
     // Merged into the token as it is under the map's lock, so a move that

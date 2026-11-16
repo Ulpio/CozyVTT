@@ -57,6 +57,8 @@ export interface Token {
   creatureTemplateId?: string | null;
   /** Identity hidden from players who do not control it; see utils/tokenMask.ts. GM-only on write. */
   obscured?: boolean;
+  /** Option ids of recharge actions spent on this token (a breath weapon). GM-only on write. */
+  rechargeSpent?: string[];
 }
 
 /** One window of a flood ceiling: at most `limit` events in any `windowMs`. */

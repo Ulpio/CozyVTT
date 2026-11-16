@@ -553,6 +553,36 @@ describe('map token validation', () => {
         expect(veiled.obscured).toBe(false);
       });
     });
+
+    describe('recharge spent', () => {
+      let beastId: string;
+
+      beforeAll(async () => {
+        const res = await place({ name: 'Dragon', position: { x: 14, y: 14 }, type: 'npc' });
+        beastId = res.body.token.id;
+      });
+
+      it('may not be set by a player, even on their own token', async () => {
+        const res = await playerUpdate({ rechargeSpent: ['npc:actions:1'] });
+        expect(res.status).toBe(403);
+        expect(res.body.message).toMatch(/rechargeSpent/);
+      });
+
+      it('must be a list of option ids', async () => {
+        const res = await gm.put(`/api/campaigns/${campaignId}/maps/${mapId}/tokens/${beastId}`).send({ rechargeSpent: 'npc:actions:1' });
+        expect(res.status).toBe(400);
+      });
+
+      it('is set and cleared by the GM, and never sent to a player', async () => {
+        const set = await gm.put(`/api/campaigns/${campaignId}/maps/${mapId}/tokens/${beastId}`).send({ rechargeSpent: ['npc:actions:1'] });
+        expect(set.status).toBe(200);
+        expect(set.body.token.rechargeSpent).toEqual(['npc:actions:1']);
+        const seen = await player.get(`/api/campaigns/${campaignId}/maps/${mapId}`);
+        expect(JSON.stringify(seen.body)).not.toContain('rechargeSpent');
+        const clear = await gm.put(`/api/campaigns/${campaignId}/maps/${mapId}/tokens/${beastId}`).send({ rechargeSpent: [] });
+        expect(clear.body.token.rechargeSpent).toEqual([]);
+      });
+    });
   });
 
   // The socket refuses a player who cannot see the spirit plane from

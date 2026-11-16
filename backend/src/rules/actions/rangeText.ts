@@ -11,7 +11,8 @@ export function metresToFeet(m: number): number {
  */
 export function parseRangeText(text: string): ParsedRange | null {
   const t = text.trim().toLowerCase();
-  if (t === 'pessoal') return { kind: 'self' };
+  // "Pessoal (cone de 4,5 metros)" is still on the caster.
+  if (t === 'pessoal' || /^pessoal\s*\(/.test(t)) return { kind: 'self' };
   if (t === 'toque') return { kind: 'touch' };
   const m = t.match(/^(?:alcance|dist[âa]ncia)?\s*(\d+(?:[.,]\d+)?)(?:\s*\/\s*(\d+(?:[.,]\d+)?))?\s*(?:m|metros?)$/);
   if (!m) return null;

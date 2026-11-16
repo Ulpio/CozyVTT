@@ -65,6 +65,6 @@ export async function catalogueFor(
     const { spells, weapons } = await compendiumFor(campaignId, sheet);
     return characterActions(sheet, spells, weapons);
   }
-  if (token.statBlock && typeof token.statBlock === 'object') return npcActions(token.statBlock as unknown as NpcStatBlockInput);
+  if (token.statBlock && typeof token.statBlock === 'object') return npcActions(token.statBlock as unknown as NpcStatBlockInput, token.rechargeSpent ?? []);
   return [];
 }
