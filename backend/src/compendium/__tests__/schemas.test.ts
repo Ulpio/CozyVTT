@@ -238,3 +238,13 @@ describe('references to other entries', () => {
     expect(issues).toHaveLength(1);
   });
 });
+
+it('accepts a flat whole-number healing amount and per-slot step (Heal)', () => {
+  const mechanics = { healing: '70', targets: 1, scaling: { perSlot: '10' } };
+  expect(validateEntries([spell({ level: 6, mechanics })], known)).toEqual([]);
+});
+
+it('still rejects a flat number as damage dice', () => {
+  const issues = validateEntries([spell({ mechanics: { attack: 'ranged', damage: [{ dice: '70', type: 'fogo' }] } })], known);
+  expect(issues).not.toEqual([]);
+});

@@ -85,11 +85,29 @@ const load = (): Map<string, RawSpell> => new Map((JSON.parse(readFileSync(FILE,
   it('gives Chain Lightning four targets and Mass Cure Wounds six', () => {
     const spells = load();
     expect(spells.get('corrente-de-relampagos')!.data.mechanics.targets).toBe(4);
-    for (const slug of ['curar-ferimentos-em-massa']) {
-      const m = spells.get(slug)!.data.mechanics;
-      expect(m.targets).toBe(6);
-      expect(m.healing).toBeTruthy();
-      expect(m.area).toBeUndefined();
-    }
+    const m = spells.get('curar-ferimentos-em-massa')!.data.mechanics;
+    expect(m.targets).toBe(6);
+    expect(m.healing).toBeTruthy();
+    expect(m.area).toBeUndefined();
+  });
+
+  it('resolves only what happens at cast time', () => {
+    const spells = load();
+    expect(spells.get('onda-destrutiva')!.data.mechanics.halfOnSave).toBe(true);
+    expect(spells.get('espiritos-guardioes')!.data.mechanics.castOnly).toBeTruthy();
+    const killer = spells.get('assassino-fantasmagorico')!.data.mechanics;
+    expect(killer.save).toBe('wis');
+    expect(killer.damage).toEqual([]);
+  });
+
+  it('does not grow Eldritch Blast dice with the level, only its beams', () => {
+    expect(load().get('rajada-mistica')!.data.mechanics.scaling?.cantrip).toBeUndefined();
+  });
+
+  it('reads Heal as a flat 70 healing', () => {
+    const m = load().get('cura-completa')!.data.mechanics;
+    expect(m.healing).toBe('70');
+    expect(m.scaling.perSlot).toBe('10');
+    expect(m.targets).toBe(1);
   });
 });

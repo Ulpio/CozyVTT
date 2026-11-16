@@ -35,6 +35,9 @@ export const DAMAGE_TYPES = [
 
 /** Dice such as 1d8, 2d6+3 or 1d4 + 1. */
 const DICE = /^\d+d\d+( ?[+-] ?\d+)?$/;
+// Healing and its per-slot step may also be a plain whole number (Heal: 70, +10 per slot).
+const FLAT = /^\d+$/;
+const FLAT_PATHS = new Set(['mechanics.healing', 'mechanics.scaling.perSlot']);
 
 /** The challenge ratings a monster can have. */
 const CHALLENGE_RATINGS = new Set(['0', '1/8', '1/4', '1/2', ...Array.from({ length: 30 }, (_, i) => String(i + 1))]);
@@ -345,7 +348,7 @@ export function validateEntries(entries: RawEntry[], known: { classSlugs: Set<st
     }
 
     const { dice, damageTypes } = diceAndDamage(entry);
-    for (const [path, roll] of dice) if (!DICE.test(roll)) add(`${path}: "${roll}" is not dice such as 1d8 or 2d6+3`);
+    for (const [path, roll] of dice) if (!DICE.test(roll) && !(FLAT_PATHS.has(path) && FLAT.test(roll))) add(`${path}: "${roll}" is not dice such as 1d8 or 2d6+3`);
     for (const [path, type] of damageTypes) {
       if (!(DAMAGE_TYPES as readonly string[]).includes(type)) add(`${path}: unknown damage type "${type}"`);
     }
