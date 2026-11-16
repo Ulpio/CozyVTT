@@ -28,12 +28,15 @@ export interface ActionCardTarget {
   hitChance?: number;
   hpBefore: number;
   hpAfter: number;
+  /** 0 when the target has no hit points tracked: the card then shows neither HP nor a state. */
   hpMax: number;
   temp?: number;
   attack?: AttackResult;
   damage?: DamagePart[];
   healing?: number;
   concentrationCheckDc?: number;
+  /** When the target rolled to keep concentration for this card; one roll per card. */
+  concentrationRolledAt?: string;
 }
 
 export interface UndoRecord {
@@ -76,6 +79,7 @@ export interface PlayerActionCardTarget {
   damage?: DamagePart[];
   healing?: number;
   concentrationCheckDc?: number;
+  concentrationRolledAt?: string;
   hp?: { current: number; max: number; temp?: number };
   state?: MonsterState;
 }
@@ -113,6 +117,9 @@ function projectTarget(t: ActionCardTarget, viewer: Viewer): PlayerActionCardTar
   if (t.damage) out.damage = t.damage.map((d) => ({ ...d }));
   if (t.healing !== undefined) out.healing = t.healing;
   if (t.concentrationCheckDc !== undefined) out.concentrationCheckDc = t.concentrationCheckDc;
+  if (t.concentrationRolledAt !== undefined) out.concentrationRolledAt = t.concentrationRolledAt;
+  // No hit points tracked (a statue, a hand-made token): neither HP nor a state, not "down".
+  if (t.hpMax <= 0) return out;
   if (canSeeHp(t, viewer)) {
     out.hp = { current: t.hpAfter, max: t.hpMax };
     if (t.temp !== undefined) out.hp.temp = t.temp;

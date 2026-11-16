@@ -232,6 +232,13 @@ describe('hitting a goblin', () => {
     expect(await tokenHp('goblin')).toEqual({ current: 14, max: 20, temp: 0 });
   });
 
+  it('uses the two-handed line for either grip when it is the only damage', async () => {
+    await patchChar(fighterId, (d) => { d.attacks[0].damageRoll = 'muito'; });
+    const one = ok(await resolveAction(campaignId, p1, req({ grip: 'one' }), seq(15, 1)));
+    expect(one.card.targets[0].damage).toEqual([expect.objectContaining({ total: 4, type: 'cortante' })]);
+    expect(await tokenHp('goblin')).toMatchObject({ current: 3 });
+  });
+
   it('two attacks on one character from two maps both count (the sheet, not the map, is locked)', async () => {
     const other = await prisma.map.create({
       data: {
@@ -397,6 +404,25 @@ describe('spells', () => {
     const roll = await rollConcentration(campaignId, p1, out.messageId, 'fighter', seq(5));
     expect(roll).toMatchObject({ ok: true, total: 9, dc: 10, kept: false });
     expect((await charData(fighterId)).concentratingOn).toBeNull();
+    const msg = await prisma.message.findUniqueOrThrow({ where: { id: out.messageId } });
+    expect((msg.metadata as unknown as ActionCard).targets[0].concentrationRolledAt).toEqual(expect.any(String));
+  });
+
+  it('allows one concentration roll per card', async () => {
+    await patchChar(fighterId, (d) => { d.concentratingOn = { name: 'Algo' }; });
+    const out = ok(await resolveAction(campaignId, gm, { mapId, actorTokenId: 'goblin', actionId: 'npc:actions:0', targetTokenId: 'fighter', mode: 'normal' }, seq(15, 1)));
+    expect(await rollConcentration(campaignId, p1, out.messageId, 'fighter', seq(18))).toMatchObject({ ok: true, kept: true });
+    expect(await rollConcentration(campaignId, gm, out.messageId, 'fighter', seq(1))).toEqual({ ok: false, error: 'Already rolled' });
+    expect((await charData(fighterId)).concentratingOn).toEqual({ name: 'Algo' });
+    expect(await prisma.message.count({ where: { campaignId } })).toBe(2);
+  });
+
+  it('refuses a concentration roll on an undone card', async () => {
+    await patchChar(fighterId, (d) => { d.concentratingOn = { name: 'Algo' }; });
+    const out = ok(await resolveAction(campaignId, gm, { mapId, actorTokenId: 'goblin', actionId: 'npc:actions:0', targetTokenId: 'fighter', mode: 'normal' }, seq(15, 1)));
+    expect(await undoAction(campaignId, gm, out.messageId)).toMatchObject({ ok: true });
+    expect(await rollConcentration(campaignId, p1, out.messageId, 'fighter', seq(1))).toEqual({ ok: false, error: 'Already undone' });
+    expect((await charData(fighterId)).concentratingOn).toEqual({ name: 'Algo' });
   });
 });
 

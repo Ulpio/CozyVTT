@@ -73,6 +73,7 @@ export const CANNOT_RESOLVE = 'This action cannot be resolved';
 export const ALREADY_UNDONE = 'Already undone';
 export const GM_ONLY = 'GM only';
 export const NEEDS_CONCENTRATION_CONFIRM = 'Already concentrating on another spell';
+export const ALREADY_ROLLED = 'Already rolled';
 const NOT_FOUND = 'Action not found';
 
 const defaultRng: Rng = (sides) => Math.floor(Math.random() * sides) + 1;
@@ -274,7 +275,11 @@ async function announce(campaignId: string, requester: Viewer, after: AfterCommi
 /** The dice each damage line rolls for this cast or swing, before any critical. */
 function damageLines(spec: ResolvedActionSpec, req: ActionRequest, sheet: Sheet | null, slotLevel: number | undefined) {
   let lines = spec.damage.map((d) => ({ ...d }));
-  if (req.grip === 'two' && spec.versatileDamage) lines = [{ ...spec.versatileDamage }, ...lines.slice(1)];
+  // The two-handed line replaces the main one. With no main line it is the
+  // only damage the weapon has, so it is used whichever grip is chosen.
+  if (spec.versatileDamage && (req.grip === 'two' || lines.length === 0)) {
+    lines = req.grip === 'two' ? [{ ...spec.versatileDamage }, ...lines.slice(1)] : [{ ...spec.versatileDamage }];
+  }
   const level = spec.option.spellLevel ?? 0;
   if (spec.option.group === 'spell' && level === 0 && spec.scaling?.cantrip) {
     const tier = cantripTier(sheet ? characterLevel(sheet) : 1);
@@ -682,7 +687,7 @@ export async function rollConcentration(
   targetTokenId: string,
   rng: Rng = defaultRng,
 ): Promise<
-  | { ok: true; total: number; dc: number; kept: boolean; messageId: string; card: ConcentrationCard }
+  | { ok: true; total: number; dc: number; kept: boolean; messageId: string; card: ConcentrationCard; actionCard: ActionCard }
   | { ok: false; error: string }
 > {
   if (requester.role === 'SPECTATOR') return refuse(NOT_YOUR_TOKEN);
@@ -695,9 +700,21 @@ export async function rollConcentration(
   const character = await prisma.character.findUnique({ where: { id: characterId }, select: { userId: true } });
   if (!character) return refuse(INVALID_TARGET);
   if (requester.role !== 'GM' && character.userId !== requester.userId) return refuse(NOT_YOUR_TOKEN);
+  if (card.undoneAt) return refuse(ALREADY_UNDONE);
+  if (target.concentrationRolledAt) return refuse(ALREADY_ROLLED);
   const dc = target.concentrationCheckDc as number;
 
   const outcome = await prisma.$transaction(async (tx) => {
+    // The action's card is read again under its row's lock, as undoAction
+    // reads it: an undo or another roll landing since the read above wins.
+    await tx.$queryRaw`SELECT id FROM "Message" WHERE id = ${messageId} FOR UPDATE`;
+    const fresh = await tx.message.findUnique({ where: { id: messageId }, select: { metadata: true } });
+    const action = fresh ? cardOf(fresh.metadata) : null;
+    if (!action) return refuse(NOT_FOUND);
+    if (action.undoneAt) return refuse(ALREADY_UNDONE);
+    const entry = action.targets.find((t) => t.tokenId === targetTokenId && t.concentrationCheckDc !== undefined);
+    if (!entry) return refuse(INVALID_TARGET);
+    if (entry.concentrationRolledAt) return refuse(ALREADY_ROLLED);
     const held = await holdSheets(tx, [characterId]);
     const sheet = held.get(characterId);
     if (!sheet) return refuse(INVALID_TARGET);
@@ -710,6 +727,9 @@ export async function rollConcentration(
       sheet.changed = true;
     }
     const written = await writeSheets(tx, held);
+    // One roll per target per card: recorded on the action card itself.
+    entry.concentrationRolledAt = new Date().toISOString();
+    await tx.message.update({ where: { id: messageId }, data: { metadata: toJson(action) } });
     const small: ConcentrationCard = { kind: 'concentration', actionMessageId: messageId, tokenId: targetTokenId, dc, d20, bonus, total, kept };
     if (target.maskedName) small.maskedName = target.maskedName;
     else small.name = target.name;
@@ -724,7 +744,7 @@ export async function rollConcentration(
       },
       select: { id: true },
     });
-    return { ok: true as const, total, dc, kept, messageId: created.id, card: small, written };
+    return { ok: true as const, total, dc, kept, messageId: created.id, card: small, actionCard: action, written };
   });
 
   if (!outcome.ok) return outcome;

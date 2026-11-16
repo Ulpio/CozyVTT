@@ -1,4 +1,4 @@
-import { ActionCard, ActionCardTarget, monsterState, projectActionCard, Viewer } from '../actionCard';
+import { ActionCard, ActionCardTarget, PlayerActionCard, monsterState, projectActionCard, Viewer } from '../actionCard';
 
 const gm: Viewer = { role: 'GM', userId: 'gm1' };
 const bob: Viewer = { role: 'PLAYER', userId: 'bob' };
@@ -82,6 +82,16 @@ describe('projectActionCard', () => {
     expect((projectActionCard(c, spec) as any).targets[0].hp).toBeUndefined();
     const bar: any = projectActionCard(card([{ ...pc, showHpBar: true }]), bob);
     expect(bar.targets[0].hp).toEqual({ current: 4, max: 12 });
+  });
+
+  it('shows neither HP nor a state for a target with no hit points tracked', () => {
+    const statue = goblin({ hpBefore: 0, hpAfter: 0, hpMax: 0, showHpBar: true });
+    for (const viewer of [bob, ann, spec]) {
+      const t = (projectActionCard(card([statue]), viewer) as PlayerActionCard).targets[0];
+      expect(t.hp).toBeUndefined();
+      expect(t.state).toBeUndefined();
+    }
+    expect(projectActionCard(card([statue]), gm)).toEqual(card([statue]));
   });
 
   it('masks names', () => {
