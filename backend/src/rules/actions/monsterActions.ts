@@ -119,6 +119,7 @@ const plain = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').
 
 const SAVE_RE = /teste\s+de\s+resist[êe]ncia\s+de\s+(For[çc]a|Destreza|Constitui[çc][ãa]o|Intelig[êe]ncia|Sabedoria|Carisma)\s+CD\s+(\d+)/i;
 const DAMAGE_PART = String.raw`${NUM}(?:\s*\(([^)]+)\))?\s+(?:de\s+)?dano(?:\s+(?:de|do|da))?\s+([\p{L}-]+)`;
+const RECURRING = /\b(?:no|ao)\s+(?:in[ií]cio|final|fim|come[çc]o)\s+d[eoa]s?\s+(?:cada|seus?|suas?|um)|\bcada\s+turno\b|\bem\s+cada\s+(?:um\s+dos\s+)?turnos?\b/i;
 const SENTENCE_END = /\.(?:\s|$)/;
 
 /** Index just past the sentence that contains `index`. */
@@ -167,6 +168,9 @@ function readSave(text: string): SaveEffect | null {
       }
     }
   }
+  // Damage that repeats ("no início de cada turno") is not the failed-save damage: leave it in the text.
+  const sentenceStart = text.slice(0, m.index).lastIndexOf('. ') + 1;
+  if (dmg.parts.length > 0 && RECURRING.test(text.slice(sentenceStart, regionEnd))) dmg = { parts: [], end: 0 };
   let rest: string;
   if (dmg.parts.length > 0) {
     save.damage = dmg.parts;

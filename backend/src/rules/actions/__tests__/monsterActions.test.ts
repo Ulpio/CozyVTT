@@ -82,11 +82,11 @@ describe('parseMonsterAction', () => {
 describe('parseMonsterSaveAction', () => {
   it('reads a cone breath weapon with its recharge', () => {
     const a = parseMonsterSaveAction(
-      'Sopro Flamejante (Recarrega 5–6)',
-      'O dragão sopra chamas num cone de 18 metros. Cada criatura na área deve realiza um teste de resistência de Destreza CD 21, sofrendo 63 (18d6) de dano de fogo se falhar na resistência, ou metade desse dano caso obtenha sucesso.',
+      'Hálito Ígneo (Recarrega 5–6)',
+      'A fera lança labaredas num cone de 18 metros. Quem estiver na área, cada criatura, precisa fazer um teste de resistência de Destreza CD 17; em caso de falha sofre 45 (10d8) de dano de fogo, e em caso de sucesso sofre metade desse dano.',
     );
     expect(a).toEqual({
-      save: { ability: 'dex', dc: 21, damage: [{ dice: '18d6', type: 'fogo' }], halfOnSave: true },
+      save: { ability: 'dex', dc: 17, damage: [{ dice: '10d8', type: 'fogo' }], halfOnSave: true },
       area: { shape: 'cone', sizeFt: 60 },
       origin: 'self',
       targets: 'many',
@@ -96,11 +96,11 @@ describe('parseMonsterSaveAction', () => {
 
   it('reads a line breath weapon with its width', () => {
     const a = parseMonsterSaveAction(
-      'Sopro Ácido (Recarrega 5-6)',
-      'O dragão cospe ácido em uma linha com 18 metros de comprimento e 1,5 metro de largura. Cada criatura na linha deve ser bem sucedida num teste de resistência de Destreza CD 14, sofrendo 40 (9d8) de dano de ácido se falhar, ou metade desse dano se obtiver sucesso.',
+      'Jato Corrosivo (Recarrega 5-6)',
+      'A besta esguicha ácido em uma linha com 24 metros de comprimento e 3 metros de largura. Toda criatura na linha deve fazer um teste de resistência de Destreza CD 12, levando 27 (6d8) de dano de ácido se falhar, ou metade desse dano se passar.',
     );
-    expect(a?.area).toEqual({ shape: 'line', sizeFt: 60, widthFt: 5 });
-    expect(a?.save.damage).toEqual([{ dice: '9d8', type: 'ácido' }]);
+    expect(a?.area).toEqual({ shape: 'line', sizeFt: 80, widthFt: 10 });
+    expect(a?.save.damage).toEqual([{ dice: '6d8', type: 'ácido' }]);
   });
 
   it('reads a save with no damage and a range as many targets', () => {
@@ -147,10 +147,10 @@ describe('parseRecharge', () => {
 describe('parseMonsterAction onHitSave', () => {
   it('reads a poison rider with half damage and leaves no save text behind', () => {
     const a = parseMonsterAction(
-      'Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 1,5 m, uma criatura. Acerto: 7 (1d10 + 2) de dano perfurante e o alvo deve realizar um teste de resistência de Constituição CD 11, sofrendo 9 (2d8) de dano de veneno se falhar na resistência ou metade desse dano se obtiver sucesso.',
+      'Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 1,5 m, uma criatura. Acerto: 6 (1d8 + 2) de dano perfurante e o alvo deve fazer um teste de resistência de Constituição CD 12, levando 14 (4d6) de dano de veneno se falhar ou metade desse dano se passar.',
     );
-    expect(a?.damage).toEqual([{ dice: '1d10 + 2', type: 'perfurante' }]);
-    expect(a?.onHitSave).toEqual({ ability: 'con', dc: 11, damage: [{ dice: '2d8', type: 'veneno' }], halfOnSave: true });
+    expect(a?.damage).toEqual([{ dice: '1d8 + 2', type: 'perfurante' }]);
+    expect(a?.onHitSave).toEqual({ ability: 'con', dc: 12, damage: [{ dice: '4d6', type: 'veneno' }], halfOnSave: true });
     expect(a?.extraText).toBeUndefined();
   });
 
@@ -166,8 +166,8 @@ describe('parseMonsterAction onHitSave', () => {
 
 describe('save wording variants', () => {
   it('reads a line written with "por" for the width and an unnamed-shape radius', () => {
-    const line = parseMonsterSaveAction('Sopro (Recarrega 5–6)', 'A criatura expele uma linha de raios de 6 metros de comprimento por 1,5 metro de largura. Cada criatura na linha deve realizar um teste de resistência de Destreza CD 16, sofrendo 66 (12d10) de dano elétrico se falhar na resistência ou metade desse dano se obtiver sucesso.');
-    expect(line?.area).toEqual({ shape: 'line', sizeFt: 20, widthFt: 5 });
+    const line = parseMonsterSaveAction('Sopro (Recarrega 5–6)', 'A serpente cospe uma linha de faíscas de 9 metros de comprimento por 3 metros de largura. Quem estiver na linha faz um teste de resistência de Destreza CD 13 e sofre 20 (3d12) de dano elétrico em caso de falha, ou metade em caso de sucesso.');
+    expect(line?.area).toEqual({ shape: 'line', sizeFt: 30, widthFt: 10 });
     const cloud = parseMonsterSaveAction('Esporos', 'Uma nuvem, com 4,5 metros de raio, sai do monstro. Cada criatura na área deve ser bem sucedida num teste de resistência de Constituição CD 14 ou ficará envenenada.');
     expect(cloud?.area).toEqual({ shape: 'sphere', sizeFt: 15 });
   });
@@ -184,8 +184,19 @@ describe('save wording variants', () => {
   });
 
   it('reads a save with no damage before it as the attack rider', () => {
-    const a = parseMonsterAction('Ataque à Distância com Arma: +8 para atingir, distância 4,5/9 m, uma criatura. Acerto: o alvo deve realizar um teste de resistência de Constituição CD 13, sofrendo 18 (4d8) de dano de veneno se falhar na resistência, ou metade desse dano se obtiver sucesso.');
+    const a = parseMonsterAction('Ataque à Distância com Arma: +8 para atingir, distância 4,5/9 m, uma criatura. Acerto: o alvo deve fazer um teste de resistência de Constituição CD 14, levando 11 (2d10) de dano de veneno se falhar ou metade desse dano se passar.');
     expect(a?.damage).toEqual([]);
-    expect(a?.onHitSave).toMatchObject({ ability: 'con', dc: 13, damage: [{ dice: '4d8', type: 'veneno' }], halfOnSave: true });
+    expect(a?.onHitSave).toMatchObject({ ability: 'con', dc: 14, damage: [{ dice: '2d10', type: 'veneno' }], halfOnSave: true });
+  });
+
+  it('keeps damage that recurs each turn out of the failed-save damage', () => {
+    const engulf = parseMonsterSaveAction('Engolfar', 'O bicho engole uma criatura agarrada. Ela deve ser bem sucedida num teste de resistência de Constituição CD 13 no início de cada turno do bicho ou sofrerá 9 (2d8) de dano de concussão.');
+    expect(engulf?.save.damage).toEqual([]);
+    expect(engulf?.save.extraText).toMatch(/2d8/);
+    const wound = parseMonsterAction('Ataque Corpo-a-Corpo com Arma: +5 para atingir, alcance 1,5 m, um alvo. Acerto: 7 (1d8 + 3) de dano cortante. O alvo deve ser bem sucedido num teste de resistência de Constituição CD 13 ou sofrerá 3 (1d6) de dano cortante no início de cada um dos turnos dele.');
+    expect(wound?.damage).toEqual([{ dice: '1d8 + 3', type: 'cortante' }]);
+    expect(wound?.onHitSave?.damage).toEqual([]);
+    const acid = parseMonsterAction('Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 1,5 m, uma criatura. Acerto: 4 (1d4 + 2) de dano perfurante. No final de cada um dos turnos dele, o alvo faz um teste de resistência de Constituição CD 10, sofrendo 2 (1d4) de dano de ácido se falhar.');
+    expect(acid?.onHitSave?.damage).toEqual([]);
   });
 });
