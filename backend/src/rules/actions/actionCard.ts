@@ -37,6 +37,8 @@ export interface ActionCardTarget {
 }
 
 export interface UndoRecord {
+  /** The map whose tokens the NPC entries in `hp` are on; GM-only, like the rest of the record. */
+  mapId?: string;
   hp: {
     tokenId: string;
     characterId?: string;

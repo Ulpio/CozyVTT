@@ -251,7 +251,7 @@ async function resendIfCurrent(campaignId: string, map: Parameters<typeof broadc
 const TOKEN_RESEND_MS = 100;
 const pendingTokenResends = new Set<string>();
 
-function resendSoonIfCurrent(campaignId: string, mapId: string): void {
+export function resendSoonIfCurrent(campaignId: string, mapId: string): void {
   const key = `${campaignId}:${mapId}`;
   if (pendingTokenResends.has(key)) return;
   pendingTokenResends.add(key);
@@ -285,7 +285,7 @@ const VALID_DISPLAY_MODES: readonly string[] = TOKEN_DISPLAY_MODES;
  * again, as each member may see it, so the tracker follows the token. A
  * failure here must not fail the request that changed the token.
  */
-async function resendInitiativeFor(campaignId: string, tokenId: string): Promise<void> {
+export async function resendInitiativeFor(campaignId: string, tokenId: string): Promise<void> {
   if (!getCombatState(campaignId).combatants.some((c) => c.tokenId === tokenId)) return;
   try {
     await sendInitiativeState(getSocketInstance(), campaignId);
