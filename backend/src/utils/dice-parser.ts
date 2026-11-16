@@ -81,6 +81,9 @@ function rollDie(sides: number): number {
   return Math.floor(Math.random() * sides) + 1;
 }
 
+/** A source of dice: a whole number from 1 to `sides`. Tests and the action bar pass their own. */
+export type DieRng = (sides: number) => number;
+
 /**
  * Read a single dice term like "2d6", "4d6kh3", "2d20kl1", "4d6dl1"
  */
@@ -129,10 +132,10 @@ function keptCount(term: DiceTerm): number {
 }
 
 /** Roll a dice term. */
-function rollDiceTerm(term: DiceTerm): DiceRoll {
+function rollDiceTerm(term: DiceTerm, rng: DieRng): DiceRoll {
   const results: number[] = [];
   for (let i = 0; i < term.count; i++) {
-    results.push(rollDie(term.sides));
+    results.push(rng(term.sides));
   }
 
   // Keep highest or lowest N, or drop the lowest N
@@ -282,9 +285,10 @@ const ranges: Arithmetic<Range> = {
 /**
  * Parse dice expression and calculate result
  * @param expression Dice expression like "2d6+3", "4d6kh3", "2d20kh1+5"
+ * @param rng Where each die comes from; Math.random's by default
  * @returns RollResult with detailed breakdown
  */
-export function rollDice(expression: string): RollResult {
+export function rollDice(expression: string, rng: DieRng = rollDie): RollResult {
   // Validation
   if (!expression || expression.trim().length === 0) {
     throw new DiceParserError('Empty expression');
@@ -357,7 +361,7 @@ export function rollDice(expression: string): RollResult {
         values.set(index, read);
         formulaParts.push(read.toString());
       } else {
-        const diceRoll = rollDiceTerm(read);
+        const diceRoll = rollDiceTerm(read, rng);
         rolls.push(diceRoll);
         values.set(index, diceRoll.total!);
         formulaParts.push(diceRoll.total!.toString());
