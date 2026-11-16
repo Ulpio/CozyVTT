@@ -143,7 +143,7 @@ beforeAll(async () => {
       entry('weapon', 'machado-grande', 'Machado grande', { range: 'melee', properties: ['pesada', 'duas mãos'], damage: { dice: '1d12', type: 'cortante' } }),
       entry('weapon', 'arco-curto', 'Arco curto', { range: 'ranged', properties: ['munição'], normalRange: 24, longRange: 96, damage: { dice: '1d6', type: 'perfurante' } }),
       entry('spell', 'curar-ferimentos', 'Curar Ferimentos', { level: 1, range: 'Toque', concentration: false, mechanics: { healing: '1d8', healingAddsModifier: true, scaling: { perSlot: '1d8' } } }),
-      entry('spell', 'bencao', 'Bênção', { level: 1, range: '9 metros', concentration: true, mechanics: {} }),
+      { ...entry('spell', 'bencao', 'Bênção', { level: 1, range: '9 metros', concentration: true, mechanics: {} }), text: 'Texto inventado para o teste.' },
       entry('spell', 'escudo-da-fe', 'Escudo da Fé', { level: 1, range: 'Pessoal', concentration: false, mechanics: {} }),
     ],
   });
@@ -395,6 +395,20 @@ describe('spells', () => {
     expect(out.card.undo.concentration).toEqual({ characterId: clericId, before: { name: 'Outra magia' }, after: { name: 'Bênção', compendiumRef: { bookId: BOOK, slug: 'bencao' } } });
   });
 
+  it('casts a spell with no book entry: spends the slot, takes up concentration, names no one', async () => {
+    await patchChar(clericId, (d) => { d.spellcasting.spells.push({ level: 1, name: 'Magia caseira', prepared: true, ritual: false, concentration: true }); });
+    const out = ok(await resolveAction(campaignId, p2, { mapId, actorTokenId: 'cleric', actionId: 'spell:sheet:2', mode: 'normal' }));
+    expect(out.card).toMatchObject({ actionName: 'Magia caseira', slotLevel: 1, targets: [] });
+    const after = await charData(clericId);
+    expect(after.spellcasting.slots['1'].expended).toBe(1);
+    expect(after.concentratingOn).toEqual({ name: 'Magia caseira' });
+  });
+
+  it('posts the book text of a spell with nothing to roll', async () => {
+    const out = ok(await resolveAction(campaignId, p2, { mapId, actorTokenId: 'cleric', actionId: bless(), mode: 'normal' }));
+    expect(out.card.extraText).toBe('Texto inventado para o teste.');
+  });
+
   it('gives a concentrating character who takes damage a concentration DC, and the roll can break it', async () => {
     await patchChar(fighterId, (d) => { d.concentratingOn = { name: 'Algo' }; });
     const out = ok(await resolveAction(campaignId, gm, { mapId, actorTokenId: 'goblin', actionId: 'npc:actions:0', targetTokenId: 'fighter', mode: 'normal' }, seq(15, 1)));
@@ -449,6 +463,21 @@ describe('undo', () => {
     expect((await charData(clericId)).spellcasting.slots['1'].expended).toBe(0);
   });
 
+  it('gives concentration back, unless a newer one has replaced it since', async () => {
+    const bless = { mapId, actorTokenId: 'cleric', actionId: `spell:${BOOK}/bencao`, mode: 'normal' as const, replaceConcentration: true };
+    await patchChar(clericId, (d) => { d.concentratingOn = { name: 'Outra magia' }; });
+    const first = ok(await resolveAction(campaignId, p2, bless));
+    expect(await undoAction(campaignId, gm, first.messageId)).toMatchObject({ ok: true, partial: false });
+    expect((await charData(clericId)).concentratingOn).toEqual({ name: 'Outra magia' });
+
+    const second = ok(await resolveAction(campaignId, p2, bless));
+    await patchChar(clericId, (d) => { d.concentratingOn = { name: 'Magia mais nova' }; });
+    expect(await undoAction(campaignId, gm, second.messageId)).toMatchObject({ ok: true });
+    const after = await charData(clericId);
+    expect(after.concentratingOn).toEqual({ name: 'Magia mais nova' });
+    expect(after.spellcasting.slots['1'].expended).toBe(0);
+  });
+
   it('is partial after a manual change to the goblin', async () => {
     const out = ok(await resolveAction(campaignId, p1, req({}), seq(15, 1)));
     await setTokenHp('goblin', { current: 1, max: 7, temp: 0 });
@@ -461,6 +490,19 @@ describe('undo', () => {
     expect((await charData(fighterId)).hp.current).toBe(25);
     expect(await undoAction(campaignId, gm, out.messageId)).toMatchObject({ ok: true, partial: false });
     expect((await charData(fighterId)).hp.current).toBe(28);
+  });
+});
+
+describe('other game systems', () => {
+  it('lists and resolves nothing outside a 5e campaign', async () => {
+    await prisma.campaign.update({ where: { id: campaignId }, data: { gameSystem: 'FANTASY_D20' } });
+    try {
+      expect(await listActions(campaignId, p1, mapId, 'fighter')).toEqual({ error: 'This action cannot be resolved' });
+      expect(await resolveAction(campaignId, p1, req({}), seq(15, 1))).toEqual({ ok: false, error: 'This action cannot be resolved' });
+      expect(await tokenHp('goblin')).toEqual({ current: 7, max: 7, temp: 0 });
+    } finally {
+      await prisma.campaign.update({ where: { id: campaignId }, data: { gameSystem: 'FIFTH_EDITION' } });
+    }
   });
 });
 

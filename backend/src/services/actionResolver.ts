@@ -136,6 +136,9 @@ async function mayActThrough(
 /** The acting token, its character and what it can do, or why the requester may not act through it. */
 async function loadActor(campaignId: string, requester: Viewer, mapId: string, actorTokenId: string): Promise<Actor | Refusal> {
   if (requester.role === 'SPECTATOR') return refuse(NOT_YOUR_TOKEN);
+  // The bar reads 5e sheets and stat blocks only.
+  const campaign = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { gameSystem: true } });
+  if (campaign?.gameSystem !== 'FIFTH_EDITION') return refuse(CANNOT_RESOLVE);
   const map = await prisma.map.findUnique({
     where: { id: mapId },
     select: { id: true, campaignId: true, tokens: true, feetPerSquare: true, diagonalRule: true },
@@ -504,7 +507,7 @@ export async function resolveAction(
     if (player) card.actor.userId = player;
     if (longRange && option.resolution === 'attack') card.disadvantageReason = 'long-range';
     if (slotLevel !== undefined) card.slotLevel = slotLevel;
-    const extra = option.resolution === 'post' ? spec.description : spec.extraText;
+    const extra = option.resolution === 'post' || option.resolution === 'cast' ? spec.description : spec.extraText;
     if (extra) card.extraText = extra;
 
     if (tokensChanged) await tx.map.update({ where: { id: mapId }, data: { tokens: toJson(tokens) } });
@@ -551,6 +554,18 @@ async function boundCharacterTx(tx: Prisma.TransactionClient, campaignId: string
 function cardOf(metadata: Prisma.JsonValue | null): ActionCard | null {
   const card = metadata as unknown as ActionCard | null;
   return card && typeof card === 'object' && card.kind === 'action' && card.undo ? card : null;
+}
+
+/** Whether two JSON values are equal, whatever their keys' order or where they were read from. */
+function sameJson(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => sameJson(v, b[i]));
+  }
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+  const ka = Object.keys(a);
+  const kb = Object.keys(b);
+  return ka.length === kb.length && ka.every((k) => Object.prototype.hasOwnProperty.call(b, k) && sameJson((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
 }
 
 async function inMapLock<T>(mapId: string | undefined, fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
@@ -628,7 +643,8 @@ export async function undoAction(
     }
     if (undo.concentration) {
       const sheet = held.get(undo.concentration.characterId);
-      if (sheet) {
+      // Only the concentration this action took up is taken back; a newer one stays.
+      if (sheet && sameJson(sheet.data.concentratingOn ?? null, undo.concentration.after ?? null)) {
         sheet.data.concentratingOn = (undo.concentration.before ?? null) as Sheet['concentratingOn'];
         sheet.changed = true;
       }
