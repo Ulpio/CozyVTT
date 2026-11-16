@@ -9,7 +9,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { h, token } from './barHarness';
 
 vi.mock('@/contexts/CampaignContext', () => ({
-  useCampaign: () => ({ userRole: h.role, campaign: { id: 'camp-1', characters: h.characters }, currentMap: { id: 'map-1' } }),
+  useCampaign: () => ({ userRole: h.role, campaign: { id: 'camp-1', gameSystem: h.gameSystem, characters: h.characters }, currentMap: { id: 'map-1' } }),
 }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: h.userId } }) }));
 
@@ -17,6 +17,7 @@ import { useBarActor, useBarActorChoice } from '../useBarActor';
 
 beforeEach(() => {
   h.role = 'PLAYER';
+  h.gameSystem = 'FIFTH_EDITION';
   h.userId = 'u1';
   h.characters = [{ id: 'c1', userId: 'u1', name: 'A' }, { id: 'c2', userId: 'u1', name: 'B' }, { id: 'c3', userId: 'u2', name: 'C' }];
   window.localStorage.clear();
@@ -53,6 +54,14 @@ describe('useBarActor', () => {
     h.userId = 'u9';
     const { result } = renderHook(() => useBarActor());
     expect(result.current).toBeNull();
+  });
+
+  it('is null outside a 5e campaign, for the GM too', () => {
+    h.gameSystem = 'FANTASY_D20';
+    expect(renderHook(() => useBarActorChoice()).result.current).toMatchObject({ actor: null, candidates: [] });
+    h.role = 'GM';
+    act(() => { useGameStore.getState().selectToken('npc'); });
+    expect(renderHook(() => useBarActor()).result.current).toBeNull();
   });
 
   it('is null for a spectator', () => {

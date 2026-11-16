@@ -4,7 +4,8 @@
 // A player's own character, by its token on the map being played: with
 // several, the one picked by portrait, remembered per campaign. The GM's is
 // the selected token, a character's or an NPC's, and none while nothing is
-// selected. A spectator, or a viewer outside a campaign, has no bar.
+// selected. A spectator, a viewer outside a campaign, or any viewer of a
+// campaign that is not 5e (the server resolves 5e sheets only) has no bar.
 //
 // `useActorSheet` reads the sheet of a character actor (its AC, its spell
 // slots, its checks), kept current from the table's live updates. Only the
@@ -33,6 +34,7 @@ export function useBarActorChoice(): { actor: BarActor | null; candidates: Token
   const tokensMapId = useGameStore((s) => s.tokensMapId);
   const selectedTokenId = useGameStore((s) => s.selectedTokenId);
   const campaignId = campaign?.id;
+  const fifthEdition = campaign?.gameSystem === 'FIFTH_EDITION';
   const [chosen, setChosen] = useState<string | null>(() => (campaignId ? optionalStorage.getItem(storageKey(campaignId)) : null));
 
   // A campaign of another id brings its own remembered pick.
@@ -46,12 +48,13 @@ export function useBarActorChoice(): { actor: BarActor | null; candidates: Token
   }, [campaignId]);
 
   const candidates = useMemo(() => {
-    if (userRole !== 'PLAYER' || !user || !currentMap || tokensMapId !== currentMap.id) return [];
+    if (!fifthEdition || userRole !== 'PLAYER' || !user || !currentMap || tokensMapId !== currentMap.id) return [];
     const mine = new Set((campaign?.characters ?? []).filter((c) => c.userId === user.id).map((c) => c.id));
     return tokenOrder.map((id) => tokens[id]).filter((t): t is Token => !!t && t.characterId !== null && mine.has(t.characterId));
-  }, [userRole, user, currentMap, tokensMapId, campaign?.characters, tokenOrder, tokens]);
+  }, [fifthEdition, userRole, user, currentMap, tokensMapId, campaign?.characters, tokenOrder, tokens]);
 
   const actor = useMemo<BarActor | null>(() => {
+    if (!fifthEdition) return null;
     if (userRole === 'GM') {
       const selected = selectedTokenId ? tokens[selectedTokenId] : undefined;
       if (!selected || !currentMap || tokensMapId !== currentMap.id) return null;
@@ -59,7 +62,7 @@ export function useBarActorChoice(): { actor: BarActor | null; candidates: Token
     }
     const picked = candidates.find((t) => t.id === chosen) ?? candidates[0];
     return picked ? { token: picked, kind: 'character' } : null;
-  }, [userRole, selectedTokenId, tokens, currentMap, tokensMapId, candidates, chosen]);
+  }, [fifthEdition, userRole, selectedTokenId, tokens, currentMap, tokensMapId, candidates, chosen]);
 
   return { actor, candidates, choose };
 }

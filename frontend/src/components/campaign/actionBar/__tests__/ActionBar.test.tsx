@@ -11,7 +11,7 @@ import { h, token, longsword, fireBolt, magicMissile, scimitar, shortbow } from 
 vi.mock('@/contexts/CampaignContext', () => ({
   useCampaign: () => ({
     userRole: h.role,
-    campaign: { id: 'camp-1', gameSystem: 'FIFTH_EDITION', characters: h.characters },
+    campaign: { id: 'camp-1', gameSystem: h.gameSystem, characters: h.characters },
     currentMap: { id: 'map-1' },
   }),
 }));
@@ -47,6 +47,7 @@ const wizardSheet = {
 
 function seed() {
   h.role = 'PLAYER';
+  h.gameSystem = 'FIFTH_EDITION';
   h.userId = 'u1';
   h.characters = [{ id: 'c-fighter', userId: 'u1', name: 'Brienne' }, { id: 'c-wizard', userId: 'u2', name: 'Merlo' }];
   h.options = { 'tok-fighter': [longsword], 'tok-wizard': [fireBolt, magicMissile], goblin: [scimitar, shortbow] };
@@ -115,6 +116,12 @@ describe('the action bar for a player', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('has no bar outside a 5e campaign', () => {
+    h.gameSystem = 'FANTASY_D20';
+    const { container } = render(<ActionBar />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('has no bar for a spectator', () => {
     h.role = 'SPECTATOR';
     const { container } = render(<ActionBar />);
@@ -141,6 +148,14 @@ describe('the spell menu', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Magic Missile' }));
     expect(screen.getByRole('button', { name: /Circle 2/ })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Circle 3/ })).toBeEnabled();
+  });
+
+  it('disables leveled spells while the slots are unknown, keeping cantrips', async () => {
+    h.sheets = { ...h.sheets, 'c-wizard': { ...wizardSheet, data: { ...wizardSheet.data, spellcasting: {} } } };
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Spells' }));
+    expect(await screen.findByRole('button', { name: 'Magic Missile' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Fire Bolt' })).toBeEnabled();
   });
 
   it('casts at once, with no target, in the circle chosen', async () => {

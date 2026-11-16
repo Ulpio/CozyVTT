@@ -13,7 +13,7 @@ import { h, token, longsword } from '@/components/campaign/actionBar/__tests__/b
 
 vi.mock('react-router', () => ({ useNavigate: () => () => undefined }));
 vi.mock('@/contexts/CampaignContext', () => ({
-  useCampaign: () => ({ userRole: h.role, campaign: { id: 'camp-1', gameSystem: 'FIFTH_EDITION', characters: h.characters }, currentMap: { id: 'map-1' } }),
+  useCampaign: () => ({ userRole: h.role, campaign: { id: 'camp-1', gameSystem: h.gameSystem, characters: h.characters }, currentMap: { id: 'map-1' } }),
 }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: h.userId } }) }));
 vi.mock('@/contexts/WebSocketContext', () => ({ useWebSocket: () => ({ status: 'connected', error: null, reconnect: () => undefined }) }));
@@ -39,6 +39,7 @@ function table() {
 beforeEach(() => {
   cleanup();
   h.role = 'PLAYER';
+  h.gameSystem = 'FIFTH_EDITION';
   h.userId = 'u1';
   h.characters = [{ id: 'c1', userId: 'u1', name: 'B' }];
   act(() => {
@@ -53,6 +54,12 @@ describe('the Actions button', () => {
     const bar = screen.getByRole('navigation', { name: 'Table' });
     fireEvent.click(within(bar).getByRole('button', { name: /^Actions/ }));
     expect(await screen.findByRole('button', { name: 'Longsword' })).toBeInTheDocument();
+  });
+
+  it('is not there outside a 5e campaign', () => {
+    h.gameSystem = 'HORROR_D100';
+    table();
+    expect(within(screen.getByRole('navigation', { name: 'Table' })).queryByRole('button', { name: /^Actions/ })).toBeNull();
   });
 
   it('is not there for a player with no token on the map', () => {

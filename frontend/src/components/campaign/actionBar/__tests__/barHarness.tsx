@@ -8,6 +8,7 @@ import type { ActionOption } from '@/types/actions';
 
 export const h = {
   role: 'PLAYER' as string | null,
+  gameSystem: 'FIFTH_EDITION' as string,
   userId: 'u1',
   characters: [] as Array<{ id: string; userId: string; name: string }>,
   sheets: {} as Record<string, unknown>,

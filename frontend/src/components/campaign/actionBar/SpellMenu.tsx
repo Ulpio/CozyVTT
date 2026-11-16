@@ -2,8 +2,8 @@
 // The spell menu: cantrips first, then each circle with its free/total slots.
 // A leveled spell asks the circle to cast it at: only circles from its own
 // level up that have a free slot can be chosen. The slots are the caster's
-// own sheet's; without them (a sheet not read) the spell's own circle is the
-// only one offered.
+// own sheet's; without them (a sheet not read yet, or one with no slots) a
+// leveled spell cannot be cast from here, as the server would refuse it.
 // ============================================
 
 import { useState } from 'react';
@@ -30,7 +30,7 @@ const slotsOf = (slots: SlotsByCircle, level: number) => {
 
 /** The circles a spell of `level` may be cast at, from its own up: those the caster has slots in. */
 function castCircles(slots: SlotsByCircle, level: number): number[] {
-  if (!slots) return [level];
+  if (!slots) return [];
   return CIRCLES.filter((circle) => circle >= level && slotsOf(slots, circle).total > 0);
 }
 
@@ -43,7 +43,7 @@ export default function SpellMenu({ spells, slots, onCast }: SpellMenuProps) {
 
   const spellButton = (spell: ActionOption) => {
     const level = spell.spellLevel ?? 0;
-    const free = level === 0 || !slots || castCircles(slots, level).some((circle) => slotsOf(slots, circle).free > 0);
+    const free = level === 0 || castCircles(slots, level).some((circle) => slotsOf(slots, circle).free > 0);
     return (
       <ActionButton
         key={spell.id}
@@ -84,7 +84,7 @@ export default function SpellMenu({ spells, slots, onCast }: SpellMenuProps) {
           {castCircles(slots, asking.spellLevel ?? 1).map((circle) => {
             const { total, free } = slotsOf(slots, circle);
             return (
-              <ActionButton key={circle} menu disabled={!!slots && free === 0} onClick={() => { onCast(asking, circle); setAsking(null); }}>
+              <ActionButton key={circle} menu disabled={free === 0} onClick={() => { onCast(asking, circle); setAsking(null); }}>
                 {total > 0 ? t('actionBar.circleOption', { level: circle, free, total }) : t('actionBar.circle', { level: circle })}
               </ActionButton>
             );
