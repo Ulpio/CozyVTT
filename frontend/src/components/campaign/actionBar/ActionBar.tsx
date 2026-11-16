@@ -19,7 +19,6 @@ import { useGameStore, useCharacterHp } from '@/stores/gameStore';
 import { useActionStore } from '@/stores/actionStore';
 import { useTableRoll } from '@/hooks/useTableRoll';
 import socketClient from '@/services/socket';
-import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { extractCharacterHp } from '@/utils/characterHp';
 import { getCharacterRolls, type CharacterRolls, type RollOption } from '@/utils/characterRolls';
@@ -48,7 +47,6 @@ export default function ActionBar() {
   const characterHp = useCharacterHp();
   const mode = useActionStore((s) => s.mode);
   const pending = useActionStore((s) => s.pending);
-  const concentrationConfirm = useActionStore((s) => s.concentrationConfirm);
   const tableRoll = useTableRoll(socketClient);
   const [menu, setMenu] = useState<Menu | null>(null);
   const [gripFor, setGripFor] = useState<ActionOption | null>(null);
@@ -95,7 +93,6 @@ export default function ActionBar() {
 
   const items = (sheetData?.inventory ?? []).map((item) => ({ item, action: attacks.find((o) => o.group === 'attack' && sameName(o.name, item.name)) }));
 
-  const concentrationNext = options.find((o) => o.id === concentrationConfirm?.actionId)?.name ?? '';
 
   return (
     <section aria-label={t('actionBar.label')} className="shrink-0 space-y-2 border-t border-moss-green/20 bg-parchment/40 px-3 py-2">
@@ -132,6 +129,7 @@ export default function ActionBar() {
         <ActorSummary token={token} hp={hp ? { current: hp.current, max: hp.max } : null} ac={ac} candidates={candidates} onChoose={choose} />
 
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+          {options.length === 0 && <p className="text-sm text-ink-muted">{t('actionBar.noActions')}</p>}
           {attacks.map((option) => (
             <ActionButton key={option.id} detail={option.summary} pressed={pending?.option.id === option.id} onClick={() => pick(option)}>{option.name}</ActionButton>
           ))}
@@ -155,23 +153,6 @@ export default function ActionBar() {
           ))}
         </div>
       </div>
-
-      <Modal
-        open={concentrationConfirm !== null}
-        onClose={() => useActionStore.getState().cancel()}
-        title={t('actionBar.concentration.title')}
-        size="sm"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => useActionStore.getState().cancel()}>{t('actionBar.concentration.keep')}</Button>
-            <Button onClick={() => void useActionStore.getState().confirmConcentration()}>{t('actionBar.concentration.replace')}</Button>
-          </>
-        }
-      >
-        <p className="text-sm text-ink">
-          {t('actionBar.concentration.body', { current: sheetData?.concentratingOn?.name ?? t('actionBar.concentration.anotherSpell'), next: concentrationNext })}
-        </p>
-      </Modal>
     </section>
   );
 }

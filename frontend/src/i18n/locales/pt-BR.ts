@@ -593,6 +593,7 @@ const ptBR: Messages = {
     noSpells: 'Sem magias.',
     noItems: 'Sem itens.',
     noChecks: 'Sem testes.',
+    checkSave: 'Resistência de {{name}}',
     checkGroups: { abilities: 'Atributos', skills: 'Perícias', savingThrows: 'Salvaguardas' },
     itemWithoutAction: 'Sem ação',
     concentration: {

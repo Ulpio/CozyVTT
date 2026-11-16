@@ -50,6 +50,8 @@ import { useGameStore } from '@/stores/gameStore';
 import { useActionStore } from '@/stores/actionStore';
 import { useTranslation } from 'react-i18next';
 import ActionBar from '@/components/campaign/actionBar/ActionBar';
+import ConcentrationDialog from '@/components/campaign/actionBar/ConcentrationDialog';
+import TargetingHint from '@/components/campaign/actionBar/TargetingHint';
 import { useBarActor } from '@/components/campaign/actionBar/useBarActor';
 import { CampaignStatus } from '@/types';
 import type { Campaign } from '@/types';
@@ -195,7 +197,11 @@ export default function CompactTable({ campaign, isOwner, onOpenTool, onOpenDocu
       {/* The map is the page's, moved in here (tableHosts.tsx). */}
       <main ref={mapSlot.ref} className="finger-controls relative min-h-0 flex-1 overflow-hidden" />
 
+      <TargetingHint />
+
       {!sideways && bar}
+
+      <ConcentrationDialog />
 
       <BottomSheet
         id={sessionSheetId}

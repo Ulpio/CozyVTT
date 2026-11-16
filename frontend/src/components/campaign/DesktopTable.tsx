@@ -29,6 +29,7 @@ import {
 import { useCampaign } from '@/contexts/CampaignContext';
 import SessionSidebar from '@/components/campaign/SessionSidebar';
 import ActionBar from '@/components/campaign/actionBar/ActionBar';
+import ConcentrationDialog from '@/components/campaign/actionBar/ConcentrationDialog';
 import GmToolMenus from '@/components/campaign/GmToolMenus';
 import type { SessionToolKey } from '@/components/campaign/SessionToolbar';
 import { useTableSlot } from '@/components/campaign/tableHosts';
@@ -315,6 +316,7 @@ export default function DesktopTable({
 
       {/* The action bar: the player's own character, or the GM's selected token. */}
       <ActionBar />
+      <ConcentrationDialog />
     </>
   );
 }

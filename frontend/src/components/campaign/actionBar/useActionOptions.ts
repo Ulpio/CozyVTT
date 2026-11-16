@@ -17,7 +17,9 @@ export function useActionOptions(mapId: string | null | undefined, actorTokenId:
   useEffect(() => {
     if (!mapId || !actorTokenId) return;
     let live = true;
-    void actionsService.list(mapId, actorTokenId).then((options) => { if (live) setAnswer({ key, options }); });
+    actionsService.list(mapId, actorTokenId)
+      .then((options) => { if (live) setAnswer({ key, options }); })
+      .catch(() => { if (live) setAnswer({ key, options: [] }); });
     return () => { live = false; };
   }, [mapId, actorTokenId, key, refreshKey]);
 

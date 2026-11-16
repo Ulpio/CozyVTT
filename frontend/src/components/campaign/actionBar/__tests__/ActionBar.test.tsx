@@ -173,14 +173,30 @@ describe('the action bar for the GM', () => {
   });
 });
 
-describe('the concentration question', () => {
-  it('asks, and Replace confirms', async () => {
-    useActionStore.setState({ concentrationConfirm: { mapId: 'map-1', actorTokenId: 'tok-fighter', actionId: 'attack:0', mode: 'normal' } });
-    const confirm = vi.fn(async () => ({ ok: true }));
-    useActionStore.setState({ confirmConcentration: confirm });
+describe('the rest of the bar', () => {
+  it('says so when the actor has nothing to do', async () => {
+    h.options = {};
     render(<ActionBar />);
-    await screen.findByRole('dialog');
-    fireEvent.click(screen.getByRole('button', { name: 'Replace' }));
-    expect(confirm).toHaveBeenCalled();
+    expect(await screen.findByText('Nothing to do with this token.')).toBeInTheDocument();
+  });
+
+  it('survives a refused list', async () => {
+    h.list.mockRejectedValue(new Error('403'));
+    render(<ActionBar />);
+    expect(await screen.findByText('Nothing to do with this token.')).toBeInTheDocument();
+  });
+
+  it('names the checks in the app language, rolling the same expression', async () => {
+    const i18n = (await import('@/i18n')).default;
+    await act(async () => { await i18n.changeLanguage('pt-BR'); });
+    try {
+      render(<ActionBar />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Testes' }));
+      fireEvent.click(await screen.findByRole('button', { name: /^Atletismo/ }));
+      await waitFor(() => expect(h.roll).toHaveBeenCalled());
+      expect((h.roll.mock.calls[0][0] as { purpose: string }).purpose).toBe('Athletics Check');
+    } finally {
+      await act(async () => { await i18n.changeLanguage('en'); });
+    }
   });
 });

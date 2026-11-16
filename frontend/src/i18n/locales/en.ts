@@ -591,6 +591,7 @@ const en = {
     noSpells: 'No spells.',
     noItems: 'No items.',
     noChecks: 'No checks.',
+    checkSave: '{{name}} Save',
     checkGroups: { abilities: 'Abilities', skills: 'Skills', savingThrows: 'Saving throws' },
     itemWithoutAction: 'No action',
     concentration: {

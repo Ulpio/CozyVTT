@@ -61,3 +61,22 @@ describe('the Actions button', () => {
     expect(within(screen.getByRole('navigation', { name: 'Table' })).queryByRole('button', { name: /^Actions/ })).toBeNull();
   });
 });
+
+describe('the action bar away from its sheet', () => {
+  it('shows the concentration question with the sheet closed', async () => {
+    const { useActionStore } = await import('@/stores/actionStore');
+    table();
+    act(() => { useActionStore.setState({ concentrationConfirm: { mapId: 'map-1', actorTokenId: 't1', actionId: 'attack:0', mode: 'normal' } }); });
+    expect(await screen.findByRole('heading', { name: 'Concentration' })).toBeInTheDocument();
+    act(() => { useActionStore.setState({ concentrationConfirm: null }); });
+  });
+
+  it('shows the target hint with Cancel while an action waits and the sheet is closed', async () => {
+    const { useActionStore } = await import('@/stores/actionStore');
+    table();
+    act(() => { useActionStore.setState({ pending: { actorTokenId: 't1', option: longsword } }); });
+    expect(screen.getByText('Choose a target for Longsword')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(useActionStore.getState().pending).toBeNull();
+  });
+});
