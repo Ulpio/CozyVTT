@@ -19,7 +19,7 @@ import path from 'path';
  * decides who it catches (hidden tokens included), the map previews the same
  * squares.
  */
-describe.each(['raycasting.ts', 'spatialIndex.ts', 'visibilityRule.ts', 'tokenMask.ts', 'vibeAudio.ts', 'doorFog.ts', 'drawingRules.ts', 'dice-parser.ts', 'aoeGeometry.ts', 'areaGeometry.ts', '__fixtures__/vision-scenarios.json'])('%s', (file) => {
+describe.each(['raycasting.ts', 'spatialIndex.ts', 'visibilityRule.ts', 'tokenMask.ts', 'vibeAudio.ts', 'doorFog.ts', 'drawingRules.ts', 'dice-parser.ts', 'aoeGeometry.ts', 'areaGeometry.ts', '__fixtures__/vision-scenarios.json', '__fixtures__/area-scenarios.json'])('%s', (file) => {
   it('is byte-for-byte identical in backend/src/utils and frontend/src/utils', () => {
     const backendCopy = readFileSync(path.resolve(__dirname, '..', file), 'utf8');
     const frontendCopy = readFileSync(path.resolve(__dirname, '../../../../frontend/src/utils', file), 'utf8');

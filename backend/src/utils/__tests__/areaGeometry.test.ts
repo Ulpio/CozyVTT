@@ -1,9 +1,17 @@
+import { readFileSync } from 'fs';
+import path from 'path';
 import { cubeRect } from '../aoeGeometry';
 import {
   placeAreaAtPoint,
   placeAreaFromCaster,
   rectInArea,
   squareInArea,
+  placeActionArea,
+  tokensCaught,
+  type ActionArea,
+  type AreaMap,
+  type AreaPlacement,
+  type AreaToken,
   type GridRules,
 } from '../areaGeometry';
 
@@ -72,5 +80,30 @@ describe('areaGeometry', () => {
     const area = placeAreaAtPoint({ shape: 'cone', sizeFt: 20 }, { x: 25, y: 125 }, { x: 900, y: 125 }, q);
     expect(squareInArea(area, 2, 2, GS)).toBe(true);
     expect(squareInArea(area, 0, 2, GS)).toBe(false);
+  });
+});
+
+// The same scenarios run in frontend/src/utils/__tests__/actionTargeting.test.ts,
+// so the map's preview and the server catch the same tokens.
+
+interface AreaScenario {
+  name: string;
+  actorId: string;
+  targeting: ActionArea;
+  placement: AreaPlacement;
+  inRange: boolean;
+  tokens: AreaToken[];
+  caught: string[];
+}
+
+const areaScenarios = JSON.parse(readFileSync(path.resolve(__dirname, '../__fixtures__/area-scenarios.json'), 'utf8')) as { map: AreaMap; scenarios: AreaScenario[] };
+
+describe('action areas (shared scenarios)', () => {
+  const map = areaScenarios.map;
+  it.each(areaScenarios.scenarios.map((s) => [s.name, s] as const))('%s', (_name, s) => {
+    const actor = s.tokens.find((t) => t.id === s.actorId)!;
+    const { placed, inRange } = placeActionArea(actor, s.targeting, s.placement, map);
+    expect(inRange).toBe(s.inRange);
+    if (inRange) expect(tokensCaught(s.tokens, actor, s.targeting, placed, map).map((t) => t.id)).toEqual(s.caught);
   });
 });

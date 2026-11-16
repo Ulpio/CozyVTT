@@ -1,0 +1,64 @@
+{
+  "map": { "gridSize": 50, "height": 20, "feetPerSquare": 5, "diagonalRule": "standard" },
+  "scenarios": [
+    {
+      "name": "a 20 ft sphere at a point catches every creature with a square in it, hidden or large, and skips objects, tokens with no sheet and the other plane",
+      "actorId": "caster",
+      "targeting": { "area": { "shape": "sphere", "sizeFt": 20 }, "origin": "point", "rangeFeet": 150 },
+      "placement": { "anchor": { "x": 520, "y": 530 } },
+      "inRange": true,
+      "tokens": [
+        { "id": "caster", "position": { "x": 0, "y": 0 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "player", "characterId": "c1" },
+        { "id": "near", "position": { "x": 12, "y": 9 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "npc", "statBlock": { "name": "Goblin" } },
+        { "id": "edge", "position": { "x": 14, "y": 9 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "player", "characterId": "c2" },
+        { "id": "outside", "position": { "x": 15, "y": 9 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "npc", "statBlock": { "name": "Orc" } },
+        { "id": "crate", "position": { "x": 10, "y": 9 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "object", "characterId": "c3" },
+        { "id": "scenery", "position": { "x": 11, "y": 9 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "npc" },
+        { "id": "ghost", "position": { "x": 10, "y": 10 }, "size": { "width": 1, "height": 1 }, "layer": "spirit", "type": "npc", "statBlock": { "name": "Ghost" } },
+        { "id": "large", "position": { "x": 13, "y": 6 }, "size": { "width": 2, "height": 2 }, "layer": "token", "type": "npc", "statBlock": { "name": "Ogre" } },
+        { "id": "hidden", "position": { "x": 9, "y": 9 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "npc", "visible": false, "statBlock": { "name": "Assassin" } }
+      ],
+      "caught": ["near", "edge", "large", "hidden"]
+    },
+    {
+      "name": "a point beyond the range is out of range",
+      "actorId": "caster",
+      "targeting": { "area": { "shape": "sphere", "sizeFt": 20 }, "origin": "point", "rangeFeet": 30 },
+      "placement": { "anchor": { "x": 520, "y": 530 } },
+      "inRange": false,
+      "tokens": [
+        { "id": "caster", "position": { "x": 0, "y": 0 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "player", "characterId": "c1" }
+      ],
+      "caught": []
+    },
+    {
+      "name": "a 15 ft cone from the caster turns towards the aim and never catches the caster",
+      "actorId": "caster",
+      "targeting": { "area": { "shape": "cone", "sizeFt": 15 }, "origin": "self" },
+      "placement": { "anchor": { "x": 525, "y": 725 }, "aim": { "x": 525, "y": 725 } },
+      "inRange": true,
+      "tokens": [
+        { "id": "caster", "position": { "x": 5, "y": 5 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "player", "characterId": "c1" },
+        { "id": "adjacent", "position": { "x": 6, "y": 5 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "npc", "statBlock": { "name": "Goblin" } },
+        { "id": "far-end", "position": { "x": 8, "y": 5 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "npc", "statBlock": { "name": "Goblin" } },
+        { "id": "beyond", "position": { "x": 9, "y": 5 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "npc", "statBlock": { "name": "Goblin" } },
+        { "id": "wide", "position": { "x": 8, "y": 6 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "npc", "statBlock": { "name": "Goblin" } },
+        { "id": "narrow", "position": { "x": 7, "y": 6 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "npc", "statBlock": { "name": "Goblin" } }
+      ],
+      "caught": ["adjacent", "far-end", "wide"]
+    },
+    {
+      "name": "a 10 ft sphere around the caster catches the caster and its neighbours",
+      "actorId": "caster",
+      "targeting": { "area": { "shape": "sphere", "sizeFt": 10 }, "origin": "self" },
+      "placement": { "anchor": { "x": 0, "y": 0 } },
+      "inRange": true,
+      "tokens": [
+        { "id": "caster", "position": { "x": 5, "y": 5 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "player", "characterId": "c1" },
+        { "id": "ally", "position": { "x": 7, "y": 5 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "player", "characterId": "c2" },
+        { "id": "away", "position": { "x": 8, "y": 5 }, "size": { "width": 1, "height": 1 }, "layer": "token", "type": "npc", "statBlock": { "name": "Goblin" } }
+      ],
+      "caught": ["caster", "ally"]
+    }
+  ]
+}

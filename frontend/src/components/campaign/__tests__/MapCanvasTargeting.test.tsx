@@ -9,7 +9,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { TokenLayer, TokenType, type CampaignMap, type Token } from '@/types';
-import { mouse } from '@/test/pointer';
+import { mouse, contact } from '@/test/pointer';
 
 const h = vi.hoisted(() => {
   const listeners = new Set<() => void>();
@@ -283,5 +283,76 @@ describe('targeting mode', () => {
     show(mine(), goblin());
     arm();
     expect(surface().className).toContain('cursor-crosshair');
+  });
+});
+
+describe('several targets and areas', () => {
+  const rays: ActionOption = {
+    id: 'spell:rays', name: 'Rays', group: 'spell', resolution: 'attack', spellLevel: 2,
+    reach: { kind: 'feet', normal: 120 }, targeting: { kind: 'multi', count: 2, distinct: false },
+  };
+  // A 20 ft sphere at a point within 30 ft.
+  const blast: ActionOption = {
+    id: 'spell:blast', name: 'Blast', group: 'spell', resolution: 'save', spellLevel: 3, saveAbility: 'dex',
+    reach: { kind: 'feet', normal: 30 }, targeting: { kind: 'area', area: { shape: 'sphere', sizeFt: 20 }, origin: 'point', rangeFeet: 30 },
+  };
+  let resolve: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    const { actionsService } = await import('@/services/actions.service');
+    resolve = vi.mocked(actionsService.resolve).mockReset().mockResolvedValue({ ok: true });
+    act(() => { useActionStore.setState({ pending: null, concentrationConfirm: null, lastError: null, mode: 'normal' }); });
+  });
+
+  const begin = (option: ActionOption, slotLevel: number) => act(() => { useActionStore.getState().begin({ actorTokenId: 'tok-mine', option, slotLevel }); });
+
+  it('clicks pick a ray each, the same token twice included; Backspace takes one back and Enter sends', async () => {
+    render(<MapCanvas />);
+    show(mine(), goblin());
+    begin(rays, 2);
+
+    click(at(0, 19));
+    click(at(0, 19));
+    click(at(0, 19)); // only two rays
+    expect(useActionStore.getState().pending?.picked).toEqual(['tok-goblin', 'tok-goblin']);
+    expect(resolve).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(document.body, { key: 'Backspace' });
+    expect(useActionStore.getState().pending?.picked).toEqual(['tok-goblin']);
+    click(at(0, 19));
+
+    await act(async () => { fireEvent.keyDown(document.body, { key: 'Enter' }); });
+    expect(resolve).toHaveBeenCalledWith(expect.objectContaining({ actionId: 'spell:rays', targetTokenIds: ['tok-goblin', 'tok-goblin'] }));
+  });
+
+  it('a click in range places an area and resolves it; one out of range sends nothing', async () => {
+    render(<MapCanvas />);
+    show(mine(2, 10), goblin());
+    begin(blast, 3);
+
+    click(at(15, 10)); // 60 ft away
+    expect(resolve).not.toHaveBeenCalled();
+    expect(useActionStore.getState().pending).not.toBeNull();
+
+    await act(async () => { click(at(4, 10)); });
+    expect(resolve).toHaveBeenCalledTimes(1);
+    const request = resolve.mock.calls[0][0];
+    // The quarter-square centre the click fell in, in map pixels from the top-left.
+    expect(request.area).toEqual({ anchor: { x: 206.25, y: 456.25 } });
+    expect(request.targetTokenIds).toBeUndefined();
+  });
+
+  it('a tap aims an area without sending it', () => {
+    render(<MapCanvas />);
+    show(mine(2, 10), goblin());
+    begin(blast, 3);
+
+    const finger = contact('touch', 1);
+    finger.down(surface(), at(4, 10));
+    finger.up(surface(), at(4, 10));
+    finger.leave(surface());
+
+    expect(resolve).not.toHaveBeenCalled();
+    expect(useActionStore.getState().pending?.area).toEqual({ anchor: { x: 206.25, y: 456.25 } });
   });
 });

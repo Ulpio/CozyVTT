@@ -1,15 +1,36 @@
 // What the action bar knows of one thing a token can do. Mirrors the server's
 // ActionOption (backend/src/rules/actions/catalogue.ts): no AC, no HP.
 
+import type { AreaSpec } from '@/utils/areaGeometry';
+import type { Pt } from '@/utils/aoeGeometry';
+
 export type ActionRollMode = 'normal' | 'advantage' | 'disadvantage';
 
 export type ActionReach = { kind: 'self' | 'touch' } | { kind: 'feet'; normal: number; long?: number };
+
+export type ActionAbility = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
+
+/**
+ * Whom the action is aimed at. Absent: one target (or none). `multi` with
+ * `distinct` is up to `count` different creatures; without it, one target per
+ * ray, exactly `count`, repeats allowed. `count` already counts the caster's
+ * level for a cantrip; `perSlot` adds one per slot above the spell's level.
+ */
+export type ActionTargeting =
+  | { kind: 'single' }
+  | { kind: 'multi'; count: number; perSlot?: number; distinct: boolean }
+  | { kind: 'area'; area: AreaSpec; origin: 'self' | 'point'; rangeFeet?: number };
 
 export interface ActionOption {
   id: string;
   name: string;
   group: 'attack' | 'spell' | 'npc';
-  resolution: 'attack' | 'heal' | 'cast' | 'post';
+  resolution: 'attack' | 'heal' | 'cast' | 'post' | 'save';
+  targeting?: ActionTargeting;
+  recharge?: { min: number; spent: boolean };
+  saveAbility?: ActionAbility;
+  /** Character spells only: public to the caster. */
+  saveDc?: number;
   spellLevel?: number;
   concentration?: boolean;
   grips?: ('one' | 'two')[];
@@ -18,12 +39,20 @@ export interface ActionOption {
   summary?: string;
 }
 
+/** Where an area is aimed, in map pixels (top-left origin). The server decides who is in it. */
+export interface ActionAreaPlacement {
+  anchor: Pt;
+  aim?: Pt;
+}
+
 /** What the client may send: never a bonus or dice. */
 export interface ActionRequest {
   mapId: string;
   actorTokenId: string;
   actionId: string;
   targetTokenId?: string;
+  targetTokenIds?: string[];
+  area?: ActionAreaPlacement;
   mode: ActionRollMode;
   slotLevel?: number;
   grip?: 'one' | 'two';

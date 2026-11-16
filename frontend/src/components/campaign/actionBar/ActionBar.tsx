@@ -19,7 +19,6 @@ import { useGameStore, useCharacterHp } from '@/stores/gameStore';
 import { useActionStore } from '@/stores/actionStore';
 import { useTableRoll } from '@/hooks/useTableRoll';
 import socketClient from '@/services/socket';
-import Button from '@/components/ui/Button';
 import { extractCharacterHp } from '@/utils/characterHp';
 import { getCharacterRolls, type CharacterRolls, type RollOption } from '@/utils/characterRolls';
 import { buildNpcRolls } from '@/utils/npcRolls';
@@ -30,6 +29,7 @@ import ActionButton from './ActionButton';
 import ActorSummary from './ActorSummary';
 import SpellMenu from './SpellMenu';
 import ChecksMenu from './ChecksMenu';
+import TargetingHint from './TargetingHint';
 import { useBarActorChoice, useActorSheet } from './useBarActor';
 import { useActionOptions } from './useActionOptions';
 
@@ -96,12 +96,7 @@ export default function ActionBar() {
 
   return (
     <section aria-label={t('actionBar.label')} className="shrink-0 space-y-2 border-t border-moss-green/20 bg-parchment/40 px-3 py-2">
-      {pending && (
-        <div className="flex items-center gap-3 text-sm text-brand-ink" role="status">
-          <span>{t('actionBar.chooseTarget', { name: pending.option.name })}</span>
-          <Button size="sm" variant="ghost" onClick={() => useActionStore.getState().cancel()}>{t('actionBar.cancel')}</Button>
-        </div>
-      )}
+      {pending && <TargetingHint variant="bar" />}
 
       {gripFor && (
         <div role="group" aria-label={t('actionBar.grip')} className="flex flex-wrap items-center gap-1.5">

@@ -187,3 +187,124 @@ export function rectInArea(area: PlacedArea, rect: PxRect, gridSize: number): bo
   }
   return false;
 }
+
+// ---------------------------------------------------------------------------
+// An action's area on a map of tokens: where it lands from its caster, whether
+// it is in range, and whom it catches. The server refuses and resolves by
+// these (services/actionResolver/areaTargets.ts) over every token; the map's
+// preview highlights by them over the tokens its viewer is sent.
+// ---------------------------------------------------------------------------
+
+/** A token as an area reads it. Token rows count from the bottom of the map. */
+export interface AreaToken {
+  id: string;
+  position: { x: number; y: number };
+  size?: { width: number; height: number } | null;
+  layer?: string | null;
+  type?: string | null;
+  characterId?: string | null;
+  statBlock?: unknown;
+}
+
+/** The map an action's area is measured on: `height` in squares. */
+export interface AreaMap {
+  gridSize: number;
+  height: number;
+  feetPerSquare: number;
+  diagonalRule: string;
+}
+
+/** How an action's area is aimed: an option's area targeting. */
+export interface ActionArea {
+  area: AreaSpec;
+  origin: 'self' | 'point';
+  rangeFeet?: number;
+}
+
+/** Where an area is aimed, in map pixels. */
+export interface AreaPlacement {
+  anchor: Pt;
+  aim?: Pt;
+}
+
+/** 5e's cone: as wide at its end as it is long. */
+export const ACTION_CONE_RULE: ConeRule = 'width-equals-distance';
+
+/** A token's box in map pixels, y counted from the top. */
+export function tokenPxRect(t: AreaToken, map: Pick<AreaMap, 'gridSize' | 'height'>): PxRect {
+  const width = t.size?.width ?? 1;
+  const height = t.size?.height ?? 1;
+  return { x: t.position.x * map.gridSize, y: (map.height - t.position.y - height) * map.gridSize, width: width * map.gridSize, height: height * map.gridSize };
+}
+
+/** Squares from one footprint's nearest edge to the other's; 0 where they overlap on that axis. */
+function axisSquares(aStart: number, aSize: number, bStart: number, bSize: number): number {
+  const gap = Math.max(bStart - (aStart + aSize), aStart - (bStart + bSize));
+  return gap >= 0 ? gap + 1 : 0;
+}
+
+/** Feet from a token to the square a map point falls in, measured as a reach is (rules/actions/distance.ts). */
+function feetToPoint(actor: AreaToken, p: Pt, map: AreaMap): number {
+  const col = Math.floor(p.x / map.gridSize);
+  const row = map.height - 1 - Math.floor(p.y / map.gridSize);
+  const dx = axisSquares(actor.position.x, actor.size?.width ?? 1, col, 1);
+  const dy = axisSquares(actor.position.y, actor.size?.height ?? 1, row, 1);
+  const longer = Math.max(dx, dy);
+  const shorter = Math.min(dx, dy);
+  const squares = map.diagonalRule === 'alternating' ? longer + Math.floor(shorter / 2) : longer;
+  return squares * map.feetPerSquare;
+}
+
+/**
+ * Where an action's area lands, and whether that is in range. A point area is
+ * centred where it is aimed, within its range of the caster. One that leaves
+ * the caster: a cone or line turns towards the aim (the anchor when there is
+ * no aim); a sphere or cylinder is centred on the caster; a cube is placed
+ * where it is aimed, within its own side of the caster. An area out of range
+ * is still placed, for the map to draw it in the refusal colour.
+ */
+export function placeActionArea(actor: AreaToken, targeting: ActionArea, placement: AreaPlacement, map: AreaMap): { placed: PlacedArea; inRange: boolean } {
+  const grid: GridRules = { gridSize: map.gridSize, feetPerSquare: map.feetPerSquare, coneRule: ACTION_CONE_RULE };
+  const { area } = targeting;
+  if (targeting.origin === 'point') {
+    const inRange = targeting.rangeFeet === undefined || feetToPoint(actor, placement.anchor, map) <= targeting.rangeFeet;
+    return { placed: placeAreaAtPoint(area, placement.anchor, placement.aim, grid), inRange };
+  }
+  const caster = tokenPxRect(actor, map);
+  if (area.shape === 'cone' || area.shape === 'line') {
+    return { placed: placeAreaFromCaster(area, caster, placement.aim ?? placement.anchor, grid), inRange: true };
+  }
+  if (area.shape === 'cube') {
+    return { placed: placeAreaAtPoint(area, placement.anchor, undefined, grid), inRange: feetToPoint(actor, placement.anchor, map) <= area.sizeFt };
+  }
+  return { placed: placeAreaAtPoint(area, { x: caster.x + caster.width / 2, y: caster.y + caster.height / 2 }, undefined, grid), inRange: true };
+}
+
+/** A creature an area can catch: not an object token, and with a sheet or a stat block. */
+export function isAreaCreature(t: AreaToken): boolean {
+  return t.type !== 'object' && (!!t.characterId || (!!t.statBlock && typeof t.statBlock === 'object'));
+}
+
+/**
+ * The tokens a placed area catches, in the order given: every creature on the
+ * caster's plane any of whose squares the area covers, allies, hidden tokens
+ * and the caster inside its own sphere, cube or cylinder included. A cone or
+ * line leaves the caster's edge, so it never catches the caster.
+ */
+export function tokensCaught<T extends AreaToken>(
+  tokens: readonly (T | null | undefined)[],
+  actor: AreaToken,
+  targeting: ActionArea,
+  placed: PlacedArea,
+  map: Pick<AreaMap, 'gridSize' | 'height'>,
+  isCreature: (t: T) => boolean = isAreaCreature,
+): T[] {
+  const leavesCaster = targeting.area.shape === 'cone' || targeting.area.shape === 'line';
+  const plane = actor.layer ?? 'token';
+  return tokens.filter((t): t is T =>
+    !!t &&
+    (t.layer ?? 'token') === plane &&
+    isCreature(t) &&
+    !(leavesCaster && t.id === actor.id) &&
+    rectInArea(placed, tokenPxRect(t, map), map.gridSize));
+}

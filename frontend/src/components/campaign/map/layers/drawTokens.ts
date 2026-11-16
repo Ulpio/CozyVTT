@@ -78,13 +78,15 @@ export interface TokenDrawState {
    * A bar action is waiting for its target: the tokens in its reach are
    * ringed, every other token but the actor's is dimmed.
    */
-  targeting?: { actorTokenId: string; inReach: ReadonlySet<string> } | null;
+  targeting?: { actorTokenId: string; inReach: ReadonlySet<string>; picked?: ReadonlySet<string> } | null;
 }
 
 // ── Targeting (a bar action waiting for its target) ─────────────────────────
 const TARGETING_DIM_ALPHA = 0.35;
 const TARGET_RING_CASING = 'rgba(0, 0, 0, 0.9)';
 const TARGET_RING_CORE = '#6bd48a';
+/** A token already picked for a several-target action. */
+const TARGET_PICKED_RING_CORE = '#f5c542';
 const TARGET_RING_GAP = 5;
 const TARGET_RING_CASING_WIDTH = 6;
 const TARGET_RING_CORE_WIDTH = 3;
@@ -306,7 +308,7 @@ export function drawTokens(
     if (heldHere) ctx.globalAlpha *= HELD_TOKEN_ALPHA;
     // Picking a target: what the action cannot reach is dimmed.
     const targeting = state.targeting;
-    if (targeting && token.id !== targeting.actorTokenId && !targeting.inReach.has(token.id)) {
+    if (targeting && token.id !== targeting.actorTokenId && !targeting.inReach.has(token.id) && !targeting.picked?.has(token.id)) {
       ctx.globalAlpha *= TARGETING_DIM_ALPHA;
     }
     // Which way the token faces: its picture, or its letter, turns about its
@@ -399,14 +401,15 @@ export function drawTokens(
       ctx.stroke();
     }
 
-    // Targeting: a solid green ring on each token the action reaches.
-    if (targeting?.inReach.has(token.id)) {
+    // Targeting: a solid green ring on each token the action reaches, a gold one on each picked.
+    const picked = targeting?.picked?.has(token.id) ?? false;
+    if (targeting && (picked || targeting.inReach.has(token.id))) {
       const gap = TARGET_RING_GAP / zoom;
       ctx.strokeStyle = TARGET_RING_CASING;
       ctx.lineWidth = TARGET_RING_CASING_WIDTH / zoom;
       traceTokenOutline(ctx, displayMode, gap, zoom, geom);
       ctx.stroke();
-      ctx.strokeStyle = TARGET_RING_CORE;
+      ctx.strokeStyle = picked ? TARGET_PICKED_RING_CORE : TARGET_RING_CORE;
       ctx.lineWidth = TARGET_RING_CORE_WIDTH / zoom;
       traceTokenOutline(ctx, displayMode, gap, zoom, geom);
       ctx.stroke();

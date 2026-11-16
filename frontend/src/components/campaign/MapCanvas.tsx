@@ -12,7 +12,8 @@ import { campaignHasCharacter as campaignHasTokenCharacter, canRollTokenCharacte
 import { tokenTemporaryHp, type TemporaryHpTarget } from '@/utils/temporaryHp';
 import { useTableRoll } from '@/hooks/useTableRoll';
 import { useActionStore } from '@/stores/actionStore';
-import { tokensInReach, actionErrorKey } from '@/utils/actionTargeting';
+import { tokensInReach, actionErrorKey, actionAreaPreview, areaMapOf, centredOnCaster, snapAreaAim } from '@/utils/actionTargeting';
+import { placeActionArea } from '@/utils/areaGeometry';
 import i18n from '@/i18n';
 import { useGameStore, useTokenList, useCurrentTurnTokenId, useMapPeekTokenId, useCharacterHp, useSelectedTokenId } from '@/stores/gameStore';
 import { useMapControls } from '@/hooks/useMapControls';
@@ -50,6 +51,7 @@ import {
   drawPolygonOverlay,
   drawRuler,
   drawAoEOverlay,
+  drawActionAreaOverlay,
   drawWallSelection,
   drawFogSelection,
   drawPings,
@@ -524,13 +526,37 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   const { toast, showToast, hideToast } = useToast();
   // Why a wall or light tool drew nothing, or took back what the server refused.
   const refuseMapEdit = useCallback((message: string) => showToast(message, 'error'), [showToast]);
-  // What the picked action reaches, for the rings and the dimming.
+  // Where a picked area action's template is and whom it catches, for the
+  // overlay and the rings: the same rule the server decides with, over the
+  // tokens this viewer has (a player is not sent stat blocks). A template
+  // centred on its caster shows before it is aimed; one aimed at a point
+  // shows once the pointer is over the map.
+  const actionArea = useMemo(() => {
+    if (actionPending?.option.targeting?.kind !== 'area' || !currentMap) return null;
+    const actor = tokens.find((t) => t.id === actionPending.actorTokenId);
+    if (!actor) return null;
+    const placement = actionPending.area ?? (centredOnCaster(actionPending.option) ? { anchor: { x: 0, y: 0 } } : null);
+    if (!placement) return null;
+    return actionAreaPreview(tokens, actor, actionPending.option, placement, areaMapOf(currentMap), { knowsStatBlocks: isGM });
+  }, [actionPending, tokens, currentMap, isGM]);
+  // What the picked action reaches, for the rings and the dimming: an area's
+  // catch, else what is in reach, with a several-target pick's picks marked.
   const targeting = useMemo(() => {
     if (!actionPending || !currentMap) return null;
     const actor = tokens.find((t) => t.id === actionPending.actorTokenId);
     if (!actor) return null;
-    return { actorTokenId: actor.id, inReach: tokensInReach(actor, tokens, actionPending.option.reach, currentMap, actionPending.option.resolution) };
-  }, [actionPending, tokens, currentMap]);
+    const { option } = actionPending;
+    if (option.targeting?.kind === 'area') {
+      return { actorTokenId: actor.id, inReach: new Set((actionArea?.caught ?? []).map((t) => t.id)) };
+    }
+    // A draining touch reads "self" but is laid on someone within reach.
+    const reach = option.reach?.kind === 'self' && option.resolution === 'attack' ? { kind: 'touch' as const } : option.reach;
+    return {
+      actorTokenId: actor.id,
+      inReach: tokensInReach(actor, tokens, reach, currentMap, option.resolution),
+      picked: new Set(actionPending.picked),
+    };
+  }, [actionPending, actionArea, tokens, currentMap]);
   // A bar action the server refused.
   useEffect(() => {
     if (!actionError) return;
@@ -1699,6 +1725,26 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     // of the shortcuts below apply.
     if (isTypingInto(e.target) || isTypingInto(document.activeElement)) return;
 
+    // ── A bar action with several targets or an area ────────────────
+    // Enter sends the picks or the aimed area, Backspace takes the last pick
+    // back. Enter on a focused button is that button's.
+    const pendingAction = useActionStore.getState().pending;
+    const aimedKind = pendingAction?.option.targeting?.kind;
+    if (pendingAction && (aimedKind === 'multi' || aimedKind === 'area') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === 'Enter' && !e.repeat && !(e.target instanceof HTMLButtonElement)) {
+        e.preventDefault();
+        // An area out of range is not sent, as a click there sends nothing.
+        if (aimedKind === 'area' && actionArea && !actionArea.inRange) return;
+        void useActionStore.getState().confirmPending();
+        return;
+      }
+      if (e.key === 'Backspace' && aimedKind === 'multi') {
+        e.preventDefault();
+        useActionStore.getState().unpickLast();
+        return;
+      }
+    }
+
     // ── Tab: ping at the cursor ──────────────────────────────────────
     // Tab is the keyboard-navigation key and this listener is on `window`,
     // so it is claimed only while the map's focus stop has the keyboard (a
@@ -2207,6 +2253,15 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
             coneRule: campaign?.gameSystem === GameSystem.FANTASY_D20 ? 'quarter-circle' : 'width-equals-distance',
           }, viewport);
         }
+        // 10b. A bar action's area, where the server will place it.
+        if (actionArea && actionPending?.option.targeting?.kind === 'area') {
+          const spec = actionPending.option.targeting.area;
+          drawActionAreaOverlay(ctx, {
+            placed: actionArea.placed,
+            inRange: actionArea.inRange,
+            label: spec.shape === 'line' ? `${spec.sizeFt} ft × ${spec.widthFt ?? 5} ft` : `${spec.sizeFt} ft`,
+          }, viewport);
+        }
 
         // 11. Fog selection box — world space, so the snapped rectangle stays
         //     locked to the grid through pan and zoom.
@@ -2295,7 +2350,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         drawPings(ctx, { pings, now: Date.now(), reducedMotion: prefersReducedMotion }, viewport);
       }
     });
-  }, [currentMap, mapShown, mapControls.zoom, mapControls.panOffset, dpr, campaign?.gameSystem, tokens, lightSources, selectedLightId, lightMode, wallSegments, wallColor, hoveredWallId, selectedWallIds, hoveredDoorId, wallMode, selectedEndpoint, wallInProgress, wallType, brushSize, splitHoverPoint, polygonPoints, showRuler, rulerColor, effectiveRulerOrigin, rulerEnd, rulerStartByTouch, showAoE, aoeConfig, aoeAnchor, aoeSnap, hoverCoords, fogMode, isGM, fogState, viewerRevealed, viewerOwn, previewing, ruleFor, ownTokenCells, explorationEnabled, exploringAs, exploredCells, exploredRaster, socket, fogDragCurrent, wallMarquee, pings, prefersReducedMotion, POLYGON_CLOSE_RADIUS, WALL_ERASE_RADIUS, addExplored, aoeAimRef, aoeAltHeldRef, findWallAtPoint, fogDragAnchorRef, revealOpacityRef, snapPoint, wallBrushPointsRef, wallDragEndpointRef, wallErasedIdsRef, mapDrawings.previews, mapDrawings.drawings, drawingCache, canvasSize.width, canvasSize.height, drawTool, paintStrokes]);
+  }, [currentMap, mapShown, mapControls.zoom, mapControls.panOffset, dpr, campaign?.gameSystem, tokens, lightSources, selectedLightId, lightMode, wallSegments, wallColor, hoveredWallId, selectedWallIds, hoveredDoorId, wallMode, selectedEndpoint, wallInProgress, wallType, brushSize, splitHoverPoint, polygonPoints, showRuler, rulerColor, effectiveRulerOrigin, rulerEnd, rulerStartByTouch, showAoE, aoeConfig, aoeAnchor, aoeSnap, hoverCoords, fogMode, isGM, fogState, viewerRevealed, viewerOwn, previewing, ruleFor, ownTokenCells, explorationEnabled, exploringAs, exploredCells, exploredRaster, socket, fogDragCurrent, wallMarquee, pings, prefersReducedMotion, POLYGON_CLOSE_RADIUS, WALL_ERASE_RADIUS, addExplored, aoeAimRef, aoeAltHeldRef, findWallAtPoint, fogDragAnchorRef, revealOpacityRef, snapPoint, wallBrushPointsRef, wallDragEndpointRef, wallErasedIdsRef, mapDrawings.previews, mapDrawings.drawings, drawingCache, canvasSize.width, canvasSize.height, drawTool, paintStrokes, actionArea, actionPending]);
 
   // ── Layer draw dispatch + dirty-flag scheduling ──────────
   // A single rAF coalesces every repaint request; only the dirty layers
@@ -2330,7 +2385,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   useEffect(() => {
     markDirty('tokens');
     if (currentMap?.lightingEnabled) markDirty('overlay');
-  }, [markDirty, tokens, tokenImages, animatingTokens, hoverToken, characterHpCache, gmShowSpiritTokens, currentMap?.lightingEnabled, currentTurnTokenId, peekTokenId, selectedTokenId, previewing, previewViewer]);
+  }, [markDirty, tokens, tokenImages, animatingTokens, hoverToken, characterHpCache, gmShowSpiritTokens, currentMap?.lightingEnabled, currentTurnTokenId, peekTokenId, selectedTokenId, previewing, previewViewer, targeting]);
 
   // Publish this map's own token hover so the initiative tracker can tint the
   // matching row — the other half of the cross-highlight.
@@ -2349,7 +2404,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   // Overlay content — walls, lights, GM tools, measurement, pings, fog cursor.
   useEffect(() => {
     markDirty('overlay');
-  }, [markDirty, wallSegments, wallColor, wallMode, wallInProgress, polygonPoints, hoveredWallId, selectedWallIds, hoveredDoorId, splitHoverPoint, selectedEndpoint, wallType, snapToGrid, brushSize, lightSources, selectedLightId, lightMode, gmPreviewPlayerView, showRuler, rulerOrigin, rulerEnd, rulerStartByTouch, rulerColor, effectiveRulerOrigin, showAoE, aoeConfig, aoeAnchor, aoeSnap, fogMode, fogDragCurrent, fogState, viewerRevealed, previewing, ownTokenCells, exploredRaster, pings, mapDrawings.drawings]);
+  }, [markDirty, wallSegments, wallColor, wallMode, wallInProgress, polygonPoints, hoveredWallId, selectedWallIds, hoveredDoorId, splitHoverPoint, selectedEndpoint, wallType, snapToGrid, brushSize, lightSources, selectedLightId, lightMode, gmPreviewPlayerView, showRuler, rulerOrigin, rulerEnd, rulerStartByTouch, rulerColor, effectiveRulerOrigin, showAoE, aoeConfig, aoeAnchor, aoeSnap, fogMode, fogDragCurrent, fogState, viewerRevealed, previewing, ownTokenCells, exploredRaster, pings, mapDrawings.drawings, actionArea]);
 
   // ============================================
   // Token Hit Testing
@@ -2781,19 +2836,48 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
    * it holds, in the same order.
    */
   // Picking a target for a bar action: a click on a token resolves the action
-  // against it, empty ground does nothing, a finger's drag still pans. Esc and
-  // a right click cancel (below). The logic is the action store's.
+  // against it, or adds it to a several-target pick (Enter or the hint's
+  // Confirm sends that); empty ground does nothing, a finger's drag still
+  // pans. An area's template follows the mouse and a click places it and
+  // resolves, unless it is out of range; a tap only aims it, and the hint's
+  // Confirm resolves. Esc and a right click cancel (below). The logic is the
+  // action store's.
   const targetingTool: MapTool = {
-    down({ e, via, gridCoords }: PointerAt) {
-      if (!useActionStore.getState().pending) return false;
+    down({ e, via, gridCoords, mapPx }: PointerAt) {
+      const store = useActionStore.getState();
+      const pending = store.pending;
+      if (!pending) return false;
       if (via === 'drag') {
         groundPressRef.current = { x: e.clientX, y: e.clientY, panned: false, clears: false };
         mapControls.startDrag(e);
         return true;
       }
+      const targeting = pending.option.targeting;
+      if (targeting?.kind === 'area') {
+        if (!currentMap) return true;
+        const aim = snapAreaAim(mapPx, currentMap.gridSize);
+        if (via === 'tap') {
+          store.setAreaAim(aim);
+          return true;
+        }
+        const actor = tokens.find((t) => t.id === pending.actorTokenId);
+        if (actor && placeActionArea(actor, targeting, { anchor: aim, aim }, areaMapOf(currentMap)).inRange) void store.placeArea(aim);
+        return true;
+      }
       const seen = getHoverTokenAt(gridCoords.x, gridCoords.y);
-      if (seen) void useActionStore.getState().resolvePending(seen.id);
+      if (!seen) return true;
+      if (targeting?.kind === 'multi') store.pickTarget(seen.id);
+      else void store.resolvePending(seen.id);
       return true;
+    },
+    // The template follows the mouse, in quarter-square steps.
+    move({ via, mapPx }: PointerAt) {
+      const pending = useActionStore.getState().pending;
+      if (via !== 'mouse' || pending?.option.targeting?.kind !== 'area' || !currentMap) return false;
+      const aim = snapAreaAim(mapPx, currentMap.gridSize);
+      const current = pending.area?.aim ?? pending.area?.anchor;
+      if (!current || current.x !== aim.x || current.y !== aim.y) useActionStore.getState().setAreaAim(aim);
+      return false;
     },
   };
 

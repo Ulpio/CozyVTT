@@ -553,6 +553,81 @@ export function drawAoEOverlay(
   ctx.restore();
 }
 
+// ── A bar action's area ─────────────────────────────────────────────────────
+
+import type { PlacedArea } from '@/utils/areaGeometry';
+
+export interface ActionAreaOverlayState {
+  /** Where the area lands (utils/areaGeometry.ts placeActionArea), in map pixels. */
+  placed: PlacedArea;
+  /** Out of range: drawn in the refusal colour, and a click does nothing. */
+  inRange: boolean;
+  /** The size printed on it ("20 ft"). */
+  label: string;
+}
+
+const ACTION_AREA_TINT = '147, 51, 234';    // the manual template's purple
+const ACTION_AREA_REFUSED_TINT = '220, 38, 38'; // red: out of range
+
+/**
+ * A spell's or a breath's area as the action bar aims it: the manual AoE
+ * template's look, in the shape the server will place, red when it is out
+ * of range.
+ */
+export function drawActionAreaOverlay(
+  ctx: CanvasRenderingContext2D,
+  state: ActionAreaOverlayState,
+  viewport: Viewport
+): void {
+  const { zoom } = viewport;
+  const { placed } = state;
+  const tint = state.inRange ? ACTION_AREA_TINT : ACTION_AREA_REFUSED_TINT;
+
+  ctx.save();
+  ctx.fillStyle = `rgba(${tint}, 0.25)`;
+  ctx.strokeStyle = `rgba(${tint}, 0.8)`;
+  ctx.lineWidth = 2 / zoom;
+  ctx.beginPath();
+  let centre: Pt;
+  switch (placed.kind) {
+    case 'circle':
+      ctx.arc(placed.centre.x, placed.centre.y, placed.radius, 0, Math.PI * 2);
+      centre = placed.centre;
+      break;
+    case 'rect':
+      ctx.rect(placed.x, placed.y, placed.size, placed.size);
+      centre = { x: placed.x + placed.size / 2, y: placed.y + placed.size / 2 };
+      break;
+    case 'polygon': {
+      const [first, ...rest] = placed.points;
+      ctx.moveTo(first.x, first.y);
+      for (const p of rest) ctx.lineTo(p.x, p.y);
+      ctx.closePath();
+      centre = {
+        x: placed.points.reduce((sum, p) => sum + p.x, 0) / placed.points.length,
+        y: placed.points.reduce((sum, p) => sum + p.y, 0) / placed.points.length,
+      };
+      break;
+    }
+  }
+  ctx.fill();
+  ctx.stroke();
+
+  // Size label, as the manual template prints it.
+  const fontSize = Math.max(10, 12 / zoom);
+  ctx.font = `bold ${fontSize}px sans-serif`;
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  const tw = ctx.measureText(state.label).width;
+  const pad = 4 / zoom;
+  ctx.fillRect(centre.x - tw / 2 - pad, centre.y - fontSize - pad, tw + pad * 2, fontSize + pad * 2);
+  ctx.fillStyle = state.inRange ? 'rgba(216, 180, 254, 1)' : 'rgba(254, 202, 202, 1)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(state.label, centre.x, centre.y);
+  ctx.textAlign = 'start';
+  ctx.restore();
+}
+
 export interface WallSelectionOverlayState {
   /** The box being dragged out, in map pixels, or null when none is. */
   marquee: SelectionRect | null;

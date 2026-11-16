@@ -81,9 +81,26 @@ describe('the action bar away from its sheet', () => {
   it('shows the target hint with Cancel while an action waits and the sheet is closed', async () => {
     const { useActionStore } = await import('@/stores/actionStore');
     table();
-    act(() => { useActionStore.setState({ pending: { actorTokenId: 't1', option: longsword } }); });
+    act(() => { useActionStore.setState({ pending: { actorTokenId: 't1', option: longsword, picked: [], area: null } }); });
     expect(screen.getByText('Choose a target for Longsword')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(useActionStore.getState().pending).toBeNull();
+  });
+});
+
+describe('the target hint with several targets', () => {
+  it('counts the picks and confirms them', async () => {
+    const { useActionStore } = await import('@/stores/actionStore');
+    const confirmPending = vi.fn(async () => ({ ok: true }));
+    const rays = { id: 'spell:rays', name: 'Scorching Ray', group: 'spell' as const, resolution: 'attack' as const, spellLevel: 2, targeting: { kind: 'multi' as const, count: 3, perSlot: 1, distinct: false } };
+    table();
+    act(() => { useActionStore.setState({ pending: { actorTokenId: 't1', option: rays, slotLevel: 3, picked: ['a', 'b'], area: null }, confirmPending } as never); });
+    expect(screen.getByText('Choose a target for each ray of Scorching Ray')).toBeInTheDocument();
+    expect(screen.getByText('2 of 4')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirm' })).toBeDisabled();
+    act(() => { useActionStore.setState((s) => ({ pending: { ...s.pending!, picked: ['a', 'b', 'a', 'c'] } })); });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    expect(confirmPending).toHaveBeenCalled();
+    act(() => { useActionStore.setState({ pending: null }); });
   });
 });
