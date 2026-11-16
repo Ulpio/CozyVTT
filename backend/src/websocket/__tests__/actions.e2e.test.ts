@@ -298,3 +298,138 @@ describe('action.concentration', () => {
     await expectNoEvent(p1, 'chat.message.updated', 200);
   });
 });
+
+describe('saves, areas and recharge', () => {
+  // A GM creature whose breath (reworded, in the book's shape) leaves it in a cone.
+  const drakeBlock = {
+    ac: 14,
+    hpMax: 40,
+    abilities: { str: 14, dex: 12, con: 14, int: 6, wis: 10, cha: 8 },
+    actions: [{
+      name: 'Sopro Gélido (Recarrega 6)',
+      description: 'A criatura sopra gelo num cone de 9 metros. Cada criatura na área faz um teste de resistência de Constituição CD 12; em caso de falha sofre 10 (3d6) de dano de frio, e em caso de sucesso sofre metade desse dano.',
+    }],
+  };
+  const SECRET = 'lurker-goblin';
+  /** The drake at (20,10) breathes west over the cleric and a hidden goblin; the fighter is out of reach. */
+  async function breathTable() {
+    await prisma.map.update({
+      where: { id: mapId },
+      data: {
+        tokens: [
+          ...freshTokens().filter((t: any) => t.id !== 'cleric'),
+          token({ id: 'cleric', name: 'Clérigo', position: { x: 18, y: 10 }, characterId: clericId, controlledBy: p2Id, type: 'player' }),
+          token({ id: SECRET, name: 'Goblin Espreitador', position: { x: 17, y: 11 }, visible: false, type: 'npc', hp: { current: 7, max: 7, temp: 0 }, statBlock: goblinStatBlock }),
+          token({ id: 'drake', name: 'Draco', position: { x: 20, y: 10 }, type: 'npc', hp: { current: 40, max: 40, temp: 0 }, statBlock: drakeBlock }),
+        ],
+      },
+    });
+  }
+  const breath = () => ({ mapId, actorTokenId: 'drake', actionId: 'npc:actions:0', mode: 'normal', area: { anchor: { x: 10 * 50 + 25, y: (100 - 10 - 0.5) * 50 } } });
+  const secretLeaks = (value: unknown) => [
+    ...leaks(value),
+    ...['bonus', 'controllerUserIds', 'concealed', 'recharge', 'undoSkipped'].filter((k) => keysOf(value).has(k)),
+    ...(JSON.stringify(value ?? null).includes(SECRET) ? [SECRET] : []),
+  ];
+
+  it('sends players a breath card without the hidden goblin, lists the pending save to its player alone, and lets only that player roll it', async () => {
+    await breathTable();
+    const [gm, p1, p2] = await Promise.all([connect('gm'), connect('p1'), connect('p2')]);
+    const isAction = (m: Msg) => m.type === 'CHARACTER_ACTION';
+    const [toGm, toP1] = [ofType(gm, 'chat.message', isAction), ofType(p1, 'chat.message', isAction)];
+    const answer = await gm.timeout(5000).emitWithAck('action.resolve', breath());
+    expect(answer).toEqual({ ok: true, messageId: expect.any(String) });
+    const [g, a] = await Promise.all([toGm, toP1]);
+    expect(g.metadata.targets.map((t: any) => t.tokenId).sort()).toEqual(['cleric', SECRET]);
+    expect(a.metadata.targets.map((t: any) => t.tokenId)).toEqual(['cleric']);
+    expect(a.metadata.pendingSaves).toBe(1);
+    expect(secretLeaks(a.metadata)).toEqual([]);
+    expect(a.content).not.toContain('Espreitador');
+
+    const mine = await p1.timeout(3000).emitWithAck('action.pendingSaves', {});
+    expect(mine).toEqual({ ok: true, pending: [] });
+    const theirs = await p2.timeout(3000).emitWithAck('action.pendingSaves');
+    expect(theirs.pending).toHaveLength(1);
+    expect(theirs.pending[0].messageId).toBe(answer.messageId);
+    expect(theirs.pending[0].card.targets[0].yourSave).toBe(true);
+    expect(secretLeaks(theirs)).toEqual([]);
+
+    expect(await p1.timeout(3000).emitWithAck('action.save', { messageId: answer.messageId, targetTokenId: 'cleric', mode: 'normal' }))
+      .toMatchObject({ ok: false, error: 'Not your token' });
+    expect(await p2.timeout(3000).emitWithAck('action.saveRemaining', { messageId: answer.messageId })).toMatchObject({ ok: false, error: 'GM only' });
+    const updP1 = ofType(p1, 'chat.message.updated');
+    const rolled = await p2.timeout(5000).emitWithAck('action.save', { messageId: answer.messageId, targetTokenId: 'cleric', mode: 'advantage' });
+    expect(rolled).toEqual({ ok: true });
+    const upd = await updP1;
+    expect(upd.id).toBe(answer.messageId);
+    expect(upd.metadata.targets[0].save).toMatchObject({ status: 'rolled', mode: 'advantage', total: expect.any(Number) });
+    expect(upd.metadata.pendingSaves).toBe(0);
+    expect(secretLeaks(upd.metadata)).toEqual([]);
+    expect(await p2.timeout(3000).emitWithAck('action.save', { messageId: answer.messageId, targetTokenId: 'cleric', mode: 'normal' }))
+      .toMatchObject({ ok: false, error: 'Already rolled' });
+    expect(await p2.timeout(3000).emitWithAck('action.pendingSaves', {})).toEqual({ ok: true, pending: [] });
+  });
+
+  it('lets the GM roll the rest and undo one target, and refuses players', async () => {
+    await breathTable();
+    const [gm, p1] = await Promise.all([connect('gm'), connect('p1')]);
+    const { messageId } = await gm.timeout(5000).emitWithAck('action.resolve', breath());
+    expect(await p1.timeout(3000).emitWithAck('action.undoTarget', { messageId, targetTokenId: 'cleric' })).toMatchObject({ ok: false, error: 'GM only' });
+    const updP1 = ofType(p1, 'chat.message.updated');
+    expect(await gm.timeout(5000).emitWithAck('action.saveRemaining', { messageId })).toEqual({ ok: true });
+    expect((await updP1).metadata.pendingSaves).toBe(0);
+    const updAgain = ofType(p1, 'chat.message.updated');
+    const undone = await gm.timeout(5000).emitWithAck('action.undoTarget', { messageId, targetTokenId: SECRET });
+    expect(undone).toMatchObject({ ok: true, partial: false });
+    const upd = await updAgain;
+    expect(secretLeaks(upd.metadata)).toEqual([]);
+    expect(await gm.timeout(3000).emitWithAck('action.undoTarget', { messageId, targetTokenId: SECRET })).toMatchObject({ ok: false, error: 'Already undone' });
+  });
+
+  it('lets the GM roll and reset a spent recharge, and posts the roll', async () => {
+    await breathTable();
+    const [gm, p1] = await Promise.all([connect('gm'), connect('p1')]);
+    await gm.timeout(5000).emitWithAck('action.resolve', breath());
+    expect(await gm.timeout(3000).emitWithAck('action.resolve', breath())).toMatchObject({ ok: false, error: 'This action is spent until it recharges' });
+    const recharge = { mapId, tokenId: 'drake', optionId: 'npc:actions:0' };
+    expect(await p1.timeout(3000).emitWithAck('action.recharge', recharge)).toMatchObject({ ok: false, error: 'GM only' });
+    expect(await p1.timeout(3000).emitWithAck('action.rechargeReset', recharge)).toMatchObject({ ok: false, error: 'GM only' });
+    const posted = ofType(p1, 'chat.message', (m: Msg) => m.metadata?.kind === 'recharge');
+    const rolled = await gm.timeout(5000).emitWithAck('action.recharge', recharge);
+    expect(rolled).toMatchObject({ ok: true, messageId: expect.any(String), d6: expect.any(Number), recharged: expect.any(Boolean) });
+    expect((await posted).metadata).toMatchObject({ kind: 'recharge', name: 'Draco', min: 6, d6: rolled.d6 });
+    if (!rolled.recharged) expect(await gm.timeout(3000).emitWithAck('action.rechargeReset', recharge)).toEqual({ ok: true });
+    expect(await gm.timeout(3000).emitWithAck('action.rechargeReset', recharge)).toMatchObject({ ok: false, error: 'This action is not spent' });
+  });
+
+  it('refuses an area sent with target ids, and malformed save payloads', async () => {
+    await breathTable();
+    const gm = await connect('gm');
+    expect(await gm.timeout(3000).emitWithAck('action.resolve', { ...breath(), targetTokenIds: ['cleric'] })).toMatchObject({ ok: false, error: 'Invalid target' });
+    const bad = [
+      { ...breath(), area: { anchor: { x: 'a', y: 1 } } },
+      { ...breath(), area: {} },
+      { ...attack(), targetTokenIds: [] },
+      { ...attack(), targetTokenIds: Array.from({ length: 21 }, (_, i) => `t${i}`) },
+    ];
+    for (const payload of bad) expect(await gm.timeout(3000).emitWithAck('action.resolve', payload)).toMatchObject({ ok: false, error: expect.any(String) });
+    for (const [event, payload] of [
+      ['action.save', { messageId: 'x', targetTokenId: 'y', mode: 'sideways' }],
+      ['action.save', { messageId: 'x' }],
+      ['action.saveRemaining', {}],
+      ['action.undoTarget', { messageId: 'x' }],
+      ['action.recharge', { mapId }],
+      ['action.rechargeReset', { tokenId: 'drake' }],
+    ] as const) {
+      expect(await gm.timeout(3000).emitWithAck(event, payload)).toMatchObject({ ok: false, error: expect.any(String) });
+    }
+    expect(await prisma.message.count({ where: { campaignId } })).toBe(0);
+  });
+
+  it('refuses spectators the save events', async () => {
+    const spec = await connect('spec');
+    for (const event of ['action.save', 'action.saveRemaining', 'action.undoTarget', 'action.pendingSaves', 'action.recharge', 'action.rechargeReset']) {
+      expect(await spec.timeout(3000).emitWithAck(event, {})).toMatchObject({ ok: false, error: 'Spectators cannot use actions' });
+    }
+  });
+});

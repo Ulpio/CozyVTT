@@ -1,6 +1,8 @@
 // ============================================
 // Action bar handlers: action.list, action.resolve, action.undo,
-// action.concentration
+// action.concentration, action.save, action.saveRemaining,
+// action.undoTarget, action.pendingSaves, action.recharge,
+// action.rechargeReset
 // ============================================
 
 import { Server } from 'socket.io';
@@ -15,8 +17,25 @@ import {
   ActionRequestSchema,
   ActionUndoSchema,
   ActionConcentrationSchema,
+  ActionSaveSchema,
+  ActionSaveRemainingSchema,
+  ActionUndoTargetSchema,
+  ActionPendingSavesSchema,
+  ActionRechargeSchema,
 } from '../../validators/actions';
-import { listActions, resolveAction, undoAction, rollConcentration, type ActionRequest } from '../../services/actionResolver';
+import {
+  listActions,
+  resolveAction,
+  undoAction,
+  undoTarget,
+  rollConcentration,
+  rollPendingSave,
+  rollRemainingSaves,
+  listPendingSaves,
+  rollRecharge,
+  resetRecharge,
+  type ActionRequest,
+} from '../../services/actionResolver';
 import { metadataFor, viewerOf } from '../../services/actionMessages';
 
 export const SPECTATOR_REFUSAL = 'Spectators cannot use actions';
@@ -83,8 +102,11 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
     spectatorsRefused: boolean,
     work: (input: T, campaignId: string, ack: SocketAck | null, refuse: (message: string) => void) => Promise<void>,
   ): void {
-    socket.on(event, async (data: unknown, ackArg?: unknown) => {
-      const ack = ackFrom(ackArg);
+    socket.on(event, async (dataArg: unknown, ackArg?: unknown) => {
+      // An event sent with nothing but an acknowledgement (`action.pendingSaves`) receives it first.
+      const bare = typeof dataArg === 'function' && ackArg === undefined;
+      const data = bare ? undefined : dataArg;
+      const ack = ackFrom(bare ? dataArg : ackArg);
       const refuse = (message: string) => refuseRequest(socket, ack, message);
       try {
         if (!socket.campaignId || !socket.userId) {
@@ -166,5 +188,73 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
     await announceMessage(io, campaignId, outcome.messageId, outcome.card);
     await announceUpdate(io, campaignId, messageId, outcome.actionCard);
     answer(ack, { ok: true, messageId: outcome.messageId, kept: outcome.kept, dc: outcome.dc, total: outcome.total });
+  });
+
+  /**
+   * ACTION.SAVE - a target's player (or the GM) rolls its pending save; the
+   * damage it takes enters, and the card goes out again per reader.
+   */
+  on('action.save', (d) => ActionSaveSchema.safeParse(d), true, async ({ messageId, targetTokenId, mode }, campaignId, ack, refuse) => {
+    const outcome = await rollPendingSave(campaignId, me(), { messageId, targetTokenId, mode });
+    if (!outcome.ok) {
+      refuse(outcome.error);
+      return;
+    }
+    await announceUpdate(io, campaignId, messageId, outcome.card);
+    answer(ack, { ok: true });
+  });
+
+  /** ACTION.SAVEREMAINING - the GM rolls every save still pending on a card. */
+  on('action.saveRemaining', (d) => ActionSaveRemainingSchema.safeParse(d), true, async ({ messageId }, campaignId, ack, refuse) => {
+    const outcome = await rollRemainingSaves(campaignId, me(), { messageId });
+    if (!outcome.ok) {
+      refuse(outcome.error);
+      return;
+    }
+    await announceUpdate(io, campaignId, messageId, outcome.card);
+    answer(ack, { ok: true });
+  });
+
+  /** ACTION.UNDOTARGET - the GM takes back what an action did to one target, or cancels its pending save. */
+  on('action.undoTarget', (d) => ActionUndoTargetSchema.safeParse(d), true, async ({ messageId, targetTokenId }, campaignId, ack, refuse) => {
+    const outcome = await undoTarget(campaignId, me(), { messageId, targetTokenId });
+    if (!outcome.ok) {
+      refuse(outcome.error);
+      return;
+    }
+    await announceUpdate(io, campaignId, messageId, outcome.card);
+    answer(ack, { ok: true, partial: outcome.partial });
+  });
+
+  /**
+   * ACTION.PENDINGSAVES - the cards with a save still waiting on the
+   * requester (the GM: on anyone), each as the requester may read it. A page
+   * asks on joining and reconnecting, so a prompt older than the chat it
+   * loaded still shows.
+   */
+  on('action.pendingSaves', (d) => ActionPendingSavesSchema.safeParse(d), true, async (_input, campaignId, ack) => {
+    const pending = await listPendingSaves(campaignId, me());
+    answer(ack, { ok: true, pending });
+  });
+
+  /** ACTION.RECHARGE - the GM rolls a d6 for a monster's spent recharge; the roll is posted as a small card. */
+  on('action.recharge', (d) => ActionRechargeSchema.safeParse(d), true, async (input, campaignId, ack, refuse) => {
+    const outcome = await rollRecharge(campaignId, me(), input);
+    if (!outcome.ok) {
+      refuse(outcome.error);
+      return;
+    }
+    await announceMessage(io, campaignId, outcome.messageId, outcome.card);
+    answer(ack, { ok: true, messageId: outcome.messageId, recharged: outcome.recharged, d6: outcome.d6 });
+  });
+
+  /** ACTION.RECHARGERESET - the GM brings a monster's spent recharge back by hand. */
+  on('action.rechargeReset', (d) => ActionRechargeSchema.safeParse(d), true, async (input, campaignId, ack, refuse) => {
+    const outcome = await resetRecharge(campaignId, me(), input);
+    if (!outcome.ok) {
+      refuse(outcome.error);
+      return;
+    }
+    answer(ack, { ok: true });
   });
 }

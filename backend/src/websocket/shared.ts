@@ -257,6 +257,33 @@ export const SOCKET_CEILINGS = {
     windows: [{ limit: 10, windowMs: SECOND }],
     refusal: 'Too many concentration rolls at once. Wait a moment, then try again.',
   },
+  // A pending save is one click per target; the GM's "roll the rest" and a
+  // per-target undo are writes under the map's lock like a resolve.
+  'action.save': {
+    windows: [{ limit: 10, windowMs: SECOND }, { limit: 200, windowMs: MINUTE }],
+    refusal: 'Too many saving throws at once. Wait a moment, then try again.',
+  },
+  'action.saveRemaining': {
+    windows: [{ limit: 10, windowMs: SECOND }, { limit: 200, windowMs: MINUTE }],
+    refusal: 'Too many saving throws at once. Wait a moment, then try again.',
+  },
+  'action.undoTarget': {
+    windows: [{ limit: 10, windowMs: SECOND }, { limit: 200, windowMs: MINUTE }],
+    refusal: 'Too many undo requests at once. Wait a moment, then try again.',
+  },
+  // Asked once per join and reconnect; a recharge is one click.
+  'action.pendingSaves': {
+    windows: [{ limit: 20, windowMs: SECOND }, { limit: 300, windowMs: MINUTE }],
+    refusal: 'Too many requests for pending saving throws at once. Wait a moment, then try again.',
+  },
+  'action.recharge': {
+    windows: [{ limit: 20, windowMs: SECOND }, { limit: 300, windowMs: MINUTE }],
+    refusal: 'Too many recharge rolls at once. Wait a moment, then try again.',
+  },
+  'action.rechargeReset': {
+    windows: [{ limit: 20, windowMs: SECOND }, { limit: 300, windowMs: MINUTE }],
+    refusal: 'Too many recharge changes at once. Wait a moment, then try again.',
+  },
   'character.hp.update': {
     windows: [{ limit: 50, windowMs: SECOND }],
     refusal: 'Too many hit point changes at once. Wait a moment, then try again.',
