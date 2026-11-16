@@ -136,3 +136,78 @@ describe('projectActionCard', () => {
     expect(c).toEqual(snap);
   });
 });
+
+describe('projectActionCard saving throws', () => {
+  const sv = (over: Record<string, unknown> = {}) => ({
+    ability: 'dex' as const, dc: 14, bonus: 7, status: 'rolled' as const,
+    d20s: [9], total: 16, success: true, rolledBy: 'gm' as const, ...over,
+  });
+  const pendingSave = () => sv({ status: 'pending', d20s: undefined, total: undefined, success: undefined });
+  const hero = (): ActionCardTarget => ({
+    tokenId: 't-hero', name: 'Hero', isCharacter: true, ownerUserId: 'ann', controllerUserIds: ['ann'],
+    showHpBar: true, ac: 16, hpBefore: 20, hpAfter: 20, hpMax: 20, save: pendingSave(),
+  });
+  const hidden = (): ActionCardTarget => goblin({
+    tokenId: 't-hidden', name: 'Secret Imp', concealed: true, controllerUserIds: [], save: pendingSave(),
+  });
+  const saveCard = (targets: ActionCardTarget[]) =>
+    card(targets, { save: { ability: 'dex', dc: 14, halfOnSave: true }, damageRoll: [{ total: 20, type: 'fire', breakdown: '8d6' }] });
+
+  it('drops concealed targets and counts only visible pending saves', () => {
+    const p: any = projectActionCard(saveCard([hidden(), hero()]), bob);
+    expect(p.targets.map((t: any) => t.tokenId)).toEqual(['t-hero']);
+    expect(p.pendingSaves).toBe(1);
+    const json = JSON.stringify(p);
+    expect(json).not.toContain('t-hidden');
+    expect(json).not.toContain('"bonus"');
+    expect(json).not.toContain('controllerUserIds');
+    expect(p.save).toEqual({ ability: 'dex', dc: 14, halfOnSave: true });
+    expect(p.damageRoll).toHaveLength(1);
+  });
+
+  it('keeps a concealed target for the player who controls it', () => {
+    const h = hidden(); h.controllerUserIds = ['bob'];
+    const p: any = projectActionCard(saveCard([h]), bob);
+    expect(p.targets).toHaveLength(1);
+    expect(p.targets[0].yourSave).toBe(true);
+    expect((projectActionCard(saveCard([h]), ann) as any).targets).toHaveLength(0);
+  });
+
+  it('flags yourSave only for the controller of a pending target', () => {
+    const c = saveCard([hero()]);
+    expect((projectActionCard(c, ann) as any).targets[0].yourSave).toBe(true);
+    expect((projectActionCard(c, bob) as any).targets[0].yourSave).toBeUndefined();
+    expect((projectActionCard(c, spec) as any).targets[0].yourSave).toBeUndefined();
+  });
+
+  it('shows a monster save outcome without its roll', () => {
+    const p: any = projectActionCard(saveCard([goblin({ save: sv() })]), bob);
+    expect(p.targets[0].save).toEqual({ ability: 'dex', dc: 14, status: 'rolled', success: true });
+    expect(JSON.stringify(p)).not.toContain('"total":16');
+  });
+
+  it('shows the roll of a character or player-controlled token', () => {
+    const h = hero(); h.save = sv();
+    expect((projectActionCard(saveCard([h]), bob) as any).targets[0].save).toMatchObject({ d20s: [9], total: 16 });
+    const pet = goblin({ controllerUserIds: ['bob'], save: sv() });
+    expect((projectActionCard(saveCard([pet]), ann) as any).targets[0].save.total).toBe(16);
+  });
+
+  it('projects per-target undo and rays without AC', () => {
+    const g = goblin({ undoneAt: 'now', rays: 2, attacks: [{ d20s: [5], natural: 5, total: 9, hit: false, critical: false }] });
+    const p: any = projectActionCard(saveCard([g]), bob);
+    expect(p.targets[0].undoneAt).toBe('now');
+    expect(p.targets[0].rays).toBe(2);
+    expect(p.pendingSaves).toBe(0);
+  });
+
+  it('keeps recharge GM-only and gives the GM everything', () => {
+    const c = saveCard([hidden(), hero()]); c.recharge = { tokenId: 't-gob', optionId: 'breath' };
+    expect(JSON.stringify(projectActionCard(c, bob))).not.toContain('recharge');
+    expect(projectActionCard(c, gm)).toEqual(c);
+  });
+
+  it('adds no pendingSaves to a card without a save', () => {
+    expect((projectActionCard(card(), bob) as any).pendingSaves).toBeUndefined();
+  });
+});

@@ -1,4 +1,6 @@
 import { RollMode } from './types';
+import type { Ability } from './monsterActions';
+import type { AreaSpec } from '../../utils/areaGeometry';
 
 export type MaskedName = 'something' | 'something-invisible';
 export type MonsterState = 'unharmed' | 'wounded' | 'badly-wounded' | 'down';
@@ -15,6 +17,20 @@ export interface DamagePart {
   total: number;
   type?: string;
   breakdown: string;
+}
+
+export interface TargetSave {
+  ability: Ability;
+  dc: number;
+  bonus: number;
+  status: 'pending' | 'rolled';
+  mode?: RollMode;
+  advantageReason?: 'magic-resistance';
+  d20s?: number[];
+  total?: number;
+  success?: boolean;
+  rolledBy?: 'auto' | 'owner' | 'gm';
+  rolledAt?: string;
 }
 
 export interface ActionCardTarget {
@@ -37,6 +53,15 @@ export interface ActionCardTarget {
   concentrationCheckDc?: number;
   /** When the target rolled to keep concentration for this card; one roll per card. */
   concentrationRolledAt?: string;
+  /** GM-only: the owner and controlledBy users of the token, set at resolve time. */
+  controllerUserIds?: string[];
+  /** GM-only: true when the token was masked as 'something-invisible' at resolve time. */
+  concealed?: boolean;
+  save?: TargetSave;
+  /** How many rays/darts hit this target, with one attack result per ray. */
+  rays?: number;
+  attacks?: AttackResult[];
+  undoneAt?: string;
 }
 
 export interface UndoRecord {
@@ -50,6 +75,7 @@ export interface UndoRecord {
   }[];
   slot?: { characterId: string; level: number };
   concentration?: { characterId: string; before: unknown; after: unknown };
+  recharge?: { mapId: string; tokenId: string; optionId: string };
 }
 
 export interface ActionCard {
@@ -60,6 +86,12 @@ export interface ActionCard {
   disadvantageReason?: 'long-range';
   slotLevel?: number;
   targets: ActionCardTarget[];
+  save?: { ability: Ability; dc: number; halfOnSave: boolean };
+  /** The one damage roll shared by every target of a save effect. */
+  damageRoll?: DamagePart[];
+  area?: AreaSpec;
+  /** GM-only. */
+  recharge?: { tokenId: string; optionId: string };
   extraText?: string;
   undo: UndoRecord;
   undoneAt?: string;
@@ -82,6 +114,24 @@ export interface PlayerActionCardTarget {
   concentrationRolledAt?: string;
   hp?: { current: number; max: number; temp?: number };
   state?: MonsterState;
+  rays?: number;
+  attacks?: AttackResult[];
+  undoneAt?: string;
+  save?: PlayerTargetSave;
+  /** This viewer controls the target and its save is still pending. */
+  yourSave?: true;
+}
+
+export interface PlayerTargetSave {
+  ability: Ability;
+  dc: number;
+  status: 'pending' | 'rolled';
+  mode?: RollMode;
+  success?: boolean;
+  rolledAt?: string;
+  /** Only for a character or a player-controlled token; a monster's roll stays with the GM. */
+  d20s?: number[];
+  total?: number;
 }
 
 export interface PlayerActionCard {
@@ -92,6 +142,10 @@ export interface PlayerActionCard {
   disadvantageReason?: 'long-range';
   slotLevel?: number;
   targets: PlayerActionCardTarget[];
+  save?: { ability: Ability; dc: number; halfOnSave: boolean };
+  damageRoll?: DamagePart[];
+  area?: AreaSpec;
+  pendingSaves?: number;
   extraText?: string;
   undoneAt?: string;
   undoPartial?: boolean;
@@ -120,6 +174,24 @@ function projectTarget(t: ActionCardTarget, viewer: Viewer): PlayerActionCardTar
   if (t.healing !== undefined) out.healing = t.healing;
   if (t.concentrationCheckDc !== undefined) out.concentrationCheckDc = t.concentrationCheckDc;
   if (t.concentrationRolledAt !== undefined) out.concentrationRolledAt = t.concentrationRolledAt;
+  if (t.rays !== undefined) out.rays = t.rays;
+  if (t.attacks) out.attacks = t.attacks.map((a) => ({ ...a, d20s: [...a.d20s] }));
+  if (t.undoneAt !== undefined) out.undoneAt = t.undoneAt;
+  if (t.save) {
+    const s = t.save;
+    const save: PlayerTargetSave = { ability: s.ability, dc: s.dc, status: s.status };
+    if (s.mode !== undefined) save.mode = s.mode;
+    if (s.success !== undefined) save.success = s.success;
+    if (s.rolledAt !== undefined) save.rolledAt = s.rolledAt;
+    const publicRoll = t.isCharacter || (t.controllerUserIds?.length ?? 0) > 0;
+    if (publicRoll && s.d20s) save.d20s = [...s.d20s];
+    if (publicRoll && s.total !== undefined) save.total = s.total;
+    out.save = save;
+    if (
+      s.status === 'pending' && viewer.role === 'PLAYER' && !t.undoneAt &&
+      t.controllerUserIds?.includes(viewer.userId)
+    ) out.yourSave = true;
+  }
   // No hit points tracked (a statue, a hand-made token): neither HP nor a state, not "down".
   if (t.hpMax <= 0) return out;
   if (canSeeHp(t, viewer)) {
@@ -138,13 +210,24 @@ export function projectActionCard(card: ActionCard, viewer: Viewer): PlayerActio
   if (card.actor.maskedName) actor.maskedName = card.actor.maskedName;
   else actor.name = card.actor.name;
 
+  // A concealed target never appears, unless this viewer controls it (they know it exists).
+  const visible = card.targets.filter(
+    (t) => !t.concealed || (viewer.role === 'PLAYER' && t.controllerUserIds?.includes(viewer.userId)),
+  );
+
   const out: PlayerActionCard = {
     kind: 'action',
     actor,
     actionName: card.actionName,
     mode: card.mode,
-    targets: card.targets.map((t) => projectTarget(t, viewer)),
+    targets: visible.map((t) => projectTarget(t, viewer)),
   };
+  if (card.save) {
+    out.save = { ...card.save };
+    out.pendingSaves = visible.filter((t) => t.save?.status === 'pending' && !t.undoneAt).length;
+  }
+  if (card.damageRoll) out.damageRoll = card.damageRoll.map((d) => ({ ...d }));
+  if (card.area) out.area = JSON.parse(JSON.stringify(card.area));
   if (card.disadvantageReason) out.disadvantageReason = card.disadvantageReason;
   if (card.slotLevel !== undefined) out.slotLevel = card.slotLevel;
   // A GM NPC's extra text is GM-only; a player character's is public.
