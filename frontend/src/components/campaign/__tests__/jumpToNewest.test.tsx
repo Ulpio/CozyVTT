@@ -29,7 +29,7 @@ let onRolled: ((data: DiceRolledEvent) => void) | null = null;
 vi.mock('@/contexts/WebSocketContext', () => ({
   useWebSocket: () => ({
     socket: {
-      onChatMessage: (fn: (d: ChatMessageBroadcast) => void) => { onChat = fn; }, onChatSystem: vi.fn(), off: vi.fn(), on: vi.fn(),
+      onChatMessage: (fn: (d: ChatMessageBroadcast) => void) => { onChat = fn; }, onChatSystem: vi.fn(), onChatMessageUpdated: vi.fn(), off: vi.fn(), on: vi.fn(),
       onDiceRolled: (fn: (d: DiceRolledEvent) => void) => { onRolled = fn; }, onDiceRolledSecret: vi.fn(), onDiceHistoryCleared: vi.fn(),
       isConnected: () => true, sendChatMessage: vi.fn(), rollDice: vi.fn(),
     },

@@ -18,6 +18,7 @@ import type {
   DiceRollAck,
   DoneAck,
   ChatMessageBroadcast,
+  ChatMessageUpdated,
   ChatSystemBroadcast,
   SessionStartedBroadcast,
   SessionPausedBroadcast,
@@ -634,6 +635,11 @@ class SocketClient {
 
   onChatMessage(callback: EventCallback<ChatMessageBroadcast>) {
     this.addListener('chat.message', callback);
+  }
+
+  /** A message's card changed (after an undo or a concentration roll): `{ id, metadata }`, as this reader may see it. */
+  onChatMessageUpdated(callback: EventCallback<ChatMessageUpdated>) {
+    this.addListener('chat.message.updated', callback);
   }
 
   onChatSystem(callback: EventCallback<ChatSystemBroadcast>) {

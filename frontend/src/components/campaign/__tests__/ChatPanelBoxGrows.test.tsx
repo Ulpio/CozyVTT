@@ -18,7 +18,7 @@ vi.mock('@/contexts/CampaignContext', () => ({
   useCampaign: () => ({ userRole: 'PLAYER', campaign: { id: 'campaign-1', status: 'ACTIVE', memberships: [], characters: [], chatCooldownEnabled: false } }),
 }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'me', displayName: 'Me' } }) }));
-const socket = { onChatMessage: vi.fn(), onChatSystem: vi.fn(), off: vi.fn(), sendChatMessage: vi.fn() };
+const socket = { onChatMessage: vi.fn(), onChatSystem: vi.fn(), onChatMessageUpdated: vi.fn(), off: vi.fn(), sendChatMessage: vi.fn() };
 vi.mock('@/contexts/WebSocketContext', () => ({ useWebSocket: () => ({ socket, joinedEpoch: 1 }) }));
 const empty: MessageHistoryPage = { messages: [], pagination: { limit: 50, hasMore: false, nextCursor: null } };
 vi.mock('@/services/message.service', () => ({ getMessages: async () => empty }));

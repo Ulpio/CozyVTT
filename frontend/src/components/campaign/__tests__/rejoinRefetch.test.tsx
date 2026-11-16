@@ -30,7 +30,7 @@ vi.mock('@/contexts/AuthContext', () => ({
 }));
 const socket = {
   onDiceRolled: vi.fn(), onDiceRolledSecret: vi.fn(), onDiceHistoryCleared: vi.fn(),
-  onChatMessage: vi.fn(), onChatSystem: vi.fn(), on: vi.fn(), off: vi.fn(), rollDice: vi.fn().mockResolvedValue({ ok: true, id: "r" }), sendChatMessage: vi.fn(),
+  onChatMessage: vi.fn(), onChatSystem: vi.fn(), onChatMessageUpdated: vi.fn(), on: vi.fn(), off: vi.fn(), rollDice: vi.fn().mockResolvedValue({ ok: true, id: "r" }), sendChatMessage: vi.fn(),
 };
 vi.mock('@/contexts/WebSocketContext', () => ({
   useWebSocket: () => ({ socket, status: 'connected', reconnectCount: ws.reconnectCount, joinedEpoch: ws.joinedEpoch }),

@@ -21,7 +21,7 @@ vi.mock('@/contexts/CampaignContext', () => ({
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'me', displayName: 'Me' } }) }));
 vi.mock('@/contexts/WebSocketContext', () => ({
   useWebSocket: () => ({
-    socket: { onChatMessage: vi.fn(), onChatSystem: vi.fn(), off: vi.fn(), on: vi.fn(), isConnected: () => true, sendChatMessage: vi.fn() },
+    socket: { onChatMessage: vi.fn(), onChatSystem: vi.fn(), onChatMessageUpdated: vi.fn(), off: vi.fn(), on: vi.fn(), isConnected: () => true, sendChatMessage: vi.fn() },
     status: 'connected', joinedEpoch: 1, reconnectCount: 0,
   }),
 }));

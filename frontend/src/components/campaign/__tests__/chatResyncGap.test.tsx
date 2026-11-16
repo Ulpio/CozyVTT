@@ -19,7 +19,7 @@ vi.mock('@/contexts/CampaignContext', () => ({
 }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'me', displayName: 'Me' } }) }));
 vi.mock('@/contexts/WebSocketContext', () => ({
-  useWebSocket: () => ({ socket: { onChatMessage: vi.fn(), onChatSystem: vi.fn(), off: vi.fn(), sendChatMessage: vi.fn() }, joinedEpoch: ws.joinedEpoch }),
+  useWebSocket: () => ({ socket: { onChatMessage: vi.fn(), onChatSystem: vi.fn(), onChatMessageUpdated: vi.fn(), off: vi.fn(), sendChatMessage: vi.fn() }, joinedEpoch: ws.joinedEpoch }),
 }));
 const getMessages = vi.fn();
 vi.mock('@/services/message.service', () => ({ getMessages: (...a: unknown[]) => getMessages(...a) }));

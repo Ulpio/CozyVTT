@@ -35,7 +35,7 @@ const rollDice = vi.fn();
 vi.mock('@/contexts/WebSocketContext', () => ({
   useWebSocket: () => ({
     socket: {
-      onChatMessage: vi.fn(), onChatSystem: vi.fn(), off: vi.fn(), on: vi.fn(),
+      onChatMessage: vi.fn(), onChatSystem: vi.fn(), onChatMessageUpdated: vi.fn(), off: vi.fn(), on: vi.fn(),
       onDiceRolled: vi.fn(), onDiceRolledSecret: vi.fn(), onDiceHistoryCleared: vi.fn(),
       isConnected: () => true, sendChatMessage: (d: ChatMessageEvent) => sendChatMessage(d), rollDice: (...a: unknown[]) => rollDice(...a),
     },

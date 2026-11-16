@@ -30,6 +30,8 @@ export interface ChatMessageBroadcast {
   recipientName?: string;
   /** On the sender's own copy only: the `clientId` it was sent with. */
   clientId?: string;
+  /** On a bar action's message: its card, as the reader may see it (services/actionMessages.ts). */
+  metadata?: unknown;
 }
 
 /** How long a resent `clientId` is recognised. */

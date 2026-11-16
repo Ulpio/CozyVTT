@@ -28,7 +28,7 @@ let onMessage: ((data: ChatMessageBroadcast) => void) | null = null;
 const sendChatMessage = vi.fn<(data: ChatMessageEvent) => Promise<ChatMessageAck>>();
 const socket = {
   onChatMessage: (fn: (data: ChatMessageBroadcast) => void) => { onMessage = fn; },
-  onChatSystem: vi.fn(),
+  onChatSystem: vi.fn(), onChatMessageUpdated: vi.fn(),
   off: vi.fn(),
   sendChatMessage: (data: ChatMessageEvent) => sendChatMessage(data),
 };

@@ -1481,7 +1481,10 @@ export interface ChatMessageBroadcast {
   recipientName?: string;
   /** On the sender's own copy only: the `clientId` it was sent with. */
   clientId?: string;
+  /** On a bar action's message: its card, as the reader may see it (services/actionMessages.ts). */
+  metadata?: unknown;
 }
+/** `chat.message.updated`: a message's card changed; the reader's own projection of it. */export interface ChatMessageUpdated {  id: string;  metadata: unknown;}
 
 // Session Events
 export interface SessionStartedBroadcast {

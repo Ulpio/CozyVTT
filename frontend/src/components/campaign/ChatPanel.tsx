@@ -22,7 +22,7 @@ import ChatMessage from './ChatMessage';
 import JumpToNewest from './JumpToNewest';
 import ChatMessageSkeleton from '@/components/skeletons/ChatMessageSkeleton';
 import { CampaignRole, MessageType } from '@/types';
-import type { Message, ChatMessageBroadcast, ChatMessageEvent, MessageHistoryPage } from '@/types';
+import type { Message, ChatMessageBroadcast, ChatMessageUpdated, ChatMessageEvent, MessageHistoryPage } from '@/types';
 import Button from '@/components/ui/Button';
 import { errorMessage, errorSummary } from '@/utils/errors';
 import type { ChatSystemBroadcast } from '@/types';
@@ -501,7 +501,7 @@ export default function ChatPanel() {
         recipient: data.recipientId ? { id: data.recipientId, displayName: data.recipientName ?? '' } : null,
         type: data.type,
         content: data.content,
-        metadata: null,
+        metadata: (data.metadata ?? null) as Message['metadata'],
         createdAt: data.timestamp,
       };
 
@@ -553,14 +553,26 @@ export default function ChatPanel() {
       }
     };
 
+    // A card changed (undone, a concentration rolled): the message keeps its
+    // place and takes the card this reader may see.
+    const handleMessageUpdated = (data: ChatMessageUpdated) => {
+      setMessages((prev) =>
+        prev.some((msg) => msg.id === data.id)
+          ? prev.map((msg) => (msg.id === data.id ? { ...msg, metadata: (data.metadata ?? null) as Message['metadata'] } : msg))
+          : prev
+      );
+    };
+
     socket.onChatMessage(handleChatMessage);
     socket.onChatSystem(handleSystemMessage);
+    socket.onChatMessageUpdated(handleMessageUpdated);
 
     return () => {
+      socket.off('chat.message.updated', handleMessageUpdated);
       socket.off('chat.message', handleChatMessage);
       socket.off('chat.system', handleSystemMessage);
     };
-  }, [socket, campaignId, addMessages]);
+  }, [socket, campaignId, addMessages, setMessages]);
 
   // ============================================
   // Rate Limiting
