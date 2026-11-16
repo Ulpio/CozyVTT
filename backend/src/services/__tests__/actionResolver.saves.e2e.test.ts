@@ -256,6 +256,11 @@ describe('Fireball', () => {
     const out = ok(await castFireball());
     expect(await rollPendingSave(campaignId, p1, { messageId: out.messageId, targetTokenId: 'cleric', mode: 'normal' }, seq(10)))
       .toEqual({ ok: false, error: 'Not your token' });
+    // The hidden goblin, or no target at all, reads the same to a player.
+    for (const targetTokenId of ['hidden-goblin', 'nobody']) {
+      expect(await rollPendingSave(campaignId, p1, { messageId: out.messageId, targetTokenId, mode: 'normal' }, seq(10)))
+        .toEqual({ ok: false, error: 'Not your token' });
+    }
     expect((await charData(clericId)).hp.current).toBe(30);
   });
 

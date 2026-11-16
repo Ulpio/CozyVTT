@@ -458,8 +458,9 @@ export async function rollPendingSave(
   const mode: RollMode = input.mode === 'advantage' || input.mode === 'disadvantage' ? input.mode : 'normal';
   const outcome = await withCardLocked(campaignId, input.messageId, async (tx, card) => {
     const target = card.targets.find((t) => t.tokenId === input.targetTokenId && t.save);
+    // A player is told the same whether or not the id is a target they cannot see.
+    if (requester.role !== 'GM' && !target?.controllerUserIds?.includes(requester.userId)) return refuse(NOT_YOUR_TOKEN);
     if (!target) return refuse(INVALID_TARGET);
-    if (requester.role !== 'GM' && !target.controllerUserIds?.includes(requester.userId)) return refuse(NOT_YOUR_TOKEN);
     if (card.undoneAt || target.undoneAt) return refuse(ALREADY_UNDONE);
     if (target.save!.status !== 'pending') return refuse(ALREADY_ROLLED);
     return rollOnCard(tx, campaignId, input.messageId, card, [target], mode, requester.role === 'GM' ? 'gm' : 'owner', rng);
