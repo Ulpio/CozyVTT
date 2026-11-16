@@ -365,7 +365,7 @@ export function drawRuler(
   ctx.restore();
 }
 
-import { cubeRect, snapToSquareCentre, squareExitPoint, squaresFor, coneOutline, type ConeRule } from '../aoeGeometry';
+import { cubeRect, snapToSquareCentre, squareExitPoint, squaresFor, coneOutline, type ConeRule } from '@/utils/aoeGeometry';
 
 export type AoEShape = 'sphere' | 'cylinder' | 'cone' | 'line' | 'cube';
 
