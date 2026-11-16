@@ -328,7 +328,7 @@ describe('saves, areas and recharge', () => {
   const breath = () => ({ mapId, actorTokenId: 'drake', actionId: 'npc:actions:0', mode: 'normal', area: { anchor: { x: 10 * 50 + 25, y: (100 - 10 - 0.5) * 50 } } });
   const secretLeaks = (value: unknown) => [
     ...leaks(value),
-    ...['bonus', 'controllerUserIds', 'concealed', 'recharge', 'undoSkipped'].filter((k) => keysOf(value).has(k)),
+    ...['bonus', 'controllerUserIds', 'concealed', 'seenBy', 'recharge', 'undoSkipped'].filter((k) => keysOf(value).has(k)),
     ...(JSON.stringify(value ?? null).includes(SECRET) ? [SECRET] : []),
   ];
 

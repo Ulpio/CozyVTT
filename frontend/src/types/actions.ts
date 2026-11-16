@@ -144,6 +144,7 @@ export interface ActionCardTarget {
   concentrationRolledAt?: string;
   controllerUserIds?: string[];
   concealed?: boolean;
+  seenBy?: string[];
   save?: ActionTargetSave;
   rays?: number;
   attacks?: ActionAttackResult[];

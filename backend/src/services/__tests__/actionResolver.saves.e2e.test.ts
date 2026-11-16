@@ -108,6 +108,7 @@ const goblin = (id: string, col: number, row: number, over: Record<string, unkno
 let gmId: string;
 let p1Id: string;
 let p2Id: string;
+let specId: string;
 let campaignId: string;
 let mapId: string;
 let heroId: string;
@@ -115,6 +116,7 @@ let clericId: string;
 let gm: Viewer;
 let p1: Viewer;
 let p2: Viewer;
+let spec: Viewer;
 
 const hero = (col = 10, row = 10) => token({ id: 'hero', name: 'Heroína', position: { x: col, y: row }, characterId: heroId, controlledBy: p1Id, type: 'player' });
 const clericToken = (col: number, row: number) => token({ id: 'cleric', name: 'Clérigo', position: { x: col, y: row }, characterId: clericId, controlledBy: p2Id, type: 'player' });
@@ -145,17 +147,19 @@ function ok<T extends { ok: boolean }>(out: T): Extract<T, { ok: true }> {
 }
 
 beforeAll(async () => {
-  const users = await Promise.all(['GM', 'P1', 'P2'].map((n) => createTestUser({ displayName: `P5b saves ${n}` })));
-  [gmId, p1Id, p2Id] = users.map((u) => u.id);
+  const users = await Promise.all(['GM', 'P1', 'P2', 'Spec'].map((n) => createTestUser({ displayName: `P5b saves ${n}` })));
+  [gmId, p1Id, p2Id, specId] = users.map((u) => u.id);
   gm = { role: 'GM', userId: gmId };
   p1 = { role: 'PLAYER', userId: p1Id };
   p2 = { role: 'PLAYER', userId: p2Id };
+  spec = { role: 'SPECTATOR', userId: specId };
   campaignId = (await createTestCampaign(gmId, { name: 'P5b saves', gameSystem: 'FIFTH_EDITION' })).id;
   await prisma.campaignMembership.createMany({
     data: [
       { userId: gmId, campaignId, role: 'GM', characterIds: [] },
       { userId: p1Id, campaignId, role: 'PLAYER', characterIds: [] },
       { userId: p2Id, campaignId, role: 'PLAYER', characterIds: [] },
+      { userId: specId, campaignId, role: 'SPECTATOR', characterIds: [] },
     ],
   });
   await prisma.compendiumBook.create({ data: { id: BOOK, name: 'P5b saves book', gameSystem: 'FIFTH_EDITION' } });
@@ -191,7 +195,7 @@ afterAll(async () => {
   await prisma.message.deleteMany({ where: { campaignId } });
   await cleanupCampaigns([campaignId]);
   await prisma.compendiumBook.delete({ where: { id: BOOK } });
-  await cleanupUsers([gmId, p1Id, p2Id]);
+  await cleanupUsers([gmId, p1Id, p2Id, specId]);
   await prisma.$disconnect();
 });
 
@@ -355,6 +359,45 @@ describe('Fireball', () => {
     await setTable([hero(), goblin('g1', 30, 30), goblin('statue', 31, 30, { type: 'object' }), token({ id: 'crate', name: 'Caixote', position: { x: 30, y: 31 } })]);
     const out = ok(await resolveAction(campaignId, p1, cast(FIREBALL(), { area: { anchor: px(30, 30) } }), seq(...times(8, 3), 10)));
     expect(out.card.targets.map((t) => t.tokenId)).toEqual(['g1']);
+  });
+
+  describe('on a lit map with no light', () => {
+    beforeAll(async () => {
+      await prisma.map.update({ where: { id: mapId }, data: { lightingEnabled: true, globalIllumination: false, lights: [] } });
+    });
+    afterAll(async () => {
+      await prisma.map.update({ where: { id: mapId }, data: { lightingEnabled: false, globalIllumination: true } });
+    });
+
+    // The hero at (10,10) makes out 5 squares in the dark, the cleric at (20,10) as far. The ball
+    // at (17,10) catches gnear (14,10), which the hero sees, gdark (19,10) and the cleric, which only
+    // the cleric's player sees.
+    it("leaves off a player's card a target out of their sight, and counts no pending save of it", async () => {
+      await setTable([
+        { ...hero(10, 10), sightRadius: 5 },
+        goblin('gnear', 14, 10),
+        goblin('gdark', 19, 10),
+        { ...clericToken(20, 10), sightRadius: 5 },
+      ]);
+      const out = ok(await resolveAction(campaignId, p1, cast(FIREBALL(), { area: { anchor: px(17, 10) } }), seq(...times(8, 3), 10, 10)));
+      expect(out.card.targets.map((t) => t.tokenId).sort()).toEqual(['cleric', 'gdark', 'gnear']);
+
+      const mine = projectActionCard(out.card, p1) as any;
+      expect(mine.targets.map((t: any) => t.tokenId)).toEqual(['gnear']);
+      expect(mine.pendingSaves).toBe(0);
+      expect(JSON.stringify(mine)).not.toContain('gdark');
+      expect(JSON.stringify(mine)).not.toContain('Clérigo');
+
+      const theirs = projectActionCard(out.card, p2) as any;
+      expect(theirs.targets.map((t: any) => t.tokenId).sort()).toEqual(['cleric', 'gdark']);
+      expect(theirs.targets.find((t: any) => t.tokenId === 'gdark').name).toBe('Goblin gdark');
+      expect(theirs.pendingSaves).toBe(1);
+
+      // A spectator has no token to see through, so sees none of them; the GM sees every one.
+      expect((projectActionCard(out.card, spec) as any).targets).toEqual([]);
+      expect(projectActionCard(out.card, gm)).toBe(out.card);
+      expect(JSON.stringify(projectActionCard(out.card, p1))).not.toContain('seenBy');
+    });
   });
 });
 

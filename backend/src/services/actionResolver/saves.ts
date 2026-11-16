@@ -61,8 +61,10 @@ import {
   healingDice,
   holdSheets,
   mapTokensTx,
+  markSeenBy,
   maskFor,
   newEntry,
+  onlookersIn,
   refuse,
   rolesIn,
   spendSlotAndConcentration,
@@ -194,6 +196,7 @@ export async function resolveTargetedAction(
   const mode: RollMode = req.mode === 'advantage' || req.mode === 'disadvantage' ? req.mode : 'normal';
   const roles = await rolesIn(campaignId);
   const spiritVisible = requester.role === 'GM' ? true : await getSpiritVisibility(campaignId, requester.userId);
+  const onlookers = await onlookersIn(campaignId, roles);
   const mapId = req.mapId;
 
   const outcome = await withMapsLocked([mapId], async (tx) => {
@@ -368,6 +371,8 @@ export async function resolveTargetedAction(
       }
     }
     card.targets = [...entries.values()];
+    // An area catches what the caster cannot see, and any target may be out of another player's sight.
+    markSeenBy(card.targets, map, onlookers);
 
     const actorMask = maskFor(actorToken);
     if (actorMask) card.actor.maskedName = actorMask;

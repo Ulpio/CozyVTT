@@ -173,6 +173,19 @@ describe('projectActionCard saving throws', () => {
     expect((projectActionCard(saveCard([h]), ann) as any).targets).toHaveLength(0);
   });
 
+  it('shows a target out of sight only to those who saw it, or control it, and counts no save of it for the rest', () => {
+    const dark = goblin({ tokenId: 't-dark', name: 'Lurker', seenBy: ['ann'], controllerUserIds: [], save: pendingSave() });
+    const c = saveCard([dark]);
+    const forBob: any = projectActionCard(c, bob);
+    expect(forBob.targets).toEqual([]);
+    expect(forBob.pendingSaves).toBe(0);
+    expect(JSON.stringify(forBob)).not.toMatch(/t-dark|Lurker|seenBy/);
+    expect((projectActionCard(c, spec) as any).targets).toEqual([]);
+    expect((projectActionCard(c, ann) as any).targets.map((t: any) => t.name)).toEqual(['Lurker']);
+    const mine = goblin({ tokenId: 't-dark', name: 'Lurker', seenBy: [], controllerUserIds: ['bob'], save: pendingSave() });
+    expect((projectActionCard(saveCard([mine]), bob) as any).targets[0].yourSave).toBe(true);
+  });
+
   it('flags yourSave only for the controller of a pending target', () => {
     const c = saveCard([hero()]);
     expect((projectActionCard(c, ann) as any).targets[0].yourSave).toBe(true);

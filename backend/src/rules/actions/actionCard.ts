@@ -57,6 +57,12 @@ export interface ActionCardTarget {
   controllerUserIds?: string[];
   /** GM-only: true when the token was masked as 'something-invisible' at resolve time. */
   concealed?: boolean;
+  /**
+   * GM-only: set when some player or spectator was not sent this token at
+   * resolve time (out of their sight, or on another plane); then only these
+   * user ids see it on the card. Absent: everyone sent the token sees it.
+   */
+  seenBy?: string[];
   save?: TargetSave;
   /** How many rays/darts hit this target, with one attack result per ray. */
   rays?: number;
@@ -216,9 +222,11 @@ export function projectActionCard(card: ActionCard, viewer: Viewer): PlayerActio
   if (card.actor.maskedName) actor.maskedName = card.actor.maskedName;
   else actor.name = card.actor.name;
 
-  // A concealed target never appears, unless this viewer controls it (they know it exists).
+  // A concealed target, or one this viewer was not sent, never appears, unless
+  // this viewer controls it (they know it exists).
   const visible = card.targets.filter(
-    (t) => !t.concealed || (viewer.role === 'PLAYER' && t.controllerUserIds?.includes(viewer.userId)),
+    (t) => (!t.concealed && (!t.seenBy || t.seenBy.includes(viewer.userId)))
+      || (viewer.role === 'PLAYER' && t.controllerUserIds?.includes(viewer.userId)),
   );
 
   const out: PlayerActionCard = {

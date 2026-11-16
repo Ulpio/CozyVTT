@@ -13,7 +13,7 @@ import type { Character, Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { withMapsLocked } from '../../utils/mapTokens';
 import { readTokens, toJson } from '../../utils/prisma-json';
-import { canActOnTokenPlane } from '../../utils/spirit-layer';
+import { canActOnTokenPlane, getSpiritVisibilityBatch, tokensSentTo, type MapTokenSight } from '../../utils/spirit-layer';
 import { applyHitPointChange } from '../../utils/rules/hitPoints';
 import { characterInCampaign } from '../../utils/characterCampaign';
 import { extractCharacterHp } from '../../utils/characterHp';
@@ -177,6 +177,28 @@ export function combineModes(a: RollMode, b: RollMode): RollMode {
   if (a === 'normal') return b;
   if (b === 'normal' || a === b) return a;
   return 'normal';
+}
+
+/** The members who are not the GM, each with the plane they see: whose sight a card's targets are checked against. */
+export interface Onlooker { userId: string; role: string; spiritVisible: boolean }
+
+export async function onlookersIn(campaignId: string, roles: Map<string, string>): Promise<Onlooker[]> {
+  const ids = [...roles].filter(([, role]) => role !== 'GM').map(([id]) => id);
+  const planes = await getSpiritVisibilityBatch(campaignId, ids);
+  return ids.map((userId) => ({ userId, role: roles.get(userId)!, spiritVisible: planes.get(userId) ?? false }));
+}
+
+/**
+ * Marks each target some onlooker is not sent (out of their sight on a lit
+ * map, on another plane, hidden) with who is: the projection leaves it off
+ * every other reader's card, so an area cannot tell a player what is in the dark.
+ */
+export function markSeenBy(targets: ActionCardTarget[], map: MapTokenSight, onlookers: Onlooker[]): void {
+  const sent = onlookers.map((o) => ({ userId: o.userId, ids: new Set(tokensSentTo(map, o.role, o.spiritVisible, o.userId).map((t) => t?.id)) }));
+  for (const target of targets) {
+    const seenBy = sent.filter((s) => s.ids.has(target.tokenId)).map((s) => s.userId);
+    if (seenBy.length < sent.length) target.seenBy = seenBy;
+  }
 }
 
 /** What one target's entry starts as: who it is, who answers for it, and what players may know of it. */
