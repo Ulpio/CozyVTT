@@ -126,3 +126,13 @@ describe('an action card in chat', () => {
     void waitFor;
   });
 });
+
+describe('masked tokens', () => {
+  it("shows the GM a masked token's real name", () => {
+    h.role = 'GM';
+    const card = { ...gmCard, targets: [{ ...(gmCard as { targets: object[] }).targets[0], name: 'Goblin', maskedName: 'something-invisible' }] };
+    render(<ChatMessage message={msg(card)} />);
+    expect(screen.getByText(/Mara → Goblin · Longsword/)).toBeInTheDocument();
+    expect(screen.queryByText(/Something/)).toBeNull();
+  });
+});

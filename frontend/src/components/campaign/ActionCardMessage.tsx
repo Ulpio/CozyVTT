@@ -22,9 +22,10 @@ import type { ActionCard, ActionCardTarget, ActionCardView, ActionMaskedName, Co
 type Target = ActionCardTarget | PlayerActionCardTarget;
 
 function useDisplayName() {
+  // A player's card omits the name of a masked token; the GM's carries both, and reads the real one.
   const { t } = useTranslation();
   return (name: string | undefined, masked: ActionMaskedName | undefined): string =>
-    masked ? t(masked === 'something-invisible' ? 'actionCard.somethingInvisible' : 'actionCard.something') : (name ?? '');
+    name !== undefined ? name : masked ? t(masked === 'something-invisible' ? 'actionCard.somethingInvisible' : 'actionCard.something') : '';
 }
 
 const asGm = (target: Target): ActionCardTarget | null => ('ac' in target ? target : null);
