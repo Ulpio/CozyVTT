@@ -114,6 +114,57 @@ describe('characterActions', () => {
     expect(out[0].option.reach).toEqual({ kind: 'feet', normal: 80, long: 320 });
   });
 
+  it("reads a hand-made ranged weapon's range from the sheet, in feet", () => {
+    const out = characterActions({ attacks: [{ name: 'Funda', attackBonus: 3, damageRoll: '1d4+1', range: 30 }] } as any, spells, weapons);
+    expect(out).toHaveLength(1);
+    expect(out[0].option.reach).toEqual({ kind: 'feet', normal: 30 });
+  });
+
+  it("keeps a hand-made thrown weapon in melee and throws it to the sheet's range", () => {
+    const out = characterActions({ attacks: [{ name: 'Lança', attackBonus: 3, damageRoll: '1d6+1', range: 20, properties: ['thrown'] }] } as any, spells, weapons);
+    expect(out.map((x) => x.option.id)).toEqual(['attack:0', 'attack:0:thrown']);
+    expect(out[0].option.reach).toEqual({ kind: 'feet', normal: 5 });
+    expect(out[1].option.reach).toEqual({ kind: 'feet', normal: 20 });
+  });
+
+  it('reads the English reach property', () => {
+    const out = characterActions({ attacks: [{ name: 'Whip', attackBonus: 3, damageRoll: '1d4', properties: ['Reach'] }] } as any, spells, weapons);
+    expect(out[0].option.reach).toEqual({ kind: 'feet', normal: 10 });
+  });
+
+  it('lists a spell with no compendium entry as a cast, by its index on the sheet', () => {
+    const c = sheet('clerigo');
+    c.spellcasting.spells = [
+      { level: 1, name: 'Bênção', prepared: true, ritual: false, concentration: true, compendiumRef: { bookId: 'book-test', slug: 'bencao' } },
+      { level: 2, name: 'Magia caseira', prepared: true, ritual: false, concentration: true },
+    ];
+    c.spellcasting.cantrips = [...c.spellcasting.cantrips, 'Truque caseiro'];
+    const out = characterActions(c, spells, weapons);
+    const s = out.find((x) => x.option.id === 'spell:sheet:1')!;
+    expect(s.option).toMatchObject({ name: 'Magia caseira', group: 'spell', resolution: 'cast', spellLevel: 2, concentration: true });
+    const cantrip = out.find((x) => x.option.id === `spell:sheet-cantrip:${c.spellcasting.cantrips.length - 1}`)!;
+    expect(cantrip.option).toMatchObject({ name: 'Truque caseiro', resolution: 'cast', spellLevel: 0 });
+    // A cantrip the sheet already points at a book for is listed once, by its book id.
+    expect(out.filter((x) => x.option.name === 'S luz' || x.option.id.startsWith('spell:sheet-cantrip:')).length).toBe(1);
+  });
+
+  it('leaves out a spell with no compendium entry that the sheet already lists as an attack', () => {
+    const out = characterActions({
+      attacks: [{ name: 'Rajada caseira', attackBonus: 5, damageRoll: '1d10' }],
+      spellcasting: { cantrips: ['Rajada caseira'], spells: [] },
+    } as any, spells, weapons);
+    expect(out.map((x) => x.option.id)).toEqual(['attack:0']);
+  });
+
+  it('gives a cast spell its compendium text to post', () => {
+    const withText = new Map(spells);
+    withText.set('book-test/bencao', { ...spells.get('book-test/bencao')!, text: 'Texto inventado da magia.' });
+    const c = sheet('clerigo');
+    c.spellcasting.spells = [{ level: 1, name: 'Bênção', prepared: true, ritual: false, concentration: true, compendiumRef: { bookId: 'book-test', slug: 'bencao' } }];
+    const s = characterActions(c, withText, weapons).find((x) => x.option.id === 'spell:book-test/bencao')!;
+    expect(s.description).toBe('Texto inventado da magia.');
+  });
+
   it('keeps an attack with unreadable damage, with no damage', () => {
     const out = characterActions({ attacks: [{ name: 'Golpe', attackBonus: 3, damageRoll: 'muito' }] } as any, spells, weapons);
     expect(out[0].option.id).toBe('attack:0');
@@ -185,10 +236,11 @@ describe('npcActions', () => {
     expect(npcActions({ reactions: [{ name: 'Aparar', description: 'Texto.' }] } as any)[0].option.id).toBe('npc:reactions:0');
   });
 
-  it('keeps an attack with unparseable dice, with no damage', () => {
-    const out = npcActions({ actions: [{ name: 'X', description: 'Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 1,5 m, um alvo. Acerto: 5 (muito) de dano cortante.' }] } as any);
-    expect(out[0].option.resolution).toBe('attack');
-    expect(out[0].damage).toEqual([]);
+  it('posts the text of an attack whose damage cannot be read (a net, say)', () => {
+    const description = 'Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 1,5 m, um alvo. Acerto: 5 (muito) de dano cortante.';
+    const out = npcActions({ actions: [{ name: 'X', description }] } as any);
+    expect(out[0].option).toMatchObject({ id: 'npc:actions:0', resolution: 'post' });
+    expect(out[0].description).toBe(description);
   });
 });
 

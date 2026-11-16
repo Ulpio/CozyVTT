@@ -37,6 +37,8 @@ export interface ResolvedActionSpec {
 export interface CompendiumSpell {
   slug: string;
   name: string;
+  /** The entry's text, posted on the card of a spell with nothing to roll. */
+  text?: string;
   data: {
     level: number;
     range: string;
@@ -138,6 +140,8 @@ function spellSpec(
   const heal = cleanDice(mech?.healing);
   if (resolution === 'heal' && heal) spec.healing = { dice: heal, addModifier: mech?.healingAddsModifier === true };
   if (mech?.scaling) spec.scaling = mech.scaling;
+  // Nothing to roll: the card posts what the spell does.
+  if (resolution === 'cast' && entry?.text) spec.description = entry.text;
   return spec;
 }
 
@@ -157,16 +161,28 @@ export function characterActions(
   // Spells first, so an attack cantrip that is also in attacks[] is listed once.
   const spellSpecs: ResolvedActionSpec[] = [];
   const seen = new Set<string>();
-  const addSpell = (name: string, level: number | undefined, conc: boolean | undefined, ref?: { bookId: string; slug: string }) => {
-    if (!ref) return;
+  const attackNames = new Set((sheet?.attacks ?? []).map((a) => a.name.trim().toLowerCase()));
+  const addSpell = (name: string, level: number | undefined, conc: boolean | undefined, ref: { bookId: string; slug: string } | undefined, sheetId: string) => {
+    if (!ref) {
+      // No book entry: a cast that spends the slot and takes up concentration.
+      // One the sheet also lists as an attack row is that row.
+      if (attackNames.has(name.trim().toLowerCase())) return;
+      spellSpecs.push(spellSpec(`spell:${sheetId}`, name, level, conc, undefined, spellAttackBonus));
+      return;
+    }
     const k = key(ref);
     if (seen.has(k)) return;
     seen.add(k);
     spellSpecs.push(spellSpec(`spell:${k}`, name, level, conc, spells.get(k), spellAttackBonus));
   };
   const sc = sheet?.spellcasting;
-  for (const c of sc?.cantripRefs ?? []) addSpell(c.name, 0, false, c.compendiumRef);
-  for (const s of sc?.spells ?? []) addSpell(s.name, s.level, s.concentration, s.compendiumRef);
+  for (const c of sc?.cantripRefs ?? []) addSpell(c.name, 0, false, c.compendiumRef, '');
+  // Cantrips are names; those with a book entry are in cantripRefs.
+  const cantripsWithRef = new Set((sc?.cantripRefs ?? []).map((c) => c.name));
+  (sc?.cantrips ?? []).forEach((name, i) => {
+    if (typeof name === 'string' && name.trim() && !cantripsWithRef.has(name)) addSpell(name, 0, false, undefined, `sheet-cantrip:${i}`);
+  });
+  (sc?.spells ?? []).forEach((s, i) => addSpell(s.name, s.level, s.concentration, s.compendiumRef, `sheet:${i}`));
   const attackSpellRefs = new Set(spellSpecs.filter((s) => s.option.resolution === 'attack').map((s) => s.option.id.slice('spell:'.length)));
 
   (sheet?.attacks ?? []).forEach((atk, i) => {
@@ -178,7 +194,11 @@ export function characterActions(
       return;
     }
     const wpn = atk.compendiumRef ? weapons.get(key(atk.compendiumRef)) : undefined;
-    const props = new Set([...(atk.properties ?? []), ...(wpn?.data.properties ?? [])].map((p) => p.toLowerCase()));
+    const props = new Set([...(atk.properties ?? []), ...(wpn?.data.properties ?? [])].map((p) => p.trim().toLowerCase()));
+    const thrownWeapon = props.has('arremesso') || props.has('thrown');
+    const reachWeapon = props.has('alcance') || props.has('reach');
+    // The sheet's own range (feet), for a weapon the book gives none.
+    const sheetRange = typeof atk.range === 'number' && atk.range > 5 && typeof wpn?.data.normalRange !== 'number' ? atk.range : undefined;
 
     const damage: Damage[] = [];
     const base = damageOf(atk.damageRoll, atk.damageType);
@@ -195,8 +215,10 @@ export function characterActions(
     if (wpn?.data.range === 'ranged' && typeof wpn.data.normalRange === 'number') {
       reach = { kind: 'feet', normal: metresToFeet(wpn.data.normalRange) };
       if (typeof wpn.data.longRange === 'number') reach.long = metresToFeet(wpn.data.longRange);
+    } else if (sheetRange !== undefined && !thrownWeapon) {
+      reach = { kind: 'feet', normal: sheetRange };
     } else {
-      reach = { kind: 'feet', normal: props.has('alcance') ? 10 : 5 };
+      reach = { kind: 'feet', normal: reachWeapon ? 10 : 5 };
     }
 
     const option: ActionOption = { id: `attack:${i}`, name: atk.name, group: 'attack', resolution: 'attack', reach };
@@ -205,9 +227,14 @@ export function characterActions(
     if (versatile) spec.versatileDamage = versatile;
     out.push(spec);
 
-    if (props.has('arremesso') && typeof wpn?.data.normalRange === 'number' && wpn.data.range === 'melee') {
-      const thrown: Reach = { kind: 'feet', normal: metresToFeet(wpn.data.normalRange) };
+    let thrown: Reach | undefined;
+    if (thrownWeapon && typeof wpn?.data.normalRange === 'number' && wpn.data.range === 'melee') {
+      thrown = { kind: 'feet', normal: metresToFeet(wpn.data.normalRange) };
       if (typeof wpn.data.longRange === 'number') thrown.long = metresToFeet(wpn.data.longRange);
+    } else if (thrownWeapon && sheetRange !== undefined && wpn?.data.range !== 'ranged') {
+      thrown = { kind: 'feet', normal: sheetRange };
+    }
+    if (thrown) {
       out.push({
         option: { id: `attack:${i}:thrown`, name: `${atk.name} (arremesso)`, group: 'attack', resolution: 'attack', reach: thrown },
         attackBonus: atk.attackBonus,
@@ -233,6 +260,11 @@ export function npcActions(statBlock: NpcStatBlockInput): ResolvedActionSpec[] {
         return;
       }
       const damage = parsed.damage.map((d) => damageOf(d.dice, d.type)).filter((d): d is Damage => d !== null);
+      if (damage.length === 0) {
+        // An attack with no damage to roll (a net): its text is posted.
+        out.push({ option: { id, name: entry.name, group: 'npc', resolution: 'post' }, damage: [], description: entry.description });
+        return;
+      }
       const normal = parsed.kind === 'melee' ? (parsed.reachFeet ?? parsed.normalFeet ?? 5) : (parsed.normalFeet ?? parsed.reachFeet ?? 5);
       const reach: Reach = { kind: 'feet', normal };
       if (parsed.kind === 'ranged' && parsed.longFeet !== undefined) reach.long = parsed.longFeet;

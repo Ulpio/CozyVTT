@@ -44,11 +44,11 @@ async function compendiumFor(campaignId: string, sheet: FifthEditionCharacterDat
       type: { in: ['spell', 'weapon'] },
       OR: wanted.map((r) => ({ bookId: r.bookId, slug: r.slug })),
     },
-    select: { bookId: true, type: true, slug: true, name: true, data: true },
+    select: { bookId: true, type: true, slug: true, name: true, text: true, data: true },
   });
   for (const row of rows) {
     const key = `${row.bookId}/${row.slug}`;
-    const entry = { slug: row.slug, name: row.name, data: row.data as Prisma.JsonObject };
+    const entry = { slug: row.slug, name: row.name, text: row.text, data: row.data as Prisma.JsonObject };
     if (row.type === 'spell') spells.set(key, entry as unknown as CompendiumSpell);
     else weapons.set(key, entry as unknown as CompendiumWeapon);
   }
