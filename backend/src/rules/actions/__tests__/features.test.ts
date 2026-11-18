@@ -165,6 +165,22 @@ describe('withFeatures', () => {
     expect(options(sheet({ activeStates: [RAGE_ID] }), barbarian).find((o) => o.id === RAGE_ID)?.active).toBe(true);
   });
 
+  it('tells the bar what a feature is aimed at: one target per unarmed strike, an amount to choose', () => {
+    const monk: CompendiumClass = {
+      ...barbarian,
+      data: {
+        features: [
+          { name: 'Rajada Inventada', description: '', level: 1, mechanics: { action: { key: 'rajada', kind: 'attacks', cost: 'bonus', attacks: { count: 2, unarmedDice: { '1': '1d4' } } } } },
+          { name: 'Toque Inventado', description: '', level: 1, mechanics: { action: { key: 'toque', kind: 'heal', cost: 'action', resources: [{ key: 'toque', max: { '1': 5 }, recovers: 'long' }], spends: { key: 'toque', chosen: true } } } },
+        ],
+      },
+    };
+    const found = options(sheet({ level: 1 }), monk);
+    expect(found.find((o) => o.id === `feature:${BOOK}/barbaro/rajada`)).toMatchObject({ reach: { kind: 'touch' }, targeting: { kind: 'multi', count: 2, distinct: false } });
+    expect(found.find((o) => o.id === `feature:${BOOK}/barbaro/toque`)).toMatchObject({ reach: { kind: 'touch' }, chosenAmount: true });
+    expect(found.find((o) => o.id === RAGE_ID)).toBeUndefined();
+  });
+
   it('gives passive and none features no option, and a feature with no cost costs none', () => {
     const s = sheet({ level: 6 });
     const features = options(s, barbarian, subclass).filter((o) => o.group === 'feature');

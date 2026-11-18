@@ -250,6 +250,14 @@ export function withFeatures(specs: ResolvedActionSpec[], features: ActorFeature
       const uses = usesOf(f.action, pools);
       if (uses) option.uses = uses;
       if (active.has(f.id)) option.active = true;
+      if (f.action.kind === 'attacks' && f.action.attacks) {
+        option.reach = { kind: 'touch' };
+        option.targeting = { kind: 'multi', count: f.action.attacks.count, distinct: false };
+      }
+      if (f.action.kind === 'heal' && f.action.spends?.chosen) {
+        option.reach = { kind: 'touch' };
+        option.chosenAmount = true;
+      }
       const spec: ResolvedActionSpec = { option, damage: [], source: 'feature', feature: f };
       return spec;
     });

@@ -48,6 +48,8 @@ export interface ActionOption {
   meleeWeapon?: true;
   /** Class features: the uses left in the pool the feature spends. */
   uses?: { left: number; max: number };
+  /** Class feature that heals an amount the player chooses (Lay on Hands): the bar asks for it. */
+  chosenAmount?: true;
   /** Class feature states: running now. */
   active?: true;
   /** Weapon attacks: the features that can add to the hit (Sneak Attack, Divine Smite). */
@@ -68,6 +70,12 @@ export interface ActionAreaPlacement {
   aim?: Pt;
 }
 
+/** A rider chosen for a weapon attack; a rider that spends a spell slot names its level. */
+export interface ActionRiderChoice {
+  featureId: string;
+  slotLevel?: number;
+}
+
 /** What the client may send: never a bonus or dice. */
 export interface ActionRequest {
   mapId: string;
@@ -80,6 +88,9 @@ export interface ActionRequest {
   slotLevel?: number;
   grip?: 'one' | 'two';
   replaceConcentration?: boolean;
+  /** Lay on Hands: how much of the pool to spend. */
+  amount?: number;
+  riders?: ActionRiderChoice[];
 }
 
 /** The actor's turn in a fight, as `action.list` sends it with the options. */

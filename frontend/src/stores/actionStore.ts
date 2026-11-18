@@ -18,7 +18,7 @@ import { actionsService } from '@/services/actions.service';
 import { AIM_THE_AREA, PICK_A_TARGET, PICK_EVERY_RAY, centredOnCaster } from '@/utils/actionTargeting';
 import type { Pt } from '@/utils/aoeGeometry';
 import { useGameStore } from './gameStore';
-import type { ActionAreaPlacement, ActionOption, ActionRequest, ActionRollMode } from '@/types/actions';
+import type { ActionAreaPlacement, ActionOption, ActionRequest, ActionRiderChoice, ActionRollMode } from '@/types/actions';
 
 export { PICK_EVERY_RAY };
 
@@ -27,6 +27,10 @@ export interface PendingAction {
   option: ActionOption;
   slotLevel?: number;
   grip?: 'one' | 'two';
+  /** Features added to a weapon attack, chosen while the target is picked (a slot rider carries its slot level). */
+  riders?: ActionRiderChoice[];
+  /** A feature that heals from a pool (Lay on Hands): how much to spend. */
+  amount?: number;
   /** The tokens picked so far, in order, for an action with several targets (a ray may repeat one). */
   picked: string[];
   /** Where an area action is aimed, in map pixels; null until it is. */
@@ -43,6 +47,8 @@ interface ActionState {
   /** The last refusal, for a toast; `seq` makes a repeat of the same text a new event. */
   lastError: { message: string; seq: number } | null;
   begin: (p: Omit<PendingAction, 'picked' | 'area'>) => void;
+  /** Turn a rider of the pending weapon attack on (with its slot level, if it spends one) or off. */
+  setRider: (rider: ActionRiderChoice, on: boolean) => void;
   cancel: () => void;
   setMode: (m: ActionRollMode) => void;
   resolvePending: (targetTokenId?: string) => Promise<ResolveResult>;
@@ -72,6 +78,8 @@ export function targetsNeeded(pending: Pick<PendingAction, 'option' | 'slotLevel
 /** Whether the action is aimed at nobody: a self action with no area and no target list (a draining touch reads "self" but attacks someone). */
 function resolvesAtOnce(option: ActionOption): boolean {
   const kind = option.targeting?.kind;
+  // A feature that is aimed at no one (Rage, Second Wind, Action Surge) has no reach.
+  if (option.resolution === 'feature' && !option.reach) return true;
   return option.reach?.kind === 'self' && kind !== 'area' && kind !== 'multi' && option.resolution !== 'attack';
 }
 
@@ -123,6 +131,8 @@ export const useActionStore = create<ActionState>((set, get) => {
       mode: get().mode,
       ...(pending.slotLevel !== undefined ? { slotLevel: pending.slotLevel } : {}),
       ...(pending.grip !== undefined ? { grip: pending.grip } : {}),
+      ...(pending.riders && pending.riders.length > 0 ? { riders: pending.riders.map((r) => ({ ...r })) } : {}),
+      ...(pending.amount !== undefined ? { amount: pending.amount } : {}),
     };
   }
 
@@ -140,6 +150,13 @@ export const useActionStore = create<ActionState>((set, get) => {
     },
 
     cancel: () => set({ pending: null, concentrationConfirm: null }),
+
+    setRider: (rider, on) => {
+      const pending = get().pending;
+      if (!pending) return;
+      const others = (pending.riders ?? []).filter((r) => r.featureId !== rider.featureId);
+      set({ pending: { ...pending, riders: on ? [...others, rider] : others } });
+    },
 
     report: (error) => { refuseLocally(error); },
 

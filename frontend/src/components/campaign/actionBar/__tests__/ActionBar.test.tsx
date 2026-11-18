@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { useGameStore } from '@/stores/gameStore';
 import { useActionStore } from '@/stores/actionStore';
-import { h, token, longsword, fireBolt, magicMissile, scimitar, shortbow, fireBreath } from './barHarness';
+import { h, token, longsword, fireBolt, magicMissile, scimitar, shortbow, fireBreath, rage, healingWord, sneakAttack, divineSmite, combatTurn } from './barHarness';
 
 vi.mock('@/contexts/CampaignContext', () => ({
   useCampaign: () => ({
@@ -59,8 +59,9 @@ function seed() {
   h.characters = [{ id: 'c-fighter', userId: 'u1', name: 'Brienne' }, { id: 'c-wizard', userId: 'u2', name: 'Merlo' }];
   h.options = { 'tok-fighter': [longsword], 'tok-wizard': [fireBolt, magicMissile], goblin: [scimitar, shortbow] };
   h.sheets = { 'c-fighter': fighterSheet, 'c-wizard': wizardSheet };
-  h.list.mockImplementation(async (_map: string, actor: string) => ({ options: h.options[actor] ?? [] }));
+  h.list.mockImplementation(async (_map: string, actor: string) => ({ options: h.options[actor] ?? [], ...(h.combat ? { combat: h.combat } : {}) }));
   h.getCharacter.mockImplementation(async (id: string) => ({ character: h.sheets[id] }));
+  h.combat = undefined;
   h.roll.mockReset();
   h.recharge.mockReset();
   h.rechargeReset.mockReset();
@@ -294,5 +295,163 @@ describe('the rest of the bar', () => {
     } finally {
       await act(async () => { await i18n.changeLanguage('en'); });
     }
+  });
+});
+
+describe('the turn on the bar', () => {
+  beforeEach(() => { h.userId = 'u2'; });
+  const spent = 'Você já usou a ação neste turno.';
+
+  it('greys an action spell with the refusal as its title and leaves a bonus spell enabled', async () => {
+    h.options['tok-wizard'] = [fireBolt, healingWord];
+    h.combat = combatTurn({ spend: { action: true } });
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Spells' }));
+    const bolt = await screen.findByRole('button', { name: 'Fire Bolt' });
+    expect(bolt).toBeDisabled();
+    expect(bolt).toHaveAttribute('title', spent);
+    expect(screen.getByRole('button', { name: 'Healing Word' })).toBeEnabled();
+  });
+
+  it('allows only reactions off turn, and says it is not the turn', async () => {
+    h.options['tok-wizard'] = [fireBolt, { ...healingWord, cost: 'reaction' }];
+    h.combat = combatTurn({ yourTurn: false });
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Spells' }));
+    expect(await screen.findByRole('button', { name: 'Fire Bolt' })).toHaveAttribute('title', 'Não é a sua vez.');
+    expect(screen.getByRole('button', { name: 'Healing Word' })).toBeEnabled();
+  });
+
+  it('greys a spell that takes too long to cast in a fight', async () => {
+    h.options['tok-wizard'] = [{ ...fireBolt, combatUnavailable: true, castingTime: '1 minute' }];
+    h.combat = combatTurn();
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Spells' }));
+    const bolt = await screen.findByRole('button', { name: 'Fire Bolt' });
+    expect(bolt).toBeDisabled();
+    expect(bolt).toHaveAttribute('title', 'Takes 1 minute');
+  });
+
+  it('shows the strip and greys an attack when the action is spent', async () => {
+    h.userId = 'u1';
+    h.combat = combatTurn({ spend: { action: true, attacksLeft: 0 } });
+    render(<ActionBar />);
+    const sword = await screen.findByRole('button', { name: 'Longsword' });
+    expect(sword).toBeDisabled();
+    expect(sword).toHaveAttribute('title', spent);
+    expect(screen.getByText('Your turn')).toBeInTheDocument();
+  });
+
+  it('greys nothing and shows no strip without a combat', async () => {
+    h.userId = 'u1';
+    render(<ActionBar />);
+    expect(await screen.findByRole('button', { name: 'Longsword' })).toBeEnabled();
+    expect(screen.queryByText('Your turn')).toBeNull();
+  });
+
+  it('lists again when the turn changes', async () => {
+    h.userId = 'u1';
+    render(<ActionBar />);
+    await screen.findByRole('button', { name: 'Longsword' });
+    const calls = h.list.mock.calls.length;
+    act(() => { useGameStore.getState().setCombatState({ active: true, round: 1, currentTokenId: 'tok-fighter', combatants: [], spend: {} } as never); });
+    await waitFor(() => expect(h.list.mock.calls.length).toBe(calls + 1));
+  });
+});
+
+describe('class features on the bar', () => {
+  it('lists them under Features with the uses as pips, and the commons under their own menu', async () => {
+    h.options['tok-fighter'] = [longsword, rage, { id: 'common:dash', name: 'Dash', group: 'common', resolution: 'post', cost: 'action' }, { id: 'common:dash:bonus', name: 'Dash (bonus)', group: 'common', resolution: 'post', cost: 'bonus' }];
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Features' }));
+    const panel = await screen.findByRole('group', { name: 'Features' });
+    expect(within(panel).getByRole('button', { name: /Rage/ })).toBeEnabled();
+    expect(within(panel).getByLabelText('2 of 3 uses')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Common actions' }));
+    const commons = await screen.findByRole('group', { name: 'Common actions' });
+    expect(within(commons).getByRole('button', { name: 'Dash' })).toBeInTheDocument();
+    expect(within(commons).getByRole('button', { name: 'Dash (bonus)' })).toBeInTheDocument();
+  });
+
+  it('greys a feature with no uses left, and offers to end one that is running', async () => {
+    h.options['tok-fighter'] = [{ ...rage, uses: { left: 0, max: 3 } }, { ...rage, id: 'feature:book/barbaro/outra', name: 'Frenzy', active: true, uses: { left: 0, max: 3 } }];
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Features' }));
+    const panel = await screen.findByRole('group', { name: 'Features' });
+    expect(within(panel).getByRole('button', { name: /^Rage/ })).toHaveAttribute('title', 'No uses left');
+    expect(within(panel).getByRole('button', { name: /^Rage/ })).toBeDisabled();
+    expect(within(panel).getByRole('button', { name: /End Frenzy/ })).toBeEnabled();
+  });
+
+  it('uses a feature at once, naming no target', async () => {
+    const { actionsService } = await import('@/services/actions.service');
+    vi.mocked(actionsService.resolve).mockClear();
+    h.options['tok-fighter'] = [longsword, rage];
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Features' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Rage/ }));
+    await waitFor(() => expect(actionsService.resolve).toHaveBeenCalled());
+    expect(vi.mocked(actionsService.resolve).mock.calls[0][0]).toMatchObject({ actionId: 'feature:book/barbaro/furia', actorTokenId: 'tok-fighter' });
+  });
+
+  it('asks how much Lay on Hands spends, within what is left', async () => {
+    const { actionsService } = await import('@/services/actions.service');
+    vi.mocked(actionsService.resolve).mockClear();
+    h.options['tok-fighter'] = [{ id: 'feature:book/paladino/maos', name: 'Lay on Hands', group: 'feature', resolution: 'feature', cost: 'action', uses: { left: 7, max: 10 }, chosenAmount: true, reach: { kind: 'touch' } }];
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Features' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Lay on Hands/ }));
+    const amount = await screen.findByLabelText('Amount');
+    expect(amount).toHaveAttribute('max', '7');
+    fireEvent.change(amount, { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Use' }));
+    await act(async () => { await useActionStore.getState().resolvePending('tok-fighter'); });
+    expect(vi.mocked(actionsService.resolve).mock.calls[0][0]).toMatchObject({ amount: 4, targetTokenId: 'tok-fighter' });
+  });
+});
+
+describe('riders on a weapon attack', () => {
+  it('sends the Sneak Attack rider that was ticked', async () => {
+    const { actionsService } = await import('@/services/actions.service');
+    vi.mocked(actionsService.resolve).mockClear();
+    h.options['tok-fighter'] = [{ ...longsword, grips: undefined, riders: [sneakAttack] }];
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Longsword' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'with Sneak Attack' }));
+    await act(async () => { await useActionStore.getState().resolvePending('goblin'); });
+    expect(vi.mocked(actionsService.resolve).mock.calls[0][0]).toMatchObject({ riders: [{ featureId: sneakAttack.featureId }] });
+  });
+
+  it('sends no riders when none is ticked', async () => {
+    const { actionsService } = await import('@/services/actions.service');
+    vi.mocked(actionsService.resolve).mockClear();
+    h.options['tok-fighter'] = [{ ...longsword, grips: undefined, riders: [sneakAttack] }];
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Longsword' }));
+    await screen.findByRole('checkbox', { name: 'with Sneak Attack' });
+    await act(async () => { await useActionStore.getState().resolvePending('goblin'); });
+    expect(vi.mocked(actionsService.resolve).mock.calls[0][0]).not.toHaveProperty('riders');
+  });
+
+  it('asks the slot of a smite rider among the free ones and sends its level', async () => {
+    const { actionsService } = await import('@/services/actions.service');
+    vi.mocked(actionsService.resolve).mockClear();
+    h.sheets = { ...h.sheets, 'c-fighter': { ...fighterSheet, data: { ...fighterSheet.data, spellcasting: { slots: { '1': { total: 2, expended: 2 }, '2': { total: 2, expended: 0 }, '3': { total: 1, expended: 0 } } } } } };
+    h.options['tok-fighter'] = [{ ...longsword, grips: undefined, riders: [divineSmite] }];
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Longsword' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'with Divine Smite' }));
+    const picker = await screen.findByRole('combobox', { name: 'Slot for Divine Smite' });
+    expect(within(picker).queryByRole('option', { name: /Circle 1/ })).toBeNull();
+    fireEvent.change(picker, { target: { value: '3' } });
+    await act(async () => { await useActionStore.getState().resolvePending('goblin'); });
+    expect(vi.mocked(actionsService.resolve).mock.calls[0][0]).toMatchObject({ riders: [{ featureId: divineSmite.featureId, slotLevel: 3 }] });
+  });
+
+  it('greys a rider with no uses left', async () => {
+    h.options['tok-fighter'] = [{ ...longsword, grips: undefined, riders: [{ ...sneakAttack, uses: { left: 0, max: 1 } }] }];
+    render(<ActionBar />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Longsword' }));
+    expect(await screen.findByRole('checkbox', { name: 'with Sneak Attack' })).toBeDisabled();
   });
 });

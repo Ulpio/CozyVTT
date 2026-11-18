@@ -11,17 +11,19 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { actionsService } from '@/services/actions.service';
-import type { ActionOption } from '@/types/actions';
+import type { ActionCombatTurn, ActionList, ActionOption } from '@/types/actions';
 
-export function useActionOptions(
+/** The options with the actor's turn when it is in a fight (`combat`), listed again when `refreshKey` changes. */
+export function useActionList(
   mapId: string | null | undefined,
   actorTokenId: string | null,
   refreshKey: string | number | undefined,
   token?: object,
-): ActionOption[] {
-  const [answer, setAnswer] = useState<{ key: string; options: ActionOption[] } | null>(null);
+): { options: ActionOption[]; combat?: ActionCombatTurn } {
+  const [answer, setAnswer] = useState<{ key: string; list: ActionList } | null>(null);
   const key = `${mapId}:${actorTokenId}`;
-  const options = answer && answer.key === key ? answer.options : [];
+  const list = answer && answer.key === key ? answer.list : null;
+  const options = list?.options ?? [];
 
   // Counts the token objects seen while a recharge is listed.
   const seen = useRef<{ token: object | undefined; n: number }>({ token, n: 0 });
@@ -34,10 +36,20 @@ export function useActionOptions(
     if (!mapId || !actorTokenId) return;
     let live = true;
     actionsService.list(mapId, actorTokenId)
-      .then((listed) => { if (live) setAnswer({ key, options: listed.options }); })
-      .catch(() => { if (live) setAnswer({ key, options: [] }); });
+      .then((listed) => { if (live) setAnswer({ key, list: listed }); })
+      .catch(() => { if (live) setAnswer({ key, list: { options: [] } }); });
     return () => { live = false; };
   }, [mapId, actorTokenId, key, refreshKey, tokenSeen]);
 
-  return options;
+  return list?.combat ? { options, combat: list.combat } : { options };
+}
+
+/** Just the options, for what does not read the turn. */
+export function useActionOptions(
+  mapId: string | null | undefined,
+  actorTokenId: string | null,
+  refreshKey: string | number | undefined,
+  token?: object,
+): ActionOption[] {
+  return useActionList(mapId, actorTokenId, refreshKey, token).options;
 }

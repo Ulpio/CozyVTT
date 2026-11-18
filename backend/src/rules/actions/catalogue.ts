@@ -52,6 +52,8 @@ export interface ActionOption {
   meleeWeapon?: true;
   /** Class features: the uses left in the pool the feature spends. */
   uses?: { left: number; max: number };
+  /** Class feature that heals an amount the player chooses (Lay on Hands): the bar asks for it. */
+  chosenAmount?: true;
   /** Class feature states: running now. */
   active?: true;
   /** Weapon attacks: the features that can add to the hit (Sneak Attack, Divine Smite). */

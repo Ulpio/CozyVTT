@@ -552,7 +552,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     const reach = option.reach?.kind === 'self' && option.resolution === 'attack' ? { kind: 'touch' as const } : option.reach;
     return {
       actorTokenId: actor.id,
-      inReach: tokensInReach(actor, tokens, reach, currentMap, option.resolution),
+      inReach: tokensInReach(actor, tokens, reach, currentMap, option.chosenAmount ? 'heal' : option.resolution),
       picked: new Set(actionPending.picked),
     };
   }, [actionPending, actionArea, tokens, currentMap]);

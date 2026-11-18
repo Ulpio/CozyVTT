@@ -108,7 +108,7 @@ export const PICK_EVERY_RAY = 'Pick a target for every ray';
 export const PICK_A_TARGET = 'Pick at least one target';
 export const AIM_THE_AREA = 'Aim the area first';
 
-type ErrorKey = 'notYourToken' | 'invalidTarget' | 'outOfRange' | 'noSpellSlot' | 'cannotResolve' | 'alreadyUndone' | 'alreadyRolled' | 'gmOnly' | 'rechargeSpent' | 'notSpent' | 'pickEveryRay' | 'pickATarget' | 'aimTheArea' | 'generic';
+type ErrorKey = 'actionSpent' | 'bonusSpent' | 'reactionSpent' | 'notYourTurn' | 'noUses' | 'oncePerTurn' | 'useAttackFirst' | 'tooLongToCast' | 'noRestInCombat' | 'notYourToken' | 'invalidTarget' | 'outOfRange' | 'noSpellSlot' | 'cannotResolve' | 'alreadyUndone' | 'alreadyRolled' | 'gmOnly' | 'rechargeSpent' | 'notSpent' | 'pickEveryRay' | 'pickATarget' | 'aimTheArea' | 'generic';
 
 const ERROR_KEYS: Record<string, ErrorKey> = {
   'Not your token': 'notYourToken',
@@ -121,6 +121,15 @@ const ERROR_KEYS: Record<string, ErrorKey> = {
   'GM only': 'gmOnly',
   'This action is spent until it recharges': 'rechargeSpent',
   'This action is not spent': 'notSpent',
+  'Você já usou a ação neste turno.': 'actionSpent',
+  'Você já usou a ação bônus neste turno.': 'bonusSpent',
+  'Você já usou a reação.': 'reactionSpent',
+  'Não é a sua vez.': 'notYourTurn',
+  'Sem usos restantes.': 'noUses',
+  'Uma vez por turno.': 'oncePerTurn',
+  'Use a ação Atacar antes.': 'useAttackFirst',
+  'Leva tempo demais para conjurar em combate.': 'tooLongToCast',
+  'Não dá para descansar durante o combate.': 'noRestInCombat',
   [PICK_EVERY_RAY]: 'pickEveryRay',
   [PICK_A_TARGET]: 'pickATarget',
   [AIM_THE_AREA]: 'aimTheArea',

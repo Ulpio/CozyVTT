@@ -19,6 +19,8 @@ interface SpellMenuProps {
   slots: SlotsByCircle;
   /** Cast `option`, at `slotLevel` when it is a leveled spell. */
   onCast: (option: ActionOption, slotLevel?: number) => void;
+  /** Why a spell cannot be cast now (the turn), if it cannot. */
+  gate?: (option: ActionOption) => string | undefined;
 }
 
 const CIRCLES = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
@@ -34,7 +36,7 @@ function castCircles(slots: SlotsByCircle, level: number): number[] {
   return CIRCLES.filter((circle) => circle >= level && slotsOf(slots, circle).total > 0);
 }
 
-export default function SpellMenu({ spells, slots, onCast }: SpellMenuProps) {
+export default function SpellMenu({ spells, slots, onCast, gate }: SpellMenuProps) {
   const { t } = useTranslation();
   const [asking, setAsking] = useState<ActionOption | null>(null);
 
@@ -44,10 +46,12 @@ export default function SpellMenu({ spells, slots, onCast }: SpellMenuProps) {
   const spellButton = (spell: ActionOption) => {
     const level = spell.spellLevel ?? 0;
     const free = level === 0 || castCircles(slots, level).some((circle) => slotsOf(slots, circle).free > 0);
+    const why = gate?.(spell);
     return (
       <ActionButton
         key={spell.id}
-        disabled={!free}
+        disabled={!free || why !== undefined}
+        title={why}
         pressed={asking?.id === spell.id}
         onClick={() => (level === 0 ? onCast(spell) : setAsking(spell))}
       >

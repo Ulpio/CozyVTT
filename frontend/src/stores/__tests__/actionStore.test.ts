@@ -198,3 +198,39 @@ describe('actionStore: an area around the caster', () => {
     expect(h.resolve.mock.calls[0][0].area).toBeDefined();
   });
 });
+
+describe('actionStore: riders and amounts', () => {
+  it('sends the riders and the amount it was begun with, and nothing when there are none', async () => {
+    useActionStore.getState().begin({ actorTokenId: 'a', option: sword, riders: [{ featureId: 'f1' }, { featureId: 'f2', slotLevel: 2 }] });
+    await useActionStore.getState().resolvePending('t1');
+    expect(h.resolve.mock.calls[0][0].riders).toEqual([{ featureId: 'f1' }, { featureId: 'f2', slotLevel: 2 }]);
+    h.resolve.mockClear();
+    useActionStore.getState().begin({ actorTokenId: 'a', option: sword });
+    await useActionStore.getState().resolvePending('t1');
+    expect(h.resolve.mock.calls[0][0]).not.toHaveProperty('riders');
+  });
+
+  it('setRider turns a rider on or off while the pick waits', () => {
+    useActionStore.getState().begin({ actorTokenId: 'a', option: sword });
+    useActionStore.getState().setRider({ featureId: 'f1' }, true);
+    useActionStore.getState().setRider({ featureId: 'f2', slotLevel: 3 }, true);
+    useActionStore.getState().setRider({ featureId: 'f1' }, false);
+    expect(useActionStore.getState().pending?.riders).toEqual([{ featureId: 'f2', slotLevel: 3 }]);
+  });
+
+  it('a feature with no reach resolves at once; a chosen amount rides along', async () => {
+    const feature: ActionOption = { id: 'feature:b/x/y', name: 'Y', group: 'feature', resolution: 'feature', cost: 'bonus' };
+    useActionStore.getState().begin({ actorTokenId: 'a', option: feature, amount: 3 });
+    await vi.waitFor(() => expect(h.resolve).toHaveBeenCalledTimes(1));
+    expect(h.resolve.mock.calls[0][0]).toMatchObject({ actionId: 'feature:b/x/y', amount: 3 });
+  });
+
+  it('unarmed strikes take one target per strike, repeats allowed', async () => {
+    const flurry: ActionOption = { id: 'feature:b/m/f', name: 'Flurry', group: 'feature', resolution: 'feature', cost: 'bonus', reach: { kind: 'touch' }, targeting: { kind: 'multi', count: 2, distinct: false } };
+    useActionStore.getState().begin({ actorTokenId: 'a', option: flurry });
+    useActionStore.getState().pickTarget('t1');
+    useActionStore.getState().pickTarget('t1');
+    await useActionStore.getState().confirmPending();
+    expect(h.resolve.mock.calls[0][0].targetTokenIds).toEqual(['t1', 't1']);
+  });
+});

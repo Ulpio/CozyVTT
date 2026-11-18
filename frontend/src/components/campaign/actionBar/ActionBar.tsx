@@ -26,15 +26,19 @@ import { applyRollMode, ROLL_MODES } from '@/utils/rollModes';
 import type { ActionOption } from '@/types/actions';
 import type { FifthEditionCharacterData } from '@/types/game-systems';
 import ActionButton, { RechargeButtons } from './ActionButton';
+import FeatureMenu from './FeatureMenu';
+import RiderToggles from './RiderToggles';
+import TurnStrip from './TurnStrip';
+import { gateFor } from './turnGate';
 import { actionsService } from '@/services/actions.service';
 import ActorSummary from './ActorSummary';
 import SpellMenu from './SpellMenu';
 import ChecksMenu from './ChecksMenu';
 import TargetingHint from './TargetingHint';
 import { useBarActorChoice, useActorSheet } from './useBarActor';
-import { useActionOptions } from './useActionOptions';
+import { useActionList } from './useActionOptions';
 
-type Menu = 'spells' | 'items' | 'checks';
+type Menu = 'spells' | 'items' | 'checks' | 'features' | 'common';
 
 const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
@@ -47,7 +51,9 @@ export default function ActionBar() {
   // Listed again when the sheet changes, or the token's spent recharges do (the GM's copy of the map carries them).
   // A player is never sent the spent mark, so a bar with a recharge on it is listed again whenever the token comes again.
   const spentKey = (actor?.token.rechargeSpent ?? []).join(',');
-  const options = useActionOptions(currentMap?.id, actor?.token.id ?? null, `${sheet?.updatedAt ?? ''}|${spentKey}`, actor?.token);
+  // The fight's turn and spend come with `initiative.state`: the bar is listed again when they change.
+  const combatKey = useGameStore((s) => (s.combat.active ? `${s.combat.currentTokenId}|${s.combat.round}|${JSON.stringify(s.combat.spend)}` : ''));
+  const { options, combat } = useActionList(currentMap?.id, actor?.token.id ?? null, `${sheet?.updatedAt ?? ''}|${spentKey}|${combatKey}`, actor?.token);
   const characterHp = useCharacterHp();
   const mode = useActionStore((s) => s.mode);
   const pending = useActionStore((s) => s.pending);
@@ -67,14 +73,16 @@ export default function ActionBar() {
     : (characterId ? characterHp[characterId] : undefined) ?? (sheet ? extractCharacterHp(sheet.gameSystem, sheet.data as unknown as Record<string, unknown>) : null);
   const ac = actor.kind === 'npc' ? (token.statBlock?.ac ?? null) : (sheetData?.armorClass ?? null);
 
-  const attacks = options.filter((o) => o.group !== 'spell');
+  const attacks = options.filter((o) => o.group === 'attack' || o.group === 'npc');
+  const features = options.filter((o) => o.group === 'feature');
+  const commons = options.filter((o) => o.group === 'common');
   const spells = options.filter((o) => o.group === 'spell');
   const rolls: CharacterRolls | null = actor.kind === 'npc'
     ? buildNpcRolls(token.statBlock, gameSystem)
     : sheet ? getCharacterRolls(sheet.gameSystem, sheet.data) : null;
 
   /** Pick an action: an attack or a heal waits for a target on the map; the rest resolve at once. */
-  const run = (option: ActionOption, extra: { slotLevel?: number; grip?: 'one' | 'two' } = {}) => {
+  const run = (option: ActionOption, extra: { slotLevel?: number; grip?: 'one' | 'two'; amount?: number } = {}) => {
     const store = useActionStore.getState();
     store.begin({ actorTokenId: token.id, option, ...extra });
     if (option.reach?.kind !== 'self' && (option.resolution === 'cast' || option.resolution === 'post')) void store.resolvePending();
@@ -109,7 +117,11 @@ export default function ActionBar() {
 
   return (
     <section aria-label={t('actionBar.label')} className="shrink-0 space-y-2 border-t border-moss-green/20 bg-parchment/40 px-3 py-2">
+      {combat && <TurnStrip combat={combat} />}
       {pending && <TargetingHint variant="bar" />}
+      {pending && pending.actorTokenId === token.id && pending.option.riders && pending.option.riders.length > 0 && (
+        <RiderToggles riders={pending.option.riders} slots={sheetData?.spellcasting?.slots} combat={combat} />
+      )}
 
       {gripFor && (
         <div role="group" aria-label={t('actionBar.grip')} className="flex flex-wrap items-center gap-1.5">
@@ -121,8 +133,14 @@ export default function ActionBar() {
 
       {menu && (
         <div role="group" aria-label={t(`actionBar.menus.${menu}`)} className="max-h-48 overflow-y-auto rounded-cozy border border-moss-green/20 bg-paper/60 p-2">
-          {menu === 'spells' && <SpellMenu spells={spells} slots={sheetData?.spellcasting?.slots} onCast={(option, slotLevel) => run(option, slotLevel !== undefined ? { slotLevel } : {})} />}
+          {menu === 'spells' && <SpellMenu spells={spells} slots={sheetData?.spellcasting?.slots} gate={(o) => gateFor(o, combat, t)} onCast={(option, slotLevel) => run(option, slotLevel !== undefined ? { slotLevel } : {})} />}
           {menu === 'checks' && <ChecksMenu rolls={rolls} onRoll={roll} />}
+          {menu === 'features' && <FeatureMenu features={features} combat={combat} onUse={(option, amount) => run(option, amount !== undefined ? { amount } : {})} />}
+          {menu === 'common' && (
+            <div className="flex flex-wrap gap-1.5">
+              {commons.map((option) => <ActionButton key={option.id} menu disabled={gateFor(option, combat, t) !== undefined} title={gateFor(option, combat, t)} onClick={() => run(option)}>{option.name}</ActionButton>)}
+            </div>
+          )}
           {menu === 'items' && (items.length === 0 ? <p className="text-sm text-ink-muted">{t('actionBar.noItems')}</p> : (
             <div className="flex flex-wrap gap-1.5">
               {items.map(({ item, action }, index) => (
@@ -141,8 +159,10 @@ export default function ActionBar() {
           {attacks.map((option) => option.recharge?.spent ? (
             <RechargeButtons key={option.id} option={option} isGm={userRole === 'GM'} onRoll={() => void recharge(option, 'roll')} onReset={() => void recharge(option, 'reset')} />
           ) : (
-            <ActionButton key={option.id} detail={option.summary} pressed={pending?.option.id === option.id} onClick={() => pick(option)}>{option.name}</ActionButton>
+            <ActionButton key={option.id} detail={option.summary} pressed={pending?.option.id === option.id} disabled={gateFor(option, combat, t) !== undefined} title={gateFor(option, combat, t)} onClick={() => pick(option)}>{option.name}</ActionButton>
           ))}
+          {features.length > 0 && <ActionButton menu pressed={menu === 'features'} onClick={() => toggle('features')}>{t('actionBar.menus.features')}</ActionButton>}
+          {commons.length > 0 && <ActionButton menu pressed={menu === 'common'} onClick={() => toggle('common')}>{t('actionBar.menus.common')}</ActionButton>}
           {spells.length > 0 && <ActionButton menu pressed={menu === 'spells'} onClick={() => toggle('spells')}>{t('actionBar.menus.spells')}</ActionButton>}
           {actor.kind === 'character' && <ActionButton menu pressed={menu === 'items'} onClick={() => toggle('items')}>{t('actionBar.menus.items')}</ActionButton>}
           <ActionButton menu pressed={menu === 'checks'} onClick={() => toggle('checks')}>{t('actionBar.menus.checks')}</ActionButton>

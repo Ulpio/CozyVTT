@@ -13,19 +13,23 @@ interface ActionButtonProps {
   onClick: () => void;
   disabled?: boolean;
   /** Smaller print under the label (a monster action's bonus and dice, for the GM). */
-  detail?: string;
+  detail?: ReactNode;
   /** Shown as the one in use (a menu that is open). */
   pressed?: boolean;
   /** A menu's button: it opens something rather than acts. */
   menu?: boolean;
+  /** Why it is greyed (the turn's refusal), or a hint; shown on hover. */
+  title?: string;
 }
 
-export default function ActionButton({ children, onClick, disabled = false, detail, pressed, menu = false }: ActionButtonProps) {
+export default function ActionButton({ children, onClick, disabled = false, detail, pressed, menu = false, title }: ActionButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-disabled={disabled || undefined}
+      title={title}
       aria-pressed={pressed}
       className={cn(
         'flex min-h-9 min-w-0 flex-col items-start justify-center rounded-cozy border px-3 py-1 text-left text-sm transition-colors',

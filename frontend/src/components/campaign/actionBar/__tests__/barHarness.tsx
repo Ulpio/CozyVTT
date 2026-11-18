@@ -13,6 +13,7 @@ export const h = {
   characters: [] as Array<{ id: string; userId: string; name: string }>,
   sheets: {} as Record<string, unknown>,
   options: {} as Record<string, unknown[]>,
+  combat: undefined as unknown,
   list: vi.fn(),
   roll: vi.fn(),
   getCharacter: vi.fn(),
@@ -45,3 +46,25 @@ export const fireBreath: ActionOption = {
   id: 'npc:2', name: 'Fire Breath', group: 'npc', resolution: 'save', cost: 'action', reach: { kind: 'self' }, recharge: { min: 5, spent: true },
   targeting: { kind: 'area', area: { shape: 'cone', sizeFt: 15 }, origin: 'self' },
 };
+
+export const rage: ActionOption = {
+  id: 'feature:book/barbaro/furia', name: 'Rage', group: 'feature', resolution: 'feature', cost: 'bonus', uses: { left: 2, max: 3 },
+};
+export const healingWord: ActionOption = {
+  id: 'spell:healing-word', name: 'Healing Word', group: 'spell', resolution: 'heal', cost: 'bonus', spellLevel: 0, reach: { kind: 'feet', normal: 60 },
+};
+export const sneakAttack = { featureId: 'feature:book/ladino/furtivo', name: 'Sneak Attack', uses: { left: 1, max: 1 } };
+export const divineSmite = { featureId: 'feature:book/paladino/destruir', name: 'Divine Smite', slot: true as const };
+
+/** What `action.list` sends under `combat`: a turn with nothing spent, overridden per test. */
+export function combatTurn(over: { yourTurn?: boolean; spend?: Record<string, unknown>; budgetFeet?: number; attacksPerAction?: number } = {}) {
+  return {
+    yourTurn: over.yourTurn ?? true,
+    attacksPerAction: over.attacksPerAction ?? 1,
+    budgetFeet: over.budgetFeet ?? 30,
+    spend: {
+      action: false, bonus: false, reaction: false, movedFeet: 0, dashes: 0, extraActions: 0, attacksLeft: 1,
+      attackActionTaken: false, oncePerTurn: [], overBudgetWarned: false, ...over.spend,
+    },
+  };
+}
