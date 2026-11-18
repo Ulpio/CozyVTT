@@ -34,7 +34,7 @@ export function useActionOptions(
     if (!mapId || !actorTokenId) return;
     let live = true;
     actionsService.list(mapId, actorTokenId)
-      .then((listed) => { if (live) setAnswer({ key, options: listed }); })
+      .then((listed) => { if (live) setAnswer({ key, options: listed.options }); })
       .catch(() => { if (live) setAnswer({ key, options: [] }); });
     return () => { live = false; };
   }, [mapId, actorTokenId, key, refreshKey, tokenSeen]);

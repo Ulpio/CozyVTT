@@ -3,7 +3,7 @@ import type { ManagerOptions, SocketOptions } from 'socket.io-client';
 import { socketTarget } from '@/utils/socketTarget';
 import { api } from '@/services/api';
 import { apiErrorStatus, errorMessage } from '@/utils/errors';
-import type { ActionOption, ActionRequest, ActionResolveAck, ActionRollMode, PendingSaveCard } from '@/types/actions';
+import type { ActionList, ActionRequest, ActionResolveAck, ActionRollMode, PendingSaveCard } from '@/types/actions';
 import type {
   CampaignMap,
   TokenMoveStartEvent,
@@ -570,8 +570,8 @@ class SocketClient {
   // ============================================
 
   /** What a token the requester controls can do (`action.list`). */
-  listActions(data: { mapId: string; actorTokenId: string }): Promise<{ ok: true; options: ActionOption[] } | { ok: false; error: string }> {
-    return this.askFor<{ ok: true; options: ActionOption[] }>('action.list', data, ACTION_ANSWER_TIMEOUT_MS, "The action list didn't come back. Check your connection and try again.");
+  listActions(data: { mapId: string; actorTokenId: string }): Promise<({ ok: true } & ActionList) | { ok: false; error: string }> {
+    return this.askFor<{ ok: true } & ActionList>('action.list', data, ACTION_ANSWER_TIMEOUT_MS, "The action list didn't come back. Check your connection and try again.");
   }
 
   /** Roll, compare, apply and record an action (`action.resolve`); each reader gets the card as a chat message. */

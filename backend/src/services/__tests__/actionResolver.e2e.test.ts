@@ -509,8 +509,9 @@ describe('other game systems', () => {
 describe('listActions', () => {
   it('lists the fighter\'s weapons for its owner', async () => {
     const out = await listActions(campaignId, p1, mapId, 'fighter');
-    expect(Array.isArray(out)).toBe(true);
-    if (Array.isArray(out)) expect(out.map((o) => o.id)).toEqual(['attack:0', 'attack:1', 'attack:2', 'common:dash', 'common:disengage', 'common:dodge', 'common:help', 'common:hide']);
+    if ('error' in out) throw new Error('expected a list');
+    expect(out.combat).toBeUndefined();
+    expect(out.options.map((o) => o.id)).toEqual(['attack:0', 'attack:1', 'attack:2', 'common:dash', 'common:disengage', 'common:dodge', 'common:help', 'common:hide']);
   });
 
   it('refuses another player\'s token', async () => {
@@ -519,13 +520,13 @@ describe('listActions', () => {
 
   it('gives the GM the goblin\'s summary and a player controlling it none', async () => {
     const forGm = await listActions(campaignId, gm, mapId, 'goblin');
-    if (!Array.isArray(forGm)) throw new Error('expected a list');
-    expect(forGm[0].summary).toBe('+4, 1d6 + 2 cortante');
+    if ('error' in forGm) throw new Error('expected a list');
+    expect(forGm.options[0].summary).toBe('+4, 1d6 + 2 cortante');
     const list = await mapTokens();
     list.find((t) => t.id === 'goblin').controlledBy = p1Id;
     await prisma.map.update({ where: { id: mapId }, data: { tokens: list } });
     const forPlayer = await listActions(campaignId, p1, mapId, 'goblin');
-    if (!Array.isArray(forPlayer)) throw new Error('expected a list');
-    expect(forPlayer.some((o) => 'summary' in o)).toBe(false);
+    if ('error' in forPlayer) throw new Error('expected a list');
+    expect(forPlayer.options.some((o) => 'summary' in o)).toBe(false);
   });
 });

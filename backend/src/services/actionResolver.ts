@@ -22,8 +22,9 @@
  * concentration roll. The rest lives beside it in actionResolver/:
  * saves.ts (saving throws, rays, several targets, areas and pending saves),
  * undo.ts (the GM's undo, of a whole card or one target), recharge.ts (a
- * monster's recharge), areaTargets.ts (who an area catches), common.ts (what
- * they share), dice.ts and catalogueFor.ts.
+ * monster's recharge), areaTargets.ts (who an area catches), economy.ts (what
+ * a combatant may still spend this turn), common.ts (what they share),
+ * dice.ts and catalogueFor.ts.
  */
 
 import { prisma } from '../config/database';
@@ -70,6 +71,7 @@ import {
   type Sheet,
 } from './actionResolver/common';
 import { isTargetedAction, resolveTargetedAction } from './actionResolver/saves';
+import { attacksPerActionFor, checkAndSpend, combatFor, giveBack, type CombatTurn, type EconomyUndo } from './actionResolver/economy';
 
 export {
   NOT_YOUR_TOKEN,
@@ -117,22 +119,33 @@ export type ResolveOutcome =
 // listActions
 // ---------------------------------------------------------------------------
 
-/** What the token can do, as the requester may see it: the NPC summary is the GM's. */
+/** What the token can do and, in a fight, what it has left this turn. */
+export interface ActionList {
+  options: ActionOption[];
+  combat?: CombatTurn;
+}
+
+/**
+ * What the token can do, as the requester may see it (the NPC summary is the
+ * GM's), and, while the turn economy binds it, its turn as the bar shows it.
+ */
 export async function listActions(
   campaignId: string,
   requester: Viewer,
   mapId: string,
   actorTokenId: string,
-): Promise<ActionOption[] | { error: string }> {
+): Promise<ActionList | { error: string }> {
   const actor = await loadActor(campaignId, requester, mapId, actorTokenId);
   if ('ok' in actor) return { error: actor.error };
-  return actor.spec.map(({ option }) => {
+  const options = actor.spec.map(({ option }) => {
     const copy: ActionOption = { ...option };
     if (option.grips) copy.grips = [...option.grips];
     if (option.reach) copy.reach = { ...option.reach };
     if (requester.role !== 'GM') delete copy.summary;
     return copy;
   });
+  const combat = combatFor(campaignId, actor.token, actor.character ? (actor.character.data as unknown as Sheet) : null);
+  return combat ? { options, combat } : { options };
 }
 
 // ---------------------------------------------------------------------------
@@ -169,6 +182,8 @@ export async function resolveAction(
   const spiritVisible = requester.role === 'GM' ? true : await getSpiritVisibility(campaignId, requester.userId);
   const mapId = req.mapId;
 
+  // What the action spends of the actor's turn, given back if storing it fails.
+  let economy: EconomyUndo | undefined;
   const outcome = await withMapsLocked([mapId], async (tx) => {
     const map = await tx.map.findUniqueOrThrow({ where: { id: mapId } });
     const tokens = readTokens(map.tokens);
@@ -220,6 +235,11 @@ export async function resolveAction(
     const spent = spendSlotAndConcentration(spec, actorSheet, req, undo);
     if ('ok' in spent) return spent;
     const { slotLevel } = spent;
+
+    // The turn: refused when already spent, spent before anything is rolled.
+    const turn = await checkAndSpend(campaignId, actorToken, option, { attacksPerAction: attacksPerActionFor(actorSheet?.data ?? null) });
+    if (!turn.ok) return turn;
+    if (turn.economy) undo.economy = economy = turn.economy;
 
     // The roll.
     const effectiveMode = longRange && option.resolution === 'attack' ? withLongRange(mode) : mode;
@@ -288,6 +308,9 @@ export async function resolveAction(
       select: { id: true },
     });
     return { ok: true as const, messageId: message.id, card, after: afterCommit(written, held, edits.changedTokenIds, mapId) };
+  }).catch(async (error: unknown) => {
+    if (economy) await giveBack(economy);
+    throw error;
   });
 
   if (!outcome.ok) return outcome;

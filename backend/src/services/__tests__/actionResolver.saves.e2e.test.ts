@@ -443,7 +443,7 @@ describe("the red dragon's breath", () => {
     expect(out.card.recharge).toEqual({ tokenId: 'dragon', optionId: 'npc:actions:0' });
     expect((await tokenOf('dragon')).rechargeSpent).toEqual(['npc:actions:0']);
     const listed = await listActions(campaignId, gm, mapId, 'dragon');
-    expect((listed as any[])[0].recharge).toEqual({ min: 5, spent: true });
+    expect((listed as any).options[0].recharge).toEqual({ min: 5, spent: true });
     expect(JSON.stringify(projectActionCard(out.card, p1))).not.toContain('recharge');
 
     expect(await breathe(seq())).toEqual({ ok: false, error: 'This action is spent until it recharges' });

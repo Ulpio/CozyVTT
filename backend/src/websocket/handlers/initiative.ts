@@ -761,7 +761,8 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
         const spent = state.spend[tokenId];
         if (!spent) return false;
         switch (what as (typeof RESTORABLE)[number]) {
-          case 'action': spent.action = false; break;
+          // The action given back is the Attack action too.
+          case 'action': spent.action = false; spent.attacksLeft = 0; spent.attackActionTaken = false; break;
           case 'bonus': spent.bonus = false; break;
           case 'reaction': spent.reaction = false; break;
           case 'movement': spent.movedFeet = 0; spent.dashes = 0; spent.overBudgetWarned = false; break;

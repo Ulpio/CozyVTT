@@ -253,7 +253,7 @@ describeIf('the P5b done-when turn, against the real compendium', () => {
       clericToken(40, 51),
     ]);
     const id = `npc:actions:${BREATH_INDEX}`;
-    const listed: any[] = (await listActions(campaignId, gm, mapId, 'dragon')) as any[];
+    const listed: any[] = ((await listActions(campaignId, gm, mapId, 'dragon')) as any).options;
     expect(listed.find((a) => a.id === id)!.recharge).toEqual({ min: 5, spent: false });
     // 18d6 of twos (36); g1 rolls 1 (+2) and fails, g2 20 (+2) and saves.
     const out = ok(await resolveAction(campaignId, gm, { mapId, actorTokenId: 'dragon', actionId: id, mode: 'normal', area: { anchor: px(65, 51) } }, seq(...times(18, 2), 1, 20)));
@@ -266,7 +266,7 @@ describeIf('the P5b done-when turn, against the real compendium', () => {
     expect(await tokenHp('g2')).toBe(2);
     expect(await tokenHp('dragon')).toBe(256);
     expect((await tokenOf('dragon')).rechargeSpent).toEqual([id]);
-    expect(((await listActions(campaignId, gm, mapId, 'dragon')) as any[]).find((a) => a.id === id)!.recharge).toEqual({ min: 5, spent: true });
+    expect(((await listActions(campaignId, gm, mapId, 'dragon')) as any).options.find((a: any) => a.id === id)!.recharge).toEqual({ min: 5, spent: true });
     expect(await resolveAction(campaignId, gm, { mapId, actorTokenId: 'dragon', actionId: id, mode: 'normal', area: { anchor: px(65, 51) } }, seq())).toEqual({ ok: false, error: 'This action is spent until it recharges' });
 
     const back = ok(await rollRecharge(campaignId, gm, { mapId, tokenId: 'dragon', optionId: id }, seq(6)));

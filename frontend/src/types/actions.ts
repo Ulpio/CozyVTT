@@ -3,7 +3,7 @@
 
 import type { AreaSpec } from '@/utils/areaGeometry';
 import type { Pt } from '@/utils/aoeGeometry';
-import type { ActionCost } from '@/utils/turnEconomy';
+import type { ActionCost, TurnSpend } from '@/utils/turnEconomy';
 
 export type ActionRollMode = 'normal' | 'advantage' | 'disadvantage';
 
@@ -66,6 +66,20 @@ export interface ActionRequest {
   slotLevel?: number;
   grip?: 'one' | 'two';
   replaceConcentration?: boolean;
+}
+
+/** The actor's turn in a fight, as `action.list` sends it with the options. */
+export interface ActionCombatTurn {
+  yourTurn: boolean;
+  spend: TurnSpend;
+  attacksPerAction: number;
+  budgetFeet: number;
+}
+
+/** What `action.list` answers: the options and, while the actor is in an active fight, its turn. */
+export interface ActionList {
+  options: ActionOption[];
+  combat?: ActionCombatTurn;
 }
 
 export interface ActionResolveAck {

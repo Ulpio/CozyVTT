@@ -1,6 +1,7 @@
 import { RollMode } from './types';
 import type { Ability } from './monsterActions';
 import type { AreaSpec } from '../../utils/areaGeometry';
+import type { TurnSpend } from '../../utils/turnEconomy';
 
 export type MaskedName = 'something' | 'something-invisible';
 export type MonsterState = 'unharmed' | 'wounded' | 'badly-wounded' | 'down';
@@ -84,6 +85,12 @@ export interface UndoRecord {
   slot?: { characterId: string; level: number };
   concentration?: { characterId: string; before: unknown; after: unknown };
   recharge?: { mapId: string; tokenId: string; optionId: string };
+  /**
+   * What the action spent of its actor's turn in a fight, and what the actor
+   * had before. Given back only while that turn is still going (a reaction:
+   * that round).
+   */
+  economy?: { campaignId: string; tokenId: string; round: number; before: TurnSpend; reaction?: true };
 }
 
 export interface ActionCard {

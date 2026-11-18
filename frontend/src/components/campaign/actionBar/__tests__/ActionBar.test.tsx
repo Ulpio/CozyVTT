@@ -59,7 +59,7 @@ function seed() {
   h.characters = [{ id: 'c-fighter', userId: 'u1', name: 'Brienne' }, { id: 'c-wizard', userId: 'u2', name: 'Merlo' }];
   h.options = { 'tok-fighter': [longsword], 'tok-wizard': [fireBolt, magicMissile], goblin: [scimitar, shortbow] };
   h.sheets = { 'c-fighter': fighterSheet, 'c-wizard': wizardSheet };
-  h.list.mockImplementation(async (_map: string, actor: string) => h.options[actor] ?? []);
+  h.list.mockImplementation(async (_map: string, actor: string) => ({ options: h.options[actor] ?? [] }));
   h.getCharacter.mockImplementation(async (id: string) => ({ character: h.sheets[id] }));
   h.roll.mockReset();
   h.recharge.mockReset();

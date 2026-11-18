@@ -6,7 +6,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { h, token, longsword } from './barHarness';
 
 vi.mock('@/contexts/CampaignContext', () => ({ useCampaign: () => ({ userRole: 'PLAYER', campaign: { id: 'camp-1' }, currentMap: { id: 'map-1' } }) }));
-vi.mock('@/services/actions.service', () => ({ actionsService: { list: async () => [longsword], resolve: vi.fn() } }));
+vi.mock('@/services/actions.service', () => ({ actionsService: { list: async () => ({ options: [longsword] }), resolve: vi.fn() } }));
 vi.mock('@/services/api', () => ({ api: { getCharacter: async () => ({ character: { id: 'c1', gameSystem: 'FIFTH_EDITION', updatedAt: '1', data: { concentratingOn: { name: 'Bless' } } } }) } }));
 vi.mock('@/services/socket', () => ({ default: { on: () => undefined, off: () => undefined } }));
 

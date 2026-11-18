@@ -4,7 +4,8 @@
  * Hit points come back target by target, each only while they are still what
  * the action left (otherwise that target is left and marked, and the undo is
  * "partial"); a pending save is cancelled; the slot, the concentration and a
- * monster's spent recharge come back with the whole card. A target undone on
+ * monster's spent recharge come back with the whole card, and what it spent
+ * of the actor's turn while that turn is still going. A target undone on
  * its own is skipped by the later undo of the whole card, so nothing is
  * given back twice.
  */
@@ -28,6 +29,7 @@ import {
   type Sheet,
   type TokenEdits,
 } from './common';
+import { giveBack } from './economy';
 
 type UndoOutcome = { ok: true; card: ActionCard; partial: boolean } | { ok: false; error: string };
 
@@ -101,6 +103,8 @@ export async function undoAction(campaignId: string, requester: Viewer, messageI
   });
 
   if (!outcome.ok) return outcome;
+  // The turn's spend comes back only while that turn is still going.
+  if (outcome.card.undo.economy) await giveBack(outcome.card.undo.economy);
   await announce(campaignId, requester, outcome.after);
   return { ok: true, card: outcome.card, partial: outcome.partial };
 }

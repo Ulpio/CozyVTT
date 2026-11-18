@@ -221,9 +221,9 @@ describe('attack cantrip', () => {
 
   test.each(FIRE_BOLT)('%s gets the cantrip once on the bar, not also as a weapon row', async (cls) => {
     await playAs(cls);
-    const list = await listActions(campaignId, p1, mapId, 'hero');
-    if (!Array.isArray(list)) throw new Error('expected a list');
-    expect(list.filter((o) => o.name === 'Raio de Fogo')).toHaveLength(1);
+    const listed = await listActions(campaignId, p1, mapId, 'hero');
+    if ('error' in listed) throw new Error('expected a list');
+    expect(listed.options.filter((o) => o.name === 'Raio de Fogo')).toHaveLength(1);
   });
 
   test.each(SHEET_CANTRIPS)('%s rolls the attack cantrip row of its sheet', async (cls) => {

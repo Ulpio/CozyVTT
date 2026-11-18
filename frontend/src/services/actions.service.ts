@@ -6,13 +6,14 @@
 // ============================================
 
 import socketClient from './socket';
-import type { ActionOption, ActionRequest, ActionResolveAck, ActionRollMode, PendingSaveCard } from '@/types/actions';
+import type { ActionList, ActionRequest, ActionResolveAck, ActionRollMode, PendingSaveCard } from '@/types/actions';
 
 export const actionsService = {
-  /** What the token can do; empty when the server refuses or does not answer. */
-  async list(mapId: string, actorTokenId: string): Promise<ActionOption[]> {
+  /** What the token can do and, in a fight, its turn; no options when the server refuses or does not answer. */
+  async list(mapId: string, actorTokenId: string): Promise<ActionList> {
     const answer = await socketClient.listActions({ mapId, actorTokenId });
-    return answer.ok ? answer.options : [];
+    if (!answer.ok) return { options: [] };
+    return answer.combat ? { options: answer.options, combat: answer.combat } : { options: answer.options };
   },
 
   resolve(request: ActionRequest): Promise<ActionResolveAck> {

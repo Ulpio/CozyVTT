@@ -17,7 +17,7 @@ vi.mock('@/contexts/CampaignContext', () => ({
 }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: h.userId } }) }));
 vi.mock('@/contexts/WebSocketContext', () => ({ useWebSocket: () => ({ status: 'connected', error: null, reconnect: () => undefined }) }));
-vi.mock('@/services/actions.service', () => ({ actionsService: { list: async () => [longsword], resolve: vi.fn() } }));
+vi.mock('@/services/actions.service', () => ({ actionsService: { list: async () => ({ options: [longsword] }), resolve: vi.fn() } }));
 vi.mock('@/services/api', () => ({ api: { getCharacter: async () => ({ character: { id: 'c1', gameSystem: 'FIFTH_EDITION', name: 'B', updatedAt: '1', data: {} } }) } }));
 vi.mock('@/hooks/useTableRoll', () => ({ useTableRoll: () => vi.fn() }));
 vi.mock('@/services/socket', () => ({ default: { on: () => undefined, off: () => undefined } }));

@@ -145,12 +145,12 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
 
   /** ACTION.LIST - what a token the requester controls can do. NPC summaries are the GM's. */
   on('action.list', (d) => ActionListSchema.safeParse(d), true, async ({ mapId, actorTokenId }, campaignId, ack, refuse) => {
-    const options = await listActions(campaignId, me(), mapId, actorTokenId);
-    if ('error' in options) {
-      refuse(options.error);
+    const listed = await listActions(campaignId, me(), mapId, actorTokenId);
+    if ('error' in listed) {
+      refuse(listed.error);
       return;
     }
-    answer(ack, { ok: true, options });
+    answer(ack, { ok: true, ...listed });
   });
 
   /** ACTION.RESOLVE - roll, compare, apply and record; each reader gets their own card as `chat.message`. */

@@ -205,6 +205,20 @@ describe('combat state in the database', () => {
     p1.disconnect();
   });
 
+  it('gives back the Attack action with the action', async () => {
+    const gm = await server.connectAndAuth(gmCookie, campaignId);
+    await startFight([HERO, ALLY], gm);
+    const state = getState(campaignId);
+    state.spend[HERO] = { ...freshSpend(), action: true, attackActionTaken: true, attacksLeft: 1 };
+    setState(campaignId, state);
+
+    const done = waitForEvent(gm, 'initiative.state');
+    gm.emit('combat.restore', { tokenId: HERO, what: 'action' });
+    await done;
+    expect(getState(campaignId).spend[HERO]).toMatchObject({ action: false, attackActionTaken: false, attacksLeft: 0 });
+    gm.disconnect();
+  });
+
   it('serialises withCombatLock callers in the order they came', async () => {
     const seen: number[] = [];
     await Promise.all([

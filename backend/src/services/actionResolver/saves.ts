@@ -39,6 +39,7 @@ import type { Rng, RollMode } from '../../rules/actions/types';
 import type { ActionRequest, ResolveOutcome } from '../actionResolver';
 import { cantripTier, withLongRange } from './dice';
 import { areaTargets } from './areaTargets';
+import { attacksPerActionFor, checkAndSpend, giveBack, type EconomyUndo } from './economy';
 import {
   ALREADY_ROLLED,
   ALREADY_UNDONE,
@@ -199,6 +200,8 @@ export async function resolveTargetedAction(
   const onlookers = await onlookersIn(campaignId, roles);
   const mapId = req.mapId;
 
+  // What the action spends of the actor's turn, given back if storing it fails.
+  let economy: EconomyUndo | undefined;
   const outcome = await withMapsLocked([mapId], async (tx) => {
     const map = await tx.map.findUniqueOrThrow({ where: { id: mapId } });
     const tokens = readTokens(map.tokens);
@@ -285,6 +288,11 @@ export async function resolveTargetedAction(
       undo.recharge = { mapId, tokenId: actorToken.id, optionId: option.id };
       card.recharge = { tokenId: actorToken.id, optionId: option.id };
     }
+
+    // The turn: refused when already spent, spent before anything is rolled.
+    const turn = await checkAndSpend(campaignId, actorToken, option, { attacksPerAction: attacksPerActionFor(actorSheet?.data ?? null) });
+    if (!turn.ok) return turn;
+    if (turn.economy) undo.economy = economy = turn.economy;
 
     const entries = new Map<string, ActionCardTarget>();
     const entryFor = (token: Token) => {
@@ -390,6 +398,9 @@ export async function resolveTargetedAction(
       select: { id: true },
     });
     return { ok: true as const, messageId: message.id, card, after: afterCommit(written, held, edits.changedTokenIds, mapId) };
+  }).catch(async (error: unknown) => {
+    if (economy) await giveBack(economy);
+    throw error;
   });
 
   if (!outcome.ok) return outcome;

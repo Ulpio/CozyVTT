@@ -420,6 +420,8 @@ export function npcActions(statBlock: NpcStatBlockInput, rechargeSpent: readonly
         description: entry.description,
         source: 'monster',
       };
+      // A melee attack can be the monster's opportunity attack off turn.
+      if (parsed.kind === 'melee') spec.option.meleeWeapon = true;
       if (parsed.extraText) spec.extraText = parsed.extraText;
       if (parsed.onHitSave) spec.onHitSave = parsed.onHitSave;
       out.push(spec);
