@@ -87,7 +87,13 @@ const known = (slug: string, level: number, concentration = false) =>
 /** A fixture sheet with its origin in this file's book, and what each turn below starts from. */
 function sheet(cls: string): any {
   const s = JSON.parse(readFileSync(resolve(SHEETS, `${cls}.json`), 'utf8').replace(/"book-test"/g, JSON.stringify(BOOK)));
-  if (cls === 'bruxo') s.spellcasting.spells = [known('imobilizar-pessoa', 2, true)];
+  if (cls === 'bruxo') {
+    // The Archfey patron, for a feature button at 3rd level (Fey Presence).
+    s.origin.subclass = { bookId: BOOK, slug: 'a-arquifada' };
+    s.spellcasting.spells = [known('imobilizar-pessoa', 2, true)];
+  }
+  // The Divination school, for a feature button at 3rd level (Portent).
+  if (cls === 'mago') s.origin.subclass = { bookId: BOOK, slug: 'escola-de-adivinhacao' };
   if (cls === 'druida') {
     s.spellcasting.spells = [known('palavra-curativa', 1)];
     s.hp.current = 14;
@@ -123,6 +129,8 @@ const SNEAK = fid('ladino', 'sneak-attack');
 const FLURRY = fid('monge', 'flurry-of-blows');
 const SMITE = fid('paladino', 'divine-smite');
 const HUNTERS_PREY = fid('conclave-do-cacador', 'hunters-prey');
+const FEY_PRESENCE = fid('a-arquifada', 'fey-presence');
+const PORTENT = fid('escola-de-adivinhacao', 'portent');
 const spell = (slug: string) => `spell:${BOOK}/${slug}`;
 
 let server: WsTestServer;
@@ -282,11 +290,14 @@ describeIf('the P5c done-when round, against the real curated data', () => {
     await walkWithinBudget('bardo', 23, 19, 10);
     await next('bruxo');
 
-    // --- Warlock: Hold Person from a pact slot (2nd circle); no bonus action at 3rd level. ---
-    // Wisdom save DC 13; the goblin rolls 5 - 1 and fails.
-    const hold = ok(await resolveAction(campaignId, p1, req('bruxo', spell('imobilizar-pessoa'), { targetTokenId: 'g2', slotLevel: 2 }), seq(5)));
-    expect(hold.card.save).toMatchObject({ ability: 'wis', dc: 13 });
-    expect((await charData('bruxo')).spellcasting.slots['2']).toEqual({ total: 2, expended: 1 });
+    // --- Warlock (Archfey): Fey Presence as the action, 1 of 1; no bonus action at 3rd level. ---
+    // (Hold Person from a pact slot comes on the warlock's next turn, in round 2.)
+    expect(await option('bruxo', FEY_PRESENCE)).toMatchObject({ cost: 'action', uses: { left: 1, max: 1 } });
+    const fey = ok(await resolveAction(campaignId, p1, req('bruxo', FEY_PRESENCE), seq()));
+    expect(fey.messageId).toEqual(expect.any(String));
+    expect(fey.card.actor.tokenId).toBe('bruxo');
+    expect(await option('bruxo', FEY_PRESENCE)).toMatchObject({ uses: { left: 0, max: 1 } });
+    expect(used(await charData('bruxo'), 'fey-presence')).toBe(1);
     expect(spent('bruxo').action).toBe(true);
     await walkWithinBudget('bruxo', 14, 16, 10);
     await next('clerigo');
@@ -358,7 +369,13 @@ describeIf('the P5c done-when round, against the real curated data', () => {
     await walkWithinBudget('ladino', 31, 20, 50);
     await next('mago');
 
-    // --- Wizard: Fire Bolt; no bonus action and no button feature at 3rd level. ---
+    // --- Wizard (Divination): Portent, which costs nothing of the turn (1 of 2), then Fire Bolt; no bonus action. ---
+    expect(await option('mago', PORTENT)).toMatchObject({ cost: 'none', uses: { left: 2, max: 2 } });
+    const portent = ok(await resolveAction(campaignId, p1, req('mago', PORTENT), seq()));
+    expect(portent.card.actor.tokenId).toBe('mago');
+    expect(await option('mago', PORTENT)).toMatchObject({ uses: { left: 1, max: 2 } });
+    expect(used(await charData('mago'), 'portent')).toBe(1);
+    expect(spent('mago')).toMatchObject({ action: false, bonus: false });
     ok(await resolveAction(campaignId, p1, req('mago', spell('raio-de-fogo'), { targetTokenId: 'g1' }), seq(15, 3)));
     expect(spent('mago').action).toBe(true);
     await walkWithinBudget('mago', 17, 12, 10);
@@ -416,6 +433,15 @@ describeIf('the P5c done-when round, against the real curated data', () => {
     await next('barbaro');
     expect(getState(campaignId).round).toBe(2);
     expect((await charData('barbaro')).activeStates).toEqual([RAGE]);
+    await next('bardo');
+    await next('bruxo');
+
+    // --- Warlock, round 2: Hold Person from a pact slot (2nd circle). ---
+    // Wisdom save DC 13; the goblin rolls 5 - 1 and fails.
+    const hold = ok(await resolveAction(campaignId, p1, req('bruxo', spell('imobilizar-pessoa'), { targetTokenId: 'g2', slotLevel: 2 }), seq(5)));
+    expect(hold.card.save).toMatchObject({ ability: 'wis', dc: 13 });
+    expect((await charData('bruxo')).spellcasting.slots['2']).toEqual({ total: 2, expended: 1 });
+    expect(spent('bruxo').action).toBe(true);
 
     // --- The GM ends the fight: every spend record goes, and Rage ends. ---
     const ended = waitForEvent(gmSocket, 'initiative.state');
@@ -437,7 +463,9 @@ describeIf('the P5c done-when round, against the real curated data', () => {
     expect(used(await charData('druida'), 'wild-shape')).toBe(0);
     expect(used(await charData('clerigo'), 'channel-divinity')).toBe(0);
     expect((await charData('bruxo')).spellcasting.slots['2']).toEqual({ total: 2, expended: 0 });
+    expect(used(await charData('bruxo'), 'fey-presence')).toBe(0);
     // Not what only a long rest gives back.
+    expect(used(await charData('mago'), 'portent')).toBe(1);
     expect(used(await charData('barbaro'), 'rage')).toBe(1);
     expect(used(await charData('bardo'), 'bardic-inspiration')).toBe(1);
     expect(used(await charData('feiticeiro'), 'sorcery-points')).toBe(1);
@@ -450,6 +478,7 @@ describeIf('the P5c done-when round, against the real curated data', () => {
     expect(used(await charData('barbaro'), 'rage')).toBe(0);
     expect(used(await charData('bardo'), 'bardic-inspiration')).toBe(0);
     expect(used(await charData('feiticeiro'), 'sorcery-points')).toBe(0);
+    expect(used(await charData('mago'), 'portent')).toBe(0);
     expect((await charData('paladino')).spellcasting.slots['1']).toEqual({ total: 3, expended: 0 });
     expect((await charData('druida')).spellcasting.slots['1']).toEqual({ total: 4, expended: 0 });
     d = await charData('guerreiro');
