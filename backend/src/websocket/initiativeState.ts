@@ -159,9 +159,14 @@ export function getState(campaignId: string): CombatState {
  */
 const writes = new Map<string, Promise<void>>();
 
+/** Bumped when a restore replaces the database, so a write queued before it is dropped. */
+let writeEpoch = 0;
+
 function queueWrite(campaignId: string): void {
   const previous = writes.get(campaignId) ?? Promise.resolve();
+  const epoch = writeEpoch;
   const next = previous.then(async () => {
+    if (epoch !== writeEpoch) return;
     try {
       const state = campaignStates.get(campaignId);
       if (state && (state.active || state.combatants.length > 0)) {
@@ -240,13 +245,20 @@ export function setState(campaignId: string, input: CombatStateInput): void {
   }
 }
 
-/** Forget every campaign's combat state, after a restore replaces the database under it. */
-export function clearAllState(): void {
-  const known = [...campaignStates.keys()];
+/**
+ * After a restore replaces the database: drop every write queued before it
+ * (it describes the old data), then load the restored table, so memory holds
+ * the fights the backup saved and the table agrees with it.
+ */
+export async function reloadCombatStates(): Promise<void> {
+  writeEpoch += 1;
+  await flushCombatWrites();
   forgetCombatMemory();
-  // The map is empty now, so each queued write deletes its row: a fight kept
-  // from before the restore no longer matches the database.
-  for (const campaignId of known) queueWrite(campaignId);
+  try {
+    await hydrateCombatStates();
+  } catch (error) {
+    logger.error('Could not load the stored combat states after a restore', { err: error });
+  }
 }
 
 /**

@@ -56,6 +56,7 @@ import { expectFileMode, expectModeBits } from '../../__tests__/helpers/fileMode
 import { zipBuffer, renameEntry, readZip } from '../../__tests__/helpers/zipFixtures';
 import {
   clearState as clearCombatState,
+  flushCombatWrites,
   getState as getCombatState,
   setState as setCombatState,
 } from '../../websocket/initiativeState';
@@ -554,6 +555,39 @@ describe('POST /api/admin/backups/restore', () => {
     await expect(fs.access(path.join(UPLOAD_DIR, marker))).rejects.toBeDefined();
     expect(getCombatState(campaignId).active).toBe(true);
     clearCombatState(campaignId);
+  });
+
+  it('brings back the fights the restored database holds, and drops the ones only memory had', async () => {
+    // The stubbed psql leaves the database as it is, so a row written here
+    // stands for one the backup carried for a campaign not yet in memory.
+    const campaign = await prisma.campaign.create({ data: { name: `Restore fight ${Date.now()}`, ownerId: userId, vibeSettings: {} } });
+    const stale = `restore-stale-${Date.now()}`;
+    try {
+      await prisma.combatState.create({
+        data: {
+          campaignId: campaign.id,
+          state: {
+            active: true, round: 4, currentTokenId: 'a',
+            combatants: [{ tokenId: 'a', mapId: 'm', name: 'A', imageUrl: '', initiative: 9, hp: null, type: 'npc', disposition: null, characterId: null }],
+            spend: { a: { action: true, bonus: false, reaction: false, movedFeet: 0, dashes: 0, extraActions: 0, attacksLeft: 1, attackActionTaken: false, oncePerTurn: [], overBudgetWarned: false } },
+          },
+        },
+      });
+      setCombatState(stale, { active: true, round: 3, currentTokenId: null, combatants: [] });
+      stubTools();
+
+      const res = await restore(admin, await backupZip({ 'database.sql': DUMP_FROM_NEWER_CLIENT }));
+
+      expect(res.status).toBe(200);
+      expect(getCombatState(campaign.id)).toMatchObject({ active: true, round: 4, currentTokenId: 'a' });
+      expect(getCombatState(campaign.id).spend.a.action).toBe(true);
+      expect(getCombatState(stale).active).toBe(false);
+    } finally {
+      clearCombatState(campaign.id);
+      clearCombatState(stale);
+      await flushCombatWrites();
+      await prisma.campaign.delete({ where: { id: campaign.id } });
+    }
   });
 
   it('has the setup gate read the restored database again, and only once the load has succeeded', async () => {

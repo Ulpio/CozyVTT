@@ -51,7 +51,7 @@ import {
 import { resolveBackupDir, ensureBackupDir } from '../utils/backupDir';
 import { MULTIPART_FIELD_LIMITS, MULTIPART_NAME_CHARSET } from '../utils/multipartLimits';
 import { endEveryLiveSocket, getSocketInstance } from '../websocket/utils';
-import { clearAllState as clearAllCombatState } from '../websocket/initiativeState';
+import { reloadCombatStates } from '../websocket/initiativeState';
 import { forgetSetupComplete } from '../middleware/setup';
 import { backupsInProgress } from '../services/backupsInProgress';
 import { uploadsDiskUsage } from '../services/uploadsDisk';
@@ -1431,7 +1431,7 @@ router.post('/backups/restore', oneRestoreAtATime, takeRestoreUpload, async (req
     // from the replaced database. The in-memory combat state belonged to the
     // old data.
     await endEveryLiveSocket('The instance was restored from a backup. Sign in again.');
-    clearAllCombatState();
+    await reloadCombatStates();
     // The restored database may be one that was never set up.
     forgetSetupComplete();
 
