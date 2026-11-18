@@ -3,6 +3,7 @@
 
 import type { AreaSpec } from '@/utils/areaGeometry';
 import type { Pt } from '@/utils/aoeGeometry';
+import type { ActionCost } from '@/utils/turnEconomy';
 
 export type ActionRollMode = 'normal' | 'advantage' | 'disadvantage';
 
@@ -24,7 +25,7 @@ export type ActionTargeting =
 export interface ActionOption {
   id: string;
   name: string;
-  group: 'attack' | 'spell' | 'npc';
+  group: 'attack' | 'spell' | 'npc' | 'common';
   resolution: 'attack' | 'heal' | 'cast' | 'post' | 'save';
   targeting?: ActionTargeting;
   recharge?: { min: number; spent: boolean };
@@ -37,6 +38,14 @@ export interface ActionOption {
   reach?: ActionReach;
   /** NPC options only: the attack bonus and dice, for the GM. */
   summary?: string;
+  /** What taking it spends in the turn. */
+  cost: ActionCost;
+  /** Spells: the book's casting time, as written. */
+  castingTime?: string;
+  /** Casting time of a minute or more: not something to do in a fight. */
+  combatUnavailable?: true;
+  /** A melee weapon attack: it can be an opportunity attack off turn. */
+  meleeWeapon?: true;
 }
 
 /** Where an area is aimed, in map pixels (top-left origin). The server decides who is in it. */

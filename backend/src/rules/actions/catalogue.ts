@@ -7,6 +7,7 @@ import { parseAreaText } from './areaText';
 import { parseMonsterAction, parseMonsterSaveAction, type Ability, type SaveEffect } from './monsterActions';
 import { metresToFeet, parseRangeText } from './rangeText';
 import { cantripTier } from '../../services/actionResolver/dice';
+import type { ActionCost } from '../../utils/turnEconomy';
 
 /** The abilities as a pt-BR sheet shortens them, for the GM's line under a save button (its damage types are pt-BR too). */
 const ABILITY_SHORT: Record<Ability, string> = { str: 'For', dex: 'Des', con: 'Con', int: 'Int', wis: 'Sab', cha: 'Car' };
@@ -26,7 +27,7 @@ const MANY_TARGETS_CAP = 20;
 export interface ActionOption {
   id: ActionId;
   name: string;
-  group: 'attack' | 'spell' | 'npc';
+  group: 'attack' | 'spell' | 'npc' | 'common';
   resolution: 'attack' | 'heal' | 'cast' | 'post' | 'save';
   /** Absent: the P5a single target (or none). */
   targeting?: ActionTargeting;
@@ -40,6 +41,14 @@ export interface ActionOption {
   reach?: { kind: 'self' | 'touch' } | { kind: 'feet'; normal: number; long?: number };
   /** NPC options only: the attack bonus and dice, for the GM. */
   summary?: string;
+  /** What taking it spends in the turn. */
+  cost: ActionCost;
+  /** Spells: the book's casting time, as written. */
+  castingTime?: string;
+  /** Casting time of a minute or more: not something to do in a fight. */
+  combatUnavailable?: true;
+  /** A melee weapon attack: it can be an opportunity attack off turn. */
+  meleeWeapon?: true;
 }
 
 /** Server-only: everything the resolver needs to roll the action. */
@@ -71,6 +80,7 @@ export interface CompendiumSpell {
   data: {
     level: number;
     range: string;
+    castingTime?: string;
     concentration: boolean;
     mechanics?: {
       attack?: 'melee' | 'ranged';
@@ -148,6 +158,31 @@ function flatModifier(raw: unknown): number {
   return total;
 }
 
+/** Lowercase, accents off, for matching the book's pt-BR words. */
+const plain = (s: string): string => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
+
+/** The cost in the turn of a spell, from its casting time ("1 ação", "1 ação bônus", "1 reação, que…"); a minute or more is no combat action. */
+export function costFromCastingTime(text: string): { cost: ActionCost; combatUnavailable?: true } {
+  const t = plain(text ?? '');
+  if (/^1 acao bonus/.test(t)) return { cost: 'bonus' };
+  if (/^1 reacao/.test(t)) return { cost: 'reaction' };
+  if (/(^|\s)(minutos?|horas?)(\s|$)/.test(t)) return { cost: 'action', combatUnavailable: true };
+  return { cost: 'action' };
+}
+
+const COMMON: { id: string; name: string }[] = [
+  { id: 'common:dash', name: 'Disparada' },
+  { id: 'common:disengage', name: 'Desengajar' },
+  { id: 'common:dodge', name: 'Esquivar' },
+  { id: 'common:help', name: 'Ajudar' },
+  { id: 'common:hide', name: 'Esconder' },
+];
+
+/** The actions anyone can take, posted as a card. */
+function commonActions(): ResolvedActionSpec[] {
+  return COMMON.map(({ id, name }) => ({ option: { id, name, group: 'common', resolution: 'post', cost: 'action' }, damage: [], source: 'weapon' }));
+}
+
 const key = (ref: { bookId: string; slug: string }) => `${ref.bookId}/${ref.slug}`;
 
 function spellSpec(
@@ -172,9 +207,14 @@ function spellSpec(
     name: entry?.name ?? sheetName,
     group: 'spell',
     resolution,
+    cost: 'action',
     spellLevel: entry?.data.level ?? sheetLevel ?? 0,
     concentration: entry?.data.concentration ?? sheetConcentration ?? false,
   };
+  if (entry?.data.castingTime) {
+    option.castingTime = entry.data.castingTime;
+    Object.assign(option, costFromCastingTime(entry.data.castingTime));
+  }
   const reach = entry ? parseRangeText(entry.data.range) : null;
   if (reach) option.reach = reach;
   const spec: ResolvedActionSpec = { option, damage, source: 'spell' };
@@ -290,7 +330,8 @@ export function characterActions(
       reach = { kind: 'feet', normal: reachWeapon ? 10 : 5 };
     }
 
-    const option: ActionOption = { id: `attack:${i}`, name: atk.name, group: 'attack', resolution: 'attack', reach };
+    const option: ActionOption = { id: `attack:${i}`, name: atk.name, group: 'attack', resolution: 'attack', reach, cost: 'attack' };
+    if (wpn ? wpn.data.range !== 'ranged' : sheetRange === undefined || thrownWeapon) option.meleeWeapon = true;
     if (versatile) option.grips = ['one', 'two'];
     const spec: ResolvedActionSpec = { option, attackBonus: atk.attackBonus, damage, source: 'weapon' };
     if (versatile) spec.versatileDamage = versatile;
@@ -305,7 +346,7 @@ export function characterActions(
     }
     if (thrown) {
       out.push({
-        option: { id: `attack:${i}:thrown`, name: `${atk.name} (arremesso)`, group: 'attack', resolution: 'attack', reach: thrown },
+        option: { id: `attack:${i}:thrown`, name: `${atk.name} (arremesso)`, group: 'attack', resolution: 'attack', reach: thrown, cost: 'attack' },
         attackBonus: atk.attackBonus,
         damage,
         source: 'weapon',
@@ -313,7 +354,7 @@ export function characterActions(
     }
   });
 
-  return [...out, ...spellSpecs];
+  return [...out, ...spellSpecs, ...commonActions()];
 }
 
 const NPC_LISTS = ['actions', 'bonusActions', 'reactions'] as const;
@@ -326,17 +367,18 @@ const NPC_LISTS = ['actions', 'bonusActions', 'reactions'] as const;
  */
 export function npcActions(statBlock: NpcStatBlockInput, rechargeSpent: readonly string[] = []): ResolvedActionSpec[] {
   const out: ResolvedActionSpec[] = [];
-  const post = (id: string, name: string, description: string | undefined): void => {
-    out.push({ option: { id, name, group: 'npc', resolution: 'post' }, damage: [], description, source: 'monster' });
+  const post = (id: string, name: string, description: string | undefined, cost: ActionCost): void => {
+    out.push({ option: { id, name, group: 'npc', resolution: 'post', cost }, damage: [], description, source: 'monster' });
   };
   for (const list of NPC_LISTS) {
+    const listCost: ActionCost = list === 'actions' ? 'action' : list === 'bonusActions' ? 'bonus' : 'reaction';
     (statBlock?.[list] ?? []).forEach((entry, i) => {
       const id = `npc:${list}:${i}`;
       const parsed = parseMonsterAction(entry.description ?? '');
       if (!parsed) {
         const saveAction = parseMonsterSaveAction(entry.name, entry.description ?? '');
         if (!saveAction) {
-          post(id, entry.name, entry.description);
+          post(id, entry.name, entry.description, listCost);
           return;
         }
         const damage = saveAction.save.damage.map((d) => damageOf(d.dice, d.type)).filter((d): d is Damage => d !== null);
@@ -353,7 +395,7 @@ export function npcActions(statBlock: NpcStatBlockInput, rechargeSpent: readonly
           targeting = { kind: 'single' };
         }
         const summary = [`CD ${saveAction.save.dc} ${ABILITY_SHORT[saveAction.save.ability]}`, ...damage.map((d) => (d.type ? `${d.dice} ${d.type}` : d.dice))].join(', ');
-        const option: ActionOption = { id, name: entry.name, group: 'npc', resolution: 'save', saveAbility: saveAction.save.ability, targeting, summary };
+        const option: ActionOption = { id, name: entry.name, group: 'npc', resolution: 'save', saveAbility: saveAction.save.ability, targeting, summary, cost: listCost };
         if (saveAction.recharge) option.recharge = { min: saveAction.recharge.min, spent: rechargeSpent.includes(id) };
         const spec: ResolvedActionSpec = { option, damage, save: saveAction.save, description: entry.description, source: 'monster' };
         if (saveAction.save.extraText) spec.extraText = saveAction.save.extraText;
@@ -363,7 +405,7 @@ export function npcActions(statBlock: NpcStatBlockInput, rechargeSpent: readonly
       const damage = parsed.damage.map((d) => damageOf(d.dice, d.type)).filter((d): d is Damage => d !== null);
       if (damage.length === 0) {
         // An attack with no damage to roll (a net): its text is posted.
-        post(id, entry.name, entry.description);
+        post(id, entry.name, entry.description, listCost);
         return;
       }
       const normal = parsed.kind === 'melee' ? (parsed.reachFeet ?? parsed.normalFeet ?? 5) : (parsed.normalFeet ?? parsed.reachFeet ?? 5);
@@ -372,7 +414,7 @@ export function npcActions(statBlock: NpcStatBlockInput, rechargeSpent: readonly
       const bonus = parsed.bonus >= 0 ? `+${parsed.bonus}` : `${parsed.bonus}`;
       const summary = [bonus, ...damage.map((d) => (d.type ? `${d.dice} ${d.type}` : d.dice))].join(', ');
       const spec: ResolvedActionSpec = {
-        option: { id, name: entry.name, group: 'npc', resolution: 'attack', reach, summary },
+        option: { id, name: entry.name, group: 'npc', resolution: 'attack', reach, summary, cost: list === 'actions' ? 'attack' : listCost },
         attackBonus: parsed.bonus,
         damage,
         description: entry.description,
@@ -383,5 +425,5 @@ export function npcActions(statBlock: NpcStatBlockInput, rechargeSpent: readonly
       out.push(spec);
     });
   }
-  return out;
+  return [...out, ...commonActions()];
 }

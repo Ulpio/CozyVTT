@@ -7,8 +7,8 @@ import { useActionStore, targetsNeeded, PICK_EVERY_RAY } from '../actionStore';
 import { useGameStore } from '../gameStore';
 import type { ActionOption } from '@/types/actions';
 
-const sword: ActionOption = { id: 'weapon:sword', name: 'Sword', group: 'attack', resolution: 'attack', reach: { kind: 'feet', normal: 5 }, grips: ['one', 'two'] };
-const light: ActionOption = { id: 'spell:light', name: 'Light', group: 'spell', resolution: 'cast', reach: { kind: 'self' } };
+const sword: ActionOption = { id: 'weapon:sword', name: 'Sword', group: 'attack', resolution: 'attack', cost: 'action', reach: { kind: 'feet', normal: 5 }, grips: ['one', 'two'] };
+const light: ActionOption = { id: 'spell:light', name: 'Light', group: 'spell', resolution: 'cast', cost: 'action', reach: { kind: 'self' } };
 
 beforeEach(() => {
   h.resolve.mockReset().mockResolvedValue({ ok: true, messageId: 'm1' });
@@ -75,19 +75,19 @@ describe('actionStore', () => {
 });
 
 const scorchingRay: ActionOption = {
-  id: 'spell:scorching-ray', name: 'Scorching Ray', group: 'spell', resolution: 'attack', spellLevel: 2,
+  id: 'spell:scorching-ray', name: 'Scorching Ray', group: 'spell', resolution: 'attack', cost: 'action', spellLevel: 2,
   reach: { kind: 'feet', normal: 120 }, targeting: { kind: 'multi', count: 3, perSlot: 1, distinct: false },
 };
 const holdPerson: ActionOption = {
-  id: 'spell:hold-person', name: 'Hold Person', group: 'spell', resolution: 'save', spellLevel: 2, saveAbility: 'wis',
+  id: 'spell:hold-person', name: 'Hold Person', group: 'spell', resolution: 'save', cost: 'action', spellLevel: 2, saveAbility: 'wis',
   reach: { kind: 'feet', normal: 60 }, targeting: { kind: 'multi', count: 1, perSlot: 1, distinct: true },
 };
 const burningHands: ActionOption = {
-  id: 'spell:burning-hands', name: 'Burning Hands', group: 'spell', resolution: 'save', spellLevel: 1, saveAbility: 'dex',
+  id: 'spell:burning-hands', name: 'Burning Hands', group: 'spell', resolution: 'save', cost: 'action', spellLevel: 1, saveAbility: 'dex',
   reach: { kind: 'self' }, targeting: { kind: 'area', area: { shape: 'cone', sizeFt: 15 }, origin: 'self' },
 };
 const fireball: ActionOption = {
-  id: 'spell:fireball', name: 'Fireball', group: 'spell', resolution: 'save', spellLevel: 3, saveAbility: 'dex',
+  id: 'spell:fireball', name: 'Fireball', group: 'spell', resolution: 'save', cost: 'action', spellLevel: 3, saveAbility: 'dex',
   reach: { kind: 'feet', normal: 150 }, targeting: { kind: 'area', area: { shape: 'sphere', sizeFt: 20 }, origin: 'point', rangeFeet: 150 },
 };
 
@@ -185,7 +185,7 @@ describe('actionStore: areas', () => {
 
 describe('actionStore: an area around the caster', () => {
   const aura: ActionOption = {
-    id: 'spell:aura', name: 'Aura', group: 'spell', resolution: 'save', spellLevel: 1, saveAbility: 'con',
+    id: 'spell:aura', name: 'Aura', group: 'spell', resolution: 'save', cost: 'action', spellLevel: 1, saveAbility: 'con',
     reach: { kind: 'self' }, targeting: { kind: 'area', area: { shape: 'sphere', sizeFt: 10 }, origin: 'self' },
   };
 

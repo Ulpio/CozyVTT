@@ -80,7 +80,7 @@ interface AreaScenario {
 const areaFixture = areaScenarios as unknown as { map: AreaMap; scenarios: AreaScenario[] };
 
 const areaOption = (targeting: AreaScenario['targeting']): ActionOption => ({
-  id: 'spell:x', name: 'X', group: 'spell', resolution: 'save', targeting: { kind: 'area', ...targeting },
+  id: 'spell:x', name: 'X', group: 'spell', resolution: 'save', cost: 'action', targeting: { kind: 'area', ...targeting },
 });
 
 describe('tokensInArea', () => {
@@ -112,7 +112,7 @@ describe('tokensInArea', () => {
 
   it('an option with no area catches nobody', () => {
     const caster = { id: 'me', position: { x: 0, y: 0 }, size: { width: 1, height: 1 } } as unknown as Token;
-    expect(actionAreaPreview([caster], caster, { id: 'a', name: 'A', group: 'attack', resolution: 'attack' }, { anchor: { x: 0, y: 0 } }, areaFixture.map)).toBeNull();
+    expect(actionAreaPreview([caster], caster, { id: 'a', name: 'A', group: 'attack', resolution: 'attack', cost: 'action' }, { anchor: { x: 0, y: 0 } }, areaFixture.map)).toBeNull();
   });
 });
 

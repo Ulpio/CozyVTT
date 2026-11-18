@@ -510,7 +510,7 @@ describe('listActions', () => {
   it('lists the fighter\'s weapons for its owner', async () => {
     const out = await listActions(campaignId, p1, mapId, 'fighter');
     expect(Array.isArray(out)).toBe(true);
-    if (Array.isArray(out)) expect(out.map((o) => o.id)).toEqual(['attack:0', 'attack:1', 'attack:2']);
+    if (Array.isArray(out)) expect(out.map((o) => o.id)).toEqual(['attack:0', 'attack:1', 'attack:2', 'common:dash', 'common:disengage', 'common:dodge', 'common:help', 'common:hide']);
   });
 
   it('refuses another player\'s token', async () => {

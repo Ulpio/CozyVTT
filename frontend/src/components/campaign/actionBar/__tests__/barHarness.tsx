@@ -31,17 +31,17 @@ export function token(partial: Partial<Token> & { id: string }): Token {
 }
 
 export const longsword: ActionOption = {
-  id: 'attack:0', name: 'Longsword', group: 'attack', resolution: 'attack', grips: ['one', 'two'], reach: { kind: 'touch' },
+  id: 'attack:0', name: 'Longsword', group: 'attack', resolution: 'attack', cost: 'action', grips: ['one', 'two'], reach: { kind: 'touch' },
 };
 export const fireBolt: ActionOption = {
-  id: 'spell:fire-bolt', name: 'Fire Bolt', group: 'spell', resolution: 'attack', spellLevel: 0, reach: { kind: 'feet', normal: 120 },
+  id: 'spell:fire-bolt', name: 'Fire Bolt', group: 'spell', resolution: 'attack', cost: 'action', spellLevel: 0, reach: { kind: 'feet', normal: 120 },
 };
 export const magicMissile: ActionOption = {
-  id: 'spell:magic-missile', name: 'Magic Missile', group: 'spell', resolution: 'cast', spellLevel: 1,
+  id: 'spell:magic-missile', name: 'Magic Missile', group: 'spell', resolution: 'cast', cost: 'action', spellLevel: 1,
 };
-export const scimitar: ActionOption = { id: 'npc:0', name: 'Scimitar', group: 'npc', resolution: 'attack', reach: { kind: 'touch' } };
-export const shortbow: ActionOption = { id: 'npc:1', name: 'Shortbow', group: 'npc', resolution: 'attack', reach: { kind: 'feet', normal: 80, long: 320 } };
+export const scimitar: ActionOption = { id: 'npc:0', name: 'Scimitar', group: 'npc', resolution: 'attack', cost: 'action', reach: { kind: 'touch' } };
+export const shortbow: ActionOption = { id: 'npc:1', name: 'Shortbow', group: 'npc', resolution: 'attack', cost: 'action', reach: { kind: 'feet', normal: 80, long: 320 } };
 export const fireBreath: ActionOption = {
-  id: 'npc:2', name: 'Fire Breath', group: 'npc', resolution: 'save', reach: { kind: 'self' }, recharge: { min: 5, spent: true },
+  id: 'npc:2', name: 'Fire Breath', group: 'npc', resolution: 'save', cost: 'action', reach: { kind: 'self' }, recharge: { min: 5, spent: true },
   targeting: { kind: 'area', area: { shape: 'cone', sizeFt: 15 }, origin: 'self' },
 };

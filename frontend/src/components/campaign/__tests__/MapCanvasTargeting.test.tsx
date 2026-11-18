@@ -216,7 +216,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const sword: ActionOption = { id: 'weapon:sword', name: 'Sword', group: 'attack', resolution: 'attack', reach: { kind: 'feet', normal: 5 } };
+const sword: ActionOption = { id: 'weapon:sword', name: 'Sword', group: 'attack', resolution: 'attack', cost: 'action', reach: { kind: 'feet', normal: 5 } };
 let resolvePending: ReturnType<typeof vi.fn>;
 
 function arm() {
@@ -288,12 +288,12 @@ describe('targeting mode', () => {
 
 describe('several targets and areas', () => {
   const rays: ActionOption = {
-    id: 'spell:rays', name: 'Rays', group: 'spell', resolution: 'attack', spellLevel: 2,
+    id: 'spell:rays', name: 'Rays', group: 'spell', resolution: 'attack', cost: 'action', spellLevel: 2,
     reach: { kind: 'feet', normal: 120 }, targeting: { kind: 'multi', count: 2, distinct: false },
   };
   // A 20 ft sphere at a point within 30 ft.
   const blast: ActionOption = {
-    id: 'spell:blast', name: 'Blast', group: 'spell', resolution: 'save', spellLevel: 3, saveAbility: 'dex',
+    id: 'spell:blast', name: 'Blast', group: 'spell', resolution: 'save', cost: 'action', spellLevel: 3, saveAbility: 'dex',
     reach: { kind: 'feet', normal: 30 }, targeting: { kind: 'area', area: { shape: 'sphere', sizeFt: 20 }, origin: 'point', rangeFeet: 30 },
   };
   let resolve: ReturnType<typeof vi.fn>;

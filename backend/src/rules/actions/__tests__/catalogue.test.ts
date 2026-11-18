@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
-import { characterActions, npcActions, spellcastingModifier, characterLevel, CompendiumSpell, CompendiumWeapon } from '../catalogue';
+import { characterActions as characterActionsAll, npcActions as npcActionsAll, costFromCastingTime, spellcastingModifier, characterLevel, CompendiumSpell, CompendiumWeapon } from '../catalogue';
 import { fifthEditionCharacterDataSchema } from '../../../validators/game-systems/fifthEdition.schema';
 import { fifthEditionSpellSaveDC } from '../../../utils/rules/fifthEdition';
 
@@ -28,6 +28,11 @@ const weapons = new Map<string, CompendiumWeapon>([
   ['book-test/espada-longa', weapon({ properties: ['versátil'] })],
 ]);
 
+
+// Most tests below are about the options a sheet or stat block brings; the common actions are tested apart.
+const notCommon = <T extends { option: { group: string } }>(xs: T[]): T[] => xs.filter((x) => x.option.group !== 'common');
+const characterActions = (...args: Parameters<typeof characterActionsAll>) => notCommon(characterActionsAll(...args));
+const npcActions = (...args: Parameters<typeof npcActionsAll>) => notCommon(npcActionsAll(...args));
 describe('characterActions', () => {
   it('lists a fighter weapon with both grips', () => {
     const out = characterActions(sheet('guerreiro'), spells, weapons);
@@ -408,6 +413,105 @@ const DATA = resolve(__dirname, '../../../../../materiais/.compendio/data/phb');
     const all = JSON.parse(readFileSync(resolve(DATA, 'spell.json'), 'utf8'));
     for (const slug of ['curar-ferimentos', 'palavra-curativa', 'oracao-curativa']) {
       expect(all.find((s: any) => s.slug === slug).data.mechanics.healingAddsModifier).toBe(true);
+    }
+  });
+});
+
+describe('the cost of each option in the turn', () => {
+  const casting = (castingTime: string, data: Partial<CompendiumSpell['data']> = {}) => spell({ castingTime, ...data } as any);
+  const withSpells = new Map<string, CompendiumSpell>([
+    ['b/bola-de-fogo', casting('1 ação', { level: 3, mechanics: { save: 'dex', damage: [{ dice: '8d6', type: 'fogo' }], area: { shape: 'sphere', size: '6 metros' } } })],
+    ['b/palavra-curativa', casting('1 ação bônus', { level: 1, range: '18 metros', mechanics: { damage: [], healing: '1d4' } })],
+    ['b/escudo', casting('1 reação, que você toma quando é atingido', { level: 1, range: 'Pessoal' })],
+    ['b/ritual', casting('10 minutos', { level: 1, range: 'Pessoal' })],
+  ]);
+  const caster = {
+    level: 5,
+    spellcasting: {
+      spells: [
+        { name: 'Bola', level: 3, compendiumRef: { bookId: 'b', slug: 'bola-de-fogo' } },
+        { name: 'Palavra', level: 1, compendiumRef: { bookId: 'b', slug: 'palavra-curativa' } },
+        { name: 'Escudo', level: 1, compendiumRef: { bookId: 'b', slug: 'escudo' } },
+        { name: 'Ritual', level: 1, compendiumRef: { bookId: 'b', slug: 'ritual' } },
+        { name: 'Sem livro', level: 1 },
+      ],
+    },
+  } as any;
+  const byId = (id: string) => characterActionsAll(caster, withSpells, weapons).find((s) => s.option.id === id)!.option;
+
+  it('reads the casting time of a spell', () => {
+    expect(costFromCastingTime('1 ação')).toEqual({ cost: 'action' });
+    expect(costFromCastingTime('1 Ação Bônus')).toEqual({ cost: 'bonus' });
+    expect(costFromCastingTime('1 reação, que você toma quando algo acontece')).toEqual({ cost: 'reaction' });
+    expect(costFromCastingTime('1 hora')).toEqual({ cost: 'action', combatUnavailable: true });
+    expect(costFromCastingTime('')).toEqual({ cost: 'action' });
+  });
+
+  it('gives spells the cost of their casting time', () => {
+    expect(byId('spell:b/bola-de-fogo')).toMatchObject({ cost: 'action', castingTime: '1 ação' });
+    expect(byId('spell:b/palavra-curativa').cost).toBe('bonus');
+    expect(byId('spell:b/escudo').cost).toBe('reaction');
+    expect(byId('spell:b/ritual')).toMatchObject({ cost: 'action', combatUnavailable: true });
+    expect(byId('spell:b/bola-de-fogo').combatUnavailable).toBeUndefined();
+  });
+
+  it('gives a sheet-only spell the action', () => {
+    expect(byId('spell:sheet:4')).toMatchObject({ cost: 'action' });
+    expect(byId('spell:sheet:4').castingTime).toBeUndefined();
+  });
+
+  it('marks weapon attacks as attacks, melee ones apart from thrown and ranged', () => {
+    const w = new Map([
+      ['b/espada-longa', weapon({ properties: ['versátil'] })],
+      ['b/machadinha', weapon({ properties: ['leve', 'arremesso'], normalRange: 6, longRange: 18 })],
+      ['b/arco', weapon({ range: 'ranged', normalRange: 24, longRange: 96, properties: ['munição'] })],
+    ]);
+    const ref = (slug: string) => ({ bookId: 'b', slug });
+    const out = characterActionsAll({ attacks: [
+      { name: 'Espada longa', attackBonus: 5, damageRoll: '1d8+3', compendiumRef: ref('espada-longa') },
+      { name: 'Machadinha', attackBonus: 5, damageRoll: '1d6+3', compendiumRef: ref('machadinha') },
+      { name: 'Arco', attackBonus: 5, damageRoll: '1d8', compendiumRef: ref('arco') },
+      { name: 'Funda', attackBonus: 3, damageRoll: '1d4', range: 30 },
+      { name: 'Soco', attackBonus: 3, damageRoll: '1' },
+    ] } as any, spells, w);
+    const o = (id: string) => out.find((s) => s.option.id === id)!.option;
+    expect(o('attack:0')).toMatchObject({ cost: 'attack', meleeWeapon: true });
+    expect(o('attack:1')).toMatchObject({ cost: 'attack', meleeWeapon: true });
+    expect(o('attack:1:thrown')).toMatchObject({ cost: 'attack' });
+    expect(o('attack:1:thrown').meleeWeapon).toBeUndefined();
+    expect(o('attack:2')).toMatchObject({ cost: 'attack' });
+    expect(o('attack:2').meleeWeapon).toBeUndefined();
+    expect(o('attack:3').meleeWeapon).toBeUndefined();
+    expect(o('attack:4')).toMatchObject({ cost: 'attack', meleeWeapon: true });
+  });
+
+  it('gives monster options the cost of their list', () => {
+    const out = npcActionsAll({
+      actions: [
+        { name: 'Cimitarra', description: 'Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 1,5 m, um alvo. Acerto: 5 (1d6 + 2) de dano cortante.' },
+        { name: 'Rugido', description: 'O monstro ruge alto.' },
+      ],
+      bonusActions: [{ name: 'Fuga Ágil', description: 'Usa Esconder.' }],
+      reactions: [{ name: 'Aparar', description: 'Reduz o dano.' }],
+    } as any);
+    const cost = (id: string) => out.find((s) => s.option.id === id)!.option.cost;
+    expect(cost('npc:actions:0')).toBe('attack');
+    expect(cost('npc:actions:1')).toBe('action');
+    expect(cost('npc:bonusActions:0')).toBe('bonus');
+    expect(cost('npc:reactions:0')).toBe('reaction');
+  });
+
+  it('lists the five common actions for a character and for a monster', () => {
+    for (const out of [characterActionsAll(caster, withSpells, weapons), npcActionsAll({ actions: [] } as any)]) {
+      const common = out.filter((s) => s.option.group === 'common');
+      expect(common.map((s) => [s.option.id, s.option.name])).toEqual([
+        ['common:dash', 'Disparada'],
+        ['common:disengage', 'Desengajar'],
+        ['common:dodge', 'Esquivar'],
+        ['common:help', 'Ajudar'],
+        ['common:hide', 'Esconder'],
+      ]);
+      for (const s of common) expect(s.option).toMatchObject({ resolution: 'post', cost: 'action' });
     }
   });
 });

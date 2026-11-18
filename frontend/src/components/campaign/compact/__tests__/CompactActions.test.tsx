@@ -108,7 +108,7 @@ describe('the target hint with several targets', () => {
 describe('the target hint with an area around the caster', () => {
   it('offers Confirm at once, with no tap', async () => {
     const { useActionStore } = await import('@/stores/actionStore');
-    const aura = { id: 'spell:aura', name: 'Aura', group: 'spell' as const, resolution: 'save' as const, spellLevel: 1, reach: { kind: 'self' as const }, targeting: { kind: 'area' as const, area: { shape: 'sphere' as const, sizeFt: 10 }, origin: 'self' as const } };
+    const aura = { id: 'spell:aura', name: 'Aura', group: 'spell' as const, resolution: 'save' as const, cost: 'action' as const, spellLevel: 1, reach: { kind: 'self' as const }, targeting: { kind: 'area' as const, area: { shape: 'sphere' as const, sizeFt: 10 }, origin: 'self' as const } };
     table();
     act(() => { useActionStore.getState().begin({ actorTokenId: 't1', option: aura, slotLevel: 1 }); });
     expect(screen.getByText('Aura around the caster: Confirm to cast')).toBeInTheDocument();
