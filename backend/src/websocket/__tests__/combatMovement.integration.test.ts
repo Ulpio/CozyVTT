@@ -9,6 +9,7 @@ import type { Socket as ClientSocket } from 'socket.io-client';
 import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampaigns, TEST_PASSWORD } from '../../__tests__/helpers/db';
 import { createTestApp } from '../../__tests__/helpers/test-app';
 import { createWsTestServer, expectNoEvent, waitForEvent, WsTestServer } from '../../__tests__/helpers/websocket-test-server';
+import { speedFeetFor } from '../../services/combatMovement';
 import { clearState, getState, setState, freshSpend, type CombatantEntry } from '../initiativeState';
 
 jest.setTimeout(30000);
@@ -170,5 +171,43 @@ describe('counting a walk on the combatant\'s turn', () => {
     const res = await gm.put(`/api/campaigns/${campaignId}/maps/${mapId}/tokens/fighter`).send({ position: { x: 10, y: 14 } });
     expect(res.status).toBe(200);
     expect(await movedFeetOf('fighter', 20)).toBe(20);
+  });
+});
+
+describe('speed and budget', () => {
+  const stat = (speed: string) => ({ id: 'monster', name: 'Ogro', position: { x: 10, y: 30 }, type: 'npc', statBlock: { speed } });
+  const put = (tokens: any[]) => prisma.map.update({ where: { id: mapId }, data: { tokens: tokens.map(token) } });
+
+  it.each([
+    ['9 m', 30], ['30 ft.', 30], ['30 pés', 30], ['30 Pes', 30], ['9 pés', 9], ['voa', 30],
+  ])('reads a stat block speed of %s as %i feet', (speed, feet) => {
+    expect(speedFeetFor(token(stat(speed)), null)).toBe(feet);
+  });
+
+  it('keeps a monster with a speed in feet to that budget', async () => {
+    await put([...freshTokens(), stat('30 ft.')]);
+    setState(campaignId, {
+      active: true, round: 1, currentTokenId: 'monster',
+      combatants: [entry('monster', 'Ogro')], spend: { monster: freshSpend() },
+    });
+    const gm = await connect(gmCookie);
+    const toGm = waitForEvent<any>(gm, 'chat.message');
+    const res = request.agent(app);
+    expect((await res.post('/api/auth/login').send({ email: gmEmail, password: TEST_PASSWORD })).status).toBe(200);
+    // 7 squares = 35 ft > 30 ft
+    await res.put(`/api/campaigns/${campaignId}/maps/${mapId}/tokens/monster`).send({ position: { x: 10, y: 37 } });
+    expect((await toGm).content).toBe('Ogro andou 10,5 m de 9 m neste turno.');
+  });
+
+  it('does not whisper when a Dash has doubled the budget', async () => {
+    startCombat();
+    setState(campaignId, { ...getState(campaignId), spend: { ...getState(campaignId).spend, fighter: { ...freshSpend(), dashes: 1 } } });
+    const gm = await connect(gmCookie);
+    const p1 = await connect(p1Cookie);
+    const none = expectNoEvent(gm, 'chat.message', 1000);
+    await walk(p1, 'fighter', 17, 10);
+    expect(await movedFeetOf('fighter', 35)).toBe(35);
+    await none;
+    expect(getState(campaignId).spend.fighter.overBudgetWarned).toBe(false);
   });
 });

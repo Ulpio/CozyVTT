@@ -40,8 +40,12 @@ export function attacksPerActionFor(sheet: Sheet | null): number {
 export function speedFeetFor(token: Token, sheet: Sheet | null): number {
   if (sheet) return typeof sheet.speed === 'number' ? sheet.speed : DEFAULT_SPEED_FEET;
   const text = (token.statBlock as { speed?: unknown } | null | undefined)?.speed;
-  const m = typeof text === 'string' ? text.match(/\d+(?:[.,]\d+)?/) : null;
-  return m ? metresToFeet(parseFloat(m[0].replace(',', '.'))) : DEFAULT_SPEED_FEET;
+  const m = typeof text === 'string' ? text.match(/(\d+(?:[.,]\d+)?)\s*([a-zà-ú]*)/i) : null;
+  if (!m) return DEFAULT_SPEED_FEET;
+  const n = parseFloat(m[1].replace(',', '.'));
+  const unit = m[2].normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  // Feet as written ("30 ft.", "9 pés"); metres (or no unit) are converted.
+  return unit === 'ft' || unit === 'pe' || unit === 'pes' ? n : metresToFeet(n);
 }
 
 /** Whether the turn economy binds this token: the fight is on and it is in the order. */
