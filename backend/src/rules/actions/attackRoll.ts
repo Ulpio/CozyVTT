@@ -17,18 +17,21 @@ export function rollAttack(bonus: number, mode: RollMode, rng: Rng = defaultRng)
   return { d20s, natural, total: natural + bonus };
 }
 
-/** A natural 20 always hits and crits; a natural 1 always misses; otherwise total >= AC. */
-export function attackHits(roll: AttackRoll, ac: number): { hit: boolean; critical: boolean } {
-  if (roll.natural === 20) return { hit: true, critical: true };
+/**
+ * A natural roll at or above `critMin` (20, or 19 for a Champion) always hits
+ * and crits; a natural 1 always misses; otherwise total >= AC.
+ */
+export function attackHits(roll: AttackRoll, ac: number, critMin = 20): { hit: boolean; critical: boolean } {
+  if (roll.natural >= critMin) return { hit: true, critical: true };
   if (roll.natural === 1) return { hit: false, critical: false };
   return { hit: roll.total >= ac, critical: false };
 }
 
-/** Chance (0..1) that one attack hits, nat 1 and nat 20 included. */
-export function hitChance(bonus: number, ac: number, mode: RollMode): number {
+/** Chance (0..1) that one attack hits, nat 1 and the critical range (from `critMin`) included. */
+export function hitChance(bonus: number, ac: number, mode: RollMode, critMin = 20): number {
   let faces = 0;
   for (let n = 1; n <= 20; n++) {
-    if (n === 20 || (n !== 1 && n + bonus >= ac)) faces += 1;
+    if (n >= critMin || (n !== 1 && n + bonus >= ac)) faces += 1;
   }
   const p = faces / 20;
   if (mode === 'advantage') return 1 - (1 - p) * (1 - p);

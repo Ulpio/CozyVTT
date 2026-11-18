@@ -249,3 +249,27 @@ describe('a recharge roll', () => {
     expect(screen.queryByText(/actionName/)).toBeNull();
   });
 });
+
+describe('an attack with riders', () => {
+  const card = (over: Record<string, unknown>) => ({
+    kind: 'action', actor: { tokenId: 'a1', name: 'Mara' }, actionName: 'Rapier', mode: 'normal', ...over,
+  }) as unknown as ActionCardView;
+
+  it('names the line each rider added to the hit', () => {
+    render(<ChatMessage message={msg(card({
+      targets: [{
+        tokenId: 'g1', name: 'Goblin', isCharacter: false, state: 'down', attack: { d20s: [15], natural: 15, total: 20, hit: true, critical: false },
+        damage: [{ total: 7, type: 'piercing', breakdown: '1d8+3: 4+3' }, { total: 5, type: 'piercing', label: 'Sneak Attack', breakdown: '2d6: 3+2' }],
+      }],
+    }))} />);
+    expect(screen.getByText(/7 piercing, Sneak Attack \(2d6\): 5 piercing/)).toBeInTheDocument();
+  });
+
+  it('says a rider was not used when the attack missed', () => {
+    render(<ChatMessage message={msg(card({
+      targets: [{ tokenId: 'g1', name: 'Goblin', isCharacter: false, state: 'unharmed', attack: { d20s: [2], natural: 2, total: 7, hit: false, critical: false } }],
+      ridersUnused: ['Sneak Attack'],
+    }))} />);
+    expect(screen.getByText('Missed, not used: Sneak Attack')).toBeInTheDocument();
+  });
+});

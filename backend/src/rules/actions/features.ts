@@ -156,8 +156,8 @@ function usesOf(action: FeatureAction, pools: Record<string, ResourcePool>): { l
   return pool ? { left: pool.max - pool.spent, max: pool.max } : undefined;
 }
 
-/** Whether an addDamage feature's filter lets it ride on this weapon attack. */
-function riderFits(filter: FeatureAction['filter'], spec: ResolvedActionSpec, sheet: FifthEditionCharacterData): boolean {
+/** Whether a feature's filter lets it add to this weapon attack (an addDamage rider, a state's damage bonus). */
+export function riderFits(filter: FeatureAction['filter'], spec: ResolvedActionSpec, sheet: FifthEditionCharacterData): boolean {
   if (!filter) return true;
   const melee = spec.option.meleeWeapon === true;
   const finesse = spec.finesse === true;
@@ -170,6 +170,45 @@ function riderFits(filter: FeatureAction['filter'], spec: ResolvedActionSpec, sh
     if (finesse && sheetAbilityModifier(sheet, 'strength') < sheetAbilityModifier(sheet, 'dexterity')) return false;
   }
   return true;
+}
+
+/** What a state's damage bonus asks of an attack when the feature names no filter: a melee one made with STR (Rage). */
+const STATE_BONUS_FILTER: NonNullable<FeatureAction['filter']> = { melee: true, strength: true };
+
+/**
+ * The flat damage the actor's running states (`sheet.activeStates`) add to
+ * this weapon attack: each state feature's `damageBonus` at the actor's
+ * level, when its filter lets the attack through.
+ */
+export function stateDamageBonus(features: ActorFeature[], spec: ResolvedActionSpec, sheet: FifthEditionCharacterData): number {
+  if (spec.source !== 'weapon') return 0;
+  const running = new Set(sheet?.activeStates ?? []);
+  const level = characterLevel(sheet);
+  let bonus = 0;
+  for (const f of features) {
+    if (f.action.kind !== 'state' || !f.action.damageBonus || !running.has(f.id)) continue;
+    if (!riderFits(f.action.filter ?? STATE_BONUS_FILTER, spec, sheet)) continue;
+    bonus += atLevel(f.action.damageBonus, level) ?? 0;
+  }
+  return bonus;
+}
+
+/**
+ * The dice an addDamage rider adds to a hit, before any critical: its `dice`
+ * at the actor's level, or for one that spends a slot `slot.base` plus
+ * `slot.perSlot` for each level above the 1st, at most `slot.maxDice` dice.
+ * Undefined when it has none to add (no dice at this level, no slot level).
+ */
+export function riderDice(action: FeatureAction, level: number, slotLevel: number | undefined): string | undefined {
+  if (action.slot) {
+    if (slotLevel === undefined) return undefined;
+    const base = action.slot.base.match(/^(\d+)d(\d+)$/);
+    const per = action.slot.perSlot.match(/^(\d+)d(\d+)$/);
+    if (!base || !per || base[2] !== per[2]) return undefined;
+    const count = Number(base[1]) + Number(per[1]) * (slotLevel - 1);
+    return `${Math.min(count, action.slot.maxDice)}d${base[2]}`;
+  }
+  return action.dice ? atLevel(action.dice, level) : undefined;
 }
 
 /**

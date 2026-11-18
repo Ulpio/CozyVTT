@@ -26,7 +26,8 @@ import type { FifthEditionCharacterData } from '../../validators/game-systems/fi
 import { characterLevel, type ResolvedActionSpec } from '../../rules/actions/catalogue';
 import type { ActionCard, ActionCardTarget, MaskedName, UndoRecord, Viewer } from '../../rules/actions/actionCard';
 import type { Rng, RollMode } from '../../rules/actions/types';
-import { catalogueFor } from './catalogueFor';
+import { catalogueFor, featuresFor } from './catalogueFor';
+import type { ActorFeature } from '../../rules/actions/features';
 import { cantripTier, multiplyDice, repeatDice } from './dice';
 
 export const NOT_YOUR_TOKEN = 'Not your token';
@@ -60,6 +61,8 @@ export interface Actor {
   /** The character the token is bound to, when it is this campaign's. */
   character: Character | null;
   spec: ResolvedActionSpec[];
+  /** A character's class and subclass features at its level (none for a monster). */
+  features: ActorFeature[];
 }
 
 /** The campaign's member roles by user id. */
@@ -124,9 +127,11 @@ export async function loadActor(campaignId: string, requester: Viewer, mapId: st
   if (!token) return refuse(NOT_YOUR_TOKEN);
   const character = await boundCharacter(campaignId, token);
   if (!(await mayActThrough(campaignId, requester, token, character, mapId))) return refuse(NOT_YOUR_TOKEN);
+  const sheet = character ? (character.data as unknown as Sheet) : null;
+  const features = sheet ? await featuresFor(campaignId, sheet) : [];
   // Built before any seeded roll is drawn: the catalogue checks dice by rolling them.
-  const spec = await catalogueFor(campaignId, token, character ? (character.data as unknown as Sheet) : null);
-  return { map, token, character, spec };
+  const spec = await catalogueFor(campaignId, token, sheet, features);
+  return { map, token, character, spec, features };
 }
 
 /** Who a token's actions are a player's: its character's owner or its controller, when a player; else the GM's. */
@@ -334,6 +339,21 @@ export function armourClass(token: Token, sheet: Sheet | null): number {
 
 type Slots = Record<string, { total: number; expended: number }>;
 
+/** Whether the sheet has a slot of this level left to spend. */
+export function hasSlot(sheet: HeldSheet | null, level: number): boolean {
+  if (!sheet || !Number.isInteger(level) || level < 1 || level > 9) return false;
+  const slot = (sheet.data.spellcasting?.slots as Slots | undefined)?.[String(level)];
+  return !!slot && typeof slot.total === 'number' && (slot.expended ?? 0) < slot.total;
+}
+
+/** Spends a slot of this level (hasSlot first), recorded on `undo` so the GM's undo gives it back. */
+export function spendSlot(sheet: HeldSheet, level: number, undo: UndoRecord): void {
+  const slots = sheet.data.spellcasting!.slots as unknown as Slots;
+  slots[String(level)] = { ...slots[String(level)], expended: (slots[String(level)].expended ?? 0) + 1 };
+  sheet.changed = true;
+  undo.slot = { characterId: sheet.character.id, level };
+}
+
 /**
  * Spends the spell's slot and takes up its concentration on the caster's
  * sheet, recording both on `undo`. Refuses when the slot is missing or empty,
@@ -350,19 +370,12 @@ export function spendSlotAndConcentration(
   let slotLevel: number | undefined;
   if (option.group === 'spell' && spellLevel > 0) {
     slotLevel = requested.slotLevel ?? spellLevel;
-    if (!Number.isInteger(slotLevel) || slotLevel < spellLevel || slotLevel > 9 || !actorSheet) return refuse(NO_SLOT);
-    const slot = (actorSheet.data.spellcasting?.slots as Slots | undefined)?.[String(slotLevel)];
-    if (!slot || typeof slot.total !== 'number' || (slot.expended ?? 0) >= slot.total) return refuse(NO_SLOT);
+    if (slotLevel < spellLevel || !hasSlot(actorSheet, slotLevel)) return refuse(NO_SLOT);
   }
   if (option.concentration && actorSheet && actorSheet.data.concentratingOn && !requested.replaceConcentration) {
     return { ok: false, error: NEEDS_CONCENTRATION_CONFIRM, code: 'needs-concentration-confirm' };
   }
-  if (slotLevel !== undefined && actorSheet) {
-    const slots = actorSheet.data.spellcasting!.slots as unknown as Slots;
-    slots[String(slotLevel)] = { ...slots[String(slotLevel)], expended: (slots[String(slotLevel)].expended ?? 0) + 1 };
-    actorSheet.changed = true;
-    undo.slot = { characterId: actorSheet.character.id, level: slotLevel };
-  }
+  if (slotLevel !== undefined && actorSheet) spendSlot(actorSheet, slotLevel, undo);
   if (option.concentration && actorSheet) {
     const before = actorSheet.data.concentratingOn ?? null;
     const ref = spellRef(option.id);

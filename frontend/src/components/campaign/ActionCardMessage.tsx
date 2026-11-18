@@ -108,7 +108,10 @@ export default function ActionCardMessage({ messageId, card }: { messageId: stri
     : card.mode === 'disadvantage' && card.disadvantageReason === 'long-range' ? t('actionCard.disadvantageLongRange')
     : t(`actionCard.${card.mode}`);
 
-  const damageText = (parts: ActionDamagePart[]) => parts.map((d) => t('actionCard.damagePart', { total: d.total, type: d.type ?? '' }).trim()).join(', ');
+  // A rider's line (Sneak Attack) is named, with the dice it rolled: the breakdown's "2d6: 3+2".
+  const damageText = (parts: ActionDamagePart[]) => parts.map((d) => (d.label
+    ? t('actionCard.riderPart', { label: d.label, dice: d.breakdown.split(':')[0].trim(), total: d.total, type: d.type ?? '' })
+    : t('actionCard.damagePart', { total: d.total, type: d.type ?? '' })).trim()).join(', ');
   const abilityName = (ability: ActionAbility) => t(`guidedCreation.ability.${ability}`);
   const waiting = pendingCount(card);
 
@@ -193,6 +196,7 @@ export default function ActionCardMessage({ messageId, card }: { messageId: stri
         );
       })}
       {card.selfHealing !== undefined && <p>{t('actionCard.selfHealing', { name: actor, amount: card.selfHealing })}</p>}
+      {card.ridersUnused && card.ridersUnused.length > 0 && <p className="text-xs opacity-80">{t('actionCard.ridersUnused', { names: card.ridersUnused.join(', ') })}</p>}
       {gmCard?.extraText && <p className="text-xs opacity-80">{gmCard.extraText}</p>}
       {card.extraText && !gmCard && <p className="text-xs opacity-80">{(card as PlayerActionCard).extraText}</p>}
       {undone ? (

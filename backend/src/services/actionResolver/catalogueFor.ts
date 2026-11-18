@@ -86,14 +86,18 @@ export async function featuresFor(campaignId: string, sheet: FifthEditionCharact
   return actorFeatures(sheet, classEntry, subclassEntry);
 }
 
-/** A character's actions when `sheet` is given, else the token's stat block's, else none. */
+/**
+ * A character's actions when `sheet` is given (with its `features`, read here
+ * when the caller has not), else the token's stat block's, else none.
+ */
 export async function catalogueFor(
   campaignId: string,
   token: Token,
   sheet: FifthEditionCharacterData | null,
+  known?: ActorFeature[],
 ): Promise<ResolvedActionSpec[]> {
   if (sheet) {
-    const [{ spells, weapons }, features] = await Promise.all([compendiumFor(campaignId, sheet), featuresFor(campaignId, sheet)]);
+    const [{ spells, weapons }, features] = await Promise.all([compendiumFor(campaignId, sheet), known ?? featuresFor(campaignId, sheet)]);
     return withFeatures(characterActions(sheet, spells, weapons), features, sheet);
   }
   if (token.statBlock && typeof token.statBlock === 'object') return npcActions(token.statBlock as unknown as NpcStatBlockInput, token.rechargeSpent ?? []);

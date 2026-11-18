@@ -5,7 +5,9 @@
  * extra action (Action Surge), unarmed attacks after the Attack action
  * (Flurry of Blows) and common actions taken as a bonus action (Cunning
  * Action), each spending its pool and its share of the turn, and each taken
- * back by the GM's undo. The class entries are invented minimal ones (no book
+ * back by the GM's undo; then what rides on a weapon attack (Sneak Attack,
+ * Divine Smite, Rage damage) and the passives that change it (Extra Attack,
+ * Improved Critical). The class entries are invented minimal ones (no book
  * text) under a book of this file's own. Requires PostgreSQL at DATABASE_URL.
  */
 
@@ -47,6 +49,11 @@ const CLASSES: Record<string, { name: string; features: unknown[] }> = {
       feature('Ira Inventada', 1, {
         key: 'rage', kind: 'state', cost: 'bonus', stateName: 'Fúria',
         resources: [{ key: 'rage', max: { '1': 2, '3': 3 }, recovers: 'long' }], spends: { key: 'rage' }, damageBonus: { '1': 2 },
+        filter: { melee: true, strength: true },
+      }),
+      feature('Pancada Inventada', 1, {
+        key: 'brutal', kind: 'addDamage', cost: 'none', resources: [{ key: 'brutal', max: 1, recovers: 'short' }],
+        spends: { key: 'brutal' }, dice: { '1': '1d4' }, filter: { melee: true },
       }),
     ],
   },
@@ -60,6 +67,7 @@ const CLASSES: Record<string, { name: string; features: unknown[] }> = {
       feature('Surto Inventado', 2, {
         key: 'action-surge', kind: 'extraAction', cost: 'none', resources: [{ key: 'action-surge', max: 1, recovers: 'short' }], spends: { key: 'action-surge' },
       }),
+      feature('Golpe Duplo Inventado', 5, { key: 'extra-attack', kind: 'passive', passive: { extraAttacks: 1 } }),
     ],
   },
   monge: {
@@ -79,11 +87,28 @@ const CLASSES: Record<string, { name: string; features: unknown[] }> = {
         key: 'lay-on-hands', kind: 'heal', cost: 'action', resources: [{ key: 'lay-on-hands', max: { perLevel: 5 }, recovers: 'long' }],
         spends: { key: 'lay-on-hands', chosen: true },
       }),
+      feature('Castigo Inventado', 2, {
+        key: 'divine-smite', kind: 'addDamage', cost: 'none', slot: { base: '2d8', perSlot: '1d8', maxDice: 5 }, filter: { melee: true },
+      }),
     ],
   },
   ladino: {
     name: 'Ladino',
-    features: [feature('Astúcia Inventada', 2, { key: 'cunning-action', kind: 'makeBonus', cost: 'bonus', makeBonus: ['dash', 'disengage', 'hide'] })],
+    features: [
+      feature('Furtivo Inventado', 1, {
+        key: 'sneak-attack', kind: 'addDamage', cost: 'none', oncePerTurn: true, filter: { finesseOrRanged: true }, dice: { '1': '1d6', '3': '2d6' },
+      }),
+      feature('Astúcia Inventada', 2, { key: 'cunning-action', kind: 'makeBonus', cost: 'bonus', makeBonus: ['dash', 'disengage', 'hide'] }),
+    ],
+  },
+};
+
+/** Invented subclass entries with the slugs the fixture sheets point at. */
+const SUBCLASSES: Record<string, { name: string; parent: string; features: unknown[] }> = {
+  campeao: {
+    name: 'Campeão',
+    parent: 'guerreiro',
+    features: [feature('Crítico Inventado', 3, { key: 'improved-critical', kind: 'passive', passive: { critMin: 19 } })],
   },
 };
 
@@ -93,6 +118,11 @@ const SECOND_WIND = fid('guerreiro', 'second-wind');
 const SURGE = fid('guerreiro', 'action-surge');
 const FLURRY = fid('monge', 'flurry-of-blows');
 const HANDS = fid('paladino', 'lay-on-hands');
+const SNEAK = fid('ladino', 'sneak-attack');
+const SMITE = fid('paladino', 'divine-smite');
+const BRUTAL = fid('barbaro', 'brutal');
+const CANNOT_RESOLVE = 'This action cannot be resolved';
+const ONCE_PER_TURN = 'Uma vez por turno.';
 
 let gmId: string;
 let p1Id: string;
@@ -181,6 +211,12 @@ beforeAll(async () => {
   await prisma.compendiumEntry.createMany({
     data: Object.entries(CLASSES).map(([slug, c]) => ({
       bookId: BOOK, type: 'class', slug, name: c.name, search: c.name.toLowerCase(), text: 'Texto inventado.', data: { features: c.features } as object,
+    })),
+  });
+  await prisma.compendiumEntry.createMany({
+    data: Object.entries(SUBCLASSES).map(([slug, c]) => ({
+      bookId: BOOK, type: 'subclass', slug, name: c.name, search: c.name.toLowerCase(), text: 'Texto inventado.',
+      data: { parent: c.parent, features: c.features } as object,
     })),
   });
   await prisma.campaignBook.create({ data: { campaignId, bookId: BOOK } });
@@ -419,5 +455,145 @@ describe('Cunning Action', () => {
     const listed = await listActions(campaignId, p1, mapId, 'fighter');
     if ('error' in listed) throw new Error(listed.error);
     expect(listed.options.some((o) => o.id.endsWith(':bonus'))).toBe(false);
+  });
+});
+
+describe('Sneak Attack, a once-a-turn rider', () => {
+  const sneak = (over: Partial<ActionRequest> = {}) => req('rogue', 'attack:0', { targetTokenId: 'goblin', riders: [{ featureId: SNEAK }], ...over });
+
+  it('is listed on the finesse rapier', async () => {
+    const listed = await listActions(campaignId, p1, mapId, 'rogue');
+    if ('error' in listed) throw new Error(listed.error);
+    expect(listed.options.find((o) => o.id === 'attack:0')?.riders).toEqual([{ featureId: SNEAK, name: 'Furtivo Inventado' }]);
+  });
+
+  it('adds 2d6 of the weapon type on a hit, once a turn; again off turn after next, and on the next turn', async () => {
+    startFight('rogue');
+    // +5: 15 hits AC 15; rapier 1d8+3 (4) = 7; 2d6 (3, 2) = 5.
+    const out = ok(await resolveAction(campaignId, p1, sneak(), seq(15, 4, 3, 2)));
+    expect(out.card.targets[0].damage).toEqual([
+      { total: 7, type: 'perfurante', breakdown: expect.any(String) },
+      { total: 5, type: 'perfurante', label: 'Furtivo Inventado', breakdown: expect.stringContaining('2d6') },
+    ]);
+    expect(out.card.ridersUnused).toBeUndefined();
+    expect(spent('rogue').oncePerTurn).toEqual([SNEAK]);
+    expect(await resolveAction(campaignId, p1, sneak({ actionId: 'attack:1' }), seq())).toEqual({ ok: false, error: ONCE_PER_TURN });
+
+    // The turn passes to the goblin: a reaction attack in the same round may add it again.
+    setState(campaignId, beginTurn(getState(campaignId), 'goblin'));
+    const reaction = ok(await resolveAction(campaignId, p1, sneak(), seq(15, 4, 3, 2)));
+    expect(reaction.card.targets[0].damage).toHaveLength(2);
+    expect(spent('rogue')).toMatchObject({ reaction: true, oncePerTurn: [SNEAK] });
+
+    setState(campaignId, beginTurn(getState(campaignId), 'rogue'));
+    ok(await resolveAction(campaignId, p1, sneak(), seq(15, 4, 3, 2)));
+  });
+
+  it('spends nothing on a miss, and the card says it was not used', async () => {
+    startFight('rogue');
+    const out = ok(await resolveAction(campaignId, p1, sneak(), seq(2)));
+    expect(out.card.targets[0].attack?.hit).toBe(false);
+    expect(out.card.targets[0].damage).toBeUndefined();
+    expect(out.card.ridersUnused).toEqual(['Furtivo Inventado']);
+    expect(spent('rogue').oncePerTurn).toEqual([]);
+  });
+
+  it('is refused on an option that does not list it, on a non-weapon option and with a slot level', async () => {
+    startFight('rogue');
+    expect(await resolveAction(campaignId, p1, req('barb', 'attack:0', { targetTokenId: 'goblin', riders: [{ featureId: SNEAK }] }), seq())).toEqual({ ok: false, error: CANNOT_RESOLVE });
+    expect(await resolveAction(campaignId, p1, req('rogue', 'common:dodge', { riders: [{ featureId: SNEAK }] }), seq())).toEqual({ ok: false, error: CANNOT_RESOLVE });
+    expect(await resolveAction(campaignId, p1, sneak({ riders: [{ featureId: SNEAK, slotLevel: 1 }] }), seq())).toEqual({ ok: false, error: CANNOT_RESOLVE });
+    expect(await resolveAction(campaignId, p1, sneak({ riders: [{ featureId: SNEAK }, { featureId: SNEAK }] }), seq())).toEqual({ ok: false, error: CANNOT_RESOLVE });
+    expect(spent('rogue')).toEqual(freshSpend());
+  });
+});
+
+describe('Divine Smite, a rider that spends a spell slot', () => {
+  const smite = (slotLevel?: number) => req('paladin', 'attack:0', { targetTokenId: 'goblin', riders: [{ featureId: SMITE, ...(slotLevel ? { slotLevel } : {}) }] });
+
+  it('adds 3d8 with a 2nd-level slot, spends the slot, and the undo gives it back', async () => {
+    await setSheet('paladin', (s) => { s.spellcasting.slots['2'] = { total: 1, expended: 0 }; });
+    startFight('paladin');
+    // Longsword 1d8+5 (4) = 9; 3d8 (1, 2, 3) = 6.
+    const out = ok(await resolveAction(campaignId, p1, smite(2), seq(15, 4, 1, 2, 3)));
+    expect(out.card.targets[0].damage?.[1]).toEqual({ total: 6, type: 'cortante', label: 'Castigo Inventado', breakdown: expect.stringContaining('3d8') });
+    expect((await charData('paladin')).spellcasting.slots['2']).toEqual({ total: 1, expended: 1 });
+    expect((await undoAction(campaignId, gm, out.messageId)).ok).toBe(true);
+    expect((await charData('paladin')).spellcasting.slots['2']).toEqual({ total: 1, expended: 0 });
+  });
+
+  it('doubles its dice on a critical and stops at five dice', async () => {
+    await setSheet('paladin', (s) => { s.spellcasting.slots['5'] = { total: 1, expended: 0 }; });
+    const out = ok(await resolveAction(campaignId, p1, smite(5), seq(20, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)));
+    expect(out.card.targets[0].damage?.[1]).toMatchObject({ total: 10, breakdown: expect.stringContaining('10d8') });
+  });
+
+  it('is refused before rolling with no slot of that level, spending nothing', async () => {
+    startFight('paladin');
+    expect(await resolveAction(campaignId, p1, smite(2), seq())).toEqual({ ok: false, error: 'No spell slot of that level' });
+    expect(spent('paladin')).toEqual(freshSpend());
+    expect(await resolveAction(campaignId, p1, smite(), seq())).toEqual({ ok: false, error: CANNOT_RESOLVE });
+  });
+
+  it('keeps the slot on a miss', async () => {
+    const out = ok(await resolveAction(campaignId, p1, smite(1), seq(2)));
+    expect(out.card.ridersUnused).toEqual(['Castigo Inventado']);
+    expect((await charData('paladin')).spellcasting.slots['1']).toEqual({ total: 3, expended: 0 });
+    expect(out.card.undo.slot).toBeUndefined();
+  });
+});
+
+describe('A rider with a pool of uses', () => {
+  const brutal = () => req('barb', 'attack:0', { targetTokenId: 'goblin', riders: [{ featureId: BRUTAL }] });
+
+  it('spends a use on a hit, and the undo gives it back', async () => {
+    const out = ok(await resolveAction(campaignId, p1, brutal(), seq(15, 6, 3)));
+    expect(out.card.targets[0].damage?.[1]).toMatchObject({ total: 3, label: 'Pancada Inventada' });
+    expect((await charData('barb')).featureUses).toEqual({ brutal: 1 });
+    expect((await undoAction(campaignId, gm, out.messageId)).ok).toBe(true);
+    expect((await charData('barb')).featureUses).toEqual({ brutal: 0 });
+  });
+
+  it('is refused before rolling when the pool is empty', async () => {
+    await setSheet('barb', (s) => { s.featureUses = { brutal: 1 }; });
+    expect(await resolveAction(campaignId, p1, brutal(), seq())).toEqual({ ok: false, error: NO_USES });
+  });
+});
+
+describe('Rage damage', () => {
+  it('adds 2 to a raging barbarian\'s greataxe hit, not to a thrown javelin', async () => {
+    await setSheet('barb', (s) => { s.activeStates = [RAGE]; });
+    // Greataxe 1d12+3 (6) = 9, +2.
+    const axe = ok(await resolveAction(campaignId, p1, req('barb', 'attack:0', { targetTokenId: 'goblin' }), seq(15, 6)));
+    expect(axe.card.targets[0].damage?.[0].total).toBe(11);
+    // Javelin thrown 1d6+3 (4) = 7: a ranged attack, no Rage.
+    const javelin = ok(await resolveAction(campaignId, p1, req('barb', 'attack:1:thrown', { targetTokenId: 'goblin' }), seq(15, 4)));
+    expect(javelin.card.targets[0].damage?.[0].total).toBe(7);
+  });
+
+  it('adds nothing when not raging', async () => {
+    const axe = ok(await resolveAction(campaignId, p1, req('barb', 'attack:0', { targetTokenId: 'goblin' }), seq(15, 6)));
+    expect(axe.card.targets[0].damage?.[0].total).toBe(9);
+  });
+});
+
+describe('Extra Attack and Improved Critical', () => {
+  it('lets a 5th-level fighter attack twice under one action', async () => {
+    await setSheet('fighter', (s) => { s.level = 5; });
+    startFight('fighter');
+    const listed = await listActions(campaignId, p1, mapId, 'fighter');
+    if ('error' in listed) throw new Error(listed.error);
+    expect(listed.combat?.attacksPerAction).toBe(2);
+    const swing = req('fighter', 'attack:0', { targetTokenId: 'goblin' });
+    ok(await resolveAction(campaignId, p1, swing, seq(2)));
+    ok(await resolveAction(campaignId, p1, swing, seq(2)));
+    expect(await resolveAction(campaignId, p1, swing, seq(2))).toEqual({ ok: false, error: 'Você já usou a ação neste turno.' });
+  });
+
+  it('lets a 3rd-level Champion crit on a 19', async () => {
+    // Longsword 1d8+3, doubled: 3 + 4 + 3.
+    const out = ok(await resolveAction(campaignId, p1, req('fighter', 'attack:0', { targetTokenId: 'goblin' }), seq(19, 3, 4)));
+    expect(out.card.targets[0].attack).toMatchObject({ natural: 19, hit: true, critical: true });
+    expect(out.card.targets[0].damage?.[0].total).toBe(10);
   });
 });

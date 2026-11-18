@@ -16,6 +16,12 @@ describe('attack rolls', () => {
     expect(hitChance(-20, 30, 'normal')).toBeCloseTo(0.05);
     expect(hitChance(30, 1, 'normal')).toBeCloseTo(0.95);
   });
+  it('a natural 19 crits when the critical range starts at 19, and hits whatever the AC', () => {
+    expect(attackHits({ d20s: [19], natural: 19, total: 24 }, 40, 19)).toEqual({ hit: true, critical: true });
+    expect(attackHits({ d20s: [19], natural: 19, total: 24 }, 15)).toEqual({ hit: true, critical: false });
+    expect(attackHits({ d20s: [18], natural: 18, total: 23 }, 40, 19)).toEqual({ hit: false, critical: false });
+  });
+  it('hit chance counts the wider critical range as hits', () => expect(hitChance(-20, 30, 'normal', 19)).toBeCloseTo(0.1));
   it('critical doubles dice only', () => expect(rollDamage('1d8+3', true, seq(4, 6)).total).toBe(13));
   it('non-critical rolls dice once', () => expect(rollDamage('1d8+3', false, seq(4)).total).toBe(7));
   it('rollDice accepts an rng', () => expect(rollDice('2d6+1', seq(3, 4)).total).toBe(8));

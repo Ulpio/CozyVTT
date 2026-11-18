@@ -16,6 +16,7 @@ import { metresToFeet } from '../../rules/actions/rangeText';
 import { getState, setState, withCombatLock, type CombatState } from '../../websocket/initiativeState';
 import { resendInitiative } from '../../websocket/handlers/initiative';
 import { REFUSAL_MESSAGES, applySpend, canSpend, movementBudgetFeet, type TurnSpend } from '../../utils/turnEconomy';
+import { attacksPerAction, type ActorFeature } from '../../rules/actions/features';
 import type { Sheet } from './common';
 
 /** The ack text for a spell whose casting time is a minute or more, refused in a fight. */
@@ -31,12 +32,13 @@ export type EconomyUndo = NonNullable<UndoRecord['economy']>;
 const DEFAULT_SPEED_FEET = 30;
 
 /**
- * How many weapon attacks one Attack action allows. A creature with no
- * sheet (a monster) is trusted with its Multiattack: it may go on attacking
- * once it has spent its action on an attack.
+ * How many weapon attacks one Attack action allows: a character's one, plus
+ * what its features add (Extra Attack). A creature with no sheet (a monster)
+ * is trusted with its Multiattack: it may go on attacking once it has spent
+ * its action on an attack.
  */
-export function attacksPerActionFor(sheet: Sheet | null): number {
-  return sheet ? 1 : 100;
+export function attacksPerActionFor(sheet: Sheet | null, features: ActorFeature[] = []): number {
+  return sheet ? attacksPerAction(features) : 100;
 }
 
 /** The token's speed in feet: its sheet's, or the first number of its stat block's (metres). */
@@ -62,18 +64,21 @@ function binds(state: CombatState, tokenId: string): boolean {
  * reason to refuse the action has passed, so a refused resolve spends nothing.
  * `requiresAttackAction` refuses it until the actor has taken the Attack
  * action this turn; `grantExtraAction` gives the actor an extra action
- * (Action Surge) along with the spend.
+ * (Action Surge) along with the spend. `oncePerTurnCheck` refuses it when a
+ * once-a-turn feature it names was used this turn, without marking it: an
+ * attack's rider is marked only once it hits (markOncePerTurn), with `at`.
  */
 export async function checkAndSpend(
   campaignId: string,
   actor: Token,
   option: ActionOption,
-  opts: { attacksPerAction: number; oncePerTurnKey?: string; requiresAttackAction?: boolean; grantExtraAction?: boolean },
-): Promise<{ ok: true; economy?: EconomyUndo } | { ok: false; error: string }> {
-  const outcome = await withCombatLock(campaignId, (state): { ok: true; economy?: EconomyUndo } | { ok: false; error: string } => {
+  opts: { attacksPerAction: number; oncePerTurnKey?: string; oncePerTurnCheck?: string[]; requiresAttackAction?: boolean; grantExtraAction?: boolean },
+): Promise<{ ok: true; economy?: EconomyUndo; at?: TurnAt } | { ok: false; error: string }> {
+  const outcome = await withCombatLock(campaignId, (state): { ok: true; economy?: EconomyUndo; at?: TurnAt } | { ok: false; error: string } => {
     if (!binds(state, actor.id)) return { ok: true };
     if (option.combatUnavailable) return { ok: false, error: TOO_LONG_FOR_COMBAT };
     const before = state.spend[actor.id];
+    if (opts.oncePerTurnCheck?.some((key) => before.oncePerTurn.includes(key))) return { ok: false, error: REFUSAL_MESSAGES['once-per-turn'] };
     const yourTurn = state.currentTokenId === actor.id;
     const check = canSpend(before, option.cost, { yourTurn, meleeWeapon: option.meleeWeapon === true, oncePerTurnKey: opts.oncePerTurnKey });
     if (!check.ok) return { ok: false, error: REFUSAL_MESSAGES[check.refusal] };
@@ -92,10 +97,36 @@ export async function checkAndSpend(
     }
     if (opts.grantExtraAction) next.extraActions += 1;
     setState(campaignId, { ...state, spend: { ...state.spend, [actor.id]: next } });
-    return { ok: true, economy: { campaignId, tokenId: actor.id, round: state.round, spent } };
+    return { ok: true, economy: { campaignId, tokenId: actor.id, round: state.round, spent }, at: { round: state.round, currentTokenId: state.currentTokenId } };
   });
   if (outcome.ok && outcome.economy) await resendInitiative(campaignId);
   return outcome;
+}
+
+/** The turn an action was checked in: the round and whose turn it was. */
+export interface TurnAt {
+  round: number;
+  currentTokenId: string | null;
+}
+
+/**
+ * Marks once-a-turn features (Sneak Attack) as used by the actor, or with
+ * `on: false` takes the marks back (the action that used them failed to be
+ * stored). Only while the turn `at` is still going: a turn that has passed
+ * since cleared every mark, and one made now would wrongly hold in the next.
+ * Run it under the same map lock as the checkAndSpend that gave `at`, so no
+ * other action of the actor's can pass the check in between.
+ */
+export async function markOncePerTurn(campaignId: string, tokenId: string, keys: string[], at: TurnAt, on = true): Promise<void> {
+  if (keys.length === 0) return;
+  const changed = await withCombatLock(campaignId, (state) => {
+    const now = state.spend[tokenId];
+    if (!binds(state, tokenId) || !now || state.round !== at.round || state.currentTokenId !== at.currentTokenId) return false;
+    const marks = on ? [...new Set([...now.oncePerTurn, ...keys])] : now.oncePerTurn.filter((key) => !keys.includes(key));
+    setState(campaignId, { ...state, spend: { ...state.spend, [tokenId]: { ...now, oncePerTurn: marks } } });
+    return true;
+  });
+  if (changed) await resendInitiative(campaignId);
 }
 
 /**
@@ -150,14 +181,14 @@ export interface CombatTurn {
 }
 
 /** What the bar shows of the actor's turn, when the economy binds it. */
-export function combatFor(campaignId: string, token: Token, sheet: Sheet | null): CombatTurn | undefined {
+export function combatFor(campaignId: string, token: Token, sheet: Sheet | null, features: ActorFeature[] = []): CombatTurn | undefined {
   const state = getState(campaignId);
   const spend = state.spend[token.id];
   if (!binds(state, token.id) || !spend) return undefined;
   return {
     yourTurn: state.currentTokenId === token.id,
     spend: { ...spend, oncePerTurn: [...spend.oncePerTurn] },
-    attacksPerAction: attacksPerActionFor(sheet),
+    attacksPerAction: attacksPerActionFor(sheet, features),
     budgetFeet: movementBudgetFeet(speedFeetFor(token, sheet), spend),
   };
 }

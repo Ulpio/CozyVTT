@@ -18,6 +18,8 @@ export interface DamagePart {
   total: number;
   type?: string;
   breakdown: string;
+  /** The feature that added this line to a weapon hit (Sneak Attack, Divine Smite). */
+  label?: string;
 }
 
 export interface TargetSave {
@@ -130,6 +132,8 @@ export interface ActionCard {
   recharge?: { tokenId: string; optionId: string };
   /** What the actor healed itself by draining its target (Vampiric Touch). */
   selfHealing?: number;
+  /** The riders chosen for an attack that missed: not used, nothing of theirs spent. */
+  ridersUnused?: string[];
   extraText?: string;
   undo: UndoRecord;
   undoneAt?: string;
@@ -185,6 +189,7 @@ export interface PlayerActionCard {
   area?: AreaSpec;
   pendingSaves?: number;
   selfHealing?: number;
+  ridersUnused?: string[];
   extraText?: string;
   undoneAt?: string;
   undoPartial?: boolean;
@@ -276,6 +281,7 @@ export function projectActionCard(card: ActionCard, viewer: Viewer): PlayerActio
   if (card.extraText !== undefined && card.actor.userId !== undefined) out.extraText = card.extraText;
   if (card.undoneAt !== undefined) out.undoneAt = card.undoneAt;
   if (card.selfHealing !== undefined) out.selfHealing = card.selfHealing;
+  if (card.ridersUnused) out.ridersUnused = [...card.ridersUnused];
   // "Partial" names a target whose hit points the undo left: only one this
   // viewer sees, or a hidden one would show through. A card from before
   // targets were marked one by one keeps its own flag.

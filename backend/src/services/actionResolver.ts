@@ -24,8 +24,9 @@
  * undo.ts (the GM's undo, of a whole card or one target), recharge.ts (a
  * monster's recharge), areaTargets.ts (who an area catches), economy.ts (what
  * a combatant may still spend this turn), features.ts (class feature
- * buttons: Rage, Second Wind, Flurry of Blows and the rest), common.ts (what
- * they share), dice.ts and catalogueFor.ts.
+ * buttons: Rage, Second Wind, Flurry of Blows and the rest), riders.ts (what
+ * a weapon hit adds: Sneak Attack, Divine Smite), common.ts (what they
+ * share), dice.ts and catalogueFor.ts.
  */
 
 import { prisma } from '../config/database';
@@ -38,7 +39,8 @@ import { rollAttack, attackHits, hitChance, rollDamage } from '../rules/actions/
 import { characterSaveBonus } from '../rules/actions/savingThrow';
 import { rollDice } from '../utils/dice-parser';
 import { spellcastingModifier, type ActionId, type ActionOption } from '../rules/actions/catalogue';
-import type { ActionCard, ActionCardTarget, MaskedName, UndoRecord, Viewer } from '../rules/actions/actionCard';
+import type { ActionCard, ActionCardTarget, DamagePart, MaskedName, UndoRecord, Viewer } from '../rules/actions/actionCard';
+import { critMin, stateDamageBonus } from '../rules/actions/features';
 import type { Rng, RollMode } from '../rules/actions/types';
 import { withLongRange } from './actionResolver/dice';
 import {
@@ -73,7 +75,8 @@ import {
 } from './actionResolver/common';
 import { isTargetedAction, resolveTargetedAction } from './actionResolver/saves';
 import { resolveFeature } from './actionResolver/features';
-import { attacksPerActionFor, checkAndSpend, combatFor, giveBack, type CombatTurn, type EconomyUndo } from './actionResolver/economy';
+import { attacksPerActionFor, checkAndSpend, combatFor, giveBack, markOncePerTurn, type CombatTurn, type EconomyUndo, type TurnAt } from './actionResolver/economy';
+import { applyRiders, chosenRiders, riderRefusal } from './actionResolver/riders';
 
 export {
   NOT_YOUR_TOKEN,
@@ -113,6 +116,8 @@ export interface ActionRequest {
   replaceConcentration?: boolean;
   /** A feature that heals from a pool (Lay on Hands): how much of it to spend, 1 to what is left. */
   amount?: number;
+  /** Features added to a weapon attack's hit (Sneak Attack; Divine Smite with the slot it spends). */
+  riders?: { featureId: string; slotLevel?: number }[];
 }
 
 export type ResolveOutcome =
@@ -148,7 +153,7 @@ export async function listActions(
     if (requester.role !== 'GM') delete copy.summary;
     return copy;
   });
-  const combat = combatFor(campaignId, actor.token, actor.character ? (actor.character.data as unknown as Sheet) : null);
+  const combat = combatFor(campaignId, actor.token, actor.character ? (actor.character.data as unknown as Sheet) : null, actor.features);
   return combat ? { options, combat } : { options };
 }
 
@@ -170,6 +175,9 @@ export async function resolveAction(
   if (option.resolution === 'feature') return spec.feature ? resolveFeature(campaignId, requester, req, actor, spec.feature, rng) : refuse(CANNOT_RESOLVE);
   // Only a feature that heals from a pool takes an amount.
   if (req.amount !== undefined) return refuse(CANNOT_RESOLVE);
+  // Riders only on a weapon attack that lists them.
+  const riders = chosenRiders(req.riders, spec, actor.features);
+  if (!riders) return refuse(CANNOT_RESOLVE);
   // An area is aimed, never given targets; anything else is never aimed.
   const isArea = option.targeting?.kind === 'area';
   if (isArea ? req.targetTokenIds !== undefined || req.targetTokenId !== undefined : req.area !== undefined) return refuse(INVALID_TARGET);
@@ -189,8 +197,11 @@ export async function resolveAction(
   const spiritVisible = requester.role === 'GM' ? true : await getSpiritVisibility(campaignId, requester.userId);
   const mapId = req.mapId;
 
-  // What the action spends of the actor's turn, given back if storing it fails.
+  // What the action spends of the actor's turn, and the once-a-turn riders it
+  // marked used, given back if storing it fails.
   let economy: EconomyUndo | undefined;
+  let marked: { keys: string[]; at: TurnAt } | undefined;
+  const onceKeys = riders.filter((r) => r.feature.action.oncePerTurn).map((r) => r.feature.id);
   const outcome = await withMapsLocked([mapId], async (tx) => {
     const map = await tx.map.findUniqueOrThrow({ where: { id: mapId } });
     const tokens = readTokens(map.tokens);
@@ -242,9 +253,16 @@ export async function resolveAction(
     const spent = spendSlotAndConcentration(spec, actorSheet, req, undo);
     if ('ok' in spent) return spent;
     const { slotLevel } = spent;
+    // The riders' pools and slots, before anything is rolled.
+    const riderRefused = riderRefusal(riders, actorSheet, actor.features);
+    if (riderRefused) return refuse(riderRefused);
 
-    // The turn: refused when already spent, spent before anything is rolled.
-    const turn = await checkAndSpend(campaignId, actorToken, option, { attacksPerAction: attacksPerActionFor(actorSheet?.data ?? null) });
+    // The turn: refused when already spent (or a once-a-turn rider already
+    // used), spent before anything is rolled. The rider is marked only on a hit.
+    const turn = await checkAndSpend(campaignId, actorToken, option, {
+      attacksPerAction: attacksPerActionFor(actorSheet?.data ?? null, actor.features),
+      oncePerTurnCheck: onceKeys,
+    });
     if (!turn.ok) return turn;
     if (turn.economy) undo.economy = economy = turn.economy;
 
@@ -252,6 +270,7 @@ export async function resolveAction(
     const effectiveMode = longRange && option.resolution === 'attack' ? withLongRange(mode) : mode;
     const cardTargets: ActionCardTarget[] = [];
     const edits = tokenEdits(tokens);
+    let ridersUnused: string[] | undefined;
     if (target && (option.resolution === 'attack' || option.resolution === 'heal')) {
       // Who answers for the target, and whether players are sent it at all (a hidden one leaves their cards).
       const entry = newEntry(target, targetSheet, targetCharacter, roles);
@@ -260,18 +279,33 @@ export async function resolveAction(
       let delta = 0;
       if (option.resolution === 'attack') {
         const bonus = spec.attackBonus as number;
-        entry.hitChance = hitChance(bonus, ac, effectiveMode);
+        const crit = critMin(actor.features);
+        entry.hitChance = hitChance(bonus, ac, effectiveMode, crit);
         const roll = rollAttack(bonus, effectiveMode, rng);
-        const { hit, critical } = attackHits(roll, ac);
+        const { hit, critical } = attackHits(roll, ac, crit);
         entry.attack = { d20s: roll.d20s, natural: roll.natural, total: roll.total, hit, critical };
         if (hit) {
-          entry.damage = damageLines(spec, req.grip, actorSheet?.data ?? null, slotLevel).map((line) => {
+          const lines = damageLines(spec, req.grip, actorSheet?.data ?? null, slotLevel);
+          // A running state's flat bonus (Rage) joins the weapon's first line, never doubled.
+          const stateBonus = actorSheet ? stateDamageBonus(actor.features, spec, actorSheet.data) : 0;
+          if (stateBonus !== 0 && lines.length > 0) lines[0] = { ...lines[0], dice: `${lines[0].dice}${stateBonus > 0 ? '+' : '-'}${Math.abs(stateBonus)}` };
+          const damage: DamagePart[] = lines.map((line) => {
             const r = rollDamage(line.dice, critical, rng);
-            const part = { total: Math.max(0, r.total), breakdown: `${r.breakdown.expression}: ${r.breakdown.formula}` } as { total: number; type?: string; breakdown: string };
+            const part: DamagePart = { total: Math.max(0, r.total), breakdown: `${r.breakdown.expression}: ${r.breakdown.formula}` };
             if (line.type) part.type = line.type;
             return part;
           });
-          delta = -entry.damage.reduce((sum, d) => sum + d.total, 0);
+          if (riders.length > 0 && actorSheet) {
+            damage.push(...applyRiders(riders, actorSheet, critical, lines[0]?.type, undo, rng));
+            if (onceKeys.length > 0 && turn.at) {
+              await markOncePerTurn(campaignId, actorToken.id, onceKeys, turn.at);
+              marked = { keys: onceKeys, at: turn.at };
+            }
+          }
+          entry.damage = damage;
+          delta = -damage.reduce((sum, d) => sum + d.total, 0);
+        } else if (riders.length > 0) {
+          ridersUnused = riders.map((r) => r.feature.name);
         }
       } else {
         const dice = healingDice(spec, slotLevel) as string;
@@ -300,6 +334,7 @@ export async function resolveAction(
     if (player) card.actor.userId = player;
     if (longRange && option.resolution === 'attack') card.disadvantageReason = 'long-range';
     if (slotLevel !== undefined) card.slotLevel = slotLevel;
+    if (ridersUnused) card.ridersUnused = ridersUnused;
     const extra = option.resolution === 'post' || option.resolution === 'cast' ? spec.description : spec.extraText;
     if (extra) card.extraText = extra;
 
@@ -317,6 +352,7 @@ export async function resolveAction(
     return { ok: true as const, messageId: message.id, card, after: afterCommit(written, held, edits.changedTokenIds, mapId) };
   }).catch(async (error: unknown) => {
     if (economy) await giveBack(economy);
+    if (marked) await markOncePerTurn(campaignId, req.actorTokenId, marked.keys, marked.at, false);
     throw error;
   });
 

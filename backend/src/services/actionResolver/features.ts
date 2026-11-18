@@ -154,7 +154,7 @@ export async function resolveFeature(
   const mode: RollMode = req.mode === 'advantage' || req.mode === 'disadvantage' ? req.mode : 'normal';
 
   // Every feature of the actor: a pool may be declared by another (the ki of Flurry of Blows).
-  const features = await featuresFor(campaignId, actor.character.data as unknown as Sheet);
+  const { features } = actor;
   const roles = await rolesIn(campaignId);
   const spiritVisible = requester.role === 'GM' ? true : await getSpiritVisibility(campaignId, requester.userId);
   const onlookers = await onlookersIn(campaignId, roles);
@@ -241,7 +241,7 @@ export async function resolveFeature(
 
       // The turn: refused when already spent, spent before anything is rolled.
       const turn = await checkAndSpend(campaignId, actorToken, option, {
-        attacksPerAction: attacksPerActionFor(actorSheet.data),
+        attacksPerAction: attacksPerActionFor(actorSheet.data, features),
         requiresAttackAction: action.attacks?.requiresAttackAction === true,
         grantExtraAction: action.kind === 'extraAction',
       });

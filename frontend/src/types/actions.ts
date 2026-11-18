@@ -158,6 +158,8 @@ export interface ActionDamagePart {
   total: number;
   type?: string;
   breakdown: string;
+  /** The feature that added this line to a weapon hit (Sneak Attack, Divine Smite). */
+  label?: string;
 }
 
 export interface ActionCardTarget {
@@ -203,6 +205,8 @@ export interface ActionCard {
   area?: AreaSpec;
   recharge?: { tokenId: string; optionId: string };
   selfHealing?: number;
+  /** The riders chosen for an attack that missed: not used. */
+  ridersUnused?: string[];
   extraText?: string;
   undo: unknown;
   undoneAt?: string;
@@ -244,6 +248,7 @@ export interface PlayerActionCard {
   /** How many saves this viewer sees still pending. */
   pendingSaves?: number;
   selfHealing?: number;
+  ridersUnused?: string[];
   extraText?: string;
   undoneAt?: string;
   undoPartial?: boolean;

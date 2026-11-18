@@ -37,6 +37,9 @@ const MAX_TARGETS = 20;
 /** The most a pool-spending feature asks to spend at once (Lay on Hands is 5 a level: 100 at 20th). */
 const MAX_AMOUNT = 100;
 
+/** The most features one attack asks to add (a character has two or three that fit). */
+const MAX_RIDERS = 5;
+
 const mode = z.enum(['normal', 'advantage', 'disadvantage'], { error: 'mode must be normal, advantage or disadvantage' });
 
 export const ActionListSchema = z.object(
@@ -74,6 +77,28 @@ export const ActionRequestSchema = z.object(
       .int({ error: `amount must be a whole number from 1 to ${MAX_AMOUNT}` })
       .min(1, { error: `amount must be a whole number from 1 to ${MAX_AMOUNT}` })
       .max(MAX_AMOUNT, { error: `amount must be a whole number from 1 to ${MAX_AMOUNT}` })
+      .optional(),
+    // The features to add to a weapon attack's hit; the server checks each is one the attack lists.
+    riders: z
+      .array(
+        z.object(
+          {
+            featureId: z
+              .string({ error: 'riders.featureId required' })
+              .min(1, { error: 'riders.featureId required' })
+              .max(MAX_ACTION_ID_LENGTH, { error: `riders.featureId must be ${MAX_ACTION_ID_LENGTH} characters or fewer` }),
+            slotLevel: z
+              .number({ error: 'riders.slotLevel must be a whole number from 1 to 9' })
+              .int({ error: 'riders.slotLevel must be a whole number from 1 to 9' })
+              .min(1, { error: 'riders.slotLevel must be a whole number from 1 to 9' })
+              .max(9, { error: 'riders.slotLevel must be a whole number from 1 to 9' })
+              .optional(),
+          },
+          { error: 'each rider must name a featureId' },
+        ),
+        { error: 'riders must be a list' },
+      )
+      .max(MAX_RIDERS, { error: `riders must name ${MAX_RIDERS} features or fewer` })
       .optional(),
   },
   { error: 'Action request required' },

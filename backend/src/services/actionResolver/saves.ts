@@ -290,7 +290,7 @@ export async function resolveTargetedAction(
     }
 
     // The turn: refused when already spent, spent before anything is rolled.
-    const turn = await checkAndSpend(campaignId, actorToken, option, { attacksPerAction: attacksPerActionFor(actorSheet?.data ?? null) });
+    const turn = await checkAndSpend(campaignId, actorToken, option, { attacksPerAction: attacksPerActionFor(actorSheet?.data ?? null, actor.features) });
     if (!turn.ok) return turn;
     if (turn.economy) undo.economy = economy = turn.economy;
 
