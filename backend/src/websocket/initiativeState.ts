@@ -14,6 +14,10 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import logger from '../utils/logger';
 import { inBackground } from '../utils/backgroundWork';
+import { freshSpend, type TurnSpend } from '../utils/turnEconomy';
+
+export { freshSpend };
+export type { TurnSpend };
 
 export interface CombatantEntry {
   tokenId: string;
@@ -27,36 +31,6 @@ export interface CombatantEntry {
   disposition: 'friendly' | 'neutral' | 'hostile' | null;
   /** The token's character, for the tracker to open its sheet; null for a creature. */
   characterId: string | null;
-}
-
-/** What one combatant has spent in the turn it is taking (or last took). */
-export interface TurnSpend {
-  action: boolean;
-  bonus: boolean;
-  reaction: boolean;
-  movedFeet: number;
-  dashes: number;
-  extraActions: number;
-  attacksLeft: number;
-  attackActionTaken: boolean;
-  /** Features used that can be used once each turn, by id. */
-  oncePerTurn: string[];
-  overBudgetWarned: boolean;
-}
-
-export function freshSpend(): TurnSpend {
-  return {
-    action: false,
-    bonus: false,
-    reaction: false,
-    movedFeet: 0,
-    dashes: 0,
-    extraActions: 0,
-    attacksLeft: 1,
-    attackActionTaken: false,
-    oncePerTurn: [],
-    overBudgetWarned: false,
-  };
 }
 
 export interface CombatState {

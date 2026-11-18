@@ -2,6 +2,8 @@
 // See GAME_CONTENT_NOTICES.md for the notice and credits.
 
 import type { CharacterHpInfo } from '@/utils/characterHp';
+import type { TurnSpend } from '@/utils/turnEconomy';
+export type { TurnSpend };
 // ============================================
 // CozyVTT Frontend Type Definitions
 // Mirrors backend API models (Prisma schema)
@@ -1683,21 +1685,6 @@ export interface CombatantEntry {
   disposition: 'friendly' | 'neutral' | 'hostile' | null;
   /** The token's character, as this viewer may know it; null for a creature. */
   characterId: string | null;
-}
-
-/** What one combatant has spent in the turn it is taking (or last took). */
-export interface TurnSpend {
-  action: boolean;
-  bonus: boolean;
-  reaction: boolean;
-  movedFeet: number;
-  dashes: number;
-  extraActions: number;
-  attacksLeft: number;
-  attackActionTaken: boolean;
-  /** Features used that can be used once each turn, by id. */
-  oncePerTurn: string[];
-  overBudgetWarned: boolean;
 }
 
 export interface CombatState {
