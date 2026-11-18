@@ -48,6 +48,7 @@ import { readProficiencyGroups } from '../../../utils/proficiencies';
 import { isHexColor } from '@/utils/styleAllowlists';
 import { COLOR_PRESETS } from './colorPresets';
 import { headerInk } from '@/utils/themeColor';
+import RestControls from '@/components/campaign/actionBar/RestControls';
 import { SheetTabs, sheetTabPanel, type SheetTab } from '../SheetTabs';
 import { rollTarget, sheetRoll, useSheetRolls, type SheetRollHandler } from '../useSheetRolls';
 import type { RollMode } from '@/utils/rollModes';
@@ -391,6 +392,13 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
           </div>
         )}
       </div>
+
+      {/* Rests: for whoever may spend this character's hit dice, at a table. */}
+      {onSpendHitDie && (
+        <div className="flex justify-end">
+          <RestControls characterId={character.id} hitDice={data.hitDice} con={data.stats?.constitution?.modifier ?? 0} />
+        </div>
+      )}
 
       {/* Hit Dice */}
       {data.hitDice && data.hitDice.length > 0 && (

@@ -7,6 +7,8 @@
 import { useTranslation } from 'react-i18next';
 import type { Token } from '@/types';
 import { cn } from '@/utils/cn';
+import type { FifthEditionHitDice } from '@/types/game-systems/fifthEdition';
+import RestControls from './RestControls';
 
 interface ActorSummaryProps {
   token: Token;
@@ -15,11 +17,13 @@ interface ActorSummaryProps {
   /** The player's own tokens, when there is more than one to switch between. */
   candidates?: Token[];
   onChoose?: (tokenId: string) => void;
+  /** A character actor, whose rests the summary offers; a creature has none. */
+  restFor?: { characterId: string; hitDice?: FifthEditionHitDice[]; con?: number };
 }
 
 const portraitSize = 'h-10 w-10 shrink-0 rounded-full object-cover border border-moss-green/30 bg-surface-light';
 
-export default function ActorSummary({ token, hp, ac, candidates = [], onChoose }: ActorSummaryProps) {
+export default function ActorSummary({ token, hp, ac, candidates = [], onChoose, restFor }: ActorSummaryProps) {
   const { t } = useTranslation();
   return (
     <div className="flex min-w-0 items-center gap-2">
@@ -48,6 +52,7 @@ export default function ActorSummary({ token, hp, ac, candidates = [], onChoose 
           {ac !== null && <span>{t('actionBar.ac', { ac })}</span>}
         </p>
       </div>
+      {restFor && <RestControls characterId={restFor.characterId} hitDice={restFor.hitDice} con={restFor.con} />}
     </div>
   );
 }

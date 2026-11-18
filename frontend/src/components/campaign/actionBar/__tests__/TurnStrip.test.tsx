@@ -32,3 +32,11 @@ describe('TurnStrip', () => {
     expect(screen.queryByText(/^Attack \d/)).toBeNull();
   });
 });
+
+describe('TurnStrip for a monster', () => {
+  it('says Multiattack instead of counting to a hundred', () => {
+    render(<TurnStrip combat={combatTurn({ attacksPerAction: 100, spend: { action: true, attackActionTaken: true, attacksLeft: 99 } }) as never} />);
+    expect(screen.getByText('Multiattack')).toBeInTheDocument();
+    expect(screen.queryByText(/^Attack \d/)).toBeNull();
+  });
+});

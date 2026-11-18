@@ -152,7 +152,7 @@ export default function ActionBar() {
       )}
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <ActorSummary token={token} hp={hp ? { current: hp.current, max: hp.max } : null} ac={ac} candidates={candidates} onChoose={choose} />
+        <ActorSummary token={token} hp={hp ? { current: hp.current, max: hp.max } : null} ac={ac} candidates={candidates} onChoose={choose} restFor={characterId ? { characterId, hitDice: sheetData?.hitDice, con: sheetData?.stats?.constitution?.modifier ?? 0 } : undefined} />
 
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
           {options.length === 0 && <p className="text-sm text-ink-muted">{t('actionBar.noActions')}</p>}

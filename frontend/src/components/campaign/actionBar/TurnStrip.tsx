@@ -35,7 +35,8 @@ export default function TurnStrip({ combat }: { combat: ActionCombatTurn }) {
       <Pip label={t('actionBar.turn.bonus')} free={!spend.bonus} />
       <Pip label={t('actionBar.turn.reaction')} free={!spend.reaction} />
       {spend.attackActionTaken && spend.attacksLeft > 0 && (
-        <span className="tabular-nums">{t('actionBar.turn.attackOf', { n: nextAttack, max: attacksPerAction })}</span>
+        // A monster's Multiattack is on the honour system: it is given 100 attacks, which is not a count to show.
+        <span className="tabular-nums">{attacksPerAction >= 100 ? t('actionBar.turn.multiattack') : t('actionBar.turn.attackOf', { n: nextAttack, max: attacksPerAction })}</span>
       )}
       <span className="tabular-nums text-ink-muted">{t('actionBar.turn.movement', { left: feetToMetresLabel(left), max: feetToMetresLabel(budgetFeet) })}</span>
     </div>

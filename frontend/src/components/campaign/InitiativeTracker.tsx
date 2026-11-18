@@ -31,6 +31,8 @@ import {
   Eye,
   ArrowUp,
   ArrowDown,
+  Undo2,
+  Moon,
 } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,6 +60,9 @@ import { controlsToken } from '@/utils/tokenOwnership';
 import { campaignHasCharacter, canRollTokenCharacter } from '@/utils/tokenCharacter';
 import { useCompactLayout } from '@/contexts/LayoutContext';
 import { playedGameSystem } from '@/constants/game-systems';
+import { useTranslation } from 'react-i18next';
+import { feetToMetresLabel, type TurnSpend } from '@/utils/turnEconomy';
+import { actionErrorKey } from '@/utils/actionTargeting';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -185,6 +190,9 @@ interface CombatantRowProps {
   isLast: boolean;
   /** Right-clicking the row, or a finger's long-press on it, offers this viewer something: the sheet, rolls, or both. */
   hasMenu: boolean;
+  /** What this viewer was sent of the combatant's turn (a player only their own; the GM all); none outside a fight. */
+  spend?: TurnSpend;
+  onRestore?: (tokenId: string, what: RestorePart) => void;
   /** Double-clicking the row opens the combatant's character sheet. */
   hasSheet: boolean;
   /** Open the row's menu at a point; `byKeyboard` puts the cursor in it. */
@@ -245,11 +253,77 @@ function menuPoint(e: React.MouseEvent): { x: number; y: number; byKeyboard: boo
   return { x: e.clientX, y: e.clientY, byKeyboard: false };
 }
 
+// ---------------------------------------------------------------------------
+// The turn on a row: pips for Action, Bonus and Reaction, the movement made,
+// and the GM's "Give back" menu
+// ---------------------------------------------------------------------------
+
+type RestorePart = 'action' | 'bonus' | 'reaction' | 'movement' | 'attack';
+const RESTORE_PARTS: RestorePart[] = ['action', 'bonus', 'reaction', 'movement', 'attack'];
+
+function TurnPips({ spend }: { spend: TurnSpend }) {
+  const { t } = useTranslation();
+  const pips: Array<[string, boolean]> = [
+    [t('actionBar.turn.action'), spend.action],
+    [t('actionBar.turn.bonus'), spend.bonus],
+    [t('actionBar.turn.reaction'), spend.reaction],
+  ];
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-stone-gray" data-testid="combatant-turn">
+      {pips.map(([label, used]) => (
+        <span
+          key={label}
+          role="img"
+          aria-label={t(used ? 'actionBar.turn.pipUsed' : 'actionBar.turn.pipFree', { name: label })}
+          title={label}
+          className={`inline-block size-2 rounded-full border border-brand ${used ? 'bg-transparent opacity-50' : 'bg-brand'}`}
+        />
+      ))}
+      {spend.movedFeet > 0 && <span className="tabular-nums">{t('actionBar.turn.movedMetres', { metres: feetToMetresLabel(spend.movedFeet) })}</span>}
+    </div>
+  );
+}
+
+function GiveBackMenu({ tokenId, name, onRestore }: { tokenId: string; name: string; onRestore: (tokenId: string, what: RestorePart) => void }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={t('actionBar.restore.menu', { name })}
+        title={t('actionBar.restore.menu', { name })}
+        onClick={() => setOpen((o) => !o)}
+        className="p-1 touch-target inline-flex items-center justify-center rounded-sm hover:bg-moss-green/10 text-stone-gray hover:text-brand-ink transition-colors"
+      >
+        <Undo2 className="w-3.5 h-3.5" aria-hidden="true" />
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 z-20 mt-1 w-36 rounded-lg border border-moss-green/30 bg-soft-cream p-1 shadow-md">
+          {RESTORE_PARTS.map((part) => (
+            <button
+              key={part}
+              type="button"
+              role="menuitem"
+              onClick={() => { onRestore(tokenId, part); setOpen(false); }}
+              className="block w-full rounded-sm px-2 py-1 text-left text-xs text-brand-ink hover:bg-moss-green/10"
+            >
+              {t(`actionBar.restore.${part}`)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CombatantRow({
   entry, isActive, isPeeked, isGM, coarsePointer, canRoll, isDragOver, reorderHintId,
   onSetInitiative, onRoll, onRemove,
   onDragStart, onDragOver, onDrop, onDragEnd, onMove, isFirst, isLast,
-  hasMenu, hasSheet, onOpenMenu, onOpenSheet,
+  hasMenu, hasSheet, onOpenMenu, onOpenSheet, spend, onRestore,
 }: CombatantRowProps) {
   const [editing, setEditing] = useState(false);
   const [inputVal, setInputVal] = useState(entry.initiative !== null ? String(entry.initiative) : '');
@@ -438,6 +512,7 @@ function CombatantRow({
             HP {entry.hp.current}/{entry.hp.max}
           </div>
         )}
+        {spend && <TurnPips spend={spend} />}
       </div>
 
       {/* Disposition icon */}
@@ -495,6 +570,7 @@ function CombatantRow({
               className="p-1 touch-target inline-flex items-center justify-center rounded-sm hover:bg-moss-green/10 text-stone-gray hover:text-brand-ink transition-colors disabled:opacity-40"
             />
           )}
+          {isGM && spend && onRestore && <GiveBackMenu tokenId={entry.tokenId} name={name} onRestore={onRestore} />}
           {canRoll && (
             <button
               type="button"
@@ -531,6 +607,7 @@ export default function InitiativeTracker() {
   const { userRole, currentMap, viewedMap, campaign } = useCampaign();
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   // Initiative reads token names/ids, not coordinates — skip move re-renders.
   const tokens = useTokenListIgnoringMovement();
   const { socket } = useWebSocket();
@@ -713,6 +790,34 @@ export default function InitiativeTracker() {
     const token = tokens.find((t) => t.id === tokenId);
     socket.emitInitiativeRoll({ tokenId, mapId: onMap, characterName: token ? tokenPublicName(token) : undefined });
   }, [socket, mapOf, tokens]);
+
+  const handleRestore = useCallback((tokenId: string, what: RestorePart) => {
+    socket?.emitCombatRestore({ tokenId, what });
+  }, [socket]);
+
+  /**
+   * The characters of the player-controlled tokens on the table's map, once
+   * each: a token of type player, or one bound to a character that a member
+   * who is not the GM owns.
+   */
+  const partyCharacterIds = (() => {
+    const playerIds = new Set(campaign?.memberships?.filter((m) => m.role !== 'GM').map((m) => m.userId));
+    const ownerOf = new Map(campaign?.characters?.map((c) => [c.id, c.userId]));
+    const ids: string[] = [];
+    for (const token of currentMap?.tokens ?? []) {
+      if (!token.characterId || ids.includes(token.characterId)) continue;
+      const owner = ownerOf.get(token.characterId);
+      if (token.type === TokenType.PLAYER || (owner !== undefined && playerIds.has(owner))) ids.push(token.characterId);
+    }
+    return ids;
+  })();
+
+  const [partyMenu, setPartyMenu] = useState(false);
+  const restTheParty = async (kind: 'short' | 'long') => {
+    setPartyMenu(false);
+    const answer = await socket?.takeRest({ characterIds: partyCharacterIds, kind });
+    if (answer && !answer.ok) showToast(t(actionErrorKey(answer.error)), 'error');
+  };
 
   const handleStart = useCallback(() => {
     if (!socket) return;
@@ -902,6 +1007,8 @@ export default function InitiativeTracker() {
                     onDrop={handleDrop}
                     onDragEnd={handleDragEnd}
                     onMove={moveCombatant}
+                    spend={combatState.active ? combatState.spend?.[entry.tokenId] : undefined}
+                    onRestore={handleRestore}
                     hasMenu={combatantMenuItems(entry).length > 0}
                     hasSheet={offersSheet(entry)}
                     onOpenMenu={(tokenId, x, y, byKeyboard) => {
@@ -938,6 +1045,32 @@ export default function InitiativeTracker() {
                     <Plus className="w-3.5 h-3.5" />
                     Add Combatant
                   </button>
+                )}
+
+                {/* Rest for the party: only between fights, as the server refuses one during. */}
+                {!combatState.active && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      disabled={partyCharacterIds.length === 0}
+                      aria-haspopup="menu"
+                      aria-expanded={partyMenu}
+                      onClick={() => setPartyMenu((o) => !o)}
+                      className="w-full flex items-center justify-center gap-2 py-1.5 px-3 text-xs font-medium text-brand-ink border border-moss-green/30 rounded-lg hover:bg-moss-green/5 transition-colors disabled:opacity-50"
+                    >
+                      <Moon className="w-3.5 h-3.5" aria-hidden="true" />
+                      {t('actionBar.rest.party')}
+                    </button>
+                    {partyMenu && (
+                      <div role="menu" className="absolute inset-x-0 z-20 mt-1 rounded-lg border border-moss-green/30 bg-soft-cream p-1 shadow-md">
+                        {(['short', 'long'] as const).map((kind) => (
+                          <button key={kind} type="button" role="menuitem" onClick={() => void restTheParty(kind)} className="block w-full rounded-sm px-2 py-1 text-left text-xs text-brand-ink hover:bg-moss-green/10">
+                            {t(`actionBar.rest.${kind}`)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* Start / Next / End */}

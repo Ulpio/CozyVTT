@@ -842,6 +842,16 @@ class SocketClient {
     this.socket?.emit('initiative.end');
   }
 
+  /** The GM gives a combatant back part of what it spent this turn (`combat.restore`); the state comes back as `initiative.state`. */
+  emitCombatRestore(data: { tokenId: string; what: 'action' | 'bonus' | 'reaction' | 'movement' | 'attack' }) {
+    this.socket?.emit('combat.restore', data);
+  }
+
+  /** Short or long rest for some characters (`character.rest`); the server refuses it during a fight. */
+  takeRest(data: { characterIds: string[]; kind: 'short' | 'long' }): Promise<{ ok: boolean; messageId?: string; error?: string }> {
+    return this.askFor<{ ok: boolean; messageId?: string }>('character.rest', data, ACTION_ANSWER_TIMEOUT_MS, "The rest didn't come back. Check your connection and try again.");
+  }
+
   emitInitiativeRequestState() {
     this.socket?.emit('initiative.request_state');
   }
