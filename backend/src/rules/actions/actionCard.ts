@@ -1,7 +1,7 @@
 import { RollMode } from './types';
 import type { Ability } from './monsterActions';
 import type { AreaSpec } from '../../utils/areaGeometry';
-import type { TurnSpend } from '../../utils/turnEconomy';
+import type { ActionCost, TurnSpend } from '../../utils/turnEconomy';
 
 export type MaskedName = 'something' | 'something-invisible';
 export type MonsterState = 'unharmed' | 'wounded' | 'badly-wounded' | 'down';
@@ -86,11 +86,23 @@ export interface UndoRecord {
   concentration?: { characterId: string; before: unknown; after: unknown };
   recharge?: { mapId: string; tokenId: string; optionId: string };
   /**
-   * What the action spent of its actor's turn in a fight, and what the actor
-   * had before. Given back only while that turn is still going (a reaction:
-   * that round).
+   * What the action itself spent of its actor's turn in a fight. Given back
+   * only while that turn is still going (a reaction: that round).
    */
-  economy?: { campaignId: string; tokenId: string; round: number; before: TurnSpend; reaction?: true };
+  economy?: { campaignId: string; tokenId: string; round: number; spent: EconomySpent };
+}
+
+/**
+ * One card's share of a turn: what it was spent as; whether it took an extra
+ * action (Action Surge) rather than the action; the attack fields as they
+ * were when it took the action (an `action`, or the attack that started the
+ * Attack action), to put back with it; and whether it was a Dash.
+ */
+export interface EconomySpent {
+  as: ActionCost;
+  extraAction?: true;
+  tookAction?: Pick<TurnSpend, 'attacksLeft' | 'attackActionTaken'>;
+  dash?: true;
 }
 
 export interface ActionCard {

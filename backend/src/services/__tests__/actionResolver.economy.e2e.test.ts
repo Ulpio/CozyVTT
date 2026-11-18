@@ -59,6 +59,7 @@ function clericSheet() {
   s.spellcasting.spells = [
     { level: 1, name: 'Bênção', prepared: true, ritual: false, concentration: true, compendiumRef: { bookId: BOOK, slug: 'bencao' } },
     { level: 1, name: 'Ritual longo', prepared: true, ritual: false, concentration: false, compendiumRef: { bookId: BOOK, slug: 'ritual-longo' } },
+    { level: 1, name: 'Passo rápido', prepared: true, ritual: false, concentration: false, compendiumRef: { bookId: BOOK, slug: 'passo-rapido' } },
   ];
   return s;
 }
@@ -121,6 +122,7 @@ beforeAll(async () => {
       entry('weapon', 'espada-longa', 'Espada longa', { range: 'melee', properties: ['versátil'], damage: { dice: '1d8', type: 'cortante' } }),
       entry('spell', 'bencao', 'Bênção', { level: 1, range: '9 metros', castingTime: '1 ação', concentration: true, mechanics: {} }),
       entry('spell', 'ritual-longo', 'Ritual longo', { level: 1, range: '9 metros', castingTime: '10 minutos', concentration: false, mechanics: {} }),
+      entry('spell', 'passo-rapido', 'Passo rápido', { level: 1, range: 'Pessoal', castingTime: '1 ação bônus', concentration: false, mechanics: {} }),
     ],
   });
   await prisma.campaignBook.create({ data: { campaignId, bookId: BOOK } });
@@ -241,6 +243,46 @@ describe('undo', () => {
     expect((await undoAction(campaignId, gm, out.messageId)).ok).toBe(true);
     expect(spent('fighter')).toEqual(freshSpend());
     ok(await resolveAction(campaignId, p1, req({}), seq(15, 1)));
+  });
+
+  it('gives back only what the undone card spent: the action, not a later bonus action', async () => {
+    startFight('cleric');
+    const cast = (slug: string) => resolveAction(campaignId, p2, { mapId, actorTokenId: 'cleric', actionId: `spell:${BOOK}/${slug}`, mode: 'normal' });
+    const first = ok(await cast('bencao'));
+    ok(await cast('passo-rapido'));
+    expect(spent('cleric')).toMatchObject({ action: true, bonus: true });
+    expect((await undoAction(campaignId, gm, first.messageId)).ok).toBe(true);
+    expect(spent('cleric')).toMatchObject({ action: false, bonus: true });
+  });
+
+  it('leaves the metres walked alone', async () => {
+    startFight();
+    const out = ok(await resolveAction(campaignId, p1, req({}), seq(15, 1)));
+    const state = getState(campaignId);
+    state.spend.fighter = { ...state.spend.fighter, movedFeet: 25, overBudgetWarned: true };
+    setState(campaignId, state);
+    expect((await undoAction(campaignId, gm, out.messageId)).ok).toBe(true);
+    expect(spent('fighter')).toMatchObject({ action: false, movedFeet: 25, overBudgetWarned: true });
+  });
+
+  it('gives back one attack of the Attack action, and the action with the attack that started it', async () => {
+    startFight('goblin');
+    const attack = () => resolveAction(campaignId, gm, { mapId, actorTokenId: 'goblin', actionId: 'npc:actions:0', targetTokenId: 'fighter', mode: 'normal' }, seq(1));
+    const first = ok(await attack());
+    const second = ok(await attack());
+    expect(spent('goblin')).toMatchObject({ action: true, attacksLeft: 98 });
+    expect((await undoAction(campaignId, gm, second.messageId)).ok).toBe(true);
+    expect(spent('goblin')).toMatchObject({ action: true, attacksLeft: 99, attackActionTaken: true });
+    expect((await undoAction(campaignId, gm, first.messageId)).ok).toBe(true);
+    expect(spent('goblin')).toMatchObject({ action: false, attacksLeft: 1, attackActionTaken: false });
+  });
+
+  it('gives back the dash it added', async () => {
+    startFight();
+    const out = ok(await resolveAction(campaignId, p1, req({ actionId: 'common:dash', targetTokenId: undefined }), seq()));
+    expect(spent('fighter').dashes).toBe(1);
+    expect((await undoAction(campaignId, gm, out.messageId)).ok).toBe(true);
+    expect(spent('fighter')).toMatchObject({ action: false, dashes: 0 });
   });
 
   it('after the turn moved on gives the hit points back and leaves the action spent', async () => {

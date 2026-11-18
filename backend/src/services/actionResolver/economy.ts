@@ -11,7 +11,7 @@
 
 import type { Token } from '../../websocket/shared';
 import type { ActionOption } from '../../rules/actions/catalogue';
-import type { UndoRecord } from '../../rules/actions/actionCard';
+import type { EconomySpent, UndoRecord } from '../../rules/actions/actionCard';
 import { metresToFeet } from '../../rules/actions/rangeText';
 import { getState, setState, withCombatLock, type CombatState } from '../../websocket/initiativeState';
 import { resendInitiative } from '../../websocket/handlers/initiative';
@@ -21,11 +21,7 @@ import type { Sheet } from './common';
 /** The ack text for a spell whose casting time is a minute or more, refused in a fight. */
 export const TOO_LONG_FOR_COMBAT = 'Leva tempo demais para conjurar em combate.';
 
-/**
- * What an action spent of a combatant's turn, kept on its card so the GM's
- * undo can give it back. `reaction`: spent off turn, as a reaction (an
- * opportunity attack included).
- */
+/** What an action spent of a combatant's turn, kept on its card so the GM's undo can give it back. */
 export type EconomyUndo = NonNullable<UndoRecord['economy']>;
 
 /** Speed the movement budget counts from when nothing on the sheet or stat block reads as one. */
@@ -72,14 +68,44 @@ export async function checkAndSpend(
     const check = canSpend(before, option.cost, { yourTurn, meleeWeapon: option.meleeWeapon === true, oncePerTurnKey: opts.oncePerTurnKey });
     if (!check.ok) return { ok: false, error: REFUSAL_MESSAGES[check.refusal] };
     const next = applySpend(before, check.as, opts);
-    if (option.id === 'common:dash') next.dashes += 1;
+    const spent: EconomySpent = { as: check.as };
+    // The action is taken by an `action`, or by the attack that starts the Attack action.
+    const takesAction = check.as === 'action' || (check.as === 'attack' && !(before.attackActionTaken && before.attacksLeft > 0));
+    if (takesAction) {
+      spent.tookAction = { attacksLeft: before.attacksLeft, attackActionTaken: before.attackActionTaken };
+      if (before.action) spent.extraAction = true;
+    }
+    if (option.id === 'common:dash') {
+      next.dashes += 1;
+      spent.dash = true;
+    }
     setState(campaignId, { ...state, spend: { ...state.spend, [actor.id]: next } });
-    const economy: EconomyUndo = { campaignId, tokenId: actor.id, round: state.round, before };
-    if (!yourTurn) economy.reaction = true;
-    return { ok: true, economy };
+    return { ok: true, economy: { campaignId, tokenId: actor.id, round: state.round, spent } };
   });
   if (outcome.ok && outcome.economy) await resendInitiative(campaignId);
   return outcome;
+}
+
+/**
+ * The spend with one card's share given back, and nothing else: no other
+ * card's spending, no movement, no once-per-turn mark. Pure.
+ */
+export function withoutCardSpend(now: TurnSpend, spent: EconomySpent): TurnSpend {
+  const next: TurnSpend = { ...now, oncePerTurn: [...now.oncePerTurn] };
+  if (spent.tookAction) {
+    if (spent.extraAction) next.extraActions += 1;
+    else next.action = false;
+    next.attacksLeft = spent.tookAction.attacksLeft;
+    next.attackActionTaken = spent.tookAction.attackActionTaken;
+  } else if (spent.as === 'attack') {
+    next.attacksLeft += 1;
+  } else if (spent.as === 'bonus') {
+    next.bonus = false;
+  } else if (spent.as === 'reaction') {
+    next.reaction = false;
+  }
+  if (spent.dash) next.dashes = Math.max(0, next.dashes - 1);
+  return next;
 }
 
 /**
@@ -89,15 +115,12 @@ export async function checkAndSpend(
  * take back a spend whose action then failed to be stored.
  */
 export async function giveBack(economy: EconomyUndo): Promise<void> {
-  const { campaignId, tokenId } = economy;
+  const { campaignId, tokenId, spent } = economy;
   const changed = await withCombatLock(campaignId, (state) => {
     const now = state.spend[tokenId];
     if (!binds(state, tokenId) || !now || state.round !== economy.round) return false;
-    let restored: TurnSpend;
-    if (economy.reaction) restored = { ...now, reaction: economy.before.reaction };
-    else if (state.currentTokenId === tokenId) restored = { ...economy.before, oncePerTurn: [...economy.before.oncePerTurn] };
-    else return false;
-    setState(campaignId, { ...state, spend: { ...state.spend, [tokenId]: restored } });
+    if (spent.as !== 'reaction' && state.currentTokenId !== tokenId) return false;
+    setState(campaignId, { ...state, spend: { ...state.spend, [tokenId]: withoutCardSpend(now, spent) } });
     return true;
   });
   if (changed) await resendInitiative(campaignId);
