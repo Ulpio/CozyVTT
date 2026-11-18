@@ -816,6 +816,7 @@ describe('stepping through tokens with , and .', () => {
     show(...row());
     act(() => {
       useGameStore.getState().setCombatState({
+      spend: {},
         active: true, round: 1, currentTokenId: 'c',
         combatants: ['c', 'b'].map((tokenId) => ({ tokenId, mapId: 'map-a', name: tokenId, imageUrl: '', initiative: 12, hp: null, type: 'npc' as const, disposition: null, characterId: null })),
       });

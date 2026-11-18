@@ -29,6 +29,9 @@ import {
   sortCombatants,
   withoutCombatants,
   projectCombatState,
+  beginTurn,
+  freshSpend,
+  withCombatLock,
   getVersion,
   startSend,
   latestSend,
@@ -41,6 +44,9 @@ import {
 import { bestEffort, campaignSockets, getSocketInstance, stillInCampaign } from '../utils';
 import { stateRequestAllowed, withinCeiling } from '../shared';
 import { sheetAsRead } from '../../legacy/sheetConversion';
+
+/** The parts of a turn the GM can give back with combat.restore. */
+const RESTORABLE = ['action', 'bonus', 'reaction', 'movement', 'attack'] as const;
 
 /** What a send needs of a socket; a connected one and a fetched one both have it. */
 type Recipient = Pick<AuthenticatedFields, 'userId' | 'role'> & {
@@ -138,10 +144,19 @@ export async function sendInitiativeState(io: Server, campaignId: string, only?:
   const shown = maps.find((m) => m.id === campaign?.currentMapId);
   const playerIds = recipients.filter((r) => r.role !== 'GM' && r.userId).map((r) => r.userId as string);
   const spiritVisibility = await getSpiritVisibilityBatch(campaignId, playerIds);
+  // What a combatant has spent goes only to the player who controls it: the
+  // token is theirs, or its character is.
+  const characterIds = [...new Set(tokens.filter((t) => state.combatants.some((c) => c.tokenId === t.id)).map((t) => t.characterId).filter((id): id is string => !!id))];
+  const characterOwners = new Map<string, string>(
+    playerIds.length > 0 && characterIds.length > 0
+      ? (await prisma.character.findMany({ where: { id: { in: characterIds } }, select: { id: true, userId: true } })).map((c) => [c.id, c.userId])
+      : []
+  );
   if (overtaken()) return;
   const byId = (list: CombatantSource[]) => new Map(list.map((t) => [t.id, t]));
 
   const forGM = byId(tokens);
+  const controllers = new Map(tokens.map((t) => [t.id, t.controlledBy ?? null]));
   for (const r of stillInCampaign(recipients, campaignId)) {
     if (r.role === 'GM') {
       r.emit('initiative.state', projectCombatState(state, forGM, true));
@@ -149,7 +164,14 @@ export async function sendInitiativeState(io: Server, campaignId: string, only?:
     }
     if (!r.userId) continue;
     const forRole = tokensForOrder(shown, r.role ?? 'PLAYER', spiritVisibility.get(r.userId) ?? false, r.userId);
-    r.emit('initiative.state', projectCombatState(state, byId(forRole), false));
+    const userId = r.userId;
+    const controls = (tokenId: string) => {
+      if ((r.role ?? 'PLAYER') !== 'PLAYER') return false;
+      const token = forGM.get(tokenId);
+      if (!token) return false;
+      return controllers.get(tokenId) === userId || (!!token.characterId && characterOwners.get(token.characterId) === userId);
+    };
+    r.emit('initiative.state', projectCombatState(state, byId(forRole), false, controls));
   }
 }
 
@@ -276,6 +298,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       };
 
       state.combatants = sortCombatants([...state.combatants, entry]);
+      state.spend[tokenId] = freshSpend();
       setCombatState(socket.campaignId, state);
       await broadcastInitiativeState(socket.campaignId);
       logger.debug('initiative.add', { name: token.name, campaignId: socket.campaignId });
@@ -662,10 +685,8 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       const state = getCombatState(socket.campaignId);
       if (state.combatants.length === 0) { socket.emit('error', { message: 'Add combatants before starting combat' }); return; }
 
-      state.active = true;
-      state.round = 1;
-      state.currentTokenId = state.combatants[0].tokenId;
-      setCombatState(socket.campaignId, state);
+      const started = beginTurn({ ...state, active: true, round: 1 }, state.combatants[0].tokenId);
+      setCombatState(socket.campaignId, started);
       await broadcastInitiativeState(socket.campaignId);
       logger.info('initiative.start', { campaignId: socket.campaignId, first: state.combatants[0].name });
     } catch (error) {
@@ -689,17 +710,15 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       const currentIndex = state.combatants.findIndex((c) => c.tokenId === state.currentTokenId);
       const nextIndex = currentIndex + 1;
 
-      if (nextIndex >= state.combatants.length) {
-        // Wrap around — new round
-        state.round += 1;
-        state.currentTokenId = state.combatants[0].tokenId;
-      } else {
-        state.currentTokenId = state.combatants[nextIndex].tokenId;
-      }
-
-      setCombatState(socket.campaignId, state);
+      // Past the last combatant the order wraps around into a new round.
+      const wraps = nextIndex >= state.combatants.length;
+      const moved = beginTurn(
+        { ...state, round: wraps ? state.round + 1 : state.round },
+        state.combatants[wraps ? 0 : nextIndex].tokenId
+      );
+      setCombatState(socket.campaignId, moved);
       await broadcastInitiativeState(socket.campaignId);
-      logger.debug('initiative.next', { round: state.round, current: state.currentTokenId, campaignId: socket.campaignId });
+      logger.debug('initiative.next', { round: moved.round, current: moved.currentTokenId, campaignId: socket.campaignId });
     } catch (error) {
       logger.error('initiative.next failed', { err: error });
       socket.emit('error', { message: 'Failed to advance initiative' });
@@ -721,6 +740,41 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
     } catch (error) {
       logger.error('initiative.end failed', { err: error });
       socket.emit('error', { message: 'Failed to end combat' });
+    }
+  });
+
+  /**
+   * COMBAT.RESTORE — GM gives a combatant back part of what it spent this turn.
+   */
+  socket.on('combat.restore', async (data: { tokenId: string; what: string }) => {
+    try {
+      if (!socket.campaignId) { socket.emit('error', { message: 'Not authenticated to a campaign' }); return; }
+      if (!withinCeiling(socket, 'combat.restore')) return;
+      if (socket.role !== 'GM') { socket.emit('error', { message: 'Only the GM can restore what a combatant has spent' }); return; }
+
+      const { tokenId, what } = data ?? ({} as { tokenId?: string; what?: string });
+      if (typeof tokenId !== 'string' || !tokenId) { socket.emit('error', { message: 'tokenId required' }); return; }
+      if (!(RESTORABLE as readonly unknown[]).includes(what)) { socket.emit('error', { message: 'Unknown part to restore' }); return; }
+
+      const campaignId = socket.campaignId;
+      const restored = await withCombatLock(campaignId, (state) => {
+        const spent = state.spend[tokenId];
+        if (!spent) return false;
+        switch (what as (typeof RESTORABLE)[number]) {
+          case 'action': spent.action = false; break;
+          case 'bonus': spent.bonus = false; break;
+          case 'reaction': spent.reaction = false; break;
+          case 'movement': spent.movedFeet = 0; spent.dashes = 0; spent.overBudgetWarned = false; break;
+          case 'attack': spent.attacksLeft += 1; break;
+        }
+        setCombatState(campaignId, state);
+        return true;
+      });
+      if (!restored) { socket.emit('error', { message: 'Token is not in initiative' }); return; }
+      await broadcastInitiativeState(campaignId);
+    } catch (error) {
+      logger.error('combat.restore failed', { err: error });
+      socket.emit('error', { message: 'Failed to restore' });
     }
   });
 

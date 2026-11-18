@@ -52,6 +52,7 @@ function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T
 }
 
 const EMPTY_COMBAT: CombatState = {
+  spend: {},
   active: false,
   round: 0,
   currentTokenId: null,

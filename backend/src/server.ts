@@ -6,6 +6,7 @@ import { sessionConfig, sessionPool } from './config/session';
 import { enforceDatabaseCredential } from './config/databaseGuard';
 import { createApp } from './app';
 import { initializeWebSocket } from './websocket';
+import { hydrateCombatStates } from './websocket/initiativeState';
 import logger from './utils/logger';
 import { prisma } from './config/database';
 import { UPLOAD_LIMITS } from './utils/fileUtils';
@@ -66,6 +67,12 @@ void makeDummyPasswordHash();
  */
 async function start(): Promise<void> {
   await convertStoredHorrorD100SheetsAtStart(prisma);
+  // The fights in progress come back from the database before anyone connects.
+  try {
+    await hydrateCombatStates();
+  } catch (error) {
+    logger.error('Could not load the stored combat states', { err: error });
+  }
   httpServer.listen(PORT, () => {
     logger.info(`CozyVTT Backend running on port ${PORT}`);
     logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);

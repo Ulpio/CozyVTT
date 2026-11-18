@@ -31,6 +31,7 @@ const ids = (list: readonly Token[]) => list.map((t) => t.id);
 
 function combat(order: string[], active = true): CombatState {
   return {
+      spend: {},
     active,
     round: 1,
     currentTokenId: order[0] ?? null,

@@ -22,7 +22,7 @@ import type { Drawing } from '@/types/drawings';
 import { TokenLayer, TokenType } from '@/types';
 
 function makeCombat(overrides: Partial<CombatState> = {}): CombatState {
-  return { active: true, round: 1, currentTokenId: 'a', combatants: [], ...overrides };
+  return { spend: {}, active: true, round: 1, currentTokenId: 'a', combatants: [], ...overrides };
 }
 
 function makeToken(id: string, overrides: Partial<Token> = {}): Token {

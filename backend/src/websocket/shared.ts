@@ -323,6 +323,7 @@ export const SOCKET_CEILINGS = {
   'initiative.start': initiative,
   'initiative.next': initiative,
   'initiative.end': initiative,
+  'combat.restore': initiative,
   // The GM's own rolls; a player's count against their dice rolls.
   'initiative.roll': initiative,
   'dice.clearHistory': gmEvent('requests to clear the dice log'),

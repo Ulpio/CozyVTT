@@ -258,6 +258,7 @@ model Campaign {
 
   // Relations
   memberships        CampaignMembership[]
+  combatState        CombatState?
   invitations        CampaignInvitation[]
   maps               Map[]                @relation("CampaignMaps")
   characters         Character[]
@@ -986,4 +987,14 @@ model SystemSettings {
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// The combat order, the turn and what each combatant has spent this turn,
+// one row per campaign with a fight going (the in-memory copy in
+// websocket/initiativeState.ts is written through to it and loaded at boot).
+model CombatState {
+  campaignId String   @id
+  state      Json
+  updatedAt  DateTime @updatedAt
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 }

@@ -1685,11 +1685,28 @@ export interface CombatantEntry {
   characterId: string | null;
 }
 
+/** What one combatant has spent in the turn it is taking (or last took). */
+export interface TurnSpend {
+  action: boolean;
+  bonus: boolean;
+  reaction: boolean;
+  movedFeet: number;
+  dashes: number;
+  extraActions: number;
+  attacksLeft: number;
+  attackActionTaken: boolean;
+  /** Features used that can be used once each turn, by id. */
+  oncePerTurn: string[];
+  overBudgetWarned: boolean;
+}
+
 export interface CombatState {
   active: boolean;
   round: number;
   currentTokenId: string | null;
   combatants: CombatantEntry[];
+  /** What each combatant has spent this turn, by tokenId; a player is sent only their own. */
+  spend: Record<string, TurnSpend>;
 }
 
 export interface InitiativeAddEvent    { tokenId: string; mapId: string; }

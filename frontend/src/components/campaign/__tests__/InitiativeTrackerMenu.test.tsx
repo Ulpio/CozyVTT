@@ -91,6 +91,7 @@ beforeEach(() => {
     token('g', 'Goblin'),
   ]);
   useGameStore.getState().setCombatState({
+      spend: {},
     active: false, round: 0, currentTokenId: null,
     combatants: [entry('pa', 'Alice', 'player', 'map-1', 'char-alice'), entry('pb', 'Bob', 'player', 'map-1', 'char-bob'), entry('g', 'Goblin', 'npc')],
   });
@@ -143,6 +144,7 @@ describe("a combatant's right-click menu", () => {
   // One with a character offers its sheet (InitiativeTrackerOtherMapSheet).
   it('offers nothing for a combatant on another map with no character', () => {
     useGameStore.getState().setCombatState({
+      spend: {},
       active: false, round: 0, currentTokenId: null,
       combatants: [entry('far', 'Carol', 'player', 'map-2')],
     });
@@ -300,7 +302,7 @@ describe("a combatant's menu, as each viewer is shown it", () => {
   it('offers the GM nothing on an object', () => {
     seat.role = 'GM';
     useGameStore.getState().setTokens([token('chest', 'Chest', { type: TokenType.OBJECT })]);
-    useGameStore.getState().setCombatState({ active: false, round: 0, currentTokenId: null, combatants: [entry('chest', 'Chest', 'npc')] });
+    useGameStore.getState().setCombatState({ spend: {}, active: false, round: 0, currentTokenId: null, combatants: [entry('chest', 'Chest', 'npc')] });
     render(<InitiativeTracker />);
     fireEvent.contextMenu(screen.getByText('Chest'), { clientX: 40, clientY: 60 });
 

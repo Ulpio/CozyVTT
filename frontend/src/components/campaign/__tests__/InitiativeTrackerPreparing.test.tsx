@@ -58,7 +58,7 @@ beforeEach(() => {
   emitInitiativeAdd.mockClear();
   rollDice.mockReset().mockResolvedValue({ ok: true, id: 'roll-1' });
   useGameStore.getState().setTokens([token('lich', 'Lich')]);
-  useGameStore.getState().setCombatState({ active: false, round: 0, currentTokenId: null, combatants: [] });
+  useGameStore.getState().setCombatState({ spend: {}, active: false, round: 0, currentTokenId: null, combatants: [] });
 });
 
 describe('Add Combatant while preparing', () => {
@@ -85,7 +85,7 @@ describe('Add Combatant\'s list', () => {
 
 describe("a combatant's rolls", () => {
   it('are for the GM alone when it stands on a map the table is not on', async () => {
-    useGameStore.getState().setCombatState({ active: false, round: 0, currentTokenId: null, combatants: [entry('lich', 'map-prepared')] });
+    useGameStore.getState().setCombatState({ spend: {}, active: false, round: 0, currentTokenId: null, combatants: [entry('lich', 'map-prepared')] });
     render(<InitiativeTracker />);
     await rollFromRow('Lich');
     expect(rollDice).toHaveBeenCalledWith(expect.objectContaining({ expression: '1d20', secret: true }));
@@ -93,7 +93,7 @@ describe("a combatant's rolls", () => {
 
   it("go to the whole table when it stands on the table's map", async () => {
     seat.viewedMapId = 'map-table';
-    useGameStore.getState().setCombatState({ active: false, round: 0, currentTokenId: null, combatants: [entry('lich', 'map-table')] });
+    useGameStore.getState().setCombatState({ spend: {}, active: false, round: 0, currentTokenId: null, combatants: [entry('lich', 'map-table')] });
     render(<InitiativeTracker />);
     await rollFromRow('Lich');
     expect(rollDice).toHaveBeenCalledWith(expect.not.objectContaining({ secret: true }));

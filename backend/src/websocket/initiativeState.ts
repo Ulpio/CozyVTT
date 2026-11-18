@@ -1,14 +1,19 @@
 /**
  * Initiative State Manager
- * In-memory store for per-campaign combat state.
+ * Per-campaign combat state: the order, the round, the acting combatant and
+ * what each combatant has spent this turn.
  *
- * Why in-memory instead of DB?
- * Initiative order is ephemeral combat data that resets between combats.
- * Token initiative *values* are persisted via the token.initiative field in the
- * Map.tokens JSON (updated through the existing token update path).
- * The round counter and active combatant are transient and intentionally lost
- * on server restart — the GM can simply start a new combat.
+ * The map below is the working copy, read and written synchronously by the
+ * handlers. Every change is written through to the CombatState table (one row
+ * per campaign, the newest state winning) and the table is loaded back into
+ * the map at boot, so a restart no longer loses the fight. Token initiative
+ * *values* are also kept on the map's tokens (the existing token update path).
  */
+
+import { Prisma } from '@prisma/client';
+import { prisma } from '../config/database';
+import logger from '../utils/logger';
+import { inBackground } from '../utils/backgroundWork';
 
 export interface CombatantEntry {
   tokenId: string;
@@ -24,6 +29,36 @@ export interface CombatantEntry {
   characterId: string | null;
 }
 
+/** What one combatant has spent in the turn it is taking (or last took). */
+export interface TurnSpend {
+  action: boolean;
+  bonus: boolean;
+  reaction: boolean;
+  movedFeet: number;
+  dashes: number;
+  extraActions: number;
+  attacksLeft: number;
+  attackActionTaken: boolean;
+  /** Features used that can be used once each turn, by id. */
+  oncePerTurn: string[];
+  overBudgetWarned: boolean;
+}
+
+export function freshSpend(): TurnSpend {
+  return {
+    action: false,
+    bonus: false,
+    reaction: false,
+    movedFeet: 0,
+    dashes: 0,
+    extraActions: 0,
+    attacksLeft: 1,
+    attackActionTaken: false,
+    oncePerTurn: [],
+    overBudgetWarned: false,
+  };
+}
+
 export interface CombatState {
   active: boolean;
   round: number;
@@ -31,6 +66,33 @@ export interface CombatState {
   currentTokenId: string | null;
   /** Ordered list of combatants (descending by initiative) */
   combatants: CombatantEntry[];
+  /** What each combatant has spent this turn, by tokenId. */
+  spend: Record<string, TurnSpend>;
+}
+
+/** A state as callers build it: a missing `spend` is filled in as fresh. */
+export type CombatStateInput = Omit<CombatState, 'spend'> & { spend?: Record<string, TurnSpend> };
+
+/**
+ * The state with a spend record for every combatant (fresh where there was
+ * none) and none for anyone who is not in the order.
+ */
+function withSpend(state: CombatStateInput): CombatState {
+  const spend: Record<string, TurnSpend> = {};
+  for (const c of state.combatants) spend[c.tokenId] = state.spend?.[c.tokenId] ?? freshSpend();
+  return { ...state, spend };
+}
+
+/**
+ * The turn rule: `tokenId` becomes the acting combatant, its own spending is
+ * reset, and every combatant's once-per-turn marks are cleared. Pure.
+ */
+export function beginTurn(state: CombatStateInput, tokenId: string): CombatState {
+  const next = withSpend(state);
+  const spend: Record<string, TurnSpend> = {};
+  for (const [id, s] of Object.entries(next.spend)) spend[id] = { ...s, oncePerTurn: [] };
+  if (next.combatants.some((c) => c.tokenId === tokenId)) spend[tokenId] = freshSpend();
+  return { ...next, currentTokenId: tokenId, spend };
 }
 
 const campaignStates = new Map<string, CombatState>();
@@ -82,6 +144,7 @@ function defaultState(): CombatState {
     round: 0,
     currentTokenId: null,
     combatants: [],
+    spend: {},
   };
 }
 
@@ -89,9 +152,84 @@ export function getState(campaignId: string): CombatState {
   return campaignStates.get(campaignId) ?? defaultState();
 }
 
-export function setState(campaignId: string, state: CombatState): void {
+/**
+ * The write-through: each campaign's writes run one after another, and a
+ * write stores whatever the map holds when its turn comes, so of several
+ * changes queued together the newest is what ends up in the table.
+ */
+const writes = new Map<string, Promise<void>>();
+
+function queueWrite(campaignId: string): void {
+  const previous = writes.get(campaignId) ?? Promise.resolve();
+  const next = previous.then(async () => {
+    try {
+      const state = campaignStates.get(campaignId);
+      if (state && (state.active || state.combatants.length > 0)) {
+        const json = state as unknown as Prisma.InputJsonValue;
+        await prisma.combatState.upsert({
+          where: { campaignId },
+          create: { campaignId, state: json },
+          update: { state: json },
+        });
+      } else {
+        await prisma.combatState.deleteMany({ where: { campaignId } });
+      }
+    } catch (error) {
+      // A campaign deleted meanwhile has nothing to keep the fight in.
+      logger.warn('combat state write failed', { err: error, campaignId });
+    }
+  });
+  writes.set(campaignId, next);
+  // Counted as background work, so a shutdown lets it finish.
+  inBackground('combat state write', () => next);
+}
+
+/** Wait for the queued writes of one campaign, or of every campaign. */
+export async function flushCombatWrites(campaignId?: string): Promise<void> {
+  if (campaignId !== undefined) {
+    await writes.get(campaignId);
+    return;
+  }
+  await Promise.all([...writes.values()]);
+}
+
+/** Load every stored fight into memory, at boot. */
+export async function hydrateCombatStates(): Promise<void> {
+  const rows = await prisma.combatState.findMany();
+  for (const row of rows) {
+    const stored = row.state as unknown as CombatStateInput | null;
+    if (!stored || !Array.isArray(stored.combatants)) continue;
+    campaignStates.set(row.campaignId, withSpend(stored));
+    bump(row.campaignId);
+  }
+}
+
+const locks = new Map<string, Promise<unknown>>();
+
+/**
+ * Run `fn` with the campaign's state while no other caller of this is
+ * running for the same campaign, so a read-modify-write of one combatant's
+ * spending cannot lose an update to another. `fn` stores its change with
+ * setState itself.
+ */
+export function withCombatLock<T>(campaignId: string, fn: (state: CombatState) => Promise<T> | T): Promise<T> {
+  const run = (locks.get(campaignId) ?? Promise.resolve()).then(() => fn(getState(campaignId)));
+  const settled = run.then(
+    () => undefined,
+    () => undefined
+  );
+  locks.set(campaignId, settled);
+  void settled.then(() => {
+    if (locks.get(campaignId) === settled) locks.delete(campaignId);
+  });
+  return run;
+}
+
+export function setState(campaignId: string, input: CombatStateInput): void {
+  const state = withSpend(input);
   campaignStates.set(campaignId, state);
   bump(campaignId);
+  queueWrite(campaignId);
   // A combatant that has left the order may be rolled for again when it
   // comes back.
   const rolled = playerRolls.get(campaignId);
@@ -104,6 +242,18 @@ export function setState(campaignId: string, state: CombatState): void {
 
 /** Forget every campaign's combat state, after a restore replaces the database under it. */
 export function clearAllState(): void {
+  const known = [...campaignStates.keys()];
+  forgetCombatMemory();
+  // The map is empty now, so each queued write deletes its row: a fight kept
+  // from before the restore no longer matches the database.
+  for (const campaignId of known) queueWrite(campaignId);
+}
+
+/**
+ * Empty the working copy and leave the table as it is, as a restart does
+ * before the table is loaded back (hydrateCombatStates).
+ */
+export function forgetCombatMemory(): void {
   for (const campaignId of campaignStates.keys()) bump(campaignId);
   campaignStates.clear();
   playerRolls.clear();
@@ -113,6 +263,7 @@ export function clearState(campaignId: string): void {
   campaignStates.delete(campaignId);
   playerRolls.delete(campaignId);
   bump(campaignId);
+  queueWrite(campaignId);
 }
 
 /**
@@ -169,17 +320,21 @@ export function withoutCombatants(state: CombatState, gone: (entry: CombatantEnt
   if (kept.length === state.combatants.length) return null;
   if (kept.length === 0) return defaultState();
   let { currentTokenId, round } = state;
+  let turnPassed = false;
   const currentIndex = state.combatants.findIndex((c) => c.tokenId === currentTokenId);
   if (currentIndex !== -1 && gone(state.combatants[currentIndex])) {
     const after = state.combatants.slice(currentIndex + 1).find((c) => !gone(c));
     if (after) {
       currentTokenId = after.tokenId;
+      turnPassed = true;
     } else {
       currentTokenId = kept[0].tokenId;
       if (state.active) round += 1;
+      turnPassed = true;
     }
   }
-  return { ...state, combatants: kept, currentTokenId, round };
+  const rest = withSpend({ ...state, combatants: kept, currentTokenId, round });
+  return turnPassed && currentTokenId ? beginTurn(rest, currentTokenId) : rest;
 }
 
 /**
@@ -217,12 +372,15 @@ export interface CombatantSource {
  * player's sight on a lit or fogged map is still listed, and hiding the
  * token is what keeps it out. The GM gets every combatant with the token as
  * it is now, and the copy taken when it joined if the token is gone. The
- * stored state is not changed.
+ * stored state is not changed. What a combatant has spent goes to the GM for
+ * every combatant, and to a player for those `viewerControls` says they
+ * control, never for anyone else's character or a creature.
  */
 export function projectCombatState(
   state: CombatState,
   tokens: ReadonlyMap<string, CombatantSource>,
-  isGM: boolean
+  isGM: boolean,
+  viewerControls?: (tokenId: string) => boolean
 ): CombatState {
   const combatants: CombatantEntry[] = [];
   for (const entry of state.combatants) {
@@ -242,5 +400,10 @@ export function projectCombatState(
     });
   }
   const currentTokenId = combatants.some((c) => c.tokenId === state.currentTokenId) ? state.currentTokenId : null;
-  return { active: state.active, round: state.round, currentTokenId, combatants };
+  const spend: Record<string, TurnSpend> = {};
+  for (const c of combatants) {
+    const spent = state.spend[c.tokenId];
+    if (spent && (isGM || viewerControls?.(c.tokenId))) spend[c.tokenId] = { ...spent, oncePerTurn: [...spent.oncePerTurn] };
+  }
+  return { active: state.active, round: state.round, currentTokenId, combatants, spend };
 }

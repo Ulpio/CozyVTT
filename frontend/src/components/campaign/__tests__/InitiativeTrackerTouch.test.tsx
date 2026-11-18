@@ -57,7 +57,7 @@ beforeEach(() => {
   seat.role = 'GM';
   emitInitiativeReorder.mockReset();
   useGameStore.getState().setTokens([goblinToken, ogreToken]);
-  useGameStore.getState().setCombatState({ active: false, round: 0, currentTokenId: null, combatants: [goblin] });
+  useGameStore.getState().setCombatState({ spend: {}, active: false, round: 0, currentTokenId: null, combatants: [goblin] });
 });
 
 const classesOf = (el: Element | null) => (el as HTMLElement).className.split(/\s+/);
@@ -150,7 +150,7 @@ describe("a combatant's row, pressed and held by a finger", () => {
   // A finger's long-press brings no mousedown, which is what closed the
   // first menu before a right-click opened the second.
   it('opens a second long-press on another row as a menu of its own, at that row, rolling for it', () => {
-    useGameStore.getState().setCombatState({ active: false, round: 0, currentTokenId: null, combatants: [goblin, ogre] });
+    useGameStore.getState().setCombatState({ spend: {}, active: false, round: 0, currentTokenId: null, combatants: [goblin, ogre] });
     render(<InitiativeTracker />);
     const finger = contact('touch', 1);
     finger.down(rowOf('Goblin'), at(40, 40));
@@ -258,6 +258,7 @@ describe("the GM's drag to reorder", () => {
 
   it('keeps the picture from starting a drag of its own on a touch screen only', () => {
     useGameStore.getState().setCombatState({
+      spend: {},
       active: false, round: 0, currentTokenId: null,
       combatants: [{ ...goblin, imageUrl: '/api/assets/tokens/goblin' }],
     });
@@ -272,7 +273,7 @@ describe("the GM's drag to reorder", () => {
 
   it('moves the row dropped from its grip, with the row as the picture under the finger', () => {
     onATouchScreen();
-    useGameStore.getState().setCombatState({ active: false, round: 0, currentTokenId: null, combatants: [goblin, ogre] });
+    useGameStore.getState().setCombatState({ spend: {}, active: false, round: 0, currentTokenId: null, combatants: [goblin, ogre] });
     render(<InitiativeTracker />);
     const setDragImage = vi.fn();
 
@@ -292,7 +293,7 @@ describe('Up and Down on a touch screen', () => {
   const troll: CombatantEntry = { ...goblin, tokenId: 'troll', name: 'Troll', initiative: 1 };
   beforeEach(() => {
     useGameStore.getState().setTokens([goblinToken, ogreToken, trollToken]);
-    useGameStore.getState().setCombatState({ active: false, round: 0, currentTokenId: null, combatants: [goblin, ogre, troll] });
+    useGameStore.getState().setCombatState({ spend: {}, active: false, round: 0, currentTokenId: null, combatants: [goblin, ogre, troll] });
   });
   afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -303,7 +304,7 @@ describe('Up and Down on a touch screen', () => {
     const saidByKey = screen.getByRole('status').textContent;
     unmount();
     emitInitiativeReorder.mockReset();
-    useGameStore.getState().setCombatState({ active: false, round: 0, currentTokenId: null, combatants: [goblin, ogre, troll] });
+    useGameStore.getState().setCombatState({ spend: {}, active: false, round: 0, currentTokenId: null, combatants: [goblin, ogre, troll] });
 
     onATouchScreen();
     render(<InitiativeTracker />);
