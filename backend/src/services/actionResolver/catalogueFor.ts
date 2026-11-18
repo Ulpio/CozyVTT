@@ -1,7 +1,8 @@
 /**
  * What a token can do, read from the stored data only: a character's sheet
- * with the spells and weapons it points at in the campaign's books, or an
- * NPC's stat block. Nothing the client sends reaches this.
+ * with the spells and weapons it points at in the campaign's books and the
+ * features of its class and subclass there, or an NPC's stat block. Nothing
+ * the client sends reaches this.
  */
 
 import type { Prisma } from '@prisma/client';
@@ -14,6 +15,7 @@ import {
   type CompendiumWeapon,
   type ResolvedActionSpec,
 } from '../../rules/actions/catalogue';
+import { actorFeatures, classEntryFor, withFeatures, type CompendiumClass, type CompendiumSubclass } from '../../rules/actions/features';
 import type { FifthEditionCharacterData } from '../../validators/game-systems/fifthEdition.schema';
 import type { NpcStatBlockInput } from '../../validators/statBlock';
 import type { Token } from '../../websocket/shared';
@@ -55,6 +57,29 @@ async function compendiumFor(campaignId: string, sheet: FifthEditionCharacterDat
   return { spells, weapons };
 }
 
+/**
+ * The compendium class and subclass a sheet is of, from the campaign's books:
+ * the ones its origin points at, else the class named as the sheet's class.
+ */
+async function classEntriesFor(campaignId: string, sheet: FifthEditionCharacterData): Promise<{ classEntry: CompendiumClass | null; subclassEntry: CompendiumSubclass | null }> {
+  const none = { classEntry: null, subclassEntry: null };
+  const enabled = await enabledBookIds(campaignId);
+  if (enabled.length === 0) return none;
+  const select = { bookId: true, slug: true, name: true, data: true } as const;
+  const classRef = sheet?.origin?.class;
+  const classes = await prisma.compendiumEntry.findMany({
+    where: classRef ? { type: 'class', bookId: classRef.bookId, slug: classRef.slug } : { type: 'class', bookId: { in: enabled } },
+    select,
+  });
+  const classEntry = classEntryFor(sheet, classes.filter((c) => enabled.includes(c.bookId)) as unknown as CompendiumClass[]);
+  if (!classEntry) return none;
+  const subRef = sheet?.origin?.subclass;
+  if (!subRef || !enabled.includes(subRef.bookId)) return { classEntry, subclassEntry: null };
+  const subclasses = await prisma.compendiumEntry.findMany({ where: { type: 'subclass', bookId: subRef.bookId, slug: subRef.slug }, select });
+  const subclassEntry = (subclasses.find((s) => s.bookId === subRef.bookId && s.slug === subRef.slug) ?? null) as unknown as CompendiumSubclass | null;
+  return { classEntry, subclassEntry };
+}
+
 /** A character's actions when `sheet` is given, else the token's stat block's, else none. */
 export async function catalogueFor(
   campaignId: string,
@@ -62,8 +87,8 @@ export async function catalogueFor(
   sheet: FifthEditionCharacterData | null,
 ): Promise<ResolvedActionSpec[]> {
   if (sheet) {
-    const { spells, weapons } = await compendiumFor(campaignId, sheet);
-    return characterActions(sheet, spells, weapons);
+    const [{ spells, weapons }, { classEntry, subclassEntry }] = await Promise.all([compendiumFor(campaignId, sheet), classEntriesFor(campaignId, sheet)]);
+    return withFeatures(characterActions(sheet, spells, weapons), actorFeatures(sheet, classEntry, subclassEntry), sheet);
   }
   if (token.statBlock && typeof token.statBlock === 'object') return npcActions(token.statBlock as unknown as NpcStatBlockInput, token.rechargeSpent ?? []);
   return [];

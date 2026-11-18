@@ -145,6 +145,10 @@ beforeAll(async () => {
       entry('spell', 'curar-ferimentos', 'Curar Ferimentos', { level: 1, range: 'Toque', concentration: false, mechanics: { healing: '1d8', healingAddsModifier: true, scaling: { perSlot: '1d8' } } }),
       { ...entry('spell', 'bencao', 'Bênção', { level: 1, range: '9 metros', concentration: true, mechanics: {} }), text: 'Texto inventado para o teste.' },
       entry('spell', 'escudo-da-fe', 'Escudo da Fé', { level: 1, range: 'Pessoal', concentration: false, mechanics: {} }),
+      // A class no fixture sheet is of; one test points the fighter's origin at it.
+      entry('class', 'guerreiro-teste', 'Guerreiro Teste', {
+        features: [{ name: 'Fôlego Inventado', description: 'Inventada.', level: 1, mechanics: { action: { key: 'folego', kind: 'heal', cost: 'bonus', resources: [{ key: 'folego', max: 1, recovers: 'short' }], spends: { key: 'folego' } } } }],
+      }),
     ],
   });
   await prisma.campaignBook.create({ data: { campaignId, bookId: BOOK } });
@@ -516,6 +520,15 @@ describe('listActions', () => {
 
   it('refuses another player\'s token', async () => {
     expect(await listActions(campaignId, p2, mapId, 'fighter')).toEqual({ error: 'Not your token' });
+  });
+
+  it('lists the features of the class the sheet comes from, and refuses to resolve one for now', async () => {
+    await patchChar(fighterId, (d) => { d.origin = { class: { bookId: BOOK, slug: 'guerreiro-teste' } }; });
+    const out = await listActions(campaignId, p1, mapId, 'fighter');
+    if ('error' in out) throw new Error('expected a list');
+    const id = `feature:${BOOK}/guerreiro-teste/folego`;
+    expect(out.options.find((o) => o.id === id)).toEqual({ id, name: 'Fôlego Inventado', group: 'feature', resolution: 'feature', cost: 'bonus', uses: { left: 1, max: 1 } });
+    expect(await resolveAction(campaignId, p1, req({ actionId: id, targetTokenId: undefined }))).toEqual({ ok: false, error: 'This action cannot be resolved' });
   });
 
   it('gives the GM the goblin\'s summary and a player controlling it none', async () => {

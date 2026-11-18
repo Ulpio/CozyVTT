@@ -198,6 +198,44 @@ describe('curated starting data', () => {
     expect(validateEntries([subclass({ spellsByTerrain: { floresta: { '2': ['a'] } } })], known)).toEqual([]);
     expect(validateEntries([subclass({ spellsByTerrain: { floresta: { '7': ['a'] } } })], known)).not.toEqual([]);
   });
+
+  describe('a feature action', () => {
+    it('accepts a state with a pool it declares and spends', () => {
+      const action = { key: 'furia', kind: 'state', cost: 'bonus', resources: [{ key: 'furia', max: { '1': 2, '3': 3 }, recovers: 'long' }], spends: { key: 'furia' }, damageBonus: { '1': 2 }, stateName: 'Em fúria' };
+      expect(validateEntries([subclass({ action })], known)).toEqual([]);
+    });
+
+    it('accepts every shape a pool maximum can take', () => {
+      const resources = [
+        { key: 'a', max: 2, recovers: 'short' },
+        { key: 'b', max: 'classLevel', recovers: 'long' },
+        { key: 'c', max: 'proficiency', recovers: { '1': 'long', '5': 'short' } },
+        { key: 'd', max: { ability: 'cha', min: 1 }, recovers: 'long' },
+        { key: 'e', max: { perLevel: 5 }, recovers: 'long' },
+      ];
+      expect(validateEntries([subclass({ action: { key: 'x', kind: 'use', resources } })], known)).toEqual([]);
+    });
+
+    it('rejects kind none without a reason, and accepts it with one', () => {
+      expect(validateEntries([subclass({ action: { key: 'x', kind: 'none' } })], known)).not.toEqual([]);
+      expect(validateEntries([subclass({ action: { key: 'x', kind: 'none', reason: 'Decidida na mesa.' } })], known)).toEqual([]);
+    });
+
+    it('rejects an unknown kind', () => {
+      const issues = validateEntries([subclass({ action: { key: 'x', kind: 'voar' } })], known);
+      expect(issues.map((i) => i.message).join(' ')).toMatch(/mechanics\.action\.kind/);
+    });
+
+    it('rejects a key that is not a slug and an unknown cost', () => {
+      expect(validateEntries([subclass({ action: { key: 'Não Slug', kind: 'use' } })], known)).not.toEqual([]);
+      expect(validateEntries([subclass({ action: { key: 'x', kind: 'use', cost: 'turno' } })], known)).not.toEqual([]);
+    });
+
+    it('leaves the other free-form mechanics keys alone', () => {
+      expect(validateEntries([subclass({ uses: 'qualquer coisa', recharge: 'curto', extraDice: 3 })], known)).toEqual([]);
+      expect(validateEntries([subclass({ uses: 2, action: { key: 'x', kind: 'passive', passive: { extraAttacks: 1 } } })], known)).toEqual([]);
+    });
+  });
 });
 
 describe('references to other entries', () => {

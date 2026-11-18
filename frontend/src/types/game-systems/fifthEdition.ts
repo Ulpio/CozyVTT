@@ -373,6 +373,10 @@ export interface FifthEditionCharacterData extends SheetChrome {
   spellcasting?: FifthEditionSpellcasting;
   /** The spell the character is concentrating on, if any; a new one ends it. */
   concentratingOn?: { name: string; compendiumRef?: { bookId: string; slug: string } } | null;
+  /** Uses spent of each class feature pool, by resource key ("rage", "ki"); absent is none spent. */
+  featureUses?: Record<string, number>;
+  /** The class feature states running now (Rage), by feature id. */
+  activeStates?: string[];
   /** Where the guided creation took the character from. */
   origin?: {
     race?: CompendiumRef;

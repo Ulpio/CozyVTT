@@ -463,6 +463,11 @@ export const fifthEditionCharacterDataSchema = z.object({
   spellcasting: spellcastingSchema.optional(),
   // The spell the character is concentrating on, if any; a new one ends it.
   concentratingOn: z.object({ name: shortText.min(1), compendiumRef: compendiumRefSchema.optional() }).nullable().optional(),
+  // Uses spent of each class feature pool, by resource key ("rage", "ki");
+  // a key not here has none spent. A rest gives them back.
+  featureUses: z.record(z.string().min(1).max(64), z.number().int().min(0)).optional(),
+  // The class feature states running now (Rage), by feature id.
+  activeStates: z.array(z.string().min(1).max(200)).max(50).optional(),
   // Where the guided creation took the character from.
   origin: z
     .object({

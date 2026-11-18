@@ -25,8 +25,8 @@ export type ActionTargeting =
 export interface ActionOption {
   id: string;
   name: string;
-  group: 'attack' | 'spell' | 'npc' | 'common';
-  resolution: 'attack' | 'heal' | 'cast' | 'post' | 'save';
+  group: 'attack' | 'spell' | 'npc' | 'common' | 'feature';
+  resolution: 'attack' | 'heal' | 'cast' | 'post' | 'save' | 'feature';
   targeting?: ActionTargeting;
   recharge?: { min: number; spent: boolean };
   saveAbility?: ActionAbility;
@@ -46,6 +46,20 @@ export interface ActionOption {
   combatUnavailable?: true;
   /** A melee weapon attack: it can be an opportunity attack off turn. */
   meleeWeapon?: true;
+  /** Class features: the uses left in the pool the feature spends. */
+  uses?: { left: number; max: number };
+  /** Class feature states: running now. */
+  active?: true;
+  /** Weapon attacks: the features that can add to the hit (Sneak Attack, Divine Smite). */
+  riders?: ActionFeatureRider[];
+}
+
+/** A feature that adds to a weapon attack's hit; `slot` when it spends a spell slot. */
+export interface ActionFeatureRider {
+  featureId: string;
+  name: string;
+  uses?: { left: number; max: number };
+  slot?: true;
 }
 
 /** Where an area is aimed, in map pixels (top-left origin). The server decides who is in it. */

@@ -47,14 +47,80 @@ const Named = z.object({ name: z.string().min(1), description: z.string() });
 /** Spell slugs by spell level 1 to 5, for the spells a subclass always has prepared. */
 const SpellsBySpellLevel = z.partialRecord(z.enum(['1', '2', '3', '4', '5']), z.array(z.string().min(1)));
 
+/** A value by class level: the entry with the highest key at or below the level applies. */
+const ByLevel = <T extends z.ZodType>(value: T) => z.record(z.string().regex(/^\d+$/, 'a level such as "3"'), value);
+
+const Recovery = z.enum(['short', 'long']);
+
+/**
+ * What a class feature does on the action bar. `kind` says how it is used;
+ * the other fields are the numbers that kind reads. `resources` declares a
+ * pool of uses (per character, shared by every feature that spends its key);
+ * `spends` takes from one.
+ */
+export const FeatureActionSchema = z
+  .object({
+    key: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'a slug'),
+    kind: z.enum(['addDamage', 'state', 'heal', 'extraAction', 'makeBonus', 'attacks', 'passive', 'use', 'none']),
+    cost: z.enum(['action', 'bonus', 'reaction', 'none', 'attack']).optional(),
+    // Why a feature has no button (kind none): what the table decides instead.
+    reason: z.string().min(1).optional(),
+    resources: z
+      .array(
+        z.object({
+          key: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'a slug'),
+          max: z.union([
+            z.number().int().min(0),
+            z.enum(['classLevel', 'proficiency']),
+            z.strictObject({ ability: Ability, min: z.number().int().min(0).optional() }),
+            z.strictObject({ perLevel: z.number().int().min(1) }),
+            ByLevel(z.number().int().min(0)),
+          ]),
+          recovers: z.union([Recovery, ByLevel(Recovery)]),
+        })
+      )
+      .optional(),
+    spends: z.object({ key: z.string().min(1), amount: z.number().int().min(1).optional(), chosen: z.literal(true).optional() }).optional(),
+    dice: ByLevel(z.string().regex(DICE, 'dice such as 1d8')).optional(),
+    addAbility: z.union([Ability, z.literal('best-str-dex')]).optional(),
+    addClassLevel: z.literal(true).optional(),
+    oncePerTurn: z.literal(true).optional(),
+    filter: z
+      .object({
+        melee: z.literal(true).optional(),
+        ranged: z.literal(true).optional(),
+        finesseOrRanged: z.literal(true).optional(),
+        strength: z.literal(true).optional(),
+      })
+      .optional(),
+    slot: z.object({ base: z.string().regex(DICE), perSlot: z.string().regex(DICE), maxDice: z.number().int().min(1) }).optional(),
+    damageBonus: ByLevel(z.number().int()).optional(),
+    stateName: z.string().min(1).optional(),
+    attacks: z
+      .object({
+        count: z.number().int().min(1),
+        unarmedDice: ByLevel(z.string().regex(DICE)),
+        requiresAttackAction: z.literal(true).optional(),
+      })
+      .optional(),
+    makeBonus: z.array(z.enum(['dash', 'disengage', 'hide'])).optional(),
+    passive: z.object({ extraAttacks: z.number().int().min(1).optional(), critMin: z.number().int().min(2).max(20).optional() }).optional(),
+  })
+  .refine((action) => action.kind !== 'none' || action.reason !== undefined, {
+    message: 'a feature of kind none needs a reason',
+    path: ['reason'],
+  });
+
+export type FeatureAction = z.infer<typeof FeatureActionSchema>;
+
 // Feature mechanics are free-form, except the subclass spell lists, which the
-// character wizard reads: by spell level, or, for the Circle of the Land, by
-// terrain and then spell level.
+// character wizard reads (by spell level, or, for the Circle of the Land, by
+// terrain and then spell level), and `action`, which the action bar reads.
 const Feature = Named.extend({ level: z.number().int().min(1).max(20), mechanics: z.unknown().optional() }).superRefine(
   (feature, ctx) => {
     const mechanics = feature.mechanics;
     if (!mechanics || typeof mechanics !== 'object') return;
-    const { spellsBySpellLevel, spellsByTerrain } = mechanics as Record<string, unknown>;
+    const { spellsBySpellLevel, spellsByTerrain, action } = mechanics as Record<string, unknown>;
     const complain = (path: (string | number)[], error: z.ZodError) => {
       for (const issue of error.issues) ctx.addIssue({ code: 'custom', message: issue.message, path: ['mechanics', ...path, ...issue.path.map(String)] });
     };
@@ -65,6 +131,10 @@ const Feature = Named.extend({ level: z.number().int().min(1).max(20), mechanics
     if (spellsByTerrain !== undefined) {
       const parsed = z.record(z.string().min(1), SpellsBySpellLevel).safeParse(spellsByTerrain);
       if (!parsed.success) complain(['spellsByTerrain'], parsed.error);
+    }
+    if (action !== undefined) {
+      const parsed = FeatureActionSchema.safeParse(action);
+      if (!parsed.success) complain(['action'], parsed.error);
     }
   }
 );

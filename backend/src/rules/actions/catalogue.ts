@@ -27,8 +27,8 @@ const MANY_TARGETS_CAP = 20;
 export interface ActionOption {
   id: ActionId;
   name: string;
-  group: 'attack' | 'spell' | 'npc' | 'common';
-  resolution: 'attack' | 'heal' | 'cast' | 'post' | 'save';
+  group: 'attack' | 'spell' | 'npc' | 'common' | 'feature';
+  resolution: 'attack' | 'heal' | 'cast' | 'post' | 'save' | 'feature';
   /** Absent: the P5a single target (or none). */
   targeting?: ActionTargeting;
   recharge?: { min: number; spent: boolean };
@@ -49,6 +49,20 @@ export interface ActionOption {
   combatUnavailable?: true;
   /** A melee weapon attack: it can be an opportunity attack off turn. */
   meleeWeapon?: true;
+  /** Class features: the uses left in the pool the feature spends. */
+  uses?: { left: number; max: number };
+  /** Class feature states: running now. */
+  active?: true;
+  /** Weapon attacks: the features that can add to the hit (Sneak Attack, Divine Smite). */
+  riders?: FeatureRider[];
+}
+
+/** A feature that adds to a weapon attack's hit; `slot` when it spends a spell slot. */
+export interface FeatureRider {
+  featureId: string;
+  name: string;
+  uses?: { left: number; max: number };
+  slot?: true;
 }
 
 /** Server-only: everything the resolver needs to roll the action. */
@@ -68,7 +82,9 @@ export interface ResolvedActionSpec {
   autoHit?: boolean;
   selfHeal?: 'half-damage';
   /** Where the action comes from: Magic Resistance helps against spells only. */
-  source: 'spell' | 'monster' | 'weapon';
+  source: 'spell' | 'monster' | 'weapon' | 'feature';
+  /** Weapon attacks: the weapon has finesse, so it may use STR or DEX. */
+  finesse?: true;
 }
 
 /** The parts of a compendium spell entry the catalogue reads. */
@@ -306,6 +322,7 @@ export function characterActions(
     const props = new Set([...(atk.properties ?? []), ...(wpn?.data.properties ?? [])].map((p) => p.trim().toLowerCase()));
     const thrownWeapon = props.has('arremesso') || props.has('thrown');
     const reachWeapon = props.has('alcance') || props.has('reach');
+    const finesse = props.has('acuidade') || props.has('finesse');
     // The sheet's own range (feet), for a weapon the book gives none.
     const sheetRange = typeof atk.range === 'number' && atk.range > 5 && typeof wpn?.data.normalRange !== 'number' ? atk.range : undefined;
 
@@ -335,6 +352,7 @@ export function characterActions(
     if (versatile) option.grips = ['one', 'two'];
     const spec: ResolvedActionSpec = { option, attackBonus: atk.attackBonus, damage, source: 'weapon' };
     if (versatile) spec.versatileDamage = versatile;
+    if (finesse) spec.finesse = true;
     out.push(spec);
 
     let thrown: Reach | undefined;
@@ -350,6 +368,7 @@ export function characterActions(
         attackBonus: atk.attackBonus,
         damage,
         source: 'weapon',
+        ...(finesse ? { finesse: true as const } : {}),
       });
     }
   });

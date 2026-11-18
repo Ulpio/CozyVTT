@@ -163,6 +163,8 @@ export async function resolveAction(
   const spec = actor.spec.find((s) => s.option.id === req.actionId);
   if (!spec) return refuse(CANNOT_RESOLVE);
   const { option } = spec;
+  // Feature options are listed, not yet resolved.
+  if (option.resolution === 'feature') return refuse(CANNOT_RESOLVE);
   // An area is aimed, never given targets; anything else is never aimed.
   const isArea = option.targeting?.kind === 'area';
   if (isArea ? req.targetTokenIds !== undefined || req.targetTokenId !== undefined : req.area !== undefined) return refuse(INVALID_TARGET);
