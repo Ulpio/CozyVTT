@@ -45,6 +45,7 @@ import logger from '../utils/logger';
 import { errorMessage } from '../utils/errors';
 import { getState as getCombatState, setState as setCombatState, removeCombatants } from '../websocket/initiativeState';
 import { sendInitiativeState, resendInitiative } from '../websocket/handlers/initiative';
+import { recordMove } from '../services/combatMovement';
 import { currentMapChanged } from '../websocket/handlers/drawings';
 import { readTokens, toJson } from '../utils/prisma-json';
 import { drawingsFor, resendDrawings, scaleDrawings } from '../services/mapDrawings';
@@ -1828,7 +1829,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
     // between this route's read and the lock used to be judged by the old
     // token, leaving it off the map's edge or its metadata written over.
     const requested = shapes.value.position;
-    const written = await withMapsLocked([mapId], async (tx): Promise<LockedEdit<{ token: Token; map: MapRow }>> => {
+    const written = await withMapsLocked([mapId], async (tx): Promise<LockedEdit<{ token: Token; map: MapRow; from: { x: number; y: number } }>> => {
       const fresh = await tx.map.findUniqueOrThrow({ where: { id: mapId }, select: { tokens: true, width: true, height: true } });
       const tokens = readTokens(fresh.tokens);
       const index = tokens.findIndex((t) => t.id === tokenId);
@@ -1863,10 +1864,10 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
       const token: Token = { ...current, ...changes, ...(position && { position }), ...(metadata && { metadata }) };
       tokens[index] = token;
       const map = await tx.map.update({ where: { id: mapId }, data: { tokens: toJson(tokens) } });
-      return { done: { token, map } };
+      return { done: { token, map, from: current.position } };
     });
     if (!('done' in written)) return sendRefusal(res, written);
-    const { token: updatedToken, map: updatedMap } = written.done;
+    const { token: updatedToken, map: updatedMap, from } = written.done;
     resendSoonIfCurrent(campaignId, mapId);
 
     // A combatant's own change follows the token. A layer, visibility or
@@ -1876,6 +1877,11 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
       await resendInitiative(campaignId);
     } else {
       await resendInitiativeFor(campaignId, tokenId);
+    }
+
+    // A walk counts towards the combatant's turn; it never delays or undoes the move.
+    if (shapes.value.position && (updatedToken.position.x !== from.x || updatedToken.position.y !== from.y)) {
+      void recordMove(campaignId, mapId, updatedToken, from, updatedToken.position, updatedMap);
     }
 
     // Answered as the map fetch answers, never with the stored row: that row

@@ -21,6 +21,7 @@ import { canControlToken, canMoveTokensNow, canReadMap, PAUSED_MOVE_REFUSAL } fr
 import { bestEffort, campaignSockets, stillInCampaign } from '../utils';
 import { inBackground } from '../../utils/backgroundWork';
 import { createTurnQueue } from '../../utils/turnQueue';
+import { recordMove } from '../../services/combatMovement';
 
 /** How one member is sent a dragged token. */
 interface FrameRecipient {
@@ -623,7 +624,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
         const fresh = await tx.map.findUniqueOrThrow({
           where: { id: mapId },
           select: {
-            tokens: true, width: true, height: true, gridSize: true,
+            tokens: true, width: true, height: true, gridSize: true, feetPerSquare: true, diagonalRule: true,
             lightingEnabled: true, wallSegments: true, lights: true, globalIllumination: true,
             campaign: { select: { currentMapId: true } },
           },
@@ -632,10 +633,11 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
         const tokens = readTokens(fresh.tokens);
         const index = tokens.findIndex((t) => t.id === tokenId);
         if (index === -1) return { refused: 'Token not found' };
+        const from = tokens[index].position;
         const position = clampTokenPosition({ x: dropX, y: dropY }, tokens[index].size ?? { width: 1, height: 1 }, fresh);
         tokens[index] = { ...tokens[index], position };
         await tx.map.update({ where: { id: mapId }, data: { tokens: toJson(tokens) } });
-        return { written: tokens[index], stored: { ...fresh, tokens } };
+        return { written: tokens[index], from, stored: { ...fresh, tokens } };
       });
       if ('refused' in dropped) {
         // TODO(play): a drop refused here for its bounds (the GM shrank the map during the drag) is put back
@@ -644,7 +646,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
         socket.emit('error', { message: dropped.refused });
         return;
       }
-      const { written, stored } = dropped;
+      const { written, from, stored } = dropped;
       const updatedTokens = stored.tokens;
       const currentMapId = stored.campaign.currentMapId;
       const { x, y } = written.position;
@@ -726,6 +728,9 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
           'token.moved', written, mapId, currentMapId, { tokenId, mapId, x, y }, true
         );
       }
+
+      // Counted once the drop is stored and told; it never undoes or delays the move.
+      void recordMove(campaignId, mapId, written, from, written.position, stored);
 
       logger.debug('token.move.end', { tokenId, x, y, userId: socket.userId });
     } catch (error) {
