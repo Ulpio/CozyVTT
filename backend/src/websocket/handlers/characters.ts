@@ -3,7 +3,7 @@
 
 // ============================================
 // Character handlers: character.hp.update, character.hp.temporary,
-// character.hitdice.spend
+// character.hitdice.spend, character.rest
 // Players act on their own characters; the GM may act on any of them.
 // ============================================
 
@@ -16,6 +16,11 @@ import { toJson } from '../../utils/prisma-json';
 import { sheetAsRead } from '../../legacy/sheetConversion';
 import type { FifthEditionCharacterData } from '../../validators/game-systems/fifthEdition.schema';
 import { withinCeiling } from '../shared';
+import { ackFrom, refuseRequest } from '../ack';
+import { z } from 'zod';
+import { takeRest } from '../../services/rest';
+import { viewerOf } from '../../services/actionMessages';
+import { announceMessage } from './actions';
 import { emitCharacterUpdated } from '../utils';
 import { characterInCampaign } from '../../utils/characterCampaign';
 import { applyHitPointChange, grantTemporaryHitPoints } from '../../utils/rules/hitPoints';
@@ -23,6 +28,11 @@ import { CharacterTemporaryHpSchema, TEMPORARY_HP_PAYLOAD_REFUSAL } from '../../
 
 /** The largest change of hit points one event may make, either way. */
 const MAX_HP_DELTA = 100_000;
+
+const CharacterRestSchema = z.object({
+  characterIds: z.array(z.string().min(1).max(100)).min(1, 'characterIds is required').max(50),
+  kind: z.enum(['short', 'long']),
+});
 
 /** The parts of a character blob this handler touches — see `charData` below. */
 interface HpBlock {
@@ -334,6 +344,42 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
     } catch (error) {
       logger.error('character.hitdice.spend failed', { err: error });
       socket.emit('error', { message: 'Failed to spend hit die' });
+    }
+  });
+
+  /**
+   * CHARACTER.REST - a short or long rest for the named characters (a
+   * player's own; the GM's any). One card goes out as `chat.message`; the
+   * answer is `{ ok, messageId? , error? }`.
+   */
+  socket.on('character.rest', async (data: unknown, ackArg?: unknown) => {
+    const ack = ackFrom(ackArg);
+    try {
+      if (!socket.campaignId || !socket.userId) {
+        refuseRequest(socket, ack, 'Not authenticated to a campaign');
+        return;
+      }
+      if (!withinCeiling(socket, 'character.rest', ack)) return;
+      const parsed = CharacterRestSchema.safeParse(data);
+      if (!parsed.success) {
+        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Invalid request');
+        return;
+      }
+      const outcome = await takeRest(socket.campaignId, viewerOf(socket.role, socket.userId), parsed.data.characterIds, parsed.data.kind);
+      if (!outcome.ok) {
+        refuseRequest(socket, ack, outcome.error);
+        return;
+      }
+      // The rest is stored: a failure to tell the table must not read as a failed rest.
+      try {
+        await announceMessage(io, socket.campaignId, outcome.messageId, outcome.card);
+      } catch (err) {
+        logger.warn('character.rest: card not announced; the rest stands', { err, messageId: outcome.messageId });
+      }
+      (ack as ((a: unknown) => void) | null)?.({ ok: true, messageId: outcome.messageId });
+    } catch (error) {
+      logger.error('character.rest failed', { err: error });
+      refuseRequest(socket, ack, 'Failed to take the rest');
     }
   });
 }

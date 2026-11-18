@@ -296,6 +296,11 @@ export const SOCKET_CEILINGS = {
     windows: [{ limit: 50, windowMs: SECOND }],
     refusal: 'Too many hit dice spent at once. Wait a moment, then try again.',
   },
+  // A rest is a write under the characters' row locks and the current map's.
+  'character.rest': {
+    windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
+    refusal: 'Too many rests at once. Wait a moment, then try again.',
+  },
   // Their own budget, apart from the drag frames: each drop is a write under
   // the map's lock, and on a lit map line of sight for every player.
   'token.move.start': tokenMoves,

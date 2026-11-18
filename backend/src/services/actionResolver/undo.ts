@@ -64,6 +64,7 @@ export async function undoAction(campaignId: string, requester: Viewer, messageI
       undo.concentration?.characterId,
       ...(undo.uses ?? []).map((u) => u.characterId),
       undo.state?.characterId,
+      ...(undo.sheets ?? []).map((s) => s.characterId),
     ].filter((id): id is string => !!id);
     const held = await holdSheets(tx, characterIds);
     const edits = await mapTokensTx(tx, undo.mapId);
@@ -91,6 +92,7 @@ export async function undoAction(campaignId: string, requester: Viewer, messageI
     }
     restoreRecharge(card, edits);
     restoreFeature(card, held, edits);
+    restoreRest(card, held, edits);
 
     await writeTokens(tx, undo.mapId, edits);
     const written = await writeSheets(tx, held);
@@ -129,6 +131,25 @@ function restoreFeature(card: ActionCard, held: Map<string, HeldSheet>, edits: T
   const sheet = held.get(state.characterId);
   if (sheet) setActiveState(sheet, state.featureId, !state.started);
   if (state.mapId === card.undo.mapId) setCondition(edits, state.tokenId, state.stateName, !state.started);
+}
+
+/** Puts a rest's sheet parts back as they were, and the state conditions it took off the tokens. */
+function restoreRest(card: ActionCard, held: Map<string, HeldSheet>, edits: TokenEdits): void {
+  for (const { characterId, before } of card.undo.sheets ?? []) {
+    const sheet = held.get(characterId);
+    if (!sheet) continue;
+    for (const [key, value] of Object.entries(before)) {
+      if (key === 'spellcasting') {
+        const slots = (value as { slots?: unknown }).slots;
+        sheet.data.spellcasting = { ...sheet.data.spellcasting, slots } as Sheet['spellcasting'];
+      } else {
+        (sheet.data as Record<string, unknown>)[key] = structuredClone(value);
+      }
+      if (key === 'hp') sheet.hpChanged = true;
+    }
+    sheet.changed = true;
+  }
+  for (const { tokenId, name } of card.undo.conditions ?? []) setCondition(edits, tokenId, name, true);
 }
 
 /**

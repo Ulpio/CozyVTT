@@ -101,6 +101,13 @@ export interface UndoRecord {
    * undo takes it back with the rest of `economy`, while that turn is going.
    */
   extraAction?: true;
+  /**
+   * A rest: each character's sheet parts (`hp`, `spellcasting.slots`,
+   * `featureUses`, `hitDice`, `activeStates`) as they were before it, and the
+   * state conditions it took off tokens of `mapId`.
+   */
+  sheets?: { characterId: string; before: Record<string, unknown> }[];
+  conditions?: { tokenId: string; name: string }[];
 }
 
 /**

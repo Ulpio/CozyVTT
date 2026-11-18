@@ -67,7 +67,7 @@ async function emitToReaders(
  * recharge roll for a token players are not sent) goes to its sender and
  * recipient alone, as chat whispers do.
  */
-async function announceMessage(io: Server, campaignId: string, messageId: string, stored: unknown): Promise<void> {
+export async function announceMessage(io: Server, campaignId: string, messageId: string, stored: unknown): Promise<void> {
   const message = await prisma.message.findUnique({
     where: { id: messageId },
     select: { id: true, userId: true, content: true, type: true, createdAt: true, recipientId: true, user: { select: { displayName: true } } },
