@@ -90,6 +90,15 @@ export interface UndoRecord {
    * only while that turn is still going (a reaction: that round).
    */
   economy?: { campaignId: string; tokenId: string; round: number; spent: EconomySpent };
+  /** What a class feature spent of its character's pools (`featureUses`), by resource key. */
+  uses?: { characterId: string; key: string; amount: number }[];
+  /** A state feature (Rage) this card started, or ended (`started: false`), and the condition it put on or took off the token. */
+  state?: { characterId: string; featureId: string; tokenId: string; mapId: string; stateName: string; started: boolean };
+  /**
+   * The card gave its actor an extra action this turn (Action Surge); the
+   * undo takes it back with the rest of `economy`, while that turn is going.
+   */
+  extraAction?: true;
 }
 
 /**

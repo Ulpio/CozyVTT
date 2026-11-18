@@ -21,6 +21,9 @@ import type { Sheet } from './common';
 /** The ack text for a spell whose casting time is a minute or more, refused in a fight. */
 export const TOO_LONG_FOR_COMBAT = 'Leva tempo demais para conjurar em combate.';
 
+/** The ack text for attacks that follow the Attack action (Flurry of Blows) taken before it. */
+export const NEEDS_ATTACK_ACTION = 'Use a ação Atacar antes.';
+
 /** What an action spent of a combatant's turn, kept on its card so the GM's undo can give it back. */
 export type EconomyUndo = NonNullable<UndoRecord['economy']>;
 
@@ -57,12 +60,15 @@ function binds(state: CombatState, tokenId: string): boolean {
  * Check the option against what the actor has left this turn and spend it.
  * No-op when the economy does not bind the actor. Run it once every other
  * reason to refuse the action has passed, so a refused resolve spends nothing.
+ * `requiresAttackAction` refuses it until the actor has taken the Attack
+ * action this turn; `grantExtraAction` gives the actor an extra action
+ * (Action Surge) along with the spend.
  */
 export async function checkAndSpend(
   campaignId: string,
   actor: Token,
   option: ActionOption,
-  opts: { attacksPerAction: number; oncePerTurnKey?: string },
+  opts: { attacksPerAction: number; oncePerTurnKey?: string; requiresAttackAction?: boolean; grantExtraAction?: boolean },
 ): Promise<{ ok: true; economy?: EconomyUndo } | { ok: false; error: string }> {
   const outcome = await withCombatLock(campaignId, (state): { ok: true; economy?: EconomyUndo } | { ok: false; error: string } => {
     if (!binds(state, actor.id)) return { ok: true };
@@ -71,6 +77,7 @@ export async function checkAndSpend(
     const yourTurn = state.currentTokenId === actor.id;
     const check = canSpend(before, option.cost, { yourTurn, meleeWeapon: option.meleeWeapon === true, oncePerTurnKey: opts.oncePerTurnKey });
     if (!check.ok) return { ok: false, error: REFUSAL_MESSAGES[check.refusal] };
+    if (opts.requiresAttackAction && !before.attackActionTaken) return { ok: false, error: NEEDS_ATTACK_ACTION };
     const next = applySpend(before, check.as, opts);
     const spent: EconomySpent = { as: check.as };
     // The action is taken by an `action`, or by the attack that starts the Attack action.
@@ -79,10 +86,11 @@ export async function checkAndSpend(
       spent.tookAction = { attacksLeft: before.attacksLeft, attackActionTaken: before.attackActionTaken };
       if (before.action) spent.extraAction = true;
     }
-    if (option.id === 'common:dash') {
+    if (option.id === 'common:dash' || option.id === 'common:dash:bonus') {
       next.dashes += 1;
       spent.dash = true;
     }
+    if (opts.grantExtraAction) next.extraActions += 1;
     setState(campaignId, { ...state, spend: { ...state.spend, [actor.id]: next } });
     return { ok: true, economy: { campaignId, tokenId: actor.id, round: state.round, spent } };
   });
@@ -92,9 +100,10 @@ export async function checkAndSpend(
 
 /**
  * The spend with one card's share given back, and nothing else: no other
- * card's spending, no movement, no once-per-turn mark. Pure.
+ * card's spending, no movement, no once-per-turn mark. With `granted`, the
+ * extra action the card gave (Action Surge) is taken back too. Pure.
  */
-export function withoutCardSpend(now: TurnSpend, spent: EconomySpent): TurnSpend {
+export function withoutCardSpend(now: TurnSpend, spent: EconomySpent, granted: { extraAction?: boolean } = {}): TurnSpend {
   const next: TurnSpend = { ...now, oncePerTurn: [...now.oncePerTurn] };
   if (spent.tookAction) {
     if (spent.extraAction) next.extraActions += 1;
@@ -109,6 +118,7 @@ export function withoutCardSpend(now: TurnSpend, spent: EconomySpent): TurnSpend
     next.reaction = false;
   }
   if (spent.dash) next.dashes = Math.max(0, next.dashes - 1);
+  if (granted.extraAction) next.extraActions = Math.max(0, next.extraActions - 1);
   return next;
 }
 
@@ -116,15 +126,16 @@ export function withoutCardSpend(now: TurnSpend, spent: EconomySpent): TurnSpend
  * Give back what an action spent, when the turn it was spent in is still
  * going: the same round, and the same combatant acting (or, for a reaction,
  * only the same round). Otherwise the economy is left as it is. Also used to
- * take back a spend whose action then failed to be stored.
+ * take back a spend whose action then failed to be stored. `granted` as in
+ * withoutCardSpend.
  */
-export async function giveBack(economy: EconomyUndo): Promise<void> {
+export async function giveBack(economy: EconomyUndo, granted: { extraAction?: boolean } = {}): Promise<void> {
   const { campaignId, tokenId, spent } = economy;
   const changed = await withCombatLock(campaignId, (state) => {
     const now = state.spend[tokenId];
     if (!binds(state, tokenId) || !now || state.round !== economy.round) return false;
     if (spent.as !== 'reaction' && state.currentTokenId !== tokenId) return false;
-    setState(campaignId, { ...state, spend: { ...state.spend, [tokenId]: withoutCardSpend(now, spent) } });
+    setState(campaignId, { ...state, spend: { ...state.spend, [tokenId]: withoutCardSpend(now, spent, granted) } });
     return true;
   });
   if (changed) await resendInitiative(campaignId);

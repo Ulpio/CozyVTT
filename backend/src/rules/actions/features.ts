@@ -6,13 +6,13 @@
  * it stays text on the sheet.
  *
  * Resolving a feature option (spending its use, starting a state) is not done
- * here; this only lists what an actor has.
+ * here (services/actionResolver/features.ts); this only lists what an actor has.
  */
 
 import { FeatureActionSchema, type FeatureAction } from '../../compendium/schemas';
 import { sheetAbilityModifier } from '../../utils/rules/fifthEdition';
 import type { FifthEditionCharacterData } from '../../validators/game-systems/fifthEdition.schema';
-import { characterLevel, type ActionOption, type FeatureRider, type ResolvedActionSpec } from './catalogue';
+import { characterLevel, commonBonusActions, type ActionOption, type FeatureRider, type ResolvedActionSpec } from './catalogue';
 
 /** A value by class level: the entry with the highest key at or below the level applies. */
 export type ByLevel<T> = Record<string, T>;
@@ -172,13 +172,17 @@ function riderFits(filter: FeatureAction['filter'], spec: ResolvedActionSpec, sh
   return true;
 }
 
-/** Kinds that are a button of their own; passive and none are not, and addDamage rides on weapon attacks. */
-const BUTTON_KINDS = new Set<FeatureAction['kind']>(['state', 'heal', 'extraAction', 'makeBonus', 'attacks', 'use']);
+/**
+ * Kinds that are a button of their own; passive and none are not, addDamage
+ * rides on weapon attacks, and makeBonus adds bonus-action copies of common actions.
+ */
+const BUTTON_KINDS = new Set<FeatureAction['kind']>(['state', 'heal', 'extraAction', 'attacks', 'use']);
 
 /**
  * The catalogue with the actor's features added: an option for each feature
- * that is a button of its own, and each addDamage feature as a rider on the
- * weapon attacks its filter lets through.
+ * that is a button of its own (named by its label, else by the feature), each
+ * addDamage feature as a rider on the weapon attacks its filter lets through,
+ * and the common actions makeBonus features let be taken as a bonus action.
  */
 export function withFeatures(specs: ResolvedActionSpec[], features: ActorFeature[], sheet: FifthEditionCharacterData): ResolvedActionSpec[] {
   if (features.length === 0) return specs;
@@ -203,12 +207,16 @@ export function withFeatures(specs: ResolvedActionSpec[], features: ActorFeature
   const options: ResolvedActionSpec[] = features
     .filter((f) => BUTTON_KINDS.has(f.action.kind))
     .map((f) => {
-      const option: ActionOption = { id: f.id, name: f.name, group: 'feature', resolution: 'feature', cost: f.action.cost ?? 'none' };
+      const option: ActionOption = { id: f.id, name: f.action.label ?? f.name, group: 'feature', resolution: 'feature', cost: f.action.cost ?? 'none' };
       const uses = usesOf(f.action, pools);
       if (uses) option.uses = uses;
       if (active.has(f.id)) option.active = true;
-      return { option, damage: [], source: 'feature' };
+      const spec: ResolvedActionSpec = { option, damage: [], source: 'feature', feature: f };
+      return spec;
     });
 
-  return [...withRiders, ...options];
+  const bonusKinds = [...new Set(features.flatMap((f) => (f.action.kind === 'makeBonus' ? f.action.makeBonus ?? [] : [])))];
+  const bonusCommons = bonusKinds.length > 0 ? commonBonusActions(bonusKinds) : [];
+
+  return [...withRiders, ...options, ...bonusCommons];
 }

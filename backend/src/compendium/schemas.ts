@@ -63,6 +63,8 @@ export const FeatureActionSchema = z
     key: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'a slug'),
     kind: z.enum(['addDamage', 'state', 'heal', 'extraAction', 'makeBonus', 'attacks', 'passive', 'use', 'none']),
     cost: z.enum(['action', 'bonus', 'reaction', 'none', 'attack']).optional(),
+    // The button's name when it is not the feature's (a use of a feature named for its pool).
+    label: z.string().min(1).max(60).optional(),
     // Why a feature has no button (kind none): what the table decides instead.
     reason: z.string().min(1).optional(),
     resources: z

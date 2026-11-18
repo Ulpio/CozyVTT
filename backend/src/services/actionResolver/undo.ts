@@ -3,9 +3,10 @@
  *
  * Hit points come back target by target, each only while they are still what
  * the action left (otherwise that target is left and marked, and the undo is
- * "partial"); a pending save is cancelled; the slot, the concentration and a
- * monster's spent recharge come back with the whole card, and what it spent
- * of the actor's turn while that turn is still going. A target undone on
+ * "partial"); a pending save is cancelled; the slot, the concentration, a
+ * monster's spent recharge and a class feature's uses and state come back
+ * with the whole card, and what it spent of the actor's turn (and an extra
+ * action it gave) while that turn is still going. A target undone on
  * its own is skipped by the later undo of the whole card, so nothing is
  * given back twice.
  */
@@ -26,10 +27,12 @@ import {
   withCardLocked,
   writeSheets,
   writeTokens,
+  type HeldSheet,
   type Sheet,
   type TokenEdits,
 } from './common';
 import { giveBack } from './economy';
+import { changeUses, setActiveState, setCondition } from './features';
 
 type UndoOutcome = { ok: true; card: ActionCard; partial: boolean } | { ok: false; error: string };
 
@@ -59,6 +62,8 @@ export async function undoAction(campaignId: string, requester: Viewer, messageI
       ...entries.map((h) => h.characterId),
       undo.slot?.characterId,
       undo.concentration?.characterId,
+      ...(undo.uses ?? []).map((u) => u.characterId),
+      undo.state?.characterId,
     ].filter((id): id is string => !!id);
     const held = await holdSheets(tx, characterIds);
     const edits = await mapTokensTx(tx, undo.mapId);
@@ -85,6 +90,7 @@ export async function undoAction(campaignId: string, requester: Viewer, messageI
       }
     }
     restoreRecharge(card, edits);
+    restoreFeature(card, held, edits);
 
     await writeTokens(tx, undo.mapId, edits);
     const written = await writeSheets(tx, held);
@@ -104,9 +110,25 @@ export async function undoAction(campaignId: string, requester: Viewer, messageI
 
   if (!outcome.ok) return outcome;
   // The turn's spend comes back only while that turn is still going.
-  if (outcome.card.undo.economy) await giveBack(outcome.card.undo.economy);
+  if (outcome.card.undo.economy) await giveBack(outcome.card.undo.economy, { extraAction: outcome.card.undo.extraAction === true });
   await announce(campaignId, requester, outcome.after);
   return { ok: true, card: outcome.card, partial: outcome.partial };
+}
+
+/**
+ * Gives a class feature's spent uses back to its pools, and puts a state it
+ * started (or ended) back as it was, with the condition on its token.
+ */
+function restoreFeature(card: ActionCard, held: Map<string, HeldSheet>, edits: TokenEdits): void {
+  for (const use of card.undo.uses ?? []) {
+    const sheet = held.get(use.characterId);
+    if (sheet) changeUses(sheet, use.key, -use.amount);
+  }
+  const state = card.undo.state;
+  if (!state) return;
+  const sheet = held.get(state.characterId);
+  if (sheet) setActiveState(sheet, state.featureId, !state.started);
+  if (state.mapId === card.undo.mapId) setCondition(edits, state.tokenId, state.stateName, !state.started);
 }
 
 /**

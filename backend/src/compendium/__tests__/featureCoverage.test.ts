@@ -152,9 +152,16 @@ const pool = (a: FeatureAction, key: string) => a.resources?.find((r) => r.key =
     expect(crit.passive?.critMin).toBe(19);
   });
 
-  it('reads Ki, Flurry of Blows and Martial Arts', () => {
+  it('reads Ki, its three bonus-action uses and Martial Arts', () => {
+    const ki = action('monge', 'ki');
+    expect(ki.kind).toBe('none');
+    expect(ki.reason).toBeTruthy();
+    expect(pool(ki, 'ki')).toEqual({ key: 'ki', max: 'classLevel', recovers: 'short' });
+    for (const key of ['patient-defense', 'step-of-the-wind']) {
+      const use = action('monge', key);
+      expect([key, use.kind, use.cost, use.spends]).toEqual([key, 'use', 'bonus', { key: 'ki' }]);
+    }
     const flurry = action('monge', 'flurry-of-blows');
-    expect(pool(flurry, 'ki')).toEqual({ key: 'ki', max: 'classLevel', recovers: 'short' });
     expect(flurry.kind).toBe('attacks');
     expect(flurry.cost).toBe('bonus');
     expect(flurry.attacks?.count).toBe(2);

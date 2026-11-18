@@ -15,7 +15,7 @@ import {
   type CompendiumWeapon,
   type ResolvedActionSpec,
 } from '../../rules/actions/catalogue';
-import { actorFeatures, classEntryFor, withFeatures, type CompendiumClass, type CompendiumSubclass } from '../../rules/actions/features';
+import { actorFeatures, classEntryFor, withFeatures, type ActorFeature, type CompendiumClass, type CompendiumSubclass } from '../../rules/actions/features';
 import type { FifthEditionCharacterData } from '../../validators/game-systems/fifthEdition.schema';
 import type { NpcStatBlockInput } from '../../validators/statBlock';
 import type { Token } from '../../websocket/shared';
@@ -80,6 +80,12 @@ async function classEntriesFor(campaignId: string, sheet: FifthEditionCharacterD
   return { classEntry, subclassEntry };
 }
 
+/** The class and subclass features a character has at its level, from the campaign's books. */
+export async function featuresFor(campaignId: string, sheet: FifthEditionCharacterData): Promise<ActorFeature[]> {
+  const { classEntry, subclassEntry } = await classEntriesFor(campaignId, sheet);
+  return actorFeatures(sheet, classEntry, subclassEntry);
+}
+
 /** A character's actions when `sheet` is given, else the token's stat block's, else none. */
 export async function catalogueFor(
   campaignId: string,
@@ -87,8 +93,8 @@ export async function catalogueFor(
   sheet: FifthEditionCharacterData | null,
 ): Promise<ResolvedActionSpec[]> {
   if (sheet) {
-    const [{ spells, weapons }, { classEntry, subclassEntry }] = await Promise.all([compendiumFor(campaignId, sheet), classEntriesFor(campaignId, sheet)]);
-    return withFeatures(characterActions(sheet, spells, weapons), actorFeatures(sheet, classEntry, subclassEntry), sheet);
+    const [{ spells, weapons }, features] = await Promise.all([compendiumFor(campaignId, sheet), featuresFor(campaignId, sheet)]);
+    return withFeatures(characterActions(sheet, spells, weapons), features, sheet);
   }
   if (token.statBlock && typeof token.statBlock === 'object') return npcActions(token.statBlock as unknown as NpcStatBlockInput, token.rechargeSpent ?? []);
   return [];

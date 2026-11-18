@@ -34,6 +34,9 @@ const point = (field: string) =>
 /** The most targets one action names (a breath on "each creature" is capped as many). */
 const MAX_TARGETS = 20;
 
+/** The most a pool-spending feature asks to spend at once (Lay on Hands is 5 a level: 100 at 20th). */
+const MAX_AMOUNT = 100;
+
 const mode = z.enum(['normal', 'advantage', 'disadvantage'], { error: 'mode must be normal, advantage or disadvantage' });
 
 export const ActionListSchema = z.object(
@@ -65,6 +68,13 @@ export const ActionRequestSchema = z.object(
       .optional(),
     grip: z.enum(['one', 'two'], { error: 'grip must be one or two' }).optional(),
     replaceConcentration: z.boolean({ error: 'replaceConcentration must be true or false' }).optional(),
+    // How much of a pool a feature heals from (Lay on Hands); the pool itself is read from the sheet.
+    amount: z
+      .number({ error: `amount must be a whole number from 1 to ${MAX_AMOUNT}` })
+      .int({ error: `amount must be a whole number from 1 to ${MAX_AMOUNT}` })
+      .min(1, { error: `amount must be a whole number from 1 to ${MAX_AMOUNT}` })
+      .max(MAX_AMOUNT, { error: `amount must be a whole number from 1 to ${MAX_AMOUNT}` })
+      .optional(),
   },
   { error: 'Action request required' },
 );

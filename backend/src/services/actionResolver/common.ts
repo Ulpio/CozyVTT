@@ -41,6 +41,8 @@ export const ALREADY_ROLLED = 'Already rolled';
 export const RECHARGE_SPENT = 'This action is spent until it recharges';
 export const NOT_SPENT = 'This action is not spent';
 export const NOT_FOUND = 'Action not found';
+/** A class feature's pool has too little left for what it spends. */
+export const NO_USES = 'Sem usos restantes.';
 
 export const defaultRng: Rng = (sides) => Math.floor(Math.random() * sides) + 1;
 

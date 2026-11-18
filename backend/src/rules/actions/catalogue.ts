@@ -8,6 +8,7 @@ import { parseMonsterAction, parseMonsterSaveAction, type Ability, type SaveEffe
 import { metresToFeet, parseRangeText } from './rangeText';
 import { cantripTier } from '../../services/actionResolver/dice';
 import type { ActionCost } from '../../utils/turnEconomy';
+import type { ActorFeature } from './features';
 
 /** The abilities as a pt-BR sheet shortens them, for the GM's line under a save button (its damage types are pt-BR too). */
 const ABILITY_SHORT: Record<Ability, string> = { str: 'For', dex: 'Des', con: 'Con', int: 'Int', wis: 'Sab', cha: 'Car' };
@@ -85,6 +86,8 @@ export interface ResolvedActionSpec {
   source: 'spell' | 'monster' | 'weapon' | 'feature';
   /** Weapon attacks: the weapon has finesse, so it may use STR or DEX. */
   finesse?: true;
+  /** Class feature options: the feature the button resolves. */
+  feature?: ActorFeature;
 }
 
 /** The parts of a compendium spell entry the catalogue reads. */
@@ -197,6 +200,22 @@ const COMMON: { id: string; name: string }[] = [
 /** The actions anyone can take, posted as a card. */
 function commonActions(): ResolvedActionSpec[] {
   return COMMON.map(({ id, name }) => ({ option: { id, name, group: 'common', resolution: 'post', cost: 'action' }, damage: [], source: 'weapon' }));
+}
+
+/** The common actions a feature lets be taken as a bonus action. */
+export type BonusCommon = 'dash' | 'disengage' | 'hide';
+
+/**
+ * Common actions taken as a bonus action (Cunning Action): `common:<x>:bonus`,
+ * posted like the common action they copy, in the order of the common list.
+ */
+export function commonBonusActions(kinds: BonusCommon[]): ResolvedActionSpec[] {
+  const wanted = new Set(kinds.map((k) => `common:${k}`));
+  return COMMON.filter(({ id }) => wanted.has(id)).map(({ id, name }) => ({
+    option: { id: `${id}:bonus`, name: `${name} (bônus)`, group: 'common', resolution: 'post', cost: 'bonus' },
+    damage: [],
+    source: 'weapon',
+  }));
 }
 
 const key = (ref: { bookId: string; slug: string }) => `${ref.bookId}/${ref.slug}`;

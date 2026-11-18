@@ -44,6 +44,7 @@ import {
 import { bestEffort, campaignSockets, getSocketInstance, stillInCampaign } from '../utils';
 import { stateRequestAllowed, withinCeiling } from '../shared';
 import { sheetAsRead } from '../../legacy/sheetConversion';
+import { endAllStates } from '../../services/actionResolver/features';
 
 /** The parts of a turn the GM can give back with combat.restore. */
 const RESTORABLE = ['action', 'bonus', 'reaction', 'movement', 'attack'] as const;
@@ -736,6 +737,8 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
 
       clearCombatState(socket.campaignId);
       await broadcastInitiativeState(socket.campaignId);
+      // Every state a feature started (Rage) ends with the fight; the fight is over whatever happens here.
+      await bestEffort('initiative.end: ending running states', () => endAllStates(socket.campaignId!, socket.userId ?? ''));
       logger.info('initiative.end', { campaignId: socket.campaignId });
     } catch (error) {
       logger.error('initiative.end failed', { err: error });

@@ -23,8 +23,9 @@
  * saves.ts (saving throws, rays, several targets, areas and pending saves),
  * undo.ts (the GM's undo, of a whole card or one target), recharge.ts (a
  * monster's recharge), areaTargets.ts (who an area catches), economy.ts (what
- * a combatant may still spend this turn), common.ts (what they share),
- * dice.ts and catalogueFor.ts.
+ * a combatant may still spend this turn), features.ts (class feature
+ * buttons: Rage, Second Wind, Flurry of Blows and the rest), common.ts (what
+ * they share), dice.ts and catalogueFor.ts.
  */
 
 import { prisma } from '../config/database';
@@ -71,6 +72,7 @@ import {
   type Sheet,
 } from './actionResolver/common';
 import { isTargetedAction, resolveTargetedAction } from './actionResolver/saves';
+import { resolveFeature } from './actionResolver/features';
 import { attacksPerActionFor, checkAndSpend, combatFor, giveBack, type CombatTurn, type EconomyUndo } from './actionResolver/economy';
 
 export {
@@ -109,6 +111,8 @@ export interface ActionRequest {
   slotLevel?: number;
   grip?: 'one' | 'two';
   replaceConcentration?: boolean;
+  /** A feature that heals from a pool (Lay on Hands): how much of it to spend, 1 to what is left. */
+  amount?: number;
 }
 
 export type ResolveOutcome =
@@ -163,8 +167,9 @@ export async function resolveAction(
   const spec = actor.spec.find((s) => s.option.id === req.actionId);
   if (!spec) return refuse(CANNOT_RESOLVE);
   const { option } = spec;
-  // Feature options are listed, not yet resolved.
-  if (option.resolution === 'feature') return refuse(CANNOT_RESOLVE);
+  if (option.resolution === 'feature') return spec.feature ? resolveFeature(campaignId, requester, req, actor, spec.feature, rng) : refuse(CANNOT_RESOLVE);
+  // Only a feature that heals from a pool takes an amount.
+  if (req.amount !== undefined) return refuse(CANNOT_RESOLVE);
   // An area is aimed, never given targets; anything else is never aimed.
   const isArea = option.targeting?.kind === 'area';
   if (isArea ? req.targetTokenIds !== undefined || req.targetTokenId !== undefined : req.area !== undefined) return refuse(INVALID_TARGET);
