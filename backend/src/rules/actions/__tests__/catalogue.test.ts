@@ -242,6 +242,20 @@ describe('npcActions', () => {
     expect(npcActions({ reactions: [{ name: 'Aparar', description: 'Texto.' }] } as any)[0].option.id).toBe('npc:reactions:0');
   });
 
+  it('marks a Multiattack action as the one that starts the Attack action, and nothing else', () => {
+    const out = npcActions({
+      actions: [
+        { name: 'Ataques Múltiplos', description: 'Faz dois ataques.' },
+        { name: 'Multiataque', description: 'Faz três ataques.' },
+        { name: 'Multiattack', description: 'Two attacks.' },
+        { name: 'Rugido', description: 'Texto.' },
+      ],
+      bonusActions: [{ name: 'Multiataque rápido', description: 'Texto.' }],
+    } as any);
+    expect(out.map((o) => o.option.startsAttackAction)).toEqual([true, true, true, undefined, undefined]);
+    expect(out[0].option).toMatchObject({ resolution: 'post', cost: 'action' });
+  });
+
   it('posts the text of an attack whose damage cannot be read (a net, say)', () => {
     const description = 'Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 1,5 m, um alvo. Acerto: 5 (muito) de dano cortante.';
     const out = npcActions({ actions: [{ name: 'X', description }] } as any);

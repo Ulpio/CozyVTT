@@ -83,7 +83,7 @@ export async function checkAndSpend(
     const check = canSpend(before, option.cost, { yourTurn, meleeWeapon: option.meleeWeapon === true, oncePerTurnKey: opts.oncePerTurnKey });
     if (!check.ok) return { ok: false, error: REFUSAL_MESSAGES[check.refusal] };
     if (opts.requiresAttackAction && !before.attackActionTaken) return { ok: false, error: NEEDS_ATTACK_ACTION };
-    const next = applySpend(before, check.as, opts);
+    const next = applySpend(before, check.as, { ...opts, startsAttackAction: option.startsAttackAction === true });
     const spent: EconomySpent = { as: check.as };
     // The action is taken by an `action`, or by the attack that starts the Attack action.
     const takesAction = check.as === 'action' || (check.as === 'attack' && !(before.attackActionTaken && before.attacksLeft > 0));
@@ -112,8 +112,9 @@ export interface TurnAt {
 /**
  * Marks once-a-turn features (Sneak Attack) as used by the actor, or with
  * `on: false` takes the marks back (the action that used them failed to be
- * stored). Only while the turn `at` is still going: a turn that has passed
- * since cleared every mark, and one made now would wrongly hold in the next.
+ * stored, or the GM undid it). Only while the turn `at` is still going: a
+ * turn that has passed since cleared every mark, and one made now would
+ * wrongly hold in the next.
  * Run it under the same map lock as the checkAndSpend that gave `at`, so no
  * other action of the actor's can pass the check in between.
  */

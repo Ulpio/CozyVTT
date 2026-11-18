@@ -94,10 +94,14 @@ function takeAction(spend: TurnSpend): Pick<TurnSpend, 'action' | 'extraActions'
   return { action: true, extraActions: Math.max(0, spend.extraActions - 1) };
 }
 
+/**
+ * `startsAttackAction`: an `action` that is the Attack action itself (a
+ * monster's Multiattack), so the attacks it leads to pass as part of it.
+ */
 export function applySpend(
   spend: TurnSpend,
   as: ActionCost,
-  ctx: { attacksPerAction: number; oncePerTurnKey?: string },
+  ctx: { attacksPerAction: number; oncePerTurnKey?: string; startsAttackAction?: boolean },
 ): TurnSpend {
   const next: TurnSpend = { ...spend, oncePerTurn: [...spend.oncePerTurn] };
   if (ctx.oncePerTurnKey && !next.oncePerTurn.includes(ctx.oncePerTurnKey)) {
@@ -106,7 +110,12 @@ export function applySpend(
   switch (as) {
     case 'action':
       Object.assign(next, takeAction(spend));
-      next.attacksLeft = 0;
+      if (ctx.startsAttackAction) {
+        next.attacksLeft = Math.max(0, ctx.attacksPerAction - 1);
+        next.attackActionTaken = true;
+      } else {
+        next.attacksLeft = 0;
+      }
       break;
     case 'attack':
       if (spend.attackActionTaken && spend.attacksLeft > 0) {

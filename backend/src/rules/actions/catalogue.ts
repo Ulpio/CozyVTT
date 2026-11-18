@@ -50,6 +50,8 @@ export interface ActionOption {
   combatUnavailable?: true;
   /** A melee weapon attack: it can be an opportunity attack off turn. */
   meleeWeapon?: true;
+  /** A monster's Multiattack: it takes the Attack action, so its attacks that follow pass as part of it. */
+  startsAttackAction?: true;
   /** Class features: the uses left in the pool the feature spends. */
   uses?: { left: number; max: number };
   /** Class feature that heals an amount the player chooses (Lay on Hands): the bar asks for it. */
@@ -399,6 +401,9 @@ export function characterActions(
 
 const NPC_LISTS = ['actions', 'bonusActions', 'reactions'] as const;
 
+/** A stat block action named as the monster's Multiattack. */
+const MULTIATTACK = /multiata|ataques\s+m[uú]ltiplos|multiattack/i;
+
 /**
  * What an NPC's stat block says it can do: its actions, bonus actions and
  * reactions. `rechargeSpent` lists the option ids whose recharge is spent on
@@ -408,7 +413,9 @@ const NPC_LISTS = ['actions', 'bonusActions', 'reactions'] as const;
 export function npcActions(statBlock: NpcStatBlockInput, rechargeSpent: readonly string[] = []): ResolvedActionSpec[] {
   const out: ResolvedActionSpec[] = [];
   const post = (id: string, name: string, description: string | undefined, cost: ActionCost): void => {
-    out.push({ option: { id, name, group: 'npc', resolution: 'post', cost }, damage: [], description, source: 'monster' });
+    const option: ActionOption = { id, name, group: 'npc', resolution: 'post', cost };
+    if (cost === 'action' && MULTIATTACK.test(name)) option.startsAttackAction = true;
+    out.push({ option, damage: [], description, source: 'monster' });
   };
   for (const list of NPC_LISTS) {
     const listCost: ActionCost = list === 'actions' ? 'action' : list === 'bonusActions' ? 'bonus' : 'reaction';

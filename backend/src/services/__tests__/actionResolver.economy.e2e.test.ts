@@ -51,6 +51,7 @@ const goblinStatBlock = {
   actions: [
     { name: 'Cimitarra', description: 'Ataque Corpo-a-Corpo com Arma: +4 para atingir, alcance 1,5 m, um alvo. Acerto: 5 (1d6 + 2) de dano cortante.' },
     { name: 'Arco Curto', description: 'Ataque à Distância com Arma: +4 para atingir, distância 24/96 m, um alvo. Acerto: 5 (1d6 + 2) de dano perfurante.' },
+    { name: 'Ataques Múltiplos', description: 'O goblin faz dois ataques com a cimitarra.' },
   ],
 };
 
@@ -196,6 +197,20 @@ describe('on the fighter\'s turn', () => {
     expect(spent('goblin')).toMatchObject({ action: true, attacksLeft: 99 });
     ok(await resolveAction(campaignId, gm, { mapId, actorTokenId: 'goblin', actionId: 'npc:actions:1', targetTokenId: 'fighter', mode: 'normal' }, seq(1)));
     expect(spent('goblin').attacksLeft).toBe(98);
+  });
+
+  it('lets a monster attack after posting its Multiattack, and refuses a second Multiattack', async () => {
+    startFight('goblin');
+    const goblin = (actionId: string, rng: Rng) => resolveAction(campaignId, gm, { mapId, actorTokenId: 'goblin', actionId, targetTokenId: 'fighter', mode: 'normal' }, rng);
+    const multi = ok(await goblin('npc:actions:2', seq()));
+    expect(multi.card.actionName).toBe('Ataques Múltiplos');
+    expect(spent('goblin')).toMatchObject({ action: true, attackActionTaken: true, attacksLeft: 99 });
+    const listed: any = await listActions(campaignId, gm, mapId, 'goblin');
+    expect(listed.combat.spend).toMatchObject({ action: true, attackActionTaken: true, attacksLeft: 99 });
+    ok(await goblin('npc:actions:0', seq(1)));
+    ok(await goblin('npc:actions:0', seq(1)));
+    expect(spent('goblin').attacksLeft).toBe(97);
+    expect(await goblin('npc:actions:2', seq())).toEqual({ ok: false, error: 'Você já usou a ação neste turno.' });
   });
 
   it('refuses a spell that takes minutes to cast, and spends no slot', async () => {

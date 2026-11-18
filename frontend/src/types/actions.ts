@@ -46,6 +46,8 @@ export interface ActionOption {
   combatUnavailable?: true;
   /** A melee weapon attack: it can be an opportunity attack off turn. */
   meleeWeapon?: true;
+  /** A monster's Multiattack: it takes the Attack action, so its attacks that follow pass as part of it. */
+  startsAttackAction?: true;
   /** Class features: the uses left in the pool the feature spends. */
   uses?: { left: number; max: number };
   /** Class feature that heals an amount the player chooses (Lay on Hands): the bar asks for it. */

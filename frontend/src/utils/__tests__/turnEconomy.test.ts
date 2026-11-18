@@ -37,6 +37,15 @@ describe('turn economy', () => {
     expect(s.attacksLeft).toBe(0);
   });
 
+  it('starts the Attack action with an action that leads to attacks (Multiattack), once a turn', () => {
+    let s = applySpend(freshSpend(), 'action', { attacksPerAction: 100, startsAttackAction: true });
+    expect(s).toMatchObject({ action: true, attackActionTaken: true, attacksLeft: 99 });
+    expect(canSpend(s, 'attack', turn)).toEqual({ ok: true, as: 'attack' });
+    s = applySpend(s, 'attack', { attacksPerAction: 100 });
+    expect(s).toMatchObject({ action: true, attacksLeft: 98 });
+    expect(canSpend(s, 'action', turn)).toEqual({ ok: false, refusal: 'action-spent' });
+  });
+
   it('refuses a spent action, bonus and reaction on turn', () => {
     const s = { ...freshSpend(), action: true, bonus: true, reaction: true, attacksLeft: 0 };
     expect(canSpend(s, 'action', turn)).toEqual({ ok: false, refusal: 'action-spent' });
