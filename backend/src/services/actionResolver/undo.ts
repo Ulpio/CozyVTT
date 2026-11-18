@@ -6,9 +6,9 @@
  * "partial"); a pending save is cancelled; the slot, the concentration, a
  * monster's spent recharge and a class feature's uses and state come back
  * with the whole card, and what it spent of the actor's turn (and an extra
- * action it gave) while that turn is still going. A target undone on
- * its own is skipped by the later undo of the whole card, so nothing is
- * given back twice.
+ * action it gave, and a once-a-turn mark its hit made) while that turn is
+ * still going. A target undone on its own is skipped by the later undo of
+ * the whole card, so nothing is given back twice.
  */
 
 import type { ActionCard, Viewer } from '../../rules/actions/actionCard';
@@ -31,7 +31,7 @@ import {
   type Sheet,
   type TokenEdits,
 } from './common';
-import { giveBack } from './economy';
+import { giveBack, markOncePerTurn } from './economy';
 import { changeUses, setActiveState, setCondition } from './features';
 
 type UndoOutcome = { ok: true; card: ActionCard; partial: boolean } | { ok: false; error: string };
@@ -112,7 +112,13 @@ export async function undoAction(campaignId: string, requester: Viewer, messageI
 
   if (!outcome.ok) return outcome;
   // The turn's spend comes back only while that turn is still going.
-  if (outcome.card.undo.economy) await giveBack(outcome.card.undo.economy, { extraAction: outcome.card.undo.extraAction === true });
+  const { economy } = outcome.card.undo;
+  if (economy) {
+    await giveBack(economy, { extraAction: outcome.card.undo.extraAction === true });
+    // A once-a-turn mark its hit made is taken back too, only in that same turn.
+    const once = economy.oncePerTurn;
+    if (once) await markOncePerTurn(economy.campaignId, economy.tokenId, once.keys, { round: economy.round, currentTokenId: once.currentTokenId }, false);
+  }
   await announce(campaignId, requester, outcome.after);
   return { ok: true, card: outcome.card, partial: outcome.partial };
 }

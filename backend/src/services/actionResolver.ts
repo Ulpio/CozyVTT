@@ -300,6 +300,7 @@ export async function resolveAction(
             if (onceKeys.length > 0 && turn.at) {
               await markOncePerTurn(campaignId, actorToken.id, onceKeys, turn.at);
               marked = { keys: onceKeys, at: turn.at };
+              if (undo.economy) undo.economy.oncePerTurn = { keys: onceKeys, currentTokenId: turn.at.currentTokenId };
             }
           }
           entry.damage = damage;

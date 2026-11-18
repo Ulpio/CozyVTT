@@ -489,6 +489,30 @@ describe('Sneak Attack, a once-a-turn rider', () => {
     ok(await resolveAction(campaignId, p1, sneak(), seq(15, 4, 3, 2)));
   });
 
+  it('can be used again after the GM undoes its hit in the same turn', async () => {
+    startFight('rogue');
+    const first = ok(await resolveAction(campaignId, p1, sneak(), seq(15, 4, 3, 2)));
+    expect(spent('rogue').oncePerTurn).toEqual([SNEAK]);
+    expect((await undoAction(campaignId, gm, first.messageId)).ok).toBe(true);
+    expect(spent('rogue')).toMatchObject({ action: false, oncePerTurn: [] });
+    const again = ok(await resolveAction(campaignId, p1, sneak(), seq(15, 4, 3, 2)));
+    expect(again.card.targets[0].damage).toHaveLength(2);
+    expect(again.card.targets[0].damage?.[1]).toMatchObject({ total: 5, label: 'Furtivo Inventado' });
+    expect(spent('rogue').oncePerTurn).toEqual([SNEAK]);
+  });
+
+  it('leaves the marks alone when its hit is undone after the turn moved on', async () => {
+    startFight('rogue');
+    const first = ok(await resolveAction(campaignId, p1, sneak(), seq(15, 4, 3, 2)));
+    // Next turn: the rogue's reaction attack uses it again on the goblin's turn.
+    setState(campaignId, beginTurn(getState(campaignId), 'goblin'));
+    ok(await resolveAction(campaignId, p1, sneak(), seq(15, 4, 3, 2)));
+    expect(spent('rogue').oncePerTurn).toEqual([SNEAK]);
+    expect((await undoAction(campaignId, gm, first.messageId)).ok).toBe(true);
+    expect(spent('rogue')).toMatchObject({ reaction: true, oncePerTurn: [SNEAK] });
+    expect(await resolveAction(campaignId, p1, sneak({ actionId: 'attack:1' }), seq())).toEqual({ ok: false, error: ONCE_PER_TURN });
+  });
+
   it('spends nothing on a miss, and the card says it was not used', async () => {
     startFight('rogue');
     const out = ok(await resolveAction(campaignId, p1, sneak(), seq(2)));

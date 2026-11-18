@@ -91,7 +91,18 @@ export interface UndoRecord {
    * What the action itself spent of its actor's turn in a fight. Given back
    * only while that turn is still going (a reaction: that round).
    */
-  economy?: { campaignId: string; tokenId: string; round: number; spent: EconomySpent };
+  economy?: {
+    campaignId: string;
+    tokenId: string;
+    round: number;
+    spent: EconomySpent;
+    /**
+     * The once-a-turn features (Sneak Attack) the action's hit marked, and
+     * whose turn it was then: the undo takes the marks back while that same
+     * turn is still going.
+     */
+    oncePerTurn?: { keys: string[]; currentTokenId: string | null };
+  };
   /** What a class feature spent of its character's pools (`featureUses`), by resource key. */
   uses?: { characterId: string; key: string; amount: number }[];
   /** A state feature (Rage) this card started, or ended (`started: false`), and the condition it put on or took off the token. */
