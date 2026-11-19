@@ -64,15 +64,17 @@ export function spendAmmunition(
 }
 
 /** Puts `amount` of a kind back on its stack, creating the stack when it is gone. */
-export function addToStack(sheet: Sheet, slug: string, label: string, compendiumRef: { bookId: string; slug: string }, amount: number, itemId?: string): void {
+export function addToStack(sheet: Sheet, slug: string, label: string, compendiumRef: { bookId: string; slug: string }, amount: number, itemId?: string): string {
   const items = stacksOf(sheet);
   const stack = (itemId ? items.find((i) => i.id === itemId) : undefined) ?? items.find((i) => i.compendiumRef?.slug === slug);
   if (stack) {
     stack.quantity = (stack.quantity ?? 0) + amount;
-    return;
+    if (!stack.id) stack.id = freshId(items);
+    return stack.id;
   }
   const created: Stack = { id: itemId ?? freshId(items), name: capitalised(label), quantity: amount, compendiumRef };
   sheet.inventory = [...items, created] as unknown as Sheet['inventory'];
+  return created.id as string;
 }
 
 /** The GM's undo of a shot: the arrow goes back, and is no longer waiting to be picked up. */
@@ -88,6 +90,28 @@ export function restoreAmmunition(undo: UndoRecord, held: Map<string, { data: Sh
   addToStack(sheet.data, spent.slug, spent.label ?? spent.slug.replace(/-\d+$/, '').replace(/-/g, ' '), ref, spent.amount, spent.itemId);
   const counts = pending(sheet.data);
   counts[spent.slug] = Math.max(0, (counts[spent.slug] ?? 0) - spent.amount);
+  setPending(sheet.data, counts);
+  sheet.changed = true;
+}
+
+/**
+ * The GM's undo of a pick-up: what went back on each stack is taken off again
+ * (never below 0; found by item id, then by kind), and what had been counted
+ * is counted again, on top of whatever was shot since. Later changes to the
+ * inventory stay.
+ */
+export function restoreRecovery(undo: UndoRecord, held: Map<string, { data: Sheet; changed: boolean }>): void {
+  const picked = undo.ammoRecovered;
+  if (!picked) return;
+  const sheet = held.get(picked.characterId);
+  if (!sheet) return;
+  const items = stacksOf(sheet.data);
+  const counts = pending(sheet.data);
+  for (const { slug, itemId, amount, shot } of picked.back) {
+    const stack = items.find((i) => i.id === itemId) ?? items.find((i) => i.compendiumRef?.slug === slug);
+    if (stack && amount > 0) stack.quantity = Math.max(0, (stack.quantity ?? 0) - amount);
+    counts[slug] = (counts[slug] ?? 0) + shot;
+  }
   setPending(sheet.data, counts);
   sheet.changed = true;
 }

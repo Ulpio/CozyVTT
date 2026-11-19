@@ -12,7 +12,7 @@ import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampaigns } from '../../__tests__/helpers/db';
 import { resolveAction, undoAction, type ActionRequest } from '../actionResolver';
-import { recoverAmmo } from '../inventory';
+import { equipItem, recoverAmmo } from '../inventory';
 import { beginTurn, clearState, flushCombatWrites, setState, type CombatantEntry } from '../../websocket/initiativeState';
 import type { Viewer } from '../../rules/actions/actionCard';
 import type { Rng } from '../../rules/actions/types';
@@ -258,5 +258,61 @@ describe('picking the arrows up', () => {
     expect(await recoverAmmo(campaignId, other, rangerId)).toEqual({ ok: false, error: 'Not your token' });
     ok(await recoverAmmo(campaignId, gm, rangerId));
     await cleanupUsers([other.userId]);
+  });
+});
+
+describe('undoing a pick-up', () => {
+  it('takes back only what it gave: later shots and inventory changes stay, the count adds up', async () => {
+    for (let i = 0; i < 4; i++) ok(await shoot());
+    const pick = ok(await recoverAmmo(campaignId, p1, rangerId));
+    expect(await count('arrows')).toBe(18);
+    for (let i = 0; i < 3; i++) ok(await shoot());
+    expect(await count('arrows')).toBe(15);
+    expect(ok(await equipItem(campaignId, p1, rangerId, 'dagger', 'main')).ok).toBe(true);
+
+    ok(await undoAction(campaignId, gm, pick.messageId));
+    const s = await data();
+    expect(await count('arrows')).toBe(13);
+    expect(s.ammoToRecover).toEqual({ 'flechas-20': 7 });
+    expect(s.inventory.find((i: any) => i.id === 'dagger').slot).toBe('main');
+  });
+
+  it('works in the reverse order too: an earlier shot undone, then the pick-up', async () => {
+    const first = ok(await shoot());
+    for (let i = 0; i < 3; i++) ok(await shoot());
+    const pick = ok(await recoverAmmo(campaignId, p1, rangerId));
+    expect(await count('arrows')).toBe(18);
+    ok(await undoAction(campaignId, gm, first.messageId));
+    expect(await count('arrows')).toBe(19);
+    ok(await undoAction(campaignId, gm, pick.messageId));
+    expect(await count('arrows')).toBe(17);
+    // The count is what had been counted at the pick-up (4); the undone shot cannot be told apart from it.
+    expect((await data()).ammoToRecover).toEqual({ 'flechas-20': 4 });
+  });
+
+  it('treats a count of one as nothing to recover: no card, no change to the stack', async () => {
+    ok(await shoot());
+    const out = ok(await recoverAmmo(campaignId, p1, rangerId));
+    expect(out.recovered).toEqual({});
+    expect(out.messageId).toBeUndefined();
+    expect(await count('arrows')).toBe(19);
+    expect((await data()).ammoToRecover).toEqual({ 'flechas-20': 1 });
+  });
+
+  it('drops zero keys when it writes the count', async () => {
+    await patch((s) => { s.ammoToRecover = { 'flechas-20': 0, 'virotes-20': 5 }; });
+    const out = ok(await recoverAmmo(campaignId, p1, rangerId));
+    expect(out.recovered).toEqual({ 'virotes-20': 2 });
+    expect((await data()).ammoToRecover).toBeUndefined();
+    await patch((s) => { s.ammoToRecover = { 'flechas-20': 0 }; });
+    ok(await recoverAmmo(campaignId, p1, rangerId));
+    expect((await data()).ammoToRecover).toBeUndefined();
+  });
+
+  it('keeps a kind it found nowhere to put in the count', async () => {
+    await patch((s) => { s.inventory = [{ id: 'x', name: 'Tralha', quantity: 1 }]; s.attacks = []; s.ammoToRecover = { 'flechas-20': 6 }; });
+    const out = ok(await recoverAmmo(campaignId, p1, rangerId));
+    expect(out.recovered).toEqual({});
+    expect((await data()).ammoToRecover).toEqual({ 'flechas-20': 6 });
   });
 });

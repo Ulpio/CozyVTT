@@ -397,36 +397,53 @@ export async function recoverAmmo(
     const h = held.get(characterId);
     if (!h) return refuse(NOT_FOUND_CHARACTER);
     const counts = (h.data as { ammoToRecover?: Record<string, number> }).ammoToRecover ?? {};
-    if (Object.keys(counts).length === 0) return { ok: true as const, recovered: {} as Record<string, number> };
+    const live = Object.fromEntries(Object.entries(counts).filter(([, n]) => n > 0));
+    const dropZeros = () => {
+      if (Object.keys(live).length === Object.keys(counts).length) return false;
+      if (Object.keys(live).length > 0) (h.data as { ammoToRecover?: Record<string, number> }).ammoToRecover = live;
+      else delete (h.data as { ammoToRecover?: unknown }).ammoToRecover;
+      h.changed = true;
+      return true;
+    };
+    const nothing = async () => {
+      if (dropZeros()) await writeSheets(tx, held);
+      return { ok: true as const, recovered: {} as Record<string, number> };
+    };
+    if (!Object.values(live).some((n) => Math.floor(n / 2) > 0)) return nothing();
 
     const items = (Array.isArray(h.data.inventory) ? h.data.inventory : []) as Item[];
     const attacks = (Array.isArray(h.data.attacks) ? h.data.attacks : []) as { compendiumRef?: { bookId: string } }[];
     const books = [...new Set([...items, ...attacks].map((i) => i?.compendiumRef?.bookId).filter((b): b is string => typeof b === 'string'))];
     const gear = books.length > 0
-      ? await tx.compendiumEntry.findMany({ where: { type: 'gear', slug: { in: Object.keys(counts) }, bookId: { in: books } }, select: { bookId: true, slug: true, name: true } })
+      ? await tx.compendiumEntry.findMany({ where: { type: 'gear', slug: { in: Object.keys(live) }, bookId: { in: books } }, select: { bookId: true, slug: true, name: true } })
       : [];
 
-    const before = { inventory: structuredClone(h.data.inventory ?? []), ammoToRecover: structuredClone(counts) };
     const recovered: Record<string, number> = {};
+    const back: NonNullable<ActionCard['undo']['ammoRecovered']>['back'] = [];
     const parts: string[] = [];
-    for (const [slug, shot] of Object.entries(counts)) {
+    const kept: Record<string, number> = {};
+    for (const [slug, shot] of Object.entries(live)) {
       const amount = Math.floor(shot / 2);
-      if (amount <= 0) continue;
       const stack = items.find((i) => i.compendiumRef?.slug === slug);
       const entry = gear.find((g) => g.slug === slug);
       const ref = stack?.compendiumRef ?? (entry ? { bookId: entry.bookId, slug } : books[0] ? { bookId: books[0], slug } : undefined);
-      if (!ref) continue;
+      // Nothing to put it on: it stays counted, to be picked up once there is.
+      if (!ref) { kept[slug] = shot; continue; }
+      if (amount <= 0) { back.push({ slug, itemId: stack?.id ?? '', amount: 0, shot }); continue; }
       const label = (stack?.name ?? entry?.name ?? slug.replace(/-\d+$/, '').replace(/-/g, ' ')).replace(/\s*\(\d+\)\s*$/, '').toLowerCase();
-      addToStack(h.data, slug, label, ref, amount, stack?.id);
+      const itemId = addToStack(h.data, slug, label, ref, amount, stack?.id);
+      back.push({ slug, itemId, amount, shot });
       recovered[slug] = amount;
       parts.push(`${amount} ${label}`);
     }
-    delete (h.data as { ammoToRecover?: unknown }).ammoToRecover;
+    if (parts.length === 0) return nothing();
+    if (Object.keys(kept).length > 0) (h.data as { ammoToRecover?: Record<string, number> }).ammoToRecover = kept;
+    else delete (h.data as { ammoToRecover?: unknown }).ammoToRecover;
     h.changed = true;
     await writeSheets(tx, held);
 
     const name = h.character.name;
-    const sentence = parts.length > 0 ? `${name} recolhe ${listed(parts)}.` : `${name} não encontra munição para recolher.`;
+    const sentence = `${name} recolhe ${listed(parts)}.`;
     const card: ActionCard = {
       kind: 'action',
       actor: { tokenId: '', name, userId: requester.userId },
@@ -434,7 +451,7 @@ export async function recoverAmmo(
       mode: 'normal',
       targets: [],
       extraText: sentence,
-      undo: { hp: [], sheets: [{ characterId, before }] },
+      undo: { hp: [], ammoRecovered: { characterId, back } },
     };
     const message = await tx.message.create({
       data: { campaignId, userId: requester.userId, type: 'CHARACTER_ACTION', content: sentence, metadata: toJson(card) },
