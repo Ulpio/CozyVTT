@@ -144,3 +144,33 @@ describe('ammoBundleSize', () => {
     expect(ammoBundleSize('Agulhas (50) ')).toBe(50);
   });
 });
+
+describe('normalizeInventory: a sheet that never flagged a weapon', () => {
+  const unflagged = () => ({
+    attacks: [{ name: 'Espada longa', attackBonus: 5 }],
+    inventory: [
+      { name: 'Adaga', quantity: 1, compendiumRef: ref('adaga') },
+      { name: 'Espada longa', quantity: 1, compendiumRef: ref('espada-longa') },
+    ],
+  });
+
+  it('holds the first weapon an attack row names', () => {
+    const out = normalizeInventory(unflagged(), hints);
+    expect(out.inventory.map((i) => i.slot)).toEqual([undefined, 'main']);
+  });
+
+  it('holds a two-handed one in both hands, and is the same on a second run', () => {
+    const sheet = { attacks: [{ name: 'Montante', attackBonus: 5 }], inventory: [{ name: 'Montante', quantity: 1, compendiumRef: ref('montante') }] };
+    const once = normalizeInventory(sheet, hints);
+    expect(once.inventory[0].slot).toBe('both');
+    expect(normalizeInventory(once, hints)).toEqual(once);
+    expect(normalizeInventory(unflagged(), hints)).toEqual(normalizeInventory(normalizeInventory(unflagged(), hints), hints));
+  });
+
+  it('leaves a sheet with an equipped weapon as it was', () => {
+    const sheet = unflagged();
+    sheet.inventory[0] = { ...sheet.inventory[0], equipped: true } as never;
+    const out = normalizeInventory(sheet, hints);
+    expect(out.inventory.map((i) => i.slot)).toEqual(['main', undefined]);
+  });
+});

@@ -156,7 +156,7 @@ beforeAll(async () => {
       entry('weapon', 'machado-grande', 'Machado grande', { range: 'melee', properties: ['pesada', 'duas mãos'], damage: { dice: '1d12', type: 'cortante' } }),
       entry('weapon', 'arco-longo', 'Arco longo', { range: 'ranged', properties: ['munição', 'pesada', 'duas mãos'], normalRange: 45, longRange: 180, ammunition: 'flechas-20', damage: { dice: '1d8', type: 'perfurante' } }),
       entry('gear', 'flechas-20', 'Flechas (20)', {}),
-      entry('weapon', 'arco-curto','Arco curto', { range: 'ranged', properties: ['munição'], normalRange: 24, longRange: 96, damage: { dice: '1d6', type: 'perfurante' } }),
+      entry('weapon', 'arco-curto', 'Arco curto', { range: 'ranged', properties: ['munição'], normalRange: 24, longRange: 96, damage: { dice: '1d6', type: 'perfurante' } }),
       entry('spell', 'curar-ferimentos', 'Curar Ferimentos', { level: 1, range: 'Toque', concentration: false, mechanics: { healing: '1d8', healingAddsModifier: true, scaling: { perSlot: '1d8' } } }),
       { ...entry('spell', 'bencao', 'Bênção', { level: 1, range: '9 metros', concentration: true, mechanics: {} }), text: 'Texto inventado para o teste.' },
       entry('spell', 'escudo-da-fe', 'Escudo da Fé', { level: 1, range: 'Pessoal', concentration: false, mechanics: {} }),
@@ -552,6 +552,16 @@ describe('the bar attacks with what is in hand', () => {
   it('rolls the one-hand die in a hand even when two are asked for', async () => {
     const out = ok(await resolveAction(campaignId, p1, req({ grip: 'two' }), seq(15, 5)));
     expect(out.card.targets[0].damage?.[0].total).toBe(8);
+  });
+
+  it('still lists the weapon of a sheet from before slots that never flagged one as equipped', async () => {
+    await patchChar(fighterId, (d) => {
+      d.inventory = d.inventory.map((i: any) => ({ name: i.name, quantity: i.quantity, compendiumRef: i.compendiumRef }));
+      d.attacks = d.attacks.map((a: any) => ({ ...a, itemId: undefined }));
+    });
+    const listed = await names();
+    expect(listed).toContain('Espada longa');
+    expect(listed).not.toContain('Machado grande');
   });
 
   it('lists a hand-typed row that has no item', async () => {

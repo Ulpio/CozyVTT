@@ -15,6 +15,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampaigns } from '../../__tests__/helpers/db';
+import { holdWeapons } from '../../__tests__/helpers/holdWeapons';
 import { resolveAction, listActions, undoAction, type ActionRequest } from '../actionResolver';
 import { endAllStates } from '../actionResolver/features';
 import { beginTurn, clearState, flushCombatWrites, freshSpend, getState, setState, type CombatantEntry } from '../../websocket/initiativeState';
@@ -32,16 +33,6 @@ function seq(...values: number[]): Rng {
     if (i >= values.length) throw new Error('ran out of seeded rolls');
     return values[i++];
   };
-}
-
-
-/** The weapons a fixture sheet lists are held: the bar lists what is in hand. */
-function holdWeapons(s: any): any {
-  for (const a of s.attacks ?? []) {
-    const item = (s.inventory ?? []).find((i: any) => i.name.trim().toLowerCase() === String(a.name).trim().toLowerCase());
-    if (item) { item.slot = 'main'; item.equipped = true; }
-  }
-  return s;
 }
 
 function sheet(name: string): any {

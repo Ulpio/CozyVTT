@@ -55,9 +55,26 @@ export function itemsInHands(sheet: SheetLike): Item[] {
   return (sheet.inventory ?? []).filter((i) => i.slot === 'main' || i.slot === 'off' || i.slot === 'both');
 }
 
-function assignSlots(items: Item[], hints: InventoryHints): void {
+/** A sheet that never flagged a weapon as equipped still attacks with the first weapon one of its attack rows names. */
+function holdLinkedWeapon(items: Item[], attacks: AttackLike[], hints: InventoryHints): void {
+  if (items.some((i) => hints.kindOf(i) === 'weapon' && i.equipped === true)) return;
+  const names = new Set(attacks.map((a) => a.name.trim().toLowerCase()));
+  const ids = new Set(attacks.map((a) => a.itemId).filter((id): id is string => !!id));
+  const weapon = items.find((i) => hints.kindOf(i) === 'weapon' && (ids.has(i.id as string) || names.has(i.name.trim().toLowerCase())));
+  if (!weapon) return;
+  if (hints.twoHanded(weapon)) {
+    if (!items.some((i) => i.slot === 'off' || i.slot === 'main' || i.slot === 'both')) weapon.slot = 'both';
+  } else if (!items.some((i) => i.slot === 'main' || i.slot === 'both')) {
+    weapon.slot = 'main';
+  }
+}
+
+function assignSlots(items: Item[], hints: InventoryHints, attacks: AttackLike[]): void {
   if (items.some((i) => i.slot !== undefined)) return;
-  if (!items.some((i) => i.equipped === true)) return;
+  if (!items.some((i) => i.equipped === true)) {
+    holdLinkedWeapon(items, attacks, hints);
+    return;
+  }
   let armor = false;
   let ammo = false;
   let main = false;
@@ -97,6 +114,7 @@ function assignSlots(items: Item[], hints: InventoryHints): void {
       ammo = true;
     }
   }
+  holdLinkedWeapon(items, attacks, hints);
 }
 
 export function normalizeInventory<T extends SheetLike>(sheet: T, hints: InventoryHints = NO_HINTS): T {
@@ -128,7 +146,7 @@ export function normalizeInventory<T extends SheetLike>(sheet: T, hints: Invento
   });
 
   // (3) slots for sheets that never had any
-  assignSlots(items, hints);
+  assignSlots(items, hints, sheet.attacks ?? []);
 
   // (4) equipped follows the slot on equippable items
   for (const item of items) {

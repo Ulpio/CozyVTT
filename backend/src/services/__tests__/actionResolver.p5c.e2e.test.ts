@@ -20,6 +20,7 @@ import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 import type { Socket as ClientSocket } from 'socket.io-client';
 import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampaigns } from '../../__tests__/helpers/db';
+import { holdWeapons } from '../../__tests__/helpers/holdWeapons';
 import { createWsTestServer, waitForEvent, type WsTestServer } from '../../__tests__/helpers/websocket-test-server';
 import { resolveAction, listActions, type ActionRequest } from '../actionResolver';
 import { takeRest } from '../rest';
@@ -83,16 +84,6 @@ const AT: Record<string, { x: number; y: number }> = {
 
 const known = (slug: string, level: number, concentration = false) =>
   ({ level, name: slug, prepared: true, ritual: false, concentration, compendiumRef: { bookId: BOOK, slug } });
-
-
-/** The weapons a fixture sheet lists are held: the bar lists what is in hand. */
-function holdWeapons(s: any): any {
-  for (const a of s.attacks ?? []) {
-    const item = (s.inventory ?? []).find((i: any) => i.name.trim().toLowerCase() === String(a.name).trim().toLowerCase());
-    if (item) { item.slot = 'main'; item.equipped = true; }
-  }
-  return s;
-}
 
 /** A fixture sheet with its origin in this file's book, and what each turn below starts from. */
 function sheet(cls: string): any {
