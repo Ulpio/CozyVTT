@@ -12,6 +12,8 @@
 
 import { prisma } from '../config/database';
 import { toJson } from '../utils/prisma-json';
+import logger from '../utils/logger';
+import { whisperGm } from './gmWhisper';
 import { characterInCampaign } from '../utils/characterCampaign';
 import { getState } from '../websocket/initiativeState';
 import { resourcePools, type ActorFeature } from '../rules/actions/features';
@@ -41,8 +43,10 @@ function poolMaximum(pool: { maximum?: unknown; total?: unknown }): number | nul
 }
 
 /** The parts of a sheet a rest may change, as they are, for the undo. */
-function snapshot(sheet: Sheet): Record<string, unknown> {
+function snapshot(sheet: Sheet, withInventory = false): Record<string, unknown> {
   const before: Record<string, unknown> = {};
+  // Only a rest that eats a ration keeps the inventory, so undoing any other leaves later changes to it alone.
+  if (withInventory && Array.isArray(sheet.inventory)) before.inventory = structuredClone(sheet.inventory);
   if (sheet.hp) before.hp = structuredClone(sheet.hp);
   if (sheet.spellcasting?.slots) before.spellcasting = { slots: structuredClone(sheet.spellcasting.slots) };
   if (sheet.featureUses) before.featureUses = structuredClone(sheet.featureUses);
@@ -55,6 +59,26 @@ function snapshot(sheet: Sheet): Record<string, unknown> {
 function poolLabel(features: ActorFeature[], key: string): string {
   const declaring = features.filter((f) => (f.action.resources ?? []).some((r) => r.key === key));
   return (declaring.find((f) => f.action.key === key) ?? declaring[0])?.name ?? key;
+}
+
+const RATION_SLUG = 'racoes-de-viagem-1-dia';
+
+const plain = (s: unknown): string => (typeof s === 'string' ? s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim() : '');
+
+/**
+ * Eats one ration from a held sheet: the first item with the travel-rations
+ * slug, else the first whose plain name starts with "racao" or "racoes" (one
+ * with none left is passed over). An item eaten down to 0 stays in the list at 0,
+ * as a spent stack of ammunition does. Returns whether there was one to eat.
+ */
+function eatRation(held: HeldSheet): boolean {
+  const items = (Array.isArray(held.data.inventory) ? held.data.inventory : []) as { name?: string; quantity?: number; compendiumRef?: { slug?: string } }[];
+  const left = (i: { quantity?: number }) => (i.quantity ?? 1) > 0;
+  const stack = items.find((i) => i.compendiumRef?.slug === RATION_SLUG && left(i)) ?? items.find((i) => /^(racao|racoes)/.test(plain(i.name)) && left(i));
+  if (!stack) return false;
+  stack.quantity = (stack.quantity ?? 1) - 1;
+  held.changed = true;
+  return true;
 }
 
 /** Gives back what the rest gives to one held sheet; returns what came back, in words, and the states ended. */
@@ -156,7 +180,9 @@ export async function takeRest(campaignId: string, requester: Viewer, characterI
   // What each character's class gives it, read from the books once; the sheet itself is read afresh under its lock.
   const features = new Map<string, ActorFeature[]>();
   for (const c of characters) features.set(c.id, await featuresFor(campaignId, c.data as unknown as Sheet));
-  const mapId = (await prisma.campaign.findUnique({ where: { id: campaignId }, select: { currentMapId: true } }))?.currentMapId ?? undefined;
+  const campaign = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { currentMapId: true, detailLevel: true } });
+  const mapId = campaign?.currentMapId ?? undefined;
+  const faithful = campaign?.detailLevel === 'FAITHFUL';
 
   const outcome = await inMapLock(mapId, async (tx) => {
     const held = await holdSheets(tx, ids);
@@ -165,13 +191,25 @@ export async function takeRest(campaignId: string, requester: Viewer, characterI
     const undo: ActionCard['undo'] = { mapId, hp: [], sheets: [] };
     const lines: string[] = [];
     const conditions: { tokenId: string; name: string }[] = [];
+    const hungry: string[] = [];
 
     for (const id of ids) {
       const sheet = held.get(id)!;
-      const before = snapshot(sheet.data);
+      const eats = faithful && kind === 'long';
+      const before = snapshot(sheet.data, eats);
       const { came, ended } = rest(sheet, features.get(id) ?? [], kind);
       undo.sheets!.push({ characterId: id, before });
-      lines.push(`${sheet.character.name}: ${came.length > 0 ? came.join(', ') : 'nada a recuperar'}`);
+      let hasNone = false;
+      if (eats) {
+        if (eatRation(sheet)) came.push('comeu 1 ração');
+        else hasNone = true;
+      }
+      if (hasNone) {
+        hungry.push(sheet.character.name);
+        lines.push(came.length > 0 ? `${sheet.character.name}: ${came.join(', ')}` : '', `${sheet.character.name} ficou sem ração.`);
+      } else {
+        lines.push(`${sheet.character.name}: ${came.length > 0 ? came.join(', ') : 'nada a recuperar'}`);
+      }
       // The conditions the ended states showed, taken off this character's tokens.
       for (const token of [...edits.tokens]) {
         if (token?.characterId !== id) continue;
@@ -202,10 +240,14 @@ export async function takeRest(campaignId: string, requester: Viewer, characterI
       data: { campaignId, userId: requester.userId, type: 'CHARACTER_ACTION', content: `${chatName(names, undefined)}: ${card.actionName}`, metadata: toJson(card) },
       select: { id: true },
     });
-    return { ok: true as const, messageId: message.id, card, after: afterCommit(written, held, edits.changedTokenIds, mapId) };
+    return { ok: true as const, messageId: message.id, card, hungry, after: afterCommit(written, held, edits.changedTokenIds, mapId) };
   });
 
   if (!outcome.ok) return outcome;
   await announce(campaignId, requester, outcome.after);
+  // One whisper for the whole rest, naming everyone who had no ration; a failure to send it never undoes the rest.
+  if (outcome.hungry.length > 0) {
+    try { await whisperGm(campaignId, `Sem ração no descanso: ${outcome.hungry.join(', ')}.`); } catch (error) { logger.warn('Could not whisper the GM about rations', { err: error, campaignId }); }
+  }
   return { ok: true, messageId: outcome.messageId, card: outcome.card };
 }
