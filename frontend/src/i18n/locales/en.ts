@@ -17,6 +17,7 @@ const en = {
 
   gmNotice: {
     label: 'GM notice',
+    labelTo: 'GM notice to {{name}}',
     close: 'Close',
   },
 

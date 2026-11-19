@@ -131,7 +131,7 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
   const actionCard = kind === 'action' && message.type === 'CHARACTER_ACTION' ? <ActionCardMessage messageId={message.id} card={message.metadata as unknown as ActionCardView} /> : null;
   const concentrationLine = kind === 'concentration' && message.type === 'CHARACTER_ACTION' ? <ConcentrationLine card={message.metadata as unknown as ConcentrationCard} /> : null;
   const isNotice = kind === 'gmNotice' && message.type === 'WHISPER';
-  const shownWhisperLabel = isNotice ? t('gmNotice.label') : whisperLabel;
+  const shownWhisperLabel = isNotice ? (isCurrentUser && whisperPeer ? t('gmNotice.labelTo', { name: whisperPeer }) : t('gmNotice.label')) : whisperLabel;
   const rechargeLine = kind === 'recharge' ? <RechargeLine card={message.metadata as unknown as RechargeCard} /> : null;
   const smallLine = concentrationLine ?? rechargeLine;
   const body = smallLine ?? message.content;

@@ -20,6 +20,7 @@ const ptBR: Messages = {
 
   gmNotice: {
     label: 'Aviso do mestre',
+    labelTo: 'Aviso do mestre para {{name}}',
     close: 'Fechar',
   },
 

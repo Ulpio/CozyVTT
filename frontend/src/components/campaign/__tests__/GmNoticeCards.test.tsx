@@ -98,6 +98,13 @@ describe('a notice in the chat', () => {
     expect(screen.getByText('Meet me at the inn')).toBeInTheDocument();
   });
 
+  it('tells the GM who got the notice, and the recipient just sees GM notice', () => {
+    const { rerender } = render(<ChatMessage message={row({ kind: 'gmNotice', characterId: 'c1' })} isCurrentUser whisperLabel="Whisper to Ana" whisperPeer="Ana" sentByGM />);
+    expect(screen.getByText('GM notice to Ana')).toBeInTheDocument();
+    rerender(<ChatMessage message={row({ kind: 'gmNotice', characterId: 'c1' })} whisperLabel="Whisper from Dana" whisperPeer="Dana" sentByGM />);
+    expect(screen.getByText('GM notice')).toBeInTheDocument();
+  });
+
   it('keeps the whisper label on a plain whisper', () => {
     render(<ChatMessage message={row(null)} whisperLabel="Whisper from Dana" whisperPeer="Dana" />);
     expect(screen.getByText('Whisper from Dana')).toBeInTheDocument();
