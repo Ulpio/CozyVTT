@@ -21,9 +21,15 @@ vi.mock('@/utils/localItemIcons', () => ({
   subscribeLocalItemIcons: () => () => {},
 }));
 
+vi.mock('@/components/character-sheets/fifth-edition/components/ItemIcon', async (orig) => {
+  const m = await orig<typeof import('@/components/character-sheets/fifth-edition/components/ItemIcon')>();
+  return { ...m, ItemIcon: vi.fn(m.ItemIcon) };
+});
+
 import GmNoticeCards from '../GmNoticeCards';
 import ChatMessage from '../ChatMessage';
 import { useGmNoticeStore } from '@/stores/gmNoticeStore';
+import { ItemIcon } from '@/components/character-sheets/fifth-edition/components/ItemIcon';
 
 const notice = (id: string, content: string, extra: Partial<ChatMessageBroadcast> = {}): ChatMessageBroadcast => ({
   id, userId: 'dm', userName: 'Dana', content, type: MessageType.WHISPER, timestamp: '2026-11-19T10:00:00.000Z',
@@ -76,6 +82,19 @@ describe('the GM notice cards', () => {
     send(notice('n1', 'Você recebeu: Flechas ×20', { metadata: { kind: 'gmNotice', characterId: 'c1', item: { name: 'Flechas', quantity: 20 } } }));
     expect(screen.getByText('Você recebeu: Flechas ×20')).toBeInTheDocument();
     expect(screen.getByTestId('item-icon')).toBeInTheDocument();
+  });
+
+  it('hands the item icon the compendium reference, when the notice has one', () => {
+    render(<GmNoticeCards />);
+    const ref = { bookId: 'b1', slug: 'flechas-20' };
+    send(notice('n1', 'Você recebeu: Flechas ×20', { metadata: { kind: 'gmNotice', characterId: 'c1', item: { name: 'Flechas', quantity: 20, compendiumRef: ref } } }));
+    expect(vi.mocked(ItemIcon).mock.calls.at(-1)![0].item).toEqual({ name: 'Flechas', compendiumRef: ref });
+  });
+
+  it('gives the icon the name alone for a free item', () => {
+    render(<GmNoticeCards />);
+    send(notice('n1', 'x', { metadata: { kind: 'gmNotice', characterId: 'c1', item: { name: 'Mapa', quantity: 1 } } }));
+    expect(vi.mocked(ItemIcon).mock.calls.at(-1)![0].item).toEqual({ name: 'Mapa' });
   });
 
   it('shows nothing when a history page is loaded (only the live stream raises cards)', () => {

@@ -38,7 +38,7 @@ export default function GmNoticeCards({ className = '' }: { className?: string }
     <div role="region" aria-label={t('gmNotice.label')} className={`space-y-1 ${className}`}>
       {notices.map((notice) => (
         <div key={notice.id} role="status" className="flex items-start gap-2 rounded-cozy border border-warning/40 bg-parchment/95 px-3 py-2 text-sm text-warning-ink shadow-md">
-          {notice.item && <ItemIcon item={{ name: notice.item.name }} size={28} />}
+          {notice.item && <ItemIcon item={{ name: notice.item.name, ...(notice.item.compendiumRef ? { compendiumRef: notice.item.compendiumRef } : {}) }} size={28} />}
           <div className="min-w-0 flex-1">
             <div className="text-xs font-semibold">{t('gmNotice.label')}</div>
             <p data-testid="gm-notice-text" className="whitespace-pre-wrap wrap-break-word text-brand-ink">{notice.text}</p>

@@ -10,7 +10,7 @@ import { create } from 'zustand';
 export interface GmNotice {
   id: string;
   text: string;
-  item?: { name: string; quantity: number };
+  item?: { name: string; quantity: number; compendiumRef?: { bookId: string; slug: string } };
 }
 
 interface GmNoticeState {
@@ -35,7 +35,9 @@ export function gmNoticeFor(
   const meta = data.metadata;
   if (!meta || typeof meta !== 'object' || (meta as { kind?: unknown }).kind !== 'gmNotice') return null;
   if (!viewerId || data.recipientId !== viewerId || data.userId === viewerId) return null;
-  const item = (meta as { item?: { name?: unknown; quantity?: unknown } }).item;
+  const item = (meta as { item?: { name?: unknown; quantity?: unknown; compendiumRef?: { bookId?: unknown; slug?: unknown } } }).item;
   const valid = item && typeof item.name === 'string' && typeof item.quantity === 'number';
-  return { id: data.id, text: data.content, ...(valid ? { item: { name: item.name as string, quantity: item.quantity as number } } : {}) };
+  const r = item?.compendiumRef;
+  const compendiumRef = r && typeof r.bookId === 'string' && typeof r.slug === 'string' ? { bookId: r.bookId, slug: r.slug } : undefined;
+  return { id: data.id, text: data.content, ...(valid ? { item: { name: item!.name as string, quantity: item!.quantity as number, ...(compendiumRef ? { compendiumRef } : {}) } } : {}) };
 }
