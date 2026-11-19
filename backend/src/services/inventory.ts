@@ -25,6 +25,7 @@ import { freshSpend, getState, setState, withCombatLock, type TurnSpend } from '
 import { resendInitiative } from '../websocket/handlers/initiative';
 import { REFUSAL_MESSAGES, applySpend, canSpend } from '../utils/turnEconomy';
 import type { ActionCard, Viewer } from '../rules/actions/actionCard';
+import { SHEET_LIST_MAX } from '../validators/game-systems/sheetLimits';
 import { enabledBookIds } from '../compendium/campaignBooks';
 import { GM_ONLY, NO_CHARACTER, noticeRecipient, sendNotice } from './gmNotice';
 import { addToStack } from './actionResolver/ammunition';
@@ -375,6 +376,7 @@ export const COMPENDIUM_ITEM_NOT_FOUND = 'Item não encontrado no compêndio.';
 export const GIVE_QUANTITY = 'A quantidade precisa ser um número inteiro de 1 a 999.';
 export const GIVE_NAME = 'O nome do item precisa ter de 1 a 100 caracteres.';
 export const GIVE_NOTES = 'A anotação do item pode ter até 500 caracteres.';
+export const BACKPACK_FULL = 'A mochila está cheia.';
 export const GIVE_ONE_OF = 'Escolha um item do compêndio ou digite um nome, não os dois.';
 
 /** The entry types the GM may give from the compendium, in the order a slug shared by two is read. */
@@ -454,6 +456,7 @@ export async function giveItem(
         same.quantity = (same.quantity ?? 1) + units;
         given = { id: same.id as string, name, quantity: units };
       } else {
+        if (items.length >= SHEET_LIST_MAX) return refuse(BACKPACK_FULL);
         const kg = entry.data.weight;
         const id = newId(taken);
         items.push({
@@ -466,6 +469,7 @@ export async function giveItem(
         given = { id, name, quantity: units };
       }
     } else {
+      if (items.length >= SHEET_LIST_MAX) return refuse(BACKPACK_FULL);
       const id = newId(taken);
       items.push({ id, name: free!.name, quantity, ...(free!.notes ? { notes: free!.notes } : {}) } as StoredItem);
       given = { id, name: free!.name, quantity };
@@ -492,7 +496,7 @@ export async function giveItem(
   return { ok: true, itemId: given.id, noticeSent };
 }
 
-export const NO_RECOVERY_IN_COMBAT ='Não dá para recolher munição durante o combate.';
+export const NO_RECOVERY_IN_COMBAT = 'Não dá para recolher munição durante o combate.';
 
 /** One of each of the book's kinds of ammunition; any other keeps its label. */
 const ONE_OF: Record<string, string> = {

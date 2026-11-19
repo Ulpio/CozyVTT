@@ -247,3 +247,31 @@ it('refuses a character of another campaign', async () => {
     await cleanupCampaigns([other]);
   }
 });
+
+it('adds a bundle of arrows to a stack held in the ammo slot, which stays there', async () => {
+  await setBag([{ id: 'quiver', name: 'Flechas', quantity: 5, slot: 'ammo', equipped: true, compendiumRef: ref('flechas-20') }]);
+  expect(await give(gm, { characterId: anaCharId, ref: ref('flechas-20'), quantity: 1 })).toMatchObject({ ok: true });
+  const items = await bag();
+  expect(items).toHaveLength(1);
+  expect(items[0]).toMatchObject({ id: 'quiver', quantity: 25, slot: 'ammo' });
+});
+
+describe('a full backpack', () => {
+  const full = () => Array.from({ length: 500 }, (_v, i) => ({ id: `f${i}`, name: `Coisa ${i}`, quantity: 1 }));
+
+  it('refuses a new item, free or from the compendium, and changes nothing', async () => {
+    await setBag(full());
+    expect(await give(gm, { characterId: anaCharId, name: 'Mapa', quantity: 1 })).toEqual({ ok: false, error: 'A mochila está cheia.' });
+    expect(await give(gm, { characterId: anaCharId, ref: ref('tocha'), quantity: 1 })).toEqual({ ok: false, error: 'A mochila está cheia.' });
+    expect(await bag()).toHaveLength(500);
+    expect(await notices()).toHaveLength(0);
+  });
+
+  it('still merges into an existing stack', async () => {
+    await setBag([...full().slice(0, 499), { id: 't', name: 'Tocha', quantity: 1, compendiumRef: ref('tocha') }]);
+    expect(await give(gm, { characterId: anaCharId, ref: ref('tocha'), quantity: 2 })).toMatchObject({ ok: true });
+    const items = await bag();
+    expect(items).toHaveLength(500);
+    expect(items.find((i) => i.id === 't').quantity).toBe(3);
+  });
+});
