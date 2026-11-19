@@ -270,6 +270,7 @@ const Weapon = z.object({
   versatile: z.string().optional(),
   normalRange: z.number().optional(),
   longRange: z.number().optional(),
+  ammunition: z.string().optional(),
   cost: z.string(),
   weight: z.number(),
 });
@@ -286,7 +287,14 @@ const Armor = z.object({
 });
 
 const Gear = z.object({ cost: z.string().optional(), weight: z.number().optional() });
-const Pack = z.object({ cost: z.string(), contents: z.array(z.string()) });
+const PackItem = z.union([
+  z.object({
+    ref: z.object({ type: z.enum(['gear', 'tool', 'weapon', 'armor']), slug: z.string().min(1) }),
+    quantity: z.number().int().min(1),
+  }),
+  z.object({ name: z.string().min(1), quantity: z.number().int().min(1) }),
+]);
+const Pack = z.object({ cost: z.string(), contents: z.array(z.string()), items: z.array(PackItem).optional() });
 
 const MagicItem = z.object({
   category: z.string().min(1),

@@ -286,3 +286,41 @@ it('still rejects a flat number as damage dice', () => {
   const issues = validateEntries([spell({ mechanics: { attack: 'ranged', damage: [{ dice: '70', type: 'fogo' }] } })], known);
   expect(issues).not.toEqual([]);
 });
+
+describe('pack contents and weapon ammunition', () => {
+  const pack = (items: unknown): RawEntry => ({
+    type: 'pack',
+    slug: 'pacote-teste',
+    name: 'Pacote Teste',
+    text: '',
+    data: { cost: '5 po', contents: ['mochila'], items },
+  });
+  const bow = (extra: Record<string, unknown> = {}): RawEntry => ({
+    type: 'weapon',
+    slug: 'arco-teste',
+    name: 'Arco Teste',
+    text: '',
+    data: {
+      category: 'simple',
+      range: 'ranged',
+      damage: { dice: '1d6', type: 'perfurante' },
+      properties: ['munição'],
+      cost: '25 po',
+      weight: 1,
+      ...extra,
+    },
+  });
+
+  it('accepts a pack whose items are references or free names', () => {
+    const items = [{ ref: { type: 'gear', slug: 'x' }, quantity: 10 }, { name: 'Saco com esferas', quantity: 1 }];
+    expect(validateEntries([pack(items)], known)).toEqual([]);
+  });
+
+  it('rejects an item with a quantity below 1', () => {
+    expect(validateEntries([pack([{ name: 'Coisa', quantity: 0 }])], known)).not.toEqual([]);
+  });
+
+  it('accepts a weapon with an ammunition slug', () => {
+    expect(validateEntries([bow({ ammunition: 'flechas-20' })], known)).toEqual([]);
+  });
+});
