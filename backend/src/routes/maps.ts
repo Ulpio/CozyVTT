@@ -25,6 +25,8 @@ import type { WallSegment, FogState, LightSource, SkippedWall, WallsAdded } from
 import { resendIfCurrent, resendSoonIfCurrent } from '../services/mapResend';
 export { resendSoonIfCurrent };
 import { darkvisionSquares } from '../services/darkvision';
+import { itemLightForSheet } from '../services/itemLight';
+import type { TokenLight } from '../utils/tokenLights';
 import { parseUVTT } from '../services/uvttParser';
 import { buildUVTT } from '../services/uvttExporter';
 import { fileTypeFromBuffer } from 'file-type';
@@ -1489,6 +1491,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
     const controllerGiven = shapes.value.controlledBy !== undefined;
     let controlledBy: string | null = shapes.value.controlledBy ?? null;
     let sheetSightRadius: number | null = null;
+    let sheetLight: TokenLight | null = null;
     if (controlledBy && !(await canHoldTokens(campaignId, controlledBy))) {
       return res.status(400).json({
         error: 'Validation Error',
@@ -1511,6 +1514,8 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
       }
       // Darkvision from the sheet's race, unless the GM typed another range.
       sheetSightRadius = await darkvisionSquares(character.data, character.gameSystem);
+      // A torch or lantern the character already holds lights the new token.
+      sheetLight = itemLightForSheet(character.data, character.gameSystem);
     }
 
     // Build the new token with defaults
@@ -1539,6 +1544,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
       // Manual only when the sent range differs from the sheet's: a copy or
       // duplicate echoes the source's range and must keep following the sheet.
       ...(shapes.value.sightRadius && shapes.value.sightRadius !== sheetSightRadius ? { sightRadiusManual: true } : {}),
+      ...(sheetLight ? { light: sheetLight } : {}),
       displayMode: displayMode,
       statBlock: shapes.value.statBlock ?? null,
       creatureTemplateId: shapes.value.creatureTemplateId ?? null,
