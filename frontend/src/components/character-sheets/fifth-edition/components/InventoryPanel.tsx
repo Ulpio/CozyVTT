@@ -39,7 +39,8 @@ function slotsFor(item: InventoryItem): InventorySlot[] {
   switch (itemCategory(item)) {
     case 'meleeWeapon':
     case 'rangedWeapon':
-      return ['main', 'off', 'both'];
+      // The item's own text says two-handed (the action bar reads it the same way); the server puts a two-hander dropped on a hand in both.
+      return /duas m[aã]os|two-handed/i.test(item.notes ?? '') ? ['both'] : ['main', 'off', 'both'];
     case 'shield':
       return ['off'];
     case 'armor':

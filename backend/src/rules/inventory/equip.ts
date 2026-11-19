@@ -46,6 +46,14 @@ function allowedSlots(f: ItemFacts): InventorySlot[] {
   }
 }
 
+/** A hand asked for a weapon that does not go there: a two-handed one takes both, a versatile one the main hand. */
+function handFor(f: ItemFacts, slot: InventorySlot | null): InventorySlot | null {
+  if (f.kind !== 'weapon' || (slot !== 'main' && slot !== 'off')) return slot;
+  if (f.twoHanded) return 'both';
+  if (f.versatile && slot === 'off') return 'main';
+  return slot;
+}
+
 /** Slots whose occupant has to leave when `slot` is taken. */
 function clashes(slot: InventorySlot): InventorySlot[] {
   if (slot === 'both') return ['main', 'off', 'both'];
@@ -65,6 +73,7 @@ export function planEquip(
   | { ok: false; error: string } {
   const target = inventory.find((i) => i.id === itemId);
   if (!target) return { ok: false, error: 'Item não encontrado.' };
+  slot = handFor(facts(target), slot);
   if (slot !== null && !allowedSlots(facts(target)).includes(slot)) return { ok: false, error: WRONG_SLOT };
 
   const next: Item[] = inventory.map((i) => ({ ...i }));

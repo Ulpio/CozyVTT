@@ -160,6 +160,15 @@ describe('the inventory panel', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
+  it('offers only both hands for a weapon its notes call two-handed', () => {
+    const great = { id: 'great', name: 'Espada grande', quantity: 1, notes: 'Pesada, duas mãos', compendiumRef: { bookId: 'phb', slug: 'espada-grande' } };
+    render(<InventoryPanel {...base} inventory={[...ranger(), great]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Espada grande' }));
+    expect(screen.getByRole('button', { name: 'With both hands' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'In the main hand' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'In the off hand' })).toBeNull();
+  });
+
   it('offers to open a pack by its name when it has no compendium link', () => {
     render(<InventoryPanel {...base} inventory={[{ id: 'p', name: 'Pacote de Explorador', quantity: 1 }]} />);
     fireEvent.click(screen.getByRole('button', { name: 'Pacote de Explorador' }));

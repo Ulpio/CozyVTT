@@ -273,6 +273,14 @@ describe('outside a fight, and in Flexible', () => {
     expect(await equipItem(campaignId, p1, fighterId, 'shield', 'main')).toEqual({ ok: false, error: WRONG_SLOT });
     expect(await equipItem(campaignId, p1, fighterId, 'torch', 'main')).toEqual({ ok: false, error: WRONG_SLOT });
   });
+
+  it('puts a two-handed weapon dropped on one hand in both', async () => {
+    ok(await equipItem(campaignId, p1, fighterId, 'great', 'off'));
+    const s = await data();
+    expect(item(s, 'great').slot).toBe('both');
+    expect(item(s, 'sword').slot).toBeUndefined();
+    expect(item(s, 'shield').slot).toBeUndefined();
+  });
 });
 
 describe('who may equip', () => {

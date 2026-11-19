@@ -48,7 +48,26 @@ describe('planEquip', () => {
   it('refuses a shield in the main hand and ammunition in the armour slot', () => {
     expect(planEquip(inv, 'shield', 'main', facts)).toEqual({ ok: false, error: 'Esse item não vai nesse espaço.' });
     expect(planEquip(inv, 'arrows', 'armor', facts)).toEqual({ ok: false, error: 'Esse item não vai nesse espaço.' });
-    expect(planEquip(inv, 'greatsword', 'main', facts).ok).toBe(false);
+  });
+
+  it('puts a two-handed weapon asked for one hand in both', () => {
+    for (const hand of ['main', 'off'] as const) {
+      const r = planEquip(inv, 'greatsword', hand, facts);
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      const by = Object.fromEntries(r.inventory.map((i) => [i.id, i]));
+      expect(by.greatsword.slot).toBe('both');
+      expect(by.longsword.slot).toBeUndefined();
+      expect(by.shield.slot).toBeUndefined();
+    }
+  });
+
+  it('puts a versatile weapon asked for the off hand in the main hand', () => {
+    const r = planEquip([mk('dagger', 'main'), mk('longsword')], 'longsword', 'off', facts);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.inventory.find((i) => i.id === 'longsword')?.slot).toBe('main');
+    expect(r.inventory.find((i) => i.id === 'dagger')?.slot).toBeUndefined();
   });
 
   it('lets a versatile weapon go to both hands', () => {
