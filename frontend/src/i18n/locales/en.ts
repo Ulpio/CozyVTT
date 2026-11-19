@@ -74,6 +74,17 @@ const en = {
     deliveredNoNotice: 'Item delivered, no notice: nobody plays this character',
   },
 
+  gmToolRefusal: {
+    noConnection: 'Not connected to the server.',
+    noAnswer: 'No answer from the server. Check your connection and try again.',
+    tooManyItems: 'Too many items given at once. Wait a moment, then try again.',
+    tooManyNotices: 'Too many notices at once. Wait a moment, then try again.',
+    tooManyChecks: 'Too many secret checks at once. Wait a moment, then try again.',
+    giveFailed: 'Could not give the item.',
+    noticeFailed: 'Could not send the notice.',
+    checkFailed: 'Could not roll the secret check.',
+  },
+
   passwordRules: {
     heading: 'Password requirements',
     length: 'At least 12 characters',

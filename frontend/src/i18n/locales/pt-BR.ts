@@ -77,6 +77,17 @@ const ptBR: Messages = {
     deliveredNoNotice: 'Item entregue, sem aviso: ninguém joga com esse personagem',
   },
 
+  gmToolRefusal: {
+    noConnection: 'Sem conexão com o servidor.',
+    noAnswer: 'O servidor não respondeu. Confira a conexão e tente de novo.',
+    tooManyItems: 'Itens demais de uma vez. Espere um instante e tente de novo.',
+    tooManyNotices: 'Avisos demais de uma vez. Espere um instante e tente de novo.',
+    tooManyChecks: 'Testes secretos demais de uma vez. Espere um instante e tente de novo.',
+    giveFailed: 'Não foi possível dar o item.',
+    noticeFailed: 'Não foi possível enviar o aviso.',
+    checkFailed: 'Não foi possível rolar o teste secreto.',
+  },
+
   passwordRules: {
     heading: 'Requisitos da senha',
     length: 'Pelo menos 12 caracteres',

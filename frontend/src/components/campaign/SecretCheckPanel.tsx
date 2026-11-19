@@ -17,6 +17,7 @@ import { api } from '@/services/api';
 import { applyRollMode, ROLL_MODES, systemSupportsAdvantage, type RollMode } from '@/utils/rollModes';
 import { checkChoices, checkFor, passivePerception, type CheckKey } from '@/utils/secretCheck';
 import { checkName } from '@/components/campaign/actionBar/ChecksMenu';
+import { gmToolRefusal } from '@/utils/gmToolRefusal';
 import type { RollOption } from '@/utils/characterRolls';
 import type { Character, SecretCheckAck } from '@/types';
 
@@ -133,7 +134,7 @@ export default function SecretCheckPanel({ isOpen, onClose }: Props) {
     const ack = await socket.secretCheck(rolls);
     setRolling(false);
     if (!ack.ok) {
-      setError(ack.error);
+      setError(gmToolRefusal(t, ack.error));
       return;
     }
     setRun({ rows, results: ack.results });
@@ -149,7 +150,7 @@ export default function SecretCheckPanel({ isOpen, onClose }: Props) {
     const ack = await socket.sendNotice({ characterId, text: noticeText });
     setSending(false);
     if (!ack.ok) {
-      setNoticeError(ack.error);
+      setNoticeError(gmToolRefusal(t, ack.error));
       return;
     }
     setNoticeFor(null);

@@ -20,6 +20,7 @@ vi.mock('@/services/api', () => ({
   default: { searchCompendium: (...a: unknown[]) => h.searchCompendium(...a) },
 }));
 
+import i18n from '@/i18n';
 import GiveItemDialog from '../GiveItemDialog';
 
 const POTION = { id: 'e1', bookId: 'phb', type: 'gear', slug: 'pocao-de-cura', name: 'Poção de Cura', nameEn: 'Potion of Healing' };
@@ -89,6 +90,22 @@ describe('GiveItemDialog', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('A mochila está cheia.');
     expect(onClose).not.toHaveBeenCalled();
     expect(onGiven).not.toHaveBeenCalled();
+  });
+
+  it('shows a flood refusal and a timeout in the app language', async () => {
+    await i18n.changeLanguage('pt-BR');
+    try {
+      h.giveItem.mockResolvedValueOnce({ ok: false, error: 'Too many items given at once. Wait a moment, then try again.' });
+      open();
+      await pickPotion();
+      fireEvent.click(screen.getByRole('button', { name: 'Dar' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Itens demais de uma vez. Espere um instante e tente de novo.');
+      h.giveItem.mockResolvedValueOnce({ ok: false, error: 'No answer from the server' });
+      fireEvent.click(screen.getByRole('button', { name: 'Dar' }));
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('O servidor não respondeu. Confira a conexão e tente de novo.'));
+    } finally {
+      await i18n.changeLanguage('en');
+    }
   });
 
   it('reports a delivery with no notice when nobody plays the character', async () => {

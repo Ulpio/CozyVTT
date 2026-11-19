@@ -16,6 +16,7 @@ import ItemIcon from '@/components/character-sheets/fifth-edition/components/Ite
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { api } from '@/services/api';
 import { apiErrorMessage } from '@/utils/errors';
+import { gmToolRefusal } from '@/utils/gmToolRefusal';
 import type { CompendiumEntrySummary, GiveItemRequest } from '@/types';
 
 /** The compendium types that are things a character carries. */
@@ -107,7 +108,7 @@ export default function GiveItemDialog({ campaignId, characterId, characterName,
     try {
       const ack = await socket.giveItem(request);
       if (!ack.ok) {
-        setError(ack.error);
+        setError(gmToolRefusal(t, ack.error));
         return;
       }
       onGiven(ack.noticeSent);

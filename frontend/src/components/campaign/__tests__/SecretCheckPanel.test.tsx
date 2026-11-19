@@ -3,7 +3,7 @@
  * and the private notice to a player.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 const ability = (modifier: number) => ({ score: 10 + modifier * 2, modifier });
 const sheet = (perception: boolean, extra: Record<string, unknown> = {}) => ({
@@ -192,6 +192,23 @@ describe('notices', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Notice for Ana the Fighter' }), { target: { value: 'Hi' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
     expect(await screen.findByText('Esse personagem não tem jogador na mesa.')).toBeInTheDocument();
+  });
+
+  it('shows a timeout and a flood refusal in the app language', async () => {
+    h.sendNotice.mockResolvedValue({ ok: false, error: 'No answer from the server' });
+    await rollPerception();
+    await act(async () => { await i18n.changeLanguage('pt-BR'); });
+    try {
+      fireEvent.click(within(screen.getByTestId('result-c-ana')).getByRole('button', { name: 'Avisar…' }));
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Oi' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Enviar' }));
+      expect(await screen.findByText('O servidor não respondeu. Confira a conexão e tente de novo.')).toBeInTheDocument();
+      h.secretCheck.mockResolvedValue({ ok: false, error: 'Too many secret checks at once. Wait a moment, then try again.' });
+      fireEvent.click(screen.getByRole('button', { name: 'Rolar' }));
+      expect(await screen.findByText('Testes secretos demais de uma vez. Espere um instante e tente de novo.')).toBeInTheDocument();
+    } finally {
+      await i18n.changeLanguage('en');
+    }
   });
 
   it("offers no Notify… for the GM's own character, and says why", async () => {
