@@ -231,6 +231,7 @@ const attackSchema = z.object({
   properties: z.array(z.string().max(FIFTH_EDITION_WEAPON_PROPERTY_LENGTH_MAX)).max(FIFTH_EDITION_WEAPON_PROPERTIES_MAX).optional(),
   notes: longText.optional(),
   additionalDamage: z.array(additionalDamageSchema).max(FIFTH_EDITION_ATTACK_DAMAGE_ROLLS_MAX).optional(),
+  itemId: z.string().max(64).optional(),
   compendiumRef: compendiumRefSchema.optional(),
 });
 
@@ -250,6 +251,8 @@ const currencySchema = z.object({
  * Most fields optional for quick item addition
  */
 const inventoryItemSchema = z.object({
+  id: z.string().max(64).optional(),
+  slot: z.enum(['main', 'off', 'both', 'armor', 'ammo']).optional(),
   name: shortText.min(1),
   quantity: z.number().int().min(0).optional(),
   weight: z.number().min(0).optional(),
@@ -419,6 +422,8 @@ export const fifthEditionCharacterDataSchema = z.object({
   attacks: sheetList(attackSchema).optional(),
   currency: currencySchema.optional(),
   inventory: sheetList(inventoryItemSchema).optional(),
+  // Ammunition shot and lying on the ground, by gear slug, waiting to be picked up.
+  ammoToRecover: z.record(z.string().max(120), z.number().int().min(0)).optional(),
   // The four proficiency boxes as the player typed them: armour, weapons,
   // tools and languages, each free text.
   //

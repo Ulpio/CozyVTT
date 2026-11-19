@@ -10,6 +10,7 @@
 import type { SheetChrome } from './sheetChrome';
 import type { FeatureEntry } from '@/utils/featureEntries';
 import type { FifthEditionCustomSkill } from '@/utils/rules/fifthEdition';
+import type { InventorySlot } from '@/utils/inventory';
 
 /**
  * Ability score with modifier
@@ -162,6 +163,8 @@ export interface CompendiumRef {
  */
 export interface FifthEditionAttack {
   name: string;
+  /** The inventory item this attack comes from (its `id`). */
+  itemId?: string;
   attackBonus: number;
   damageRoll?: string;
   damageType?: string;
@@ -189,6 +192,9 @@ export interface FifthEditionCurrency {
  */
 export interface FifthEditionInventoryItem {
   name: string;
+  id?: string;
+  /** Where the item is carried; none means the backpack. */
+  slot?: InventorySlot;
   quantity?: number;
   weight?: number;
   notes?: string;
@@ -343,6 +349,8 @@ export interface FifthEditionCharacterData extends SheetChrome {
   attacks?: FifthEditionAttack[];
   currency?: FifthEditionCurrency;
   inventory?: FifthEditionInventoryItem[];
+  /** Ammunition shot in this fight, by gear slug, that can still be picked up. */
+  ammoToRecover?: Record<string, number>;
   /**
    * The four proficiency boxes as the player typed them, each free text.
    *
