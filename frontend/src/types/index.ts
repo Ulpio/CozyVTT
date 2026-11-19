@@ -1416,6 +1416,20 @@ export type DiceRollAck = { ok: true; id: string } | { ok: false; error: string 
 /** The server's answer to a request that returns nothing but whether it was done. */
 export type DoneAck = { ok: true } | { ok: false; error: string };
 
+/** One character's roll in a GM secret check (`gm.secretCheck`). */
+export interface SecretCheckRoll { characterId: string; expression: string; purpose: string; characterName: string }
+/** What the server rolled for each, or why the whole check was refused. */
+export type SecretCheckAck =
+  | { ok: true; results: Array<{ characterId: string; total: number; dice: number[]; breakdown: string }> }
+  | { ok: false; error: string };
+
+/** The GM gives a character an item (`character.item.give`): one compendium item or a free one. */
+export type GiveItemRequest =
+  | { characterId: string; ref: { bookId: string; slug: string }; quantity: number }
+  | { characterId: string; name: string; notes?: string; quantity: number };
+/** `noticeSent` is false when nobody plays the character, so no notice went out. */
+export type GiveItemAck = { ok: true; noticeSent: boolean } | { ok: false; error: string };
+
 export interface DiceRolledEvent {
   /**
    * The stored roll's id. Optional because a roll made while the session is

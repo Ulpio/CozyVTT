@@ -20,7 +20,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
-import { CampaignRole, type RosterMember } from '@/types';
+import { CampaignRole, GameSystem, type RosterMember } from '@/types';
 import { useGameStore } from '@/stores/gameStore';
 import { contact } from '@/test/pointer';
 
@@ -57,7 +57,7 @@ import CampaignRoster from '../CampaignRoster';
 
 const member = (userId: string, userName: string, hp: number | null = null): RosterMember => ({
   userId, userName, userAvatar: null, role: userId === 'dm' ? CampaignRole.GM : CampaignRole.PLAYER, joinedAt: '2026-10-01T00:00:00.000Z',
-  characters: hp === null ? [] : [{ id: `${userId}-char`, name: `${userName}'s hero`, tokenImageUrl: null, gameSystem: null, userId, hp: { current: hp, max: 10, temp: 0 } }],
+  characters: hp === null ? [] : [{ id: `${userId}-char`, name: `${userName}'s hero`, tokenImageUrl: null, gameSystem: GameSystem.FIFTH_EDITION, userId, hp: { current: hp, max: 10, temp: 0 } }],
 });
 
 beforeEach(() => {
@@ -147,8 +147,8 @@ describe("a character's row, pressed and held by a finger", () => {
   }
 
   it.each([
-    ['the GM, on a player\'s character', 'GM', 'dm', "Ash's hero", ['View Character Sheet', 'Roll...', 'Edit Character Sheet', 'Add to Map', 'Remove from Campaign']],
-    ['a player, on their own character', 'PLAYER', 'p1', "Ash's hero", ['View Character Sheet', 'Roll...', 'Edit Character Sheet', 'Remove from Campaign']],
+    ['the GM, on a player\'s character', 'GM', 'dm', "Ash's hero", ['View Character Sheet', 'Roll...', 'Temporary HP...', 'Edit Character Sheet', 'Add to Map', 'Give item…', 'Remove from Campaign']],
+    ['a player, on their own character', 'PLAYER', 'p1', "Ash's hero", ['View Character Sheet', 'Roll...', 'Temporary HP...', 'Edit Character Sheet', 'Remove from Campaign']],
     ["a player, on another player's character", 'PLAYER', 'p1', "Bo's hero", ['View Character Sheet']],
   ])('opens the menu a right-click opens, item for item, for %s', async (_who, role, userId, name, items) => {
     seat.role = role;
@@ -235,7 +235,7 @@ describe("a character's row, pressed and held by a finger", () => {
     const menus = document.querySelectorAll<HTMLElement>('div.fixed.z-50');
     expect(menus).toHaveLength(1);
     expect({ left: menus[0]!.style.left, top: menus[0]!.style.top }).toEqual({ left: '120px', top: '200px' });
-    expect(menuLabels()).toEqual(['View Character Sheet', 'Roll...', 'Edit Character Sheet', 'Add to Map', 'Remove from Campaign']);
+    expect(menuLabels()).toEqual(['View Character Sheet', 'Roll...', 'Temporary HP...', 'Edit Character Sheet', 'Add to Map', 'Give item…', 'Remove from Campaign']);
     vi.useRealTimers();
     fireEvent.click(screen.getByRole('button', { name: /Remove from Campaign/ }));
     fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));

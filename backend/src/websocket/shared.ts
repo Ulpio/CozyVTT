@@ -315,6 +315,23 @@ export const SOCKET_CEILINGS = {
     windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
     refusal: 'Too many ammunition pick-ups at once. Wait a moment, then try again.',
   },
+  // A write under the character's row and a stored chat message, and one a GM
+  // does a few of in a row at most.
+  'character.item.give': {
+    windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
+    refusal: 'Too many items given at once. Wait a moment, then try again.',
+  },
+  // A write to the chat, and one a GM sends a few of in a row at most.
+  'gm.notice': {
+    windows: [{ limit: 10, windowMs: SECOND }, { limit: 120, windowMs: MINUTE }],
+    refusal: 'Too many notices at once. Wait a moment, then try again.',
+  },
+  // One event rolls up to 20 characters, each a stored row: a GM's check or
+  // two in a row at most.
+  'gm.secretCheck': {
+    windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
+    refusal: 'Too many secret checks at once. Wait a moment, then try again.',
+  },
   // Their own budget, apart from the drag frames: each drop is a write under
   // the map's lock, and on a lit map line of sight for every player.
   'token.move.start': tokenMoves,

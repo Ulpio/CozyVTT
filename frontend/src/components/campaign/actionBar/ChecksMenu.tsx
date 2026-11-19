@@ -50,6 +50,14 @@ const SKILL_KEYS = {
 
 type Translate = (key: never, options?: Record<string, unknown>) => string;
 
+/** A check's name in the app's language from its English name; a name with no translation keeps it. */
+export function checkName(section: (typeof SECTIONS)[number], english: string, t: Translate): string {
+  const key = section === 'skills' ? SKILL_KEYS[english as keyof typeof SKILL_KEYS] : ABILITY_KEYS[english as keyof typeof ABILITY_KEYS];
+  if (!key) return english;
+  const name = t(key as never);
+  return section === 'savingThrows' ? t('actionBar.checkSave' as never, { name }) : name;
+}
+
 /** The roll's label in the app's language: its name translated, its signed bonus kept. */
 export function checkLabel(section: (typeof SECTIONS)[number], option: RollOption, t: Translate): string {
   const bonus = /\s([+-]\d+)$/.exec(option.label)?.[1];

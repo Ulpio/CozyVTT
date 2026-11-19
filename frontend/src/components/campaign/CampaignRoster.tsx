@@ -19,7 +19,7 @@ import { api } from '@/services/api';
 import { GAME_SYSTEM_SHORT_LABELS, GAME_SYSTEM_TINTS, UNSUPPORTED_SYSTEM_LABEL, isGameSystem } from '@/constants/game-systems';
 import { apiErrorMessage, errorSummary } from '@/utils/errors';
 import { canRollAsCharacter, canEditCharacter, canRemoveCharacterFromCampaign } from '@/services/permissions';
-import { Users, Crown, Gamepad2, Eye, Edit, X, Minus, Plus, Dices, MapPin, GripVertical, ShieldPlus } from 'lucide-react';
+import { Users, Crown, Gamepad2, Eye, Edit, X, Minus, Plus, Dices, MapPin, GripVertical, ShieldPlus, Gift } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { CharacterHpInfo } from '@/utils/characterHp';
 import CharacterSheetViewerModal from '../character/CharacterSheetViewerModal';
@@ -27,6 +27,8 @@ import CharacterSheetEditorModal from '../character/CharacterSheetEditorModal';
 import CharacterContextMenu from './CharacterContextMenu';
 import CharacterRollPicker from './CharacterRollPicker';
 import TemporaryHpDialog from './TemporaryHpDialog';
+import GiveItemDialog from './GiveItemDialog';
+import { useTranslation } from 'react-i18next';
 import { characterTemporaryHp } from '@/utils/temporaryHp';
 import Toast, { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -44,6 +46,7 @@ export default function CampaignRoster() {
   const { socket } = useWebSocket();
   const tableRoll = useTableRoll(socket);
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast, showToast, hideToast } = useToast();
   const [roster, setRoster] = useState<RosterMember[]>([]);
   // Who is connected right now, shown as a dot beside each member. This is
@@ -67,6 +70,8 @@ export default function CampaignRoster() {
   // The character Remove from Campaign asks about. Kept apart from the menu,
   // which closes as soon as the item is chosen.
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  // The character the GM's Give item... dialog is open for.
+  const [giveItemTo, setGiveItemTo] = useState<string | null>(null);
 
   // Each fetch is numbered and only the newest answer is shown: two
   // refetches can answer out of order.
@@ -280,6 +285,18 @@ export default function CampaignRoster() {
     if (membership.role === 'GM' && viewedMap) {
       items.push({ kind: 'command', id: 'add-to-map', icon: MapPin, label: 'Add to Map', run: handleAddTokenToMap });
     }
+    // The GM gives any character an item, whoever plays it (or nobody does).
+    // Only a 5e sheet has the inventory it goes into; the server refuses the others.
+    const givable = roster.flatMap((member) => member.characters).find((c) => c.id === menu.characterId)?.gameSystem === 'FIFTH_EDITION';
+    if (membership.role === 'GM' && givable) {
+      items.push({
+        kind: 'command', id: 'give-item', icon: Gift, label: t('giveItem.menu'),
+        run: () => {
+          setGiveItemTo(menu.characterId);
+          handleCloseContextMenu();
+        },
+      });
+    }
     // "Reassign to Player" used to sit here. It never did anything —
     // it popped "not yet available" — and there is no endpoint behind
     // it either: /characters/:id/assign moves a character between
@@ -455,6 +472,21 @@ export default function CampaignRoster() {
             system={target.system}
             onTake={(temporary) => socket?.emitCharacterTemporaryHp({ characterId: target.characterId, temporary })}
             onClose={() => setTemporaryHpFor(null)}
+          />
+        );
+      })()}
+
+      {/* Give item..., from a character's menu */}
+      {giveItemTo && campaign && userMembership?.role === 'GM' && (() => {
+        const name = roster.flatMap((member) => member.characters).find((c) => c.id === giveItemTo)?.name;
+        if (name === undefined) return null;
+        return (
+          <GiveItemDialog
+            campaignId={campaign.id}
+            characterId={giveItemTo}
+            characterName={name}
+            onGiven={(noticeSent) => showToast(t(noticeSent ? 'giveItem.delivered' : 'giveItem.deliveredNoNotice'), 'success')}
+            onClose={() => setGiveItemTo(null)}
           />
         );
       })()}

@@ -12,7 +12,7 @@
 
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, ChevronDown, Cloud, Ghost, Keyboard, Map as MapIcon, Settings, Skull, Stamp, Swords, type LucideIcon } from 'lucide-react';
+import { BookOpen, ChevronDown, Cloud, EyeOff, Ghost, Keyboard, Map as MapIcon, Settings, Skull, Stamp, Swords, type LucideIcon } from 'lucide-react';
 import CharacterContextMenu from '@/components/campaign/CharacterContextMenu';
 import type { SessionToolKey } from '@/components/campaign/SessionToolbar';
 import type { FlatMenuItem } from '@/components/ui/menu';
@@ -36,6 +36,7 @@ const TOOL_ICONS: Record<SessionToolKey, LucideIcon> = {
   templates: Stamp,
   spirit: Ghost,
   atmosphere: Cloud,
+  secretCheck: EyeOff,
   settings: Settings,
 };
 const iconOf = (key: SessionToolKey): LucideIcon => TOOL_ICONS[key];
@@ -52,6 +53,7 @@ const MENUS: { id: MenuId; entries: Entry[] }[] = [
   {
     id: 'table',
     entries: [
+      { key: 'secretCheck', icon: iconOf('secretCheck') },
       { key: 'documents', icon: BookOpen },
       { key: 'shortcuts', icon: Keyboard },
       { key: 'settings', icon: iconOf('settings') },

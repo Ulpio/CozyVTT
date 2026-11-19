@@ -25,6 +25,9 @@ import { freshSpend, getState, setState, withCombatLock, type TurnSpend } from '
 import { resendInitiative } from '../websocket/handlers/initiative';
 import { REFUSAL_MESSAGES, applySpend, canSpend } from '../utils/turnEconomy';
 import type { ActionCard, Viewer } from '../rules/actions/actionCard';
+import { SHEET_LIST_MAX } from '../validators/game-systems/sheetLimits';
+import { enabledBookIds } from '../compendium/campaignBooks';
+import { GM_ONLY, NO_CHARACTER, noticeRecipient, sendNotice } from './gmNotice';
 import { addToStack } from './actionResolver/ammunition';
 import { NOT_YOUR_TOKEN, holdSheets, refuse, writeSheets, type Refusal, type Sheet } from './actionResolver/common';
 
@@ -367,6 +370,130 @@ export async function openPack(campaignId: string, requester: Viewer, characterI
     await writeSheets(tx, held);
     return { ok: true as const };
   });
+}
+
+export const COMPENDIUM_ITEM_NOT_FOUND = 'Item não encontrado no compêndio.';
+export const GIVE_QUANTITY = 'A quantidade precisa ser um número inteiro de 1 a 999.';
+export const GIVE_NAME = 'O nome do item precisa ter de 1 a 120 caracteres.';
+export const GIVE_NOTES = 'A anotação do item pode ter até 500 caracteres.';
+export const BACKPACK_FULL = 'A mochila está cheia.';
+export const GIVE_ONE_OF = 'Escolha um item do compêndio ou digite um nome, não os dois.';
+
+/** The entry types the GM may give from the compendium, in the order a slug shared by two is read. */
+const GIVABLE_TYPES = ['weapon', 'armor', 'gear', 'tool', 'pack', 'magicItem'] as const;
+
+export type GiveTarget = { ref: { bookId: string; slug: string } } | { name: string; notes?: string };
+
+/**
+ * Give a character an item, into the backpack (no slot): from the compendium
+ * (an entry of a book the campaign uses: it takes the entry's name, weight in
+ * pounds and `compendiumRef`; ammunition bundles become units) or typed free.
+ * It adds to a stack of the same entry already in the backpack (or the ammo
+ * slot) and never to a weapon or armour held in a hand or body slot. The row
+ * is held like the other inventory changes. Then the owner, when a player at
+ * the table, gets the "Você recebeu" notice; the item stands whether or not it
+ * could be sent.
+ */
+export async function giveItem(
+  campaignId: string,
+  requester: Viewer,
+  characterId: string,
+  item: GiveTarget,
+  quantity: number,
+): Promise<{ ok: true; itemId: string; noticeSent: boolean } | Refusal> {
+  if (requester.role !== 'GM') return refuse(GM_ONLY);
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return refuse(GIVE_QUANTITY);
+
+  let free: { name: string; notes?: string } | null = null;
+  if ('name' in item) {
+    const name = typeof item.name === 'string' ? item.name.trim() : '';
+    if (name.length < 1 || name.length > 120) return refuse(GIVE_NAME);
+    const notes = typeof item.notes === 'string' ? item.notes.trim() : '';
+    if (item.notes !== undefined && typeof item.notes !== 'string') return refuse(GIVE_NOTES);
+    if (notes.length > 500) return refuse(GIVE_NOTES);
+    free = { name, ...(notes ? { notes } : {}) };
+  }
+
+  const character = await prisma.character.findUnique({ where: { id: characterId } });
+  // Naming the campaign is enough: an owner who left still has a character the GM may fill (and no notice then).
+  if (!character || character.campaignId !== campaignId) return refuse(NO_CHARACTER);
+  if (character.gameSystem !== 'FIFTH_EDITION') return refuse(NOT_FIFTH_EDITION);
+
+  let entry: { bookId: string; slug: string; name: string; data: Record<string, unknown> } | undefined;
+  if (!free) {
+    const wanted = (item as { ref: { bookId: unknown; slug: unknown } }).ref;
+    const key = keyOf(wanted);
+    if (!key) return refuse(COMPENDIUM_ITEM_NOT_FOUND);
+    const books = await enabledBookIds(campaignId);
+    if (!books.includes(wanted.bookId as string)) return refuse(COMPENDIUM_ITEM_NOT_FOUND);
+    const rows = await prisma.compendiumEntry.findMany({
+      where: { bookId: wanted.bookId as string, slug: wanted.slug as string, type: { in: [...GIVABLE_TYPES] } },
+      select: { bookId: true, type: true, slug: true, name: true, data: true },
+    });
+    rows.sort((a, b) => GIVABLE_TYPES.indexOf(a.type as never) - GIVABLE_TYPES.indexOf(b.type as never));
+    if (!rows[0]) return refuse(COMPENDIUM_ITEM_NOT_FOUND);
+    entry = { ...rows[0], data: (rows[0].data ?? {}) as Record<string, unknown> };
+  }
+
+  const outcome = await prisma.$transaction(async (tx) => {
+    const held = await holdSheets(tx, [characterId]);
+    const h = held.get(characterId);
+    if (!h) return refuse(NO_CHARACTER);
+    const known = await lookUp(Array.isArray(h.data.inventory) ? (h.data.inventory as Item[]) : [], tx);
+    const sheet = normalizeInventory(h.data as Held, hintsFrom(known));
+    const items = ((sheet.inventory ?? []) as StoredItem[]).map((i) => ({ ...i }));
+    const taken = new Set(items.map((i) => i.id).filter((id): id is string => !!id));
+
+    let given: { id: string; name: string; quantity: number; ref?: { bookId: string; slug: string } };
+    if (entry) {
+      const key = `${entry.bookId}/${entry.slug}`;
+      const isAmmo = (await lookUp([{ name: entry.name, compendiumRef: { bookId: entry.bookId, slug: entry.slug } }], tx)).ammo.has(key);
+      const bundle = isAmmo ? ammoBundleSize(entry.name) : null;
+      const name = bundle ? entry.name.replace(/\s*\(\d+\)\s*$/, '') : entry.name;
+      const units = bundle ? quantity * bundle : quantity;
+      const same = items.find((i) => keyOf(i.compendiumRef) === key && i.slot === undefined) ?? items.find((i) => keyOf(i.compendiumRef) === key && i.slot === 'ammo');
+      if (same) {
+        same.quantity = (same.quantity ?? 1) + units;
+        given = { id: same.id as string, name, quantity: units, ref: { bookId: entry.bookId, slug: entry.slug } };
+      } else {
+        if (items.length >= SHEET_LIST_MAX) return refuse(BACKPACK_FULL);
+        const kg = entry.data.weight;
+        const id = newId(taken);
+        items.push({
+          id,
+          name,
+          quantity: units,
+          ...(typeof kg === 'number' ? { weight: (kg * 2) / (bundle ?? 1) } : {}),
+          compendiumRef: { bookId: entry.bookId, slug: entry.slug },
+        });
+        given = { id, name, quantity: units, ref: { bookId: entry.bookId, slug: entry.slug } };
+      }
+    } else {
+      if (items.length >= SHEET_LIST_MAX) return refuse(BACKPACK_FULL);
+      const id = newId(taken);
+      items.push({ id, name: free!.name, quantity, ...(free!.notes ? { notes: free!.notes } : {}) } as StoredItem);
+      given = { id, name: free!.name, quantity };
+    }
+
+    h.data = { ...sheet, inventory: items } as Sheet;
+    h.changed = true;
+    await writeSheets(tx, held);
+    return { ok: true as const, given };
+  });
+  if (!outcome.ok) return outcome;
+  const { given } = outcome;
+
+  let noticeSent = false;
+  if ((await noticeRecipient(campaignId, characterId)) !== null) {
+    const text = given.quantity === 1 ? `Você recebeu: ${given.name}` : `Você recebeu: ${given.name} ×${given.quantity}`;
+    // The item is stored; a notice that cannot be sent does not take it back.
+    try {
+      noticeSent = (await sendNotice(campaignId, requester, characterId, text, { name: given.name, quantity: given.quantity, ...(given.ref ? { compendiumRef: given.ref } : {}) })).ok;
+    } catch {
+      noticeSent = false;
+    }
+  }
+  return { ok: true, itemId: given.id, noticeSent };
 }
 
 export const NO_RECOVERY_IN_COMBAT = 'Não dá para recolher munição durante o combate.';

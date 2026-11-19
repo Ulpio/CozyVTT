@@ -13,6 +13,7 @@ import {
   Stamp,
   Ghost,
   Cloud,
+  EyeOff,
   Settings,
   type LucideIcon,
 } from 'lucide-react';
@@ -27,6 +28,7 @@ export type SessionToolKey =
   | 'templates'
   | 'spirit'
   | 'atmosphere'
+  | 'secretCheck'
   | 'settings';
 
 export interface ToolDef {
@@ -49,7 +51,10 @@ export const TOOL_GROUPS: ToolDef[][] = [
     { key: 'spirit', label: 'Spirit Layer', icon: Ghost },
     { key: 'atmosphere', label: 'Atmosphere', icon: Cloud },
   ],
-  [{ key: 'settings', label: 'Campaign Settings', icon: Settings }],
+  [
+    { key: 'secretCheck', label: 'Secret check', icon: EyeOff },
+    { key: 'settings', label: 'Campaign Settings', icon: Settings },
+  ],
 ];
 
 interface SessionToolbarProps {

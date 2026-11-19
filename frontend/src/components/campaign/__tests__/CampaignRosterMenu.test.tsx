@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
-import { CampaignRole, type RosterMember } from '@/types';
+import { CampaignRole, GameSystem, type RosterMember } from '@/types';
 import { useGameStore } from '@/stores/gameStore';
 import { characterMenuRows, openCharacterMenu } from '@/test/characterMenuRows';
 
@@ -52,10 +52,10 @@ vi.mock('../CharacterRollPicker', () => ({
 import CampaignRoster from '../CampaignRoster';
 import { LayoutProvider } from '@/contexts/LayoutContext';
 
-const member = (userId: string, userName: string, role: CampaignRole): RosterMember => ({
+const member = (userId: string, userName: string, role: CampaignRole, gameSystem: GameSystem | null = GameSystem.FIFTH_EDITION): RosterMember => ({
   userId, userName, userAvatar: null, role, joinedAt: '2026-10-01T00:00:00.000Z',
   characters: role === CampaignRole.GM ? [] : [{
-    id: `${userId}-char`, name: `${userName}'s hero`, tokenImageUrl: null, gameSystem: null, userId, hp: { current: 7, max: 10, temp: 0 },
+    id: `${userId}-char`, name: `${userName}'s hero`, tokenImageUrl: null, gameSystem, userId, hp: { current: 7, max: 10, temp: 0 },
   }],
 });
 
@@ -64,7 +64,7 @@ beforeEach(() => {
   h.seat.userId = 'dm';
   h.currentMap = { id: 'map-1', width: 20, height: 20 };
   h.api.getCampaignCharacters.mockReset().mockResolvedValue({
-    roster: [member('dm', 'Mara', CampaignRole.GM), member('p1', 'Ash', CampaignRole.PLAYER), member('p2', 'Bea', CampaignRole.PLAYER)],
+    roster: [member('dm', 'Mara', CampaignRole.GM), member('p1', 'Ash', CampaignRole.PLAYER), member('p2', 'Bea', CampaignRole.PLAYER, GameSystem.HORROR_D100)],
   });
   h.api.getCharacter.mockReset().mockImplementation(async (id: string) => ({ character: { id } }));
   h.api.assignCharacterToCampaign.mockReset().mockResolvedValue({});
@@ -79,8 +79,10 @@ async function rightClick(name: string) {
 const EVERY_ITEM = [
   '[eye] View Character Sheet',
   '[dices] Roll...',
+  '[shield-plus] Temporary HP...',
   '[square-pen] Edit Character Sheet',
   '[map-pin] Add to Map',
+  '[gift] Give item…',
   '[x] Remove from Campaign (danger)',
 ];
 
@@ -91,6 +93,13 @@ describe("a roster character's menu", () => {
 
     expect(characterMenuRows()).toEqual(EVERY_ITEM);
     expect(openCharacterMenu()!.getAttribute('style')).toBe('left: 40px; top: 60px; visibility: visible;');
+  });
+
+  it('offers the GM no Give item on a character that is not D&D 5e, which has no inventory slots', async () => {
+    render(<CampaignRoster />);
+    await rightClick("Bea's hero");
+
+    expect(characterMenuRows()).toEqual(EVERY_ITEM.filter((r) => !r.includes('Give item') && !r.includes('Temporary HP')));
   });
 
   it('offers the GM no Add to Map with no map showing', async () => {
@@ -106,7 +115,7 @@ describe("a roster character's menu", () => {
     render(<CampaignRoster />);
     await rightClick("Ash's hero");
 
-    expect(characterMenuRows()).toEqual(EVERY_ITEM.filter((r) => !r.includes('Add to Map')));
+    expect(characterMenuRows()).toEqual(EVERY_ITEM.filter((r) => !r.includes('Add to Map') && !r.includes('Give item')));
   });
 
   it("offers a player the sheet alone on another player's character", async () => {
@@ -157,6 +166,11 @@ describe("what a roster character's menu items do", () => {
     expect(h.api.addToken).toHaveBeenCalledWith('c1', 'map-1', expect.objectContaining({ characterId: 'p1-char', position: { x: 10, y: 10 } }));
   });
 
+  it('Give item… opens the dialog for that character and closes the menu', async () => {
+    expect(await choose('Give item…')).toBe(true);
+    expect(screen.getByRole('dialog', { name: "Give item to Ash's hero" })).toBeInTheDocument();
+  });
+
   it('Remove from Campaign asks first and closes the menu', async () => {
     expect(await choose('Remove from Campaign')).toBe(true);
     expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
@@ -171,7 +185,7 @@ describe("a roster character's menu on the compact layout", () => {
 
     const sheet = screen.getByRole('dialog', { name: "Ash's hero" });
     expect(within(sheet).getAllByRole('button').map((b) => b.textContent)).toEqual([
-      'View Character Sheet', 'Roll...', 'Edit Character Sheet', 'Add to Map', 'Remove from Campaign', 'Cancel',
+      'View Character Sheet', 'Roll...', 'Temporary HP...', 'Edit Character Sheet', 'Add to Map', 'Give item…', 'Remove from Campaign', 'Cancel',
     ]);
     expect(openCharacterMenu()).toBeNull();
   });
@@ -209,7 +223,7 @@ describe('Temporary HP... on a roster character', () => {
     expect(characterMenuRows()).not.toContain(TEMPORARY_HP);
     unmount();
 
-    h.api.getCampaignCharacters.mockResolvedValue({ roster: inSystem('HORROR_D100') });
+    h.api.getCampaignCharacters.mockResolvedValue({ roster: inSystem(GameSystem.HORROR_D100) });
     render(<CampaignRoster />);
     await rightClick("Ash's hero");
     expect(characterMenuRows()).not.toContain(TEMPORARY_HP);
