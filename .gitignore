@@ -155,3 +155,8 @@ system-docs/
 
 # ---- Personal RPG source material (rulebooks, PDFs) — private, never commit --
 materiais/
+
+# ---- A table's own item icons ------------------------------------------------
+# Pictures a group keeps for itself (map.json + image files). They are never
+# published with the repository; without the folder the built-in icons show.
+frontend/public/icons/local/
