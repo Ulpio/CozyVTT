@@ -852,6 +852,21 @@ class SocketClient {
     return this.askFor<{ ok: boolean; messageId?: string }>('character.rest', data, ACTION_ANSWER_TIMEOUT_MS, "The rest didn't come back. Check your connection and try again.");
   }
 
+  /** Put an item in a body slot, or back in the backpack with `slot: null` (`character.equip`); the server checks the hand rules. */
+  equipItem(data: { characterId: string; itemId: string; slot: 'main' | 'off' | 'both' | 'armor' | 'ammo' | null }): Promise<{ ok: boolean; ac?: number; acUnknown?: boolean; error?: string }> {
+    return this.askFor<{ ok: boolean; ac?: number; acUnknown?: boolean }>('character.equip', data, ACTION_ANSWER_TIMEOUT_MS, "The change didn't come back. Check your connection and try again.");
+  }
+
+  /** Open a pack into its items (`character.pack.open`). */
+  openPack(data: { characterId: string; itemId: string }): Promise<{ ok: boolean; error?: string }> {
+    return this.askFor<{ ok: boolean }>('character.pack.open', data, ACTION_ANSWER_TIMEOUT_MS, "The pack didn't open. Check your connection and try again.");
+  }
+
+  /** Pick up half the ammunition shot since the last time (`character.ammo.recover`). */
+  recoverAmmo(data: { characterId: string }): Promise<{ ok: boolean; recovered?: Record<string, number>; error?: string }> {
+    return this.askFor<{ ok: boolean; recovered?: Record<string, number> }>('character.ammo.recover', data, ACTION_ANSWER_TIMEOUT_MS, "The ammunition didn't come back. Check your connection and try again.");
+  }
+
   emitInitiativeRequestState() {
     this.socket?.emit('initiative.request_state');
   }

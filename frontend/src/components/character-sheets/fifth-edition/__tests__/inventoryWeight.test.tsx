@@ -45,7 +45,7 @@ describe('inventory weight', () => {
     const character: Character = fifthEditionCharacter();
     render(<FifthEditionCharacterView character={character} campaignDetailLevel={detailLevel} />);
     fireEvent.click(screen.getByRole('tab', { name: /Inventory/ }));
-    expect(screen.queryAllByText(/Total Weight/).length > 0).toBe(shown);
+    expect(screen.queryAllByText(/^Load:/).length > 0).toBe(shown);
   });
 
   it.each([
@@ -55,6 +55,6 @@ describe('inventory weight', () => {
     campaignInView = { id: 'camp-1', detailLevel: 'FLEXIBLE' };
     render(<FifthEditionCharacterView character={{ ...fifthEditionCharacter(), campaignId }} />);
     fireEvent.click(screen.getByRole('tab', { name: /Inventory/ }));
-    expect(screen.queryAllByText(/Total Weight/).length > 0).toBe(shown);
+    expect(screen.queryAllByText(/^Load:/).length > 0).toBe(shown);
   });
 });

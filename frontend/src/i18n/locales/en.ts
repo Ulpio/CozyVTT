@@ -290,6 +290,31 @@ const en = {
     },
   },
 
+  inventoryPanel: {
+    slots: { main: 'Main hand', off: 'Off hand', armor: 'Armour', ammo: 'Ammunition' },
+    empty: 'Empty',
+    backpack: 'Backpack',
+    emptyBackpack: 'The backpack is empty.',
+    currency: 'Currency',
+    load: 'Load: {{total}} of {{capacity}} kg',
+    quantity: '{{count}} × {{name}}',
+    weight: 'Weight: {{kg}} kg',
+    close: 'Close',
+    actions: {
+      main: 'In the main hand',
+      off: 'In the off hand',
+      both: 'With both hands',
+      armor: 'Wear',
+      ammo: 'Ready ammunition',
+      stow: 'Stow',
+      openPack: 'Open pack',
+    },
+    recover: 'Recover ammunition (half: {{half}} of {{total}})',
+    acUnknown: 'The AC was not adjusted: this armour is not in the compendium.',
+    failed: 'The change could not be made.',
+    attunement: 'Attunement slots: {{used}} of 3',
+  },
+
   guidedCreation: {
     title: 'Guided creation',
     loading: 'Loading the compendium...',

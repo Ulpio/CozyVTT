@@ -15,6 +15,7 @@ export function ItemIcon({ item, entryType, entryData, size = 32 }: ItemIconProp
   return (
     <span
       aria-hidden="true"
+      data-testid="item-icon"
       className="inline-flex shrink-0 items-center justify-center rounded-md border border-[#5a5040] bg-[#2f2a22] text-[#e8dcc0]"
       style={{ width: size, height: size }}
     >

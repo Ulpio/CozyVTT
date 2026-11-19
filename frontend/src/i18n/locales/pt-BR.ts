@@ -293,6 +293,31 @@ const ptBR: Messages = {
     },
   },
 
+  inventoryPanel: {
+    slots: { main: 'Mão principal', off: 'Outra mão', armor: 'Armadura', ammo: 'Munição' },
+    empty: 'Vazio',
+    backpack: 'Mochila',
+    emptyBackpack: 'A mochila está vazia.',
+    currency: 'Moedas',
+    load: 'Carga: {{total}} de {{capacity}} kg',
+    quantity: '{{count}} × {{name}}',
+    weight: 'Peso: {{kg}} kg',
+    close: 'Fechar',
+    actions: {
+      main: 'Na mão principal',
+      off: 'Na outra mão',
+      both: 'Com as duas mãos',
+      armor: 'Vestir',
+      ammo: 'Preparar munição',
+      stow: 'Guardar',
+      openPack: 'Abrir pacote',
+    },
+    recover: 'Recuperar munição (metade: {{half}} de {{total}})',
+    acUnknown: 'A CA não foi ajustada: essa armadura não está no compêndio.',
+    failed: 'Não foi possível fazer a mudança.',
+    attunement: 'Espaços de sintonia: {{used}} de 3',
+  },
+
   guidedCreation: {
     title: 'Criação guiada',
     loading: 'Carregando o compêndio...',

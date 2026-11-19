@@ -23,6 +23,7 @@ import {
 import { hitDieExpression, hitDiceMaximum, spendRoll, canSpendHitDie } from '@/utils/hitDice';
 import type { CampaignDetailLevel, Character } from '../../../types';
 import { useOptionalCampaign } from '@/contexts/CampaignContext';
+import { useOptionalAuth } from '@/contexts/AuthContext';
 import type {
   FifthEditionCharacterData,
   FifthEditionSavingThrow,
@@ -30,7 +31,7 @@ import type {
 import { StatBlock } from './components/StatBlock';
 import { SkillsList } from './components/SkillsList';
 import { AttacksList } from './components/AttacksList';
-import { InventoryList } from './components/InventoryList';
+import { InventoryPanel } from './components/InventoryPanel';
 import { SpellcastingBlock } from './components/SpellcastingBlock';
 import {
   passiveScore,
@@ -99,7 +100,11 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
   const [activeTab, setActiveTab] = useState<TabId>('stats');
   const sheetTabsId = useId();
   const data = character.data as FifthEditionCharacterData;
-  const shownIn = useOptionalCampaign()?.campaign;
+  const campaignContext = useOptionalCampaign();
+  const shownIn = campaignContext?.campaign;
+  const viewer = useOptionalAuth()?.user;
+  // The owner and the GM act on the inventory; the server checks it again.
+  const canActOnInventory = !!viewer && (campaignContext?.userRole === 'GM' || viewer.id === character.userId);
   const detailLevel = campaignDetailLevel ?? (shownIn && shownIn.id === character.campaignId ? shownIn.detailLevel : undefined);
   const [themeColor, setThemeColor] = useState(COLOR_PRESETS[0]);
   const [isCustomColor, setIsCustomColor] = useState(false);
@@ -555,11 +560,14 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
   // Render Inventory tab
   const renderInventoryTab = () => (
     <div>
-      <InventoryList
+      <InventoryPanel
+        characterId={character.id}
         inventory={data.inventory}
         currency={data.currency}
         strengthScore={data.stats?.strength?.score}
-        showWeight={detailLevel !== 'FLEXIBLE'}
+        ammoToRecover={data.ammoToRecover}
+        detailLevel={detailLevel}
+        canAct={canActOnInventory}
       />
     </div>
   );
