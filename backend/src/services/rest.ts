@@ -12,6 +12,7 @@
 
 import { prisma } from '../config/database';
 import { toJson } from '../utils/prisma-json';
+import { randomUUID } from 'crypto';
 import logger from '../utils/logger';
 import { whisperGm } from './gmWhisper';
 import { characterInCampaign } from '../utils/characterCampaign';
@@ -43,10 +44,8 @@ function poolMaximum(pool: { maximum?: unknown; total?: unknown }): number | nul
 }
 
 /** The parts of a sheet a rest may change, as they are, for the undo. */
-function snapshot(sheet: Sheet, withInventory = false): Record<string, unknown> {
+function snapshot(sheet: Sheet): Record<string, unknown> {
   const before: Record<string, unknown> = {};
-  // Only a rest that eats a ration keeps the inventory, so undoing any other leaves later changes to it alone.
-  if (withInventory && Array.isArray(sheet.inventory)) before.inventory = structuredClone(sheet.inventory);
   if (sheet.hp) before.hp = structuredClone(sheet.hp);
   if (sheet.spellcasting?.slots) before.spellcasting = { slots: structuredClone(sheet.spellcasting.slots) };
   if (sheet.featureUses) before.featureUses = structuredClone(sheet.featureUses);
@@ -69,16 +68,19 @@ const plain = (s: unknown): string => (typeof s === 'string' ? s.normalize('NFD'
  * Eats one ration from a held sheet: the first item with the travel-rations
  * slug, else the first whose plain name starts with "racao" or "racoes" (one
  * with none left is passed over). An item eaten down to 0 stays in the list at 0,
- * as a spent stack of ammunition does. Returns whether there was one to eat.
+ * as a spent stack of ammunition does. Gives the item an id when it has none.
+ * Returns what was eaten, for the undo, or null when there was nothing to eat.
  */
-function eatRation(held: HeldSheet): boolean {
-  const items = (Array.isArray(held.data.inventory) ? held.data.inventory : []) as { name?: string; quantity?: number; compendiumRef?: { slug?: string } }[];
-  const left = (i: { quantity?: number }) => (i.quantity ?? 1) > 0;
+function eatRation(held: HeldSheet): NonNullable<ActionCard['undo']['rations']>[number] | null {
+  type Item = { id?: string; name?: string; quantity?: number; compendiumRef?: { bookId: string; type?: string; slug: string } };
+  const items = (Array.isArray(held.data.inventory) ? held.data.inventory : []) as Item[];
+  const left = (i: Item) => (i.quantity ?? 1) > 0;
   const stack = items.find((i) => i.compendiumRef?.slug === RATION_SLUG && left(i)) ?? items.find((i) => /^(racao|racoes)/.test(plain(i.name)) && left(i));
-  if (!stack) return false;
+  if (!stack) return null;
+  if (!stack.id) stack.id = `inv-${randomUUID().slice(0, 8)}`;
   stack.quantity = (stack.quantity ?? 1) - 1;
   held.changed = true;
-  return true;
+  return { characterId: '', itemId: stack.id, name: stack.name ?? '', ...(stack.compendiumRef ? { compendiumRef: stack.compendiumRef } : {}), amount: 1 };
 }
 
 /** Gives back what the rest gives to one held sheet; returns what came back, in words, and the states ended. */
@@ -195,18 +197,18 @@ export async function takeRest(campaignId: string, requester: Viewer, characterI
 
     for (const id of ids) {
       const sheet = held.get(id)!;
-      const eats = faithful && kind === 'long';
-      const before = snapshot(sheet.data, eats);
+      const before = snapshot(sheet.data);
       const { came, ended } = rest(sheet, features.get(id) ?? [], kind);
       undo.sheets!.push({ characterId: id, before });
-      let hasNone = false;
-      if (eats) {
-        if (eatRation(sheet)) came.push('comeu 1 ração');
-        else hasNone = true;
+      const eaten = faithful && kind === 'long' ? eatRation(sheet) : undefined;
+      if (eaten) {
+        came.push('comeu 1 ração');
+        (undo.rations ??= []).push({ ...eaten, characterId: id });
       }
-      if (hasNone) {
+      if (eaten === null) {
         hungry.push(sheet.character.name);
-        lines.push(came.length > 0 ? `${sheet.character.name}: ${came.join(', ')}` : '', `${sheet.character.name} ficou sem ração.`);
+        if (came.length > 0) lines.push(`${sheet.character.name}: ${came.join(', ')}`);
+        lines.push(`${sheet.character.name} ficou sem ração.`);
       } else {
         lines.push(`${sheet.character.name}: ${came.length > 0 ? came.join(', ') : 'nada a recuperar'}`);
       }

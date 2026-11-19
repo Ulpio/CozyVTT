@@ -115,3 +115,25 @@ export function restoreRecovery(undo: UndoRecord, held: Map<string, { data: Shee
   setPending(sheet.data, counts);
   sheet.changed = true;
 }
+
+/**
+ * The GM's undo of a long rest's meal: each ration eaten goes back on its item
+ * (found by id, then by the rations slug, then by name), and the item is made
+ * again when it is gone. Later changes to the inventory stay.
+ */
+export function restoreRations(undo: UndoRecord, held: Map<string, { data: Sheet; changed: boolean }>): void {
+  for (const eaten of undo.rations ?? []) {
+    const sheet = held.get(eaten.characterId);
+    if (!sheet) continue;
+    const items = stacksOf(sheet.data);
+    const stack = items.find((i) => i.id === eaten.itemId)
+      ?? (eaten.compendiumRef ? items.find((i) => i.compendiumRef?.slug === eaten.compendiumRef!.slug) : undefined)
+      ?? items.find((i) => i.name === eaten.name);
+    if (stack) stack.quantity = (stack.quantity ?? 0) + eaten.amount;
+    else {
+      const created: Stack = { id: eaten.itemId, name: eaten.name, quantity: eaten.amount, ...(eaten.compendiumRef ? { compendiumRef: eaten.compendiumRef } : {}) };
+      sheet.data.inventory = [...items, created] as unknown as Sheet['inventory'];
+    }
+    sheet.changed = true;
+  }
+}

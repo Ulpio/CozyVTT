@@ -272,8 +272,8 @@ describe('rations on a long rest', () => {
     expect((await data('barb')).inventory[0].quantity).toBe(0);
     expect(await whispers()).toHaveLength(0);
     ok(await undoAction(campaignId, gm, out.messageId));
-    expect((await data('fighter')).inventory).toEqual([{ name: 'Ração seca', quantity: 2 }]);
-    expect((await data('barb')).inventory).toEqual([{ name: 'RACOES', quantity: 1 }]);
+    expect((await data('fighter')).inventory).toMatchObject([{ name: 'Ração seca', quantity: 2 }]);
+    expect((await data('barb')).inventory).toMatchObject([{ name: 'RACOES', quantity: 1 }]);
   });
 
   it('eats nothing on a short rest or in a Flexible campaign', async () => {
@@ -285,5 +285,26 @@ describe('rations on a long rest', () => {
     ok(await takeRest(campaignId, gm, [ids.fighter, ids.barb], 'long'));
     expect((await data('fighter')).inventory[0].quantity).toBe(10);
     expect(await whispers()).toHaveLength(0);
+  });
+});
+
+describe('undoing a ration', () => {
+  it('gives the ration back and leaves later inventory changes alone', async () => {
+    await prisma.campaign.update({ where: { id: campaignId }, data: { detailLevel: 'FAITHFUL' } });
+    await setSheet('fighter', (s) => { s.inventory = [{ name: 'Rações', quantity: 3, compendiumRef: { bookId: BOOK, type: 'gear', slug: 'racoes-de-viagem-1-dia' } }, { name: 'Flechas', quantity: 5 }]; });
+    const out = ok(await takeRest(campaignId, gm, [ids.fighter], 'long'));
+    await setSheet('fighter', (s) => { s.inventory[1].quantity = 4; s.inventory.push({ name: 'Tocha', quantity: 1 }); });
+    ok(await undoAction(campaignId, gm, out.messageId));
+    const inv = (await data('fighter')).inventory;
+    expect(inv.map((i: any) => [i.name, i.quantity])).toEqual([['Rações', 3], ['Flechas', 4], ['Tocha', 1]]);
+  });
+
+  it('makes the item again when it is gone', async () => {
+    await prisma.campaign.update({ where: { id: campaignId }, data: { detailLevel: 'FAITHFUL' } });
+    await setSheet('fighter', (s) => { s.inventory = [{ name: 'Ração seca', quantity: 1 }]; });
+    const out = ok(await takeRest(campaignId, gm, [ids.fighter], 'long'));
+    await setSheet('fighter', (s) => { s.inventory = []; });
+    ok(await undoAction(campaignId, gm, out.messageId));
+    expect((await data('fighter')).inventory.map((i: any) => [i.name, i.quantity])).toEqual([['Ração seca', 1]]);
   });
 });
