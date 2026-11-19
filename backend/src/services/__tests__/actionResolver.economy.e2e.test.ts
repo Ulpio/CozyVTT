@@ -27,9 +27,19 @@ function seq(...values: number[]): Rng {
   };
 }
 
+
+/** The weapons a fixture sheet lists are held: the bar lists what is in hand. */
+function holdWeapons(s: any): any {
+  for (const a of s.attacks ?? []) {
+    const item = (s.inventory ?? []).find((i: any) => i.name.trim().toLowerCase() === String(a.name).trim().toLowerCase());
+    if (item) { item.slot = 'main'; item.equipped = true; }
+  }
+  return s;
+}
+
 function sheet(name: string): any {
   const raw = readFileSync(resolve(SHEETS, `${name}.json`), 'utf8').replace(/"book-test"/g, JSON.stringify(BOOK));
-  return JSON.parse(raw);
+  return holdWeapons(JSON.parse(raw));
 }
 
 let gmId: string;

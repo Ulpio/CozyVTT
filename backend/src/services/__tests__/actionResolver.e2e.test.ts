@@ -13,6 +13,8 @@ import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampaigns } from '../../__tests__/helpers/db';
 import { resolveAction, listActions, undoAction, rollConcentration, type ActionRequest } from '../actionResolver';
+import { equipItem } from '../inventory';
+import { catalogueFor } from '../actionResolver/catalogueFor';
 import type { ActionCard, Viewer } from '../../rules/actions/actionCard';
 import type { Rng } from '../../rules/actions/types';
 
@@ -62,11 +64,22 @@ const goblinStatBlock = {
 function fighterSheet() {
   const s = sheet('guerreiro');
   s.attacks.push({ name: 'Arco curto', attackBonus: 4, damageRoll: '1d6+2', damageType: 'perfurante', compendiumRef: { bookId: BOOK, slug: 'arco-curto' } });
+  // The weapons are held (the bar lists what is in hand); the short bow has no item, so it stays listed.
+  const held = (name: string, slot: string) => {
+    const item = s.inventory.find((i: any) => i.name === name);
+    item.id = name === 'Espada longa' ? 'sword' : 'axe';
+    item.slot = slot;
+    item.equipped = true;
+  };
+  held('Espada longa', 'main');
+  held('Machado grande', 'off');
   return s;
 }
 
 function clericSheet() {
   const s = sheet('clerigo');
+  // The cleric's mace is held.
+  for (const i of s.inventory) if (/maca/i.test(i.name)) { i.slot = 'main'; i.equipped = true; }
   s.spellcasting.spells = [
     { level: 1, name: 'Curar Ferimentos', prepared: true, ritual: false, concentration: false, compendiumRef: { bookId: BOOK, slug: 'curar-ferimentos' } },
     { level: 1, name: 'Bênção', prepared: true, ritual: false, concentration: true, compendiumRef: { bookId: BOOK, slug: 'bencao' } },
@@ -141,7 +154,9 @@ beforeAll(async () => {
     data: [
       entry('weapon', 'espada-longa', 'Espada longa', { range: 'melee', properties: ['versátil'], damage: { dice: '1d8', type: 'cortante' } }),
       entry('weapon', 'machado-grande', 'Machado grande', { range: 'melee', properties: ['pesada', 'duas mãos'], damage: { dice: '1d12', type: 'cortante' } }),
-      entry('weapon', 'arco-curto', 'Arco curto', { range: 'ranged', properties: ['munição'], normalRange: 24, longRange: 96, damage: { dice: '1d6', type: 'perfurante' } }),
+      entry('weapon', 'arco-longo', 'Arco longo', { range: 'ranged', properties: ['munição', 'pesada', 'duas mãos'], normalRange: 45, longRange: 180, ammunition: 'flechas-20', damage: { dice: '1d8', type: 'perfurante' } }),
+      entry('gear', 'flechas-20', 'Flechas (20)', {}),
+      entry('weapon', 'arco-curto','Arco curto', { range: 'ranged', properties: ['munição'], normalRange: 24, longRange: 96, damage: { dice: '1d6', type: 'perfurante' } }),
       entry('spell', 'curar-ferimentos', 'Curar Ferimentos', { level: 1, range: 'Toque', concentration: false, mechanics: { healing: '1d8', healingAddsModifier: true, scaling: { perSlot: '1d8' } } }),
       { ...entry('spell', 'bencao', 'Bênção', { level: 1, range: '9 metros', concentration: true, mechanics: {} }), text: 'Texto inventado para o teste.' },
       entry('spell', 'escudo-da-fe', 'Escudo da Fé', { level: 1, range: 'Pessoal', concentration: false, mechanics: {} }),
@@ -220,7 +235,8 @@ describe('hitting a goblin', () => {
     expect(await tokenHp('goblin')).toMatchObject({ current: 2 });
   });
 
-  it('uses the two-handed damage when asked', async () => {
+  it('uses the two-handed damage when held with two hands', async () => {
+    await patchChar(fighterId, (d) => { d.inventory.find((i: any) => i.id === 'sword').slot = 'both'; d.inventory.find((i: any) => i.id === 'axe').slot = undefined; });
     const out = ok(await resolveAction(campaignId, p1, req({ grip: 'two' }), seq(15, 10)));
     expect(out.card.targets[0].damage?.[0].total).toBe(13);
   });
@@ -507,6 +523,50 @@ describe('other game systems', () => {
     } finally {
       await prisma.campaign.update({ where: { id: campaignId }, data: { gameSystem: 'FIFTH_EDITION' } });
     }
+  });
+});
+
+describe('the bar attacks with what is in hand', () => {
+  const names = async () => {
+    const out = await listActions(campaignId, p1, mapId, 'fighter');
+    if ('error' in out) throw new Error('expected a list');
+    return out.options.filter((o) => o.group === 'attack').map((o) => o.name);
+  };
+
+  it('lists the greatsword and not the longsword after swapping to it', async () => {
+    await patchChar(fighterId, (d) => { d.inventory.find((i: any) => i.id === 'axe').slot = undefined; d.inventory.find((i: any) => i.id === 'axe').equipped = false; });
+    expect(await names()).toEqual(['Espada longa', 'Arco curto']);
+    expect(await equipItem(campaignId, p1, fighterId, 'axe', 'both')).toMatchObject({ ok: true });
+    expect(await names()).toEqual(['Machado grande', 'Arco curto']);
+  });
+
+  it('rolls the versatile die with the weapon held in both hands, with no grip to choose', async () => {
+    await patchChar(fighterId, (d) => { d.inventory.find((i: any) => i.id === 'sword').slot = 'both'; d.inventory.find((i: any) => i.id === 'axe').slot = undefined; });
+    const list = await listActions(campaignId, p1, mapId, 'fighter');
+    if ('error' in list) throw new Error('expected a list');
+    expect(list.options.find((o) => o.id === 'attack:0')!.grips).toBeUndefined();
+    const out = ok(await resolveAction(campaignId, p1, req({}), seq(15, 10)));
+    expect(out.card.targets[0].damage?.[0].total).toBe(13);
+  });
+
+  it('rolls the one-hand die in a hand even when two are asked for', async () => {
+    const out = ok(await resolveAction(campaignId, p1, req({ grip: 'two' }), seq(15, 5)));
+    expect(out.card.targets[0].damage?.[0].total).toBe(8);
+  });
+
+  it('lists a hand-typed row that has no item', async () => {
+    await patchChar(fighterId, (d) => { d.attacks.push({ name: 'Mordida', attackBonus: 3, damageRoll: '1d4' }); });
+    expect(await names()).toContain('Mordida');
+  });
+
+  it('gives a ranged weapon the ammunition it fires, named from the book', async () => {
+    await patchChar(fighterId, (d) => {
+      d.inventory.push({ id: 'bow', name: 'Arco longo', quantity: 1, equipped: true, slot: 'both', compendiumRef: { bookId: BOOK, slug: 'arco-longo' } });
+      d.attacks.push({ name: 'Arco longo', attackBonus: 4, damageRoll: '1d8+2', itemId: 'bow', compendiumRef: { bookId: BOOK, slug: 'arco-longo' } });
+    });
+    const sheetData = await charData(fighterId);
+    const specs = await catalogueFor(campaignId, { id: 'fighter' } as any, sheetData);
+    expect(specs.find((s) => s.option.name === 'Arco longo')!.ammunition).toEqual({ slug: 'flechas-20', label: 'flechas' });
   });
 });
 

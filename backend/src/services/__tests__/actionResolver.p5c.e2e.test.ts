@@ -84,9 +84,19 @@ const AT: Record<string, { x: number; y: number }> = {
 const known = (slug: string, level: number, concentration = false) =>
   ({ level, name: slug, prepared: true, ritual: false, concentration, compendiumRef: { bookId: BOOK, slug } });
 
+
+/** The weapons a fixture sheet lists are held: the bar lists what is in hand. */
+function holdWeapons(s: any): any {
+  for (const a of s.attacks ?? []) {
+    const item = (s.inventory ?? []).find((i: any) => i.name.trim().toLowerCase() === String(a.name).trim().toLowerCase());
+    if (item) { item.slot = 'main'; item.equipped = true; }
+  }
+  return s;
+}
+
 /** A fixture sheet with its origin in this file's book, and what each turn below starts from. */
 function sheet(cls: string): any {
-  const s = JSON.parse(readFileSync(resolve(SHEETS, `${cls}.json`), 'utf8').replace(/"book-test"/g, JSON.stringify(BOOK)));
+  const s = holdWeapons(JSON.parse(readFileSync(resolve(SHEETS, `${cls}.json`), 'utf8').replace(/"book-test"/g, JSON.stringify(BOOK))));
   if (cls === 'bruxo') {
     // The Archfey patron, for a feature button at 3rd level (Fey Presence).
     s.origin.subclass = { bookId: BOOK, slug: 'a-arquifada' };

@@ -285,7 +285,7 @@ export async function resolveAction(
         const { hit, critical } = attackHits(roll, ac, crit);
         entry.attack = { d20s: roll.d20s, natural: roll.natural, total: roll.total, hit, critical };
         if (hit) {
-          const lines = damageLines(spec, req.grip, actorSheet?.data ?? null, slotLevel);
+          const lines = damageLines(spec, spec.grip ?? req.grip,actorSheet?.data ?? null, slotLevel);
           // A running state's flat bonus (Rage) joins the weapon's first line, never doubled.
           const stateBonus = actorSheet ? stateDamageBonus(actor.features, spec, actorSheet.data) : 0;
           if (stateBonus !== 0 && lines.length > 0) lines[0] = { ...lines[0], dice: `${lines[0].dice}${stateBonus > 0 ? '+' : '-'}${Math.abs(stateBonus)}` };

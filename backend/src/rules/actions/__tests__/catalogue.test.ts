@@ -529,3 +529,48 @@ describe('the cost of each option in the turn', () => {
     }
   });
 });
+
+describe('characterActions: what is in hand', () => {
+  const ref = (slug: string) => ({ bookId: 'book-test', slug });
+  const handSheet = (inventory: any[], attacks: any[]) => ({ inventory, attacks }) as any;
+  const longsword = { name: 'Espada longa', attackBonus: 5, damageRoll: '1d8+3', damageType: 'cortante', itemId: 'sword', compendiumRef: ref('espada-longa'), additionalDamage: [{ label: 'Duas mãos', damageRoll: '1d10+3', damageType: 'cortante' }] };
+  const dagger = { name: 'Adaga', attackBonus: 5, damageRoll: '1d4+3', damageType: 'perfurante', itemId: 'dagger' };
+  const sword = (slot?: string) => ({ id: 'sword', name: 'Espada longa', ...(slot ? { slot, equipped: true } : {}) });
+
+  it('lists the weapon in hand without grips, and not the one in the backpack', () => {
+    const out = characterActions(handSheet([sword('main'), { id: 'dagger', name: 'Adaga' }], [longsword, dagger]), spells, weapons);
+    const attacks = out.filter((s) => s.option.group === 'attack');
+    expect(attacks.map((s) => s.option.name)).toEqual(['Espada longa']);
+    expect(attacks[0].option.grips).toBeUndefined();
+    expect(attacks[0].grip).toBe('one');
+  });
+
+  it('forces the two-handed grip on a versatile weapon held in both hands', () => {
+    const out = characterActions(handSheet([sword('both')], [longsword]), spells, weapons);
+    expect(out[0].option.grips).toBeUndefined();
+    expect(out[0].grip).toBe('two');
+    expect(out[0].versatileDamage).toEqual({ dice: '1d10+3', type: 'cortante' });
+  });
+
+  it('lists a row with no item, such as a hand-typed natural attack', () => {
+    const out = characterActions(handSheet([sword('main')], [longsword, { name: 'Mordida', attackBonus: 4, damageRoll: '1d6' }]), spells, weapons);
+    expect(out.filter((s) => s.option.group === 'attack').map((s) => s.option.name)).toEqual(['Espada longa', 'Mordida']);
+  });
+
+  it('lists nothing for a row whose item is in the backpack or gone', () => {
+    const out = characterActions(handSheet([sword()], [longsword, { ...dagger, itemId: 'missing' }]), spells, weapons);
+    // a missing item id names nothing in hand
+    expect(out.filter((s) => s.option.group === 'attack')).toEqual([]);
+  });
+
+  it('carries the ammunition a ranged weapon fires on its spec', () => {
+    const bow = new Map(weapons).set('book-test/arco-longo', weapon({ range: 'ranged', normalRange: 45, longRange: 180, ammunition: 'flechas-20' } as any));
+    const gear = new Map([['book-test/flechas-20', 'Flechas (20)']]);
+    const out = characterActions(
+      handSheet([{ id: 'bow', name: 'Arco longo', slot: 'both', equipped: true }], [{ name: 'Arco longo', attackBonus: 4, damageRoll: '1d8+2', itemId: 'bow', compendiumRef: ref('arco-longo') }]),
+      spells, bow, gear,
+    );
+    expect(out[0].ammunition).toEqual({ slug: 'flechas-20', label: 'flechas' });
+    expect(out[0].option).not.toHaveProperty('ammunition');
+  });
+});

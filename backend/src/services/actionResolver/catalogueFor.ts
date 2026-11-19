@@ -17,6 +17,7 @@ import {
 } from '../../rules/actions/catalogue';
 import { actorFeatures, classEntryFor, withFeatures, type ActorFeature, type CompendiumClass, type CompendiumSubclass } from '../../rules/actions/features';
 import type { FifthEditionCharacterData } from '../../validators/game-systems/fifthEdition.schema';
+import { normalizedSheet } from '../inventory';
 import type { NpcStatBlockInput } from '../../validators/statBlock';
 import type { Token } from '../../websocket/shared';
 
@@ -37,10 +38,11 @@ async function compendiumFor(campaignId: string, sheet: FifthEditionCharacterDat
   const spells = new Map<string, CompendiumSpell>();
   const weapons = new Map<string, CompendiumWeapon>();
   const refs = sheetRefs(sheet);
-  if (refs.length === 0) return { spells, weapons };
+  const gear = new Map<string, string>();
+  if (refs.length === 0) return { spells, weapons, gear };
   const enabled = new Set(await enabledBookIds(campaignId));
   const wanted = refs.filter((r) => enabled.has(r.bookId));
-  if (wanted.length === 0) return { spells, weapons };
+  if (wanted.length === 0) return { spells, weapons, gear };
   const rows = await prisma.compendiumEntry.findMany({
     where: {
       type: { in: ['spell', 'weapon'] },
@@ -54,7 +56,16 @@ async function compendiumFor(campaignId: string, sheet: FifthEditionCharacterDat
     if (row.type === 'spell') spells.set(key, entry as unknown as CompendiumSpell);
     else weapons.set(key, entry as unknown as CompendiumWeapon);
   }
-  return { spells, weapons };
+  // The names of the gear the weapons fire, from their own book.
+  const fired = [...weapons].flatMap(([k, w]) => (typeof w.data.ammunition === 'string' && w.data.ammunition ? [{ bookId: k.slice(0, k.indexOf('/')), slug: w.data.ammunition }] : []));
+  if (fired.length > 0) {
+    const rows = await prisma.compendiumEntry.findMany({
+      where: { type: 'gear', OR: fired },
+      select: { bookId: true, slug: true, name: true },
+    });
+    for (const row of rows) gear.set(`${row.bookId}/${row.slug}`, row.name);
+  }
+  return { spells, weapons, gear };
 }
 
 /**
@@ -97,8 +108,10 @@ export async function catalogueFor(
   known?: ActorFeature[],
 ): Promise<ResolvedActionSpec[]> {
   if (sheet) {
-    const [{ spells, weapons }, features] = await Promise.all([compendiumFor(campaignId, sheet), known ?? featuresFor(campaignId, sheet)]);
-    return withFeatures(characterActions(sheet, spells, weapons), features, sheet);
+    // A sheet an older client saved has no slots yet: the bar reads it as the server stores it.
+    const stored = await normalizedSheet(campaignId, sheet);
+    const [{ spells, weapons, gear }, features] = await Promise.all([compendiumFor(campaignId, stored), known ?? featuresFor(campaignId, stored)]);
+    return withFeatures(characterActions(stored, spells, weapons, gear), features, stored);
   }
   if (token.statBlock && typeof token.statBlock === 'object') return npcActions(token.statBlock as unknown as NpcStatBlockInput, token.rechargeSpent ?? []);
   return [];
