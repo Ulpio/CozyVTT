@@ -887,6 +887,13 @@ export interface CampaignMap {
   /** Explored areas are remembered per player. Absent on older payloads means on. */
   explorationEnabled?: boolean;
   lights?: import('./walls').LightSource[];
+  /**
+   * Every token light on the map as lit ground, in map pixels (y from the top),
+   * with no token id: a torch round a corner lights the floor a player can see
+   * though its carrier is not sent to them. Kept current by `map.tokenLights`.
+   * Absent on older payloads.
+   */
+  tokenLights?: TokenLightSent[];
   createdAt: string;
   updatedAt: string;
 }
@@ -1427,6 +1434,16 @@ export type DiceRollAck = { ok: true; id: string } | { ok: false; error: string 
 
 /** The server's answer to a request that returns nothing but whether it was done. */
 export type DoneAck = { ok: true } | { ok: false; error: string };
+
+/** One lit circle a token's light makes, as every reader of the map is sent it (`CampaignMap.tokenLights`). */
+export type TokenLightSent = { x: number; y: number; brightRadius: number; dimRadius: number; color: string };
+
+/** `token.light.set`: light a token, or put its light out (`light: null`). */
+export interface TokenLightSetRequest {
+  mapId: string;
+  tokenId: string;
+  light: TokenLight | null;
+}
 
 /** One character's roll in a GM secret check (`gm.secretCheck`). */
 export interface SecretCheckRoll { characterId: string; expression: string; purpose: string; characterName: string }

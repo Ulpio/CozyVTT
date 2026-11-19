@@ -13783,6 +13783,22 @@ components:
           items:
             $ref: '#/components/schemas/LightSource'
           description: Every light for the GM; for anyone else, only those with `enabled` true.
+        tokenLights:
+          type: array
+          items:
+            type: object
+            required: [x, y, brightRadius, dimRadius, color]
+            properties:
+              x: { type: number, description: Map pixels from the left }
+              y: { type: number, description: Map pixels from the top }
+              brightRadius: { type: number, description: In grid squares }
+              dimRadius: { type: number, description: In grid squares }
+              color: { type: string, description: "`#rrggbb`" }
+          description: >
+            Every light a token on the map carries, as lit ground with no token
+            id, the same for every member: a token the GM hides, or one on the
+            spirit plane, lights nothing. Worked out from the tokens, not stored.
+            Kept current over the socket by `map.tokenLights`.
         fogData:
           allOf:
             - $ref: '#/components/schemas/FogState'

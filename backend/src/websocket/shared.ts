@@ -345,6 +345,12 @@ export const SOCKET_CEILINGS = {
   // the map's lock, and on a lit map line of sight for every player.
   'token.move.start': tokenMoves,
   'token.move.end': tokenMoves,
+  // A write under the map's lock and, on a lit map, line of sight for every
+  // player twice over; someone lights or puts out a torch now and then.
+  'token.light.set': {
+    windows: [{ limit: 10, windowMs: SECOND }, { limit: 120, windowMs: MINUTE }],
+    refusal: 'Muitas mudanças de luz de uma vez. Espere um momento e tente de novo.',
+  },
   // A page joins once per socket, and again after each reconnect; a browser
   // restoring its tabs joins with all of them at once.
   authenticate: {

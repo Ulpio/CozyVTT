@@ -376,6 +376,21 @@ export function mapLights(map: { lights: unknown; tokens: unknown; gridSize: num
   return effectiveLights(map.lights, map.tokens, map.gridSize, map.height);
 }
 
+/** One lit circle a token's light makes, in map pixels (y from the top), with nothing of the token. */
+export type TokenLightSent = Pick<LightSource, 'x' | 'y' | 'brightRadius' | 'dimRadius' | 'color'>;
+
+/**
+ * Every token light on a map as lit ground, the same lights mapLights counts
+ * (a token the GM hides or one on the spirit plane lights nothing), but with
+ * no token id: a player's client draws the floor a torch lights from these,
+ * though the token carrying it is not sent to them. Sent to every reader of
+ * the map, in the map itself and as `map.tokenLights` when it changes.
+ */
+export function tokenLightsOf(map: { tokens: unknown; gridSize: number; height: number }): TokenLightSent[] {
+  return effectiveLights([], map.tokens, map.gridSize, map.height)
+    .map(({ x, y, brightRadius, dimRadius, color }) => ({ x, y, brightRadius, dimRadius, color }));
+}
+
 /**
  * What each light reaches, kept from one read of the map to the next. Every
  * token move reads the map again, with the same walls and lights as the move
@@ -789,6 +804,13 @@ export const MAP_FIELDS_DECIDED_PER_RECIPIENT = [
  */
 export const MAP_FIELDS_NEVER_SENT = [] as const satisfies readonly (keyof MapRow)[];
 
+/**
+ * Sent to every member beside the columns, worked out from them rather than
+ * stored: `tokenLights` (tokenLightsOf). Not a column, so in none of the
+ * three lists; the frontend's CampaignMap and the API document carry it too.
+ */
+export const MAP_FIELDS_DERIVED = ['tokenLights'] as const;
+
 type MapFieldSentToEveryone = (typeof MAP_FIELDS_SENT_TO_EVERYONE)[number];
 type MapFieldDecidedPerRecipient = (typeof MAP_FIELDS_DECIDED_PER_RECIPIENT)[number];
 
@@ -821,7 +843,10 @@ interface MapFieldsDecided {
 type DecidedForRecipient = { [K in MapFieldDecidedPerRecipient]: MapFieldsDecided[K] };
 
 /** A map as one member is sent it: the columns sent to everyone, and those decided for them. */
-export type MapSent = Pick<MapRow, MapFieldSentToEveryone> & DecidedForRecipient;
+export type MapSent = Pick<MapRow, MapFieldSentToEveryone> & DecidedForRecipient & {
+  /** Every token light on the map as lit ground (tokenLightsOf), worked out from its tokens, not a column. */
+  [K in (typeof MAP_FIELDS_DERIVED)[number]]: TokenLightSent[];
+};
 
 function mapFieldsSentToEveryone(map: MapRow): Pick<MapRow, MapFieldSentToEveryone> {
   return Object.fromEntries(MAP_FIELDS_SENT_TO_EVERYONE.map((field) => [field, map[field]])) as Pick<MapRow, MapFieldSentToEveryone>;
@@ -894,5 +919,5 @@ export function filterMapData(
     fogData: userRole === 'GM' ? mapData.fogData : null,
     annotations: [],
   };
-  return { ...mapFieldsSentToEveryone(mapData), ...decided };
+  return { ...mapFieldsSentToEveryone(mapData), ...decided, tokenLights: tokenLightsOf(mapData) };
 }

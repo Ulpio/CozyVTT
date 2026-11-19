@@ -21,6 +21,7 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useCoarsePointer } from '@/hooks/useMediaQuery';
 import type {
   Token,
+  TokenLightSent,
   TokenMoveStartEvent,
   TokenMoveEvent,
   TokenMoveEndEvent,
@@ -1601,8 +1602,20 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       }));
     };
 
+    // A token's light, sent to the GM and the token's controller only.
+    const handleTokenLightUpdated = (data: { mapId: string; tokenId: string; light: Token['light'] }) => {
+      useGameStore.getState().patchToken(data.tokenId, { light: data.light }, data.mapId);
+    };
+
+    // Every token light on the map as lit ground, carriers unnamed.
+    const handleTokenLights = (data: { mapId: string; tokenLights: TokenLightSent[] }) => {
+      updateMap(data.mapId, (latest) => ({ ...latest, tokenLights: data.tokenLights }));
+    };
+
     socketInstance.on('token:appeared', handleTokenAppeared);
     socketInstance.on('token:disappeared', handleTokenDisappeared);
+    socketInstance.on('token.light.updated', handleTokenLightUpdated);
+    socketInstance.on('map.tokenLights', handleTokenLights);
     socketInstance.on('map:settings:updated', handleSettingsUpdated);
 
     // Light source events, applied unless they echo this page's own edit,
@@ -1644,6 +1657,8 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     return () => {
       socketInstance.off('token:appeared', handleTokenAppeared);
       socketInstance.off('token:disappeared', handleTokenDisappeared);
+      socketInstance.off('token.light.updated', handleTokenLightUpdated);
+      socketInstance.off('map.tokenLights', handleTokenLights);
       socketInstance.off('map:settings:updated', handleSettingsUpdated);
       socketInstance.off('wall:added', handleWallAdded);
       socketInstance.off('wall:removed', handleWallRemoved);

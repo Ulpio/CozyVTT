@@ -228,7 +228,7 @@ import { UVTT_IMPORT_MAX_WAIT_MS, UVTT_IMPORT_TIME_LIMIT_MS } from '../services/
 import { Prisma, type MapDrawing } from '@prisma/client';
 import { SUPPORTED_GAME_SYSTEMS, isSupportedGameSystem } from '../game-systems';
 import { drawingForArchive } from '../services/mapDrawings';
-import { MAP_FIELDS_SENT_TO_EVERYONE, MAP_FIELDS_DECIDED_PER_RECIPIENT, MAP_FIELDS_NEVER_SENT } from '../utils/spirit-layer';
+import { MAP_FIELDS_SENT_TO_EVERYONE, MAP_FIELDS_DECIDED_PER_RECIPIENT, MAP_FIELDS_NEVER_SENT, MAP_FIELDS_DERIVED } from '../utils/spirit-layer';
 import { PASSWORD_FIELDS } from '../middleware/nulCharacter';
 import { PICTURE_LIMITS } from '../utils/pictureLimits';
 import { PICTURE_SIZE_LIMITS } from '../validators/pictureSizeLimits';
@@ -1258,7 +1258,7 @@ describe('the game systems', () => {
 
 describe('the columns of a map and who is sent them', () => {
   const listed: string[] = [...MAP_FIELDS_SENT_TO_EVERYONE, ...MAP_FIELDS_DECIDED_PER_RECIPIENT, ...MAP_FIELDS_NEVER_SENT];
-  const sent: string[] = [...MAP_FIELDS_SENT_TO_EVERYONE, ...MAP_FIELDS_DECIDED_PER_RECIPIENT].sort();
+  const sent: string[] = [...MAP_FIELDS_SENT_TO_EVERYONE, ...MAP_FIELDS_DECIDED_PER_RECIPIENT, ...MAP_FIELDS_DERIVED].sort();
 
   it('are each in one of the three lists in utils/spirit-layer.ts, and the lists name nothing else', () => {
     expect([...new Set(listed)].sort()).toEqual(Object.values(Prisma.MapScalarFieldEnum).sort());
