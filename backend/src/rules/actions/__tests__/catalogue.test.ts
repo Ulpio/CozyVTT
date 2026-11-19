@@ -3,6 +3,7 @@ import { resolve } from 'path';
 import { characterActions as characterActionsAll, npcActions as npcActionsAll, costFromCastingTime, spellcastingModifier, characterLevel, CompendiumSpell, CompendiumWeapon } from '../catalogue';
 import { fifthEditionCharacterDataSchema } from '../../../validators/game-systems/fifthEdition.schema';
 import { fifthEditionSpellSaveDC } from '../../../utils/rules/fifthEdition';
+import { normalizeInventory, type SheetLike } from '../../../utils/inventory';
 
 const SHEETS = resolve(__dirname, '../../../../../frontend/src/utils/guidedCreation/__tests__/fixtures/sheets');
 const sheet = (name: string) => JSON.parse(readFileSync(resolve(SHEETS, `${name}.json`), 'utf8'));
@@ -572,5 +573,21 @@ describe('characterActions: what is in hand', () => {
     );
     expect(out[0].ammunition).toEqual({ slug: 'flechas-20', label: 'flechas' });
     expect(out[0].option).not.toHaveProperty('ammunition');
+  });
+});
+
+describe('characterActions: a weapon the player stowed', () => {
+  it('stays off the bar after the sheet is normalised again', () => {
+    const staff = { bookId: 'book-test', slug: 'bordao' };
+    const hints = { kindOf: (i: { compendiumRef?: unknown }) => (i.compendiumRef ? 'weapon' as const : 'other' as const), twoHanded: () => false };
+    const start: SheetLike = { attacks: [{ name: 'Bordão' }], inventory: [{ name: 'Bordão', quantity: 1, compendiumRef: staff }] };
+    const first = normalizeInventory(start, hints);
+    (first.attacks as any)[0] = { ...first.attacks![0], attackBonus: 2, damageRoll: '1d6' };
+    expect(first.inventory?.[0].slot).toBe('main');
+    const stowed: SheetLike = { ...first, inventory: first.inventory!.map(({ slot: _slot, ...i }) => ({ ...i, equipped: false })) };
+    const again = normalizeInventory(stowed, hints);
+    expect(again.inventory?.[0].slot).toBeUndefined();
+    const out = characterActions(again as any, spells, weapons);
+    expect(out.filter((s) => s.option.group === 'attack')).toEqual([]);
   });
 });

@@ -346,13 +346,13 @@ export async function openPack(campaignId: string, requester: Viewer, characterI
           same.quantity = (same.quantity ?? 1) + quantity;
           continue;
         }
-        // The books weigh in kilograms, the sheet in pounds (as the guided creation stores it).
+        // The books weigh in kilograms, the sheet in pounds (as the guided creation stores it); a bundle's weight is shared by its units.
         const kg = found?.data.weight;
         items.push({
           id: newId(taken),
           name,
           quantity,
-          ...(typeof kg === 'number' ? { weight: kg * 2 } : {}),
+          ...(typeof kg === 'number' ? { weight: (kg * 2) / (bundle ?? 1) } : {}),
           compendiumRef: { bookId: book, slug: content.ref.slug },
         });
       } else {

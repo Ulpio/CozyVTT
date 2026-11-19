@@ -174,3 +174,53 @@ describe('normalizeInventory: a sheet that never flagged a weapon', () => {
     expect(out.inventory.map((i) => i.slot)).toEqual(['main', undefined]);
   });
 });
+
+describe('normalizeInventory: a sheet already normalised', () => {
+  it('keeps a stowed last weapon in the backpack on the next run', () => {
+    const sheet = { attacks: [{ name: 'Adaga' }], inventory: [{ name: 'Adaga', quantity: 1, compendiumRef: ref('adaga') }] };
+    const once = normalizeInventory(sheet, hints);
+    expect(once.inventory[0].slot).toBe('main');
+    const stowed = { ...once, inventory: once.inventory.map(({ slot: _slot, ...i }) => ({ ...i, equipped: false })) };
+    const again = normalizeInventory(stowed, hints);
+    expect(again.inventory[0].slot).toBeUndefined();
+    expect(again.inventory[0].equipped).toBe(false);
+  });
+
+  it('keeps every equipped item out of the slots once it has ids', () => {
+    const sheet = { inventory: [{ id: 'a', name: 'Espada longa', equipped: true, compendiumRef: ref('espada-longa') }] };
+    expect(normalizeInventory(sheet, hints).inventory[0].slot).toBeUndefined();
+  });
+});
+
+describe('normalizeInventory: hand-typed equipped items', () => {
+  // The shape of the backend "Level 1 Fighter" template: nothing linked to the compendium.
+  const fighter = () => ({
+    attacks: [{ name: 'Longsword' }, { name: 'Shield' }],
+    inventory: [
+      { name: 'Chain Mail', quantity: 1, weight: 55, equippable: true, equipped: true },
+      { name: 'Shield', quantity: 1, weight: 6, equippable: true, equipped: true },
+      { name: 'Longsword', quantity: 1, weight: 3, equippable: true, equipped: true },
+      { name: 'Backpack', quantity: 1, weight: 5, equippable: false, equipped: true },
+    ],
+  });
+
+  it('holds the ones an attack row names, in attack order', () => {
+    const out = normalizeInventory(fighter(), hints);
+    expect(out.inventory.map((i) => i.slot)).toEqual([undefined, 'off', 'main', undefined]);
+    expect(out.attacks.map((a) => a.itemId)).toEqual(['inv-2', 'inv-1']);
+    expect(normalizeInventory(out, hints)).toEqual(out);
+  });
+
+  it('does not hold an item flagged not equippable', () => {
+    const sheet = fighter();
+    sheet.attacks = [{ name: 'Backpack' }];
+    expect(normalizeInventory(sheet, hints).inventory[3].slot).toBeUndefined();
+  });
+});
+
+describe('normalizeInventory: ammunition weight', () => {
+  it('splits the bundle weight over the units', () => {
+    const out = normalizeInventory({ inventory: [{ name: 'Flechas (20)', quantity: 2, weight: 1, compendiumRef: ref('flechas') }] }, hints);
+    expect(out.inventory[0]).toMatchObject({ name: 'Flechas', quantity: 40, weight: 0.05 });
+  });
+});

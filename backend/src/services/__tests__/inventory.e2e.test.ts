@@ -364,6 +364,16 @@ describe('opening a pack', () => {
     expect(new Set(s.inventory.map((i: any) => i.id)).size).toBe(s.inventory.length);
   });
 
+  it('weighs each arrow of a bundle it splits as a share of the bundle', async () => {
+    await setSheet((s) => {
+      s.inventory = s.inventory.filter((i: any) => i.compendiumRef?.slug !== 'flechas-20');
+      s.inventory.push({ id: 'pack', name: 'Pacote de Explorador', quantity: 1, compendiumRef: ref('pacote-de-explorador') });
+    });
+    ok(await openPack(campaignId, p1, fighterId, 'pack'));
+    // 0.5 kg for the bundle of 20 is 1 lb, so 0.05 lb an arrow.
+    expect((await data()).inventory.filter((i: any) => i.name === 'Flechas')).toEqual([expect.objectContaining({ quantity: 20, weight: 0.05 })]);
+  });
+
   it('opens one of several packs', async () => {
     await setSheet((s) => { s.inventory.push({ id: 'pack', name: 'Pacote de Explorador', quantity: 2, compendiumRef: ref('pacote-de-explorador') }); });
     ok(await openPack(campaignId, p1, fighterId, 'pack'));

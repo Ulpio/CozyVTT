@@ -15,6 +15,9 @@ export interface Item {
   id?: string;
   name: string;
   quantity?: number;
+  /** Pounds, per unit. */
+  weight?: number;
+  equippable?: boolean;
   equipped?: boolean;
   slot?: InventorySlot;
   compendiumRef?: { bookId: string; slug: string; type?: string };
@@ -108,6 +111,18 @@ function assignSlots(items: Item[], hints: InventoryHints, attacks: AttackLike[]
       off = true;
     }
   }
+  // A hand-typed item an attack row names (a template's "Longsword") is held, so its attack stays on the bar.
+  for (const attack of attacks) {
+    if (both || (main && off)) break;
+    const name = attack.name.trim().toLowerCase();
+    const item = equipped.find(
+      (i) => !i.compendiumRef && i.slot === undefined && i.equippable !== false && i.name.trim().toLowerCase() === name,
+    );
+    if (!item) continue;
+    item.slot = main ? 'off' : 'main';
+    if (main) off = true;
+    else main = true;
+  }
   for (const item of equipped) {
     if (hints.kindOf(item) === 'ammo' && !ammo) {
       item.slot = 'ammo';
@@ -130,6 +145,7 @@ export function normalizeInventory<T extends SheetLike>(sheet: T, hints: Invento
       if (match && size > 0) {
         item.name = match[1];
         item.quantity = (item.quantity ?? 1) * size;
+        if (typeof item.weight === 'number') item.weight = item.weight / size;
       }
     }
     return item;
@@ -145,8 +161,9 @@ export function normalizeInventory<T extends SheetLike>(sheet: T, hints: Invento
     item.id = id;
   });
 
-  // (3) slots for sheets that never had any
-  assignSlots(items, hints, sheet.attacks ?? []);
+  // (3) slots for sheets never normalised (no item has an id yet): once stored,
+  // an empty hand is the player's choice and stays empty.
+  if (!sheet.inventory.some((i) => !!i.id)) assignSlots(items, hints, sheet.attacks ?? []);
 
   // (4) equipped follows the slot on equippable items
   for (const item of items) {
