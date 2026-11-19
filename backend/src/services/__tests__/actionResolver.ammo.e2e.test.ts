@@ -182,6 +182,17 @@ describe('a shot in a Faithful campaign', () => {
     expect(await count('arrows')).toBe(19);
   });
 
+  it('splits a stored bundle the backfill left whole before the first shot takes one', async () => {
+    await patch((s) => {
+      const stack = s.inventory.find((i: any) => i.id === 'arrows');
+      stack.name = 'Flechas (20)';
+      stack.quantity = 1;
+    });
+    ok(await shoot());
+    expect(await count('arrows')).toBe(19);
+    expect((await data()).inventory.find((i: any) => i.id === 'arrows').name).toBe('Flechas');
+  });
+
   it('does not spend the arrow when the action is then refused (already used)', async () => {
     fight();
     ok(await shoot());

@@ -77,6 +77,8 @@ import { isTargetedAction, resolveTargetedAction } from './actionResolver/saves'
 import { resolveFeature } from './actionResolver/features';
 import { attacksPerActionFor, checkAndSpend, combatFor, giveBack, markOncePerTurn, type CombatTurn, type EconomyUndo, type TurnAt } from './actionResolver/economy';
 import { spendAmmunition } from './actionResolver/ammunition';
+import { normalizedSheet } from './inventory';
+import type { SheetLike } from '../utils/inventory';
 import { applyRiders, chosenRiders, riderRefusal } from './actionResolver/riders';
 
 export {
@@ -263,6 +265,12 @@ export async function resolveAction(
     // One shot, one piece of ammunition, taken before the turn is spent so "Sem flechas." costs no action;
     // the sheet is stored only at the end, so a refusal below leaves the arrow where it was.
     if (faithfulAmmo && actorSheet && actor.character) {
+      // The stored sheet as the normaliser reads it now: a bundle left whole by a
+      // backfill run before the book said it was ammunition is split into units first.
+      if (Array.isArray(actorSheet.data.inventory)) {
+        const normal = await normalizedSheet(campaignId, actorSheet.data as SheetLike);
+        actorSheet.data = { ...actorSheet.data, inventory: normal.inventory } as Sheet;
+      }
       const empty = spendAmmunition(spec, actorSheet, actor.character.id, undo);
       if (empty) return empty;
     }
