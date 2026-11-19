@@ -32,6 +32,13 @@ describe('local item icons', () => {
     expect(localItemIconUrl({ name: 'Amuleto da vovó' })).toBe('/icons/local/bag.png');
   });
 
+  it('finds a magic item by the first word of its name, before its category', async () => {
+    await loadLocalItemIcons(answer({ 'prefix:espada': 'sword.png', 'prefix:anel': 'ring.png', 'category:item': 'bag.png' }));
+    expect(localItemIconUrl({ name: 'Espada Dançarina' }, 'magicItem')).toBe('/icons/local/sword.png');
+    expect(localItemIconUrl({ name: 'Anel de Proteção' }, 'magicItem')).toBe('/icons/local/ring.png');
+    expect(localItemIconUrl({ name: 'Espadachim' })).toBe('/icons/local/bag.png');
+  });
+
   it('keeps the built-in icons when there is no local folder', async () => {
     await loadLocalItemIcons(answer({}, false));
     expect(localItemIconUrl({ name: 'x', compendiumRef: { bookId: 'phb', slug: 'espada-longa' } })).toBeUndefined();

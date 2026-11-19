@@ -52,6 +52,24 @@ async function openEntry() {
 }
 
 describe('CompendiumPanel', () => {
+  it('shows an item icon beside weapons, armour and gear, and none beside a spell', async () => {
+    searchCompendium.mockResolvedValue({
+      items: [
+        { id: 'e1', bookId: 'phb', type: 'spell', slug: 'raio-teste', name: 'Raio Teste', nameEn: null },
+        { id: 'e2', bookId: 'phb', type: 'weapon', slug: 'espada-longa', name: 'Espada longa', nameEn: null },
+        { id: 'e3', bookId: 'phb', type: 'gear', slug: 'tocha', name: 'Tocha', nameEn: null },
+      ],
+      total: 3,
+    });
+    render(<CompendiumPanel />);
+    fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    const sword = await screen.findByRole('button', { name: /Espada longa/ });
+    expect(sword.querySelector('[data-testid="item-icon"]')).not.toBeNull();
+    expect(screen.getByRole('button', { name: /Tocha/ }).querySelector('[data-testid="item-icon"]')).not.toBeNull();
+    expect(screen.getByRole('button', { name: /Raio Teste/ }).querySelector('[data-testid="item-icon"]')).toBeNull();
+  });
+
   it('searches and lists entries', async () => {
     render(<CompendiumPanel />);
     fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'raio' } });

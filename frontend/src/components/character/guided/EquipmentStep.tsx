@@ -16,6 +16,7 @@ import { abilityPicksOf, collectEffects } from '@/utils/guidedCreation/collectEf
 import type { EquipmentBundleData, EquipmentItemData } from '@/utils/guidedCreation/compendiumData';
 import { anyOfKey, anyOfOptions, equipmentChoicesOf, resolveEquipment } from '@/utils/guidedCreation/equipmentRules';
 import { cn } from '@/utils/cn';
+import ItemIcon from '@/components/character-sheets/fifth-edition/components/ItemIcon';
 import { equipmentModel } from './stepModels';
 import type { StepProps } from './stepRules';
 
@@ -152,7 +153,16 @@ export default function EquipmentStep({ data, choices, update, campaign }: StepP
             <tbody>
               {equipment.inventory.map((item) => (
                 <tr key={`${item.type}-${item.slug ?? item.name}`} className="border-t border-ink/10 text-ink">
-                  <td className="py-1">{item.name}</td>
+                  <td className="py-1">
+                    <span className="flex items-center gap-2">
+                      <ItemIcon
+                        item={{ name: item.name, compendiumRef: item.slug ? { bookId: '', slug: item.slug } : undefined }}
+                        entryType={item.type}
+                        size={28}
+                      />
+                      {item.name}
+                    </span>
+                  </td>
                   <td className="py-1 text-right">{item.quantity}</td>
                   {showWeight && (
                     <td className="py-1 text-right">{item.weight !== undefined ? number(item.weight * item.quantity) : '—'}</td>

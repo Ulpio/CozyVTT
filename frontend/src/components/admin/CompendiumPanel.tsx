@@ -14,6 +14,7 @@ import { Search } from 'lucide-react';
 import { api } from '@/services/api';
 import type { CompendiumBook, CompendiumEntry, CompendiumEntrySummary } from '@/types';
 import Button from '@/components/ui/Button';
+import ItemIcon from '@/components/character-sheets/fifth-edition/components/ItemIcon';
 import { apiErrorMessage } from '@/utils/errors';
 
 const TYPES = [
@@ -32,6 +33,9 @@ const TYPES = [
   'magicItem',
   'condition',
 ] as const;
+
+/** Entries that are things a character carries, shown with their item icon. */
+const ITEM_TYPES = new Set<string>(['weapon', 'armor', 'gear', 'tool', 'pack', 'magicItem']);
 
 type EntryType = (typeof TYPES)[number];
 const isEntryType = (type: string): type is EntryType => (TYPES as readonly string[]).includes(type);
@@ -180,10 +184,17 @@ export default function CompendiumPanel() {
                     entry?.id === item.id ? 'border-brand/50 bg-brand/10' : 'border-moss-green/20 hover:bg-moss-green/10'
                   }`}
                 >
-                  <span className="font-medium text-ink">{item.name}</span>
-                  <span className="block text-xs text-warm-gray">
-                    {typeLabel(item.type)} · {bookName(item.bookId)}
-                    {item.nameEn ? ` · ${item.nameEn}` : ''}
+                  <span className="flex items-center gap-2">
+                    {ITEM_TYPES.has(item.type) && (
+                      <ItemIcon item={{ name: item.name, compendiumRef: { bookId: item.bookId, slug: item.slug } }} entryType={item.type} size={32} />
+                    )}
+                    <span className="min-w-0">
+                      <span className="font-medium text-ink">{item.name}</span>
+                      <span className="block text-xs text-warm-gray">
+                        {typeLabel(item.type)} · {bookName(item.bookId)}
+                        {item.nameEn ? ` · ${item.nameEn}` : ''}
+                      </span>
+                    </span>
                   </span>
                 </button>
               </li>

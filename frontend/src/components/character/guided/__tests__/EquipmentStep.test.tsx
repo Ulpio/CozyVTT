@@ -81,6 +81,13 @@ describe('EquipmentStep', () => {
     expect(screen.queryByText(/carrying capacity/)).not.toBeInTheDocument();
   });
 
+  it('shows an item icon on every row of the equipment table', () => {
+    renderStep('equipment', { ...FIGHTER, equipmentPicks: [0] });
+    const rows = screen.getAllByRole('row').slice(1);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) expect(within(row).getByTestId('item-icon')).toBeInTheDocument();
+  });
+
   it('shows weights outside a campaign', () => {
     renderStep('equipment', { ...FIGHTER, equipmentPicks: [0] });
     expect(screen.getByRole('columnheader', { name: 'Weight (kg)' })).toBeInTheDocument();

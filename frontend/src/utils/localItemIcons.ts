@@ -46,11 +46,16 @@ export function loadLocalItemIcons(fetchFn: FetchLike = (url) => fetch(url)): Pr
 const plainName = (name: string): string =>
   name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s*\(\d+\)\s*$/, '').trim().toLowerCase();
 
-/** The local picture for this item: by its slug, then by its name ("name:longsword"), then by its category. */
+/**
+ * The local picture for this item: by its slug, then by its whole name ("name:longsword"),
+ * then by the first word of its name ("prefix:espada", for magic items), then by its category.
+ */
 export function localItemIconUrl(item: IconItem, entryType?: string, entryData?: unknown): string | undefined {
   const slug = item.compendiumRef?.slug;
+  const plain = plainName(item.name);
   const file = (slug && files[slug])
-    || files[`name:${plainName(item.name)}`]
+    || files[`name:${plain}`]
+    || files[`prefix:${plain.split(/\s+/)[0]}`]
     || files[`category:${itemCategory(item, entryType, entryData)}`];
   return file ? `${FOLDER}${file}` : undefined;
 }
