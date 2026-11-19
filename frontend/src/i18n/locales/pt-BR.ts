@@ -47,6 +47,8 @@ const ptBR: Messages = {
     send: 'Enviar',
     cancel: 'Cancelar',
     sent: 'Aviso enviado.',
+    noResult: 'sem resultado',
+    noConnection: 'Sem conexão com o servidor.',
     groups: { skills: 'Perícias', abilities: 'Atributos', savingThrows: 'Salvaguardas' },
   },
 

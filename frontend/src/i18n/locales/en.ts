@@ -44,6 +44,8 @@ const en = {
     send: 'Send',
     cancel: 'Cancel',
     sent: 'Notice sent.',
+    noResult: 'No result came back',
+    noConnection: 'Not connected to the server.',
     groups: { skills: 'Skills', abilities: 'Abilities', savingThrows: 'Saving throws' },
   },
 

@@ -16,6 +16,7 @@ import { useWebSocket } from '@/contexts/WebSocketContext';
 import { api } from '@/services/api';
 import { applyRollMode, ROLL_MODES, systemSupportsAdvantage, type RollMode } from '@/utils/rollModes';
 import { checkChoices, checkFor, passivePerception, type CheckKey } from '@/utils/secretCheck';
+import { checkName } from '@/components/campaign/actionBar/ChecksMenu';
 import type { RollOption } from '@/utils/characterRolls';
 import type { Character, SecretCheckAck } from '@/types';
 
@@ -108,7 +109,11 @@ export default function SecretCheckPanel({ isOpen, onClose }: Props) {
     .filter((p): p is { sheet: Sheet; value: number } => p.value !== null);
 
   const doRoll = async () => {
-    if (!current || !socket) return;
+    if (!current) return;
+    if (!socket) {
+      setError(t('secretCheck.noConnection'));
+      return;
+    }
     const rows: Row[] = ticked.map((sheet) => {
       const option = checkFor(sheet.gameSystem, sheet.data, current);
       const applied = option?.supportsAdvantage ? applyRollMode(option.expression, option.purpose, mode, sheet.gameSystem) : option;
@@ -116,7 +121,7 @@ export default function SecretCheckPanel({ isOpen, onClose }: Props) {
     });
     const rolls = rows
       .filter((r) => r.option)
-      .map((r) => ({ characterId: r.sheet.id, expression: r.expression, purpose: `Teste secreto: ${current.label}`, characterName: r.sheet.name }));
+      .map((r) => ({ characterId: r.sheet.id, expression: r.expression, purpose: `Teste secreto: ${checkName(current.group, current.label, t as never)}`, characterName: r.sheet.name }));
     if (rolls.length === 0) {
       setError(t('secretCheck.pickOne'));
       return;
@@ -135,7 +140,10 @@ export default function SecretCheckPanel({ isOpen, onClose }: Props) {
   };
 
   const sendNotice = async (characterId: string) => {
-    if (!socket) return;
+    if (!socket) {
+      setNoticeError(t('secretCheck.noConnection'));
+      return;
+    }
     setSending(true);
     setNoticeError(null);
     const ack = await socket.sendNotice({ characterId, text: noticeText });
@@ -230,7 +238,7 @@ export default function SecretCheckPanel({ isOpen, onClose }: Props) {
                     {groups.map(({ group, items }) => (
                       <optgroup key={group} label={t(`secretCheck.groups.${group}`)}>
                         {items.map((c) => (
-                          <option key={keyOf(c)} value={keyOf(c)}>{c.label}</option>
+                          <option key={keyOf(c)} value={keyOf(c)}>{checkName(c.group, c.label, t as never)}</option>
                         ))}
                       </optgroup>
                     ))}
@@ -284,7 +292,7 @@ export default function SecretCheckPanel({ isOpen, onClose }: Props) {
                       {option && result ? (
                         <span className="text-lg font-bold tabular-nums">{result.total}</span>
                       ) : (
-                        <span className="text-ink-muted">{t('secretCheck.noCheckFor')}</span>
+                        <span className="text-ink-muted">{t(option ? 'secretCheck.noResult' : 'secretCheck.noCheckFor')}</span>
                       )}
                     </div>
                     {option && result && (

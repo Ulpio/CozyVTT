@@ -19,6 +19,7 @@ const h = vi.hoisted(() => ({
   secretCheck: vi.fn(),
   sendNotice: vi.fn(),
   getCharacter: vi.fn(),
+  noSocket: false,
 }));
 
 const CHARACTERS = [
@@ -36,11 +37,18 @@ vi.mock('@/contexts/CampaignContext', () => ({
   }),
 }));
 vi.mock('@/contexts/WebSocketContext', () => ({
-  useWebSocket: () => ({ socket: { secretCheck: h.secretCheck, sendNotice: h.sendNotice }, isConnected: true }),
+  useWebSocket: () => ({ socket: h.noSocket ? null : { secretCheck: h.secretCheck, sendNotice: h.sendNotice }, isConnected: true }),
 }));
 vi.mock('@/services/api', () => ({ api: { getCharacter: h.getCharacter }, default: { getCharacter: h.getCharacter } }));
 
 import SecretCheckPanel from '../SecretCheckPanel';
+import i18n from 'i18next';
+
+async function open2() {
+  render(<SecretCheckPanel isOpen onClose={() => undefined} />);
+  await screen.findByRole('checkbox', { name: 'Ana the Fighter' });
+  await waitFor(() => expect(screen.getByRole('combobox')).toBeEnabled());
+}
 
 async function open() {
   render(<SecretCheckPanel isOpen onClose={() => undefined} />);
@@ -50,6 +58,7 @@ async function open() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  h.noSocket = false;
   h.getCharacter.mockImplementation(async (id: string) => ({ character: CHARACTERS.find((c) => c.id === id) }));
   h.secretCheck.mockResolvedValue({
     ok: true,
@@ -82,12 +91,31 @@ describe('rolling', () => {
     ]);
   });
 
-  it('rolls two dice and keeps one in advantage', async () => {
+  it('rolls two dice in advantage and marks the die kept, a natural 20 among two included', async () => {
+    h.secretCheck.mockResolvedValue({
+      ok: true,
+      results: [
+        { characterId: 'c-ana', total: 20, dice: [3, 17], breakdown: '17 + 3' },
+        { characterId: 'c-bruno', total: 21, dice: [20, 4], breakdown: '20 + 1' },
+      ],
+    });
     await open();
+    fireEvent.click(screen.getByRole('checkbox', { name: "GM's Hireling" }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Check' }), { target: { value: 'skills|Perception' } });
     fireEvent.click(screen.getByRole('radio', { name: 'Advantage' }));
     fireEvent.click(screen.getByRole('button', { name: 'Roll' }));
-    await waitFor(() => expect(h.secretCheck).toHaveBeenCalled());
-    expect((h.secretCheck.mock.calls[0][0] as Array<{ expression: string }>)[0].expression).toMatch(/^2d20kh1/);
+    await screen.findByTestId('result-c-ana');
+    expect((h.secretCheck.mock.calls[0][0] as Array<{ expression: string }>)[0].expression).toBe('2d20kh1+3');
+    expect(screen.getByTestId('result-c-ana')).toHaveTextContent('d20 17 + 3');
+    expect(screen.getByTestId('result-c-ana')).not.toHaveTextContent('natural');
+    expect(screen.getByTestId('result-c-bruno')).toHaveTextContent('natural 20');
+  });
+
+  it('says so when the answer has no result for a character that had the check', async () => {
+    h.secretCheck.mockResolvedValue({ ok: true, results: [{ characterId: 'c-ana', total: 9, dice: [6], breakdown: '6 + 3' }] });
+    await rollPerception();
+    expect(screen.getByTestId('result-c-bruno')).toHaveTextContent('No result came back');
+    expect(screen.getByTestId('result-c-bruno')).not.toHaveTextContent('Does not have this check');
   });
 
   it("shows each character's total from the answer, marking a natural 20 and a natural 1", async () => {
@@ -108,12 +136,35 @@ describe('rolling', () => {
     expect((h.secretCheck.mock.calls[0][0] as unknown[]).length).toBe(1);
   });
 
+  it('says so when there is no connection', async () => {
+    h.noSocket = true;
+    await open();
+    fireEvent.click(screen.getByRole('button', { name: 'Roll' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Not connected to the server.');
+    expect(h.secretCheck).not.toHaveBeenCalled();
+  });
+
   it("shows the server's refusal as it arrives", async () => {
     h.secretCheck.mockResolvedValue({ ok: false, error: 'Só o mestre pode fazer isso.' });
     await open();
     fireEvent.click(screen.getByRole('button', { name: 'Roll' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Só o mestre pode fazer isso.');
   });
+});
+
+it('names the check in the app language, in the select and in the purpose', async () => {
+  await i18n.changeLanguage('pt-BR');
+  try {
+    await open2();
+    expect(within(screen.getByRole('combobox')).getByRole('option', { name: 'Percepção' })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'skills|Perception' } });
+    fireEvent.click(screen.getByRole('checkbox', { name: "GM's Hireling" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rolar' }));
+    await waitFor(() => expect(h.secretCheck).toHaveBeenCalled());
+    expect((h.secretCheck.mock.calls[0][0] as Array<{ purpose: string }>)[0].purpose).toBe('Teste secreto: Percepção');
+  } finally {
+    await i18n.changeLanguage('en');
+  }
 });
 
 describe('passive Perception', () => {
