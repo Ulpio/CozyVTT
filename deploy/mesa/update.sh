@@ -1,13 +1,23 @@
 #!/usr/bin/env bash
-# Atualiza o servidor da mesa (C:\Users\Usuario\MesaServer) com o que está em
-# mesa/quick-fixes e reconstrói o stack. Rode de dentro da pasta do servidor:
+# Atualiza o servidor da mesa (C:\Users\Usuario\MesaServer) com o que está no
+# main, copia os ícones locais da mesa e reconstrói o stack. Rode de dentro da
+# pasta do servidor:
 #   bash deploy/mesa/update.sh
 set -euo pipefail
 
 # O Git Bash não acha o docker sem isto.
 export PATH="$PATH:/c/Program Files/Docker/Docker/resources/bin"
 
-git merge --ff-only mesa/quick-fixes
+git merge --ff-only main
+
+# Os ícones da mesa ficam fora do git (frontend/public/icons/local); vêm da
+# pasta de desenvolvimento e entram na imagem do frontend no build.
+ICONS=/c/Users/Usuario/Projects/CozyVTT/frontend/public/icons/local
+if [ -d "$ICONS" ]; then
+  mkdir -p frontend/public/icons/local
+  cp -r "$ICONS/." frontend/public/icons/local/
+fi
+
 docker compose up -d --build
 
 echo "Esperando a mesa responder..."

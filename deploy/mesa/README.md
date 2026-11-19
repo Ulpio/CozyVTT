@@ -11,7 +11,7 @@ não mexe no stack de desenvolvimento.
 |---|---|
 | `compose-override.yml` | Dá nomes `mesa-*` aos contêineres. Copie para a raiz do servidor com o nome `docker-compose.override.yml` (o git ignora esse nome, por isso o modelo tem outro). |
 | `env.mesa.example` | Modelo do `.env` de produção. Copie para `.env` na raiz do servidor e troque os `TROQUE_POR_*`. |
-| `update.sh` | Atualiza o servidor com o que está em `mesa/quick-fixes` e reconstrói. |
+| `update.sh` | Atualiza o servidor com o `main` e os ícones locais, e reconstrói. |
 
 ## Primeira instalação
 
@@ -30,7 +30,7 @@ não mexe no stack de desenvolvimento.
 
 ## Atualizar o servidor
 
-Depois de commitar em `mesa/quick-fixes` no repositório de desenvolvimento:
+Depois de juntar o trabalho ao `main` no repositório de desenvolvimento (o script também copia os ícones de `frontend/public/icons/local`, que ficam fora do git):
 
 ```bash
 cd /c/Users/Usuario/MesaServer
@@ -46,7 +46,7 @@ comando roda num contêiner de uso único do backend, com a pasta montada só
 para leitura):
 
 ```bash
-docker compose run --rm -v "/c/Users/Usuario/Projects/CozyVTT/materiais/.compendio/data:/compendio:ro" backend npm run compendium:import -- /compendio
+docker compose run --rm -v "/c/Users/Usuario/Projects/CozyVTT/materiais/.compendio/data:/compendio:ro" backend node dist/compendium/cli.js import /compendio
 ```
 
 Uma entrada ou criatura que você corrigiu no app fica como está; o relatório
