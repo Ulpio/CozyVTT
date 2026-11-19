@@ -52,10 +52,10 @@ vi.mock('../CharacterRollPicker', () => ({
 import CampaignRoster from '../CampaignRoster';
 import { LayoutProvider } from '@/contexts/LayoutContext';
 
-const member = (userId: string, userName: string, role: CampaignRole): RosterMember => ({
+const member = (userId: string, userName: string, role: CampaignRole, gameSystem: RosterMember['characters'][number]['gameSystem'] = 'FIFTH_EDITION'): RosterMember => ({
   userId, userName, userAvatar: null, role, joinedAt: '2026-10-01T00:00:00.000Z',
   characters: role === CampaignRole.GM ? [] : [{
-    id: `${userId}-char`, name: `${userName}'s hero`, tokenImageUrl: null, gameSystem: null, userId, hp: { current: 7, max: 10, temp: 0 },
+    id: `${userId}-char`, name: `${userName}'s hero`, tokenImageUrl: null, gameSystem, userId, hp: { current: 7, max: 10, temp: 0 },
   }],
 });
 
@@ -64,7 +64,7 @@ beforeEach(() => {
   h.seat.userId = 'dm';
   h.currentMap = { id: 'map-1', width: 20, height: 20 };
   h.api.getCampaignCharacters.mockReset().mockResolvedValue({
-    roster: [member('dm', 'Mara', CampaignRole.GM), member('p1', 'Ash', CampaignRole.PLAYER), member('p2', 'Bea', CampaignRole.PLAYER)],
+    roster: [member('dm', 'Mara', CampaignRole.GM), member('p1', 'Ash', CampaignRole.PLAYER), member('p2', 'Bea', CampaignRole.PLAYER, 'HORROR_D100')],
   });
   h.api.getCharacter.mockReset().mockImplementation(async (id: string) => ({ character: { id } }));
   h.api.assignCharacterToCampaign.mockReset().mockResolvedValue({});
@@ -79,6 +79,7 @@ async function rightClick(name: string) {
 const EVERY_ITEM = [
   '[eye] View Character Sheet',
   '[dices] Roll...',
+  '[shield-plus] Temporary HP...',
   '[square-pen] Edit Character Sheet',
   '[map-pin] Add to Map',
   '[gift] Give item…',
@@ -92,6 +93,13 @@ describe("a roster character's menu", () => {
 
     expect(characterMenuRows()).toEqual(EVERY_ITEM);
     expect(openCharacterMenu()!.getAttribute('style')).toBe('left: 40px; top: 60px; visibility: visible;');
+  });
+
+  it('offers the GM no Give item on a character that is not D&D 5e, which has no inventory slots', async () => {
+    render(<CampaignRoster />);
+    await rightClick("Bea's hero");
+
+    expect(characterMenuRows()).toEqual(EVERY_ITEM.filter((r) => !r.includes('Give item') && !r.includes('Temporary HP')));
   });
 
   it('offers the GM no Add to Map with no map showing', async () => {
@@ -177,7 +185,7 @@ describe("a roster character's menu on the compact layout", () => {
 
     const sheet = screen.getByRole('dialog', { name: "Ash's hero" });
     expect(within(sheet).getAllByRole('button').map((b) => b.textContent)).toEqual([
-      'View Character Sheet', 'Roll...', 'Edit Character Sheet', 'Add to Map', 'Give item…', 'Remove from Campaign', 'Cancel',
+      'View Character Sheet', 'Roll...', 'Temporary HP...', 'Edit Character Sheet', 'Add to Map', 'Give item…', 'Remove from Campaign', 'Cancel',
     ]);
     expect(openCharacterMenu()).toBeNull();
   });

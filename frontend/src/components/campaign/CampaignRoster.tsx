@@ -286,7 +286,9 @@ export default function CampaignRoster() {
       items.push({ kind: 'command', id: 'add-to-map', icon: MapPin, label: 'Add to Map', run: handleAddTokenToMap });
     }
     // The GM gives any character an item, whoever plays it (or nobody does).
-    if (membership.role === 'GM') {
+    // Only a 5e sheet has the inventory it goes into; the server refuses the others.
+    const givable = roster.flatMap((member) => member.characters).find((c) => c.id === menu.characterId)?.gameSystem === 'FIFTH_EDITION';
+    if (membership.role === 'GM' && givable) {
       items.push({
         kind: 'command', id: 'give-item', icon: Gift, label: t('giveItem.menu'),
         run: () => {
