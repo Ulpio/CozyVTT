@@ -18,6 +18,11 @@ const ptBR: Messages = {
     SPECTATOR: 'Espectador',
   },
 
+  gmNotice: {
+    label: 'Aviso do mestre',
+    close: 'Fechar',
+  },
+
   passwordRules: {
     heading: 'Requisitos da senha',
     length: 'Pelo menos 12 caracteres',

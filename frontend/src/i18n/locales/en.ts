@@ -15,6 +15,11 @@ const en = {
     SPECTATOR: 'Spectator',
   },
 
+  gmNotice: {
+    label: 'GM notice',
+    close: 'Close',
+  },
+
   passwordRules: {
     heading: 'Password requirements',
     length: 'At least 12 characters',

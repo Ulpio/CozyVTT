@@ -30,6 +30,7 @@ import { useCampaign } from '@/contexts/CampaignContext';
 import SessionSidebar from '@/components/campaign/SessionSidebar';
 import ActionBar from '@/components/campaign/actionBar/ActionBar';
 import SavePrompt from '@/components/campaign/actionBar/SavePrompt';
+import GmNoticeCards from '@/components/campaign/GmNoticeCards';
 import ConcentrationDialog from '@/components/campaign/actionBar/ConcentrationDialog';
 import GmToolMenus from '@/components/campaign/GmToolMenus';
 import type { SessionToolKey } from '@/components/campaign/SessionToolbar';
@@ -297,8 +298,9 @@ export default function DesktopTable({
             {/* The map is the page's, moved in here (tableHosts.tsx). */}
             <section ref={mapSlot.ref} className="h-full min-w-0 p-2" />
             {/* The saves waiting on this player, over the map. */}
-            <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-4">
+            <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex flex-col items-center gap-2 px-4">
               <SavePrompt className="pointer-events-auto max-w-full" />
+              <GmNoticeCards className="pointer-events-auto w-full max-w-md" />
             </div>
           </Panel>
 

@@ -51,6 +51,7 @@ import { useActionStore } from '@/stores/actionStore';
 import { useTranslation } from 'react-i18next';
 import ActionBar from '@/components/campaign/actionBar/ActionBar';
 import SavePrompt from '@/components/campaign/actionBar/SavePrompt';
+import GmNoticeCards from '@/components/campaign/GmNoticeCards';
 import ConcentrationDialog from '@/components/campaign/actionBar/ConcentrationDialog';
 import TargetingHint from '@/components/campaign/actionBar/TargetingHint';
 import { useBarActor } from '@/components/campaign/actionBar/useBarActor';
@@ -202,6 +203,7 @@ export default function CompactTable({ campaign, isOwner, onOpenTool, onOpenDocu
 
       {/* The saves waiting on this player, the same as on the desktop. */}
       <SavePrompt className="mx-2 my-1 shrink-0" />
+      <GmNoticeCards className="mx-2 my-1 shrink-0" />
 
       {!sideways && bar}
 

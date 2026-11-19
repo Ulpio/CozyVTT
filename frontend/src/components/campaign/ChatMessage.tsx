@@ -4,6 +4,7 @@
 // ============================================
 
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMinuteClock } from '@/hooks/useMinuteClock';
 import { useCompactLayout } from '@/contexts/LayoutContext';
 import { Bot, Lock, Shield } from 'lucide-react';
@@ -105,6 +106,7 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
     : message.user?.displayName || 'Unknown User';
 
   const compact = useCompactLayout();
+  const { t } = useTranslation();
 
   const nameColor = isGM ? 'text-warning-ink' : isSystem || isCurrentUser ? 'text-brand-ink' : 'text-stone-gray';
   const onlyYou = `Only you and ${whisperPeer} can see this.`;
@@ -128,12 +130,14 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
   const kind = message.type === 'CHARACTER_ACTION' || message.type === 'WHISPER' ? (message.metadata?.kind as string | undefined) : undefined;
   const actionCard = kind === 'action' && message.type === 'CHARACTER_ACTION' ? <ActionCardMessage messageId={message.id} card={message.metadata as unknown as ActionCardView} /> : null;
   const concentrationLine = kind === 'concentration' && message.type === 'CHARACTER_ACTION' ? <ConcentrationLine card={message.metadata as unknown as ConcentrationCard} /> : null;
+  const isNotice = kind === 'gmNotice' && message.type === 'WHISPER';
+  const shownWhisperLabel = isNotice ? t('gmNotice.label') : whisperLabel;
   const rechargeLine = kind === 'recharge' ? <RechargeLine card={message.metadata as unknown as RechargeCard} /> : null;
   const smallLine = concentrationLine ?? rechargeLine;
   const body = smallLine ?? message.content;
 
   // Metadata (e.g., dice roll results) - hide for internal system actions
-  const metadataBlock = !actionCard && !smallLine && message.metadata &&
+  const metadataBlock = !actionCard && !smallLine && !isNotice && message.metadata &&
     Object.keys(message.metadata).length > 0 &&
     message.metadata.action !== 'user.joined' &&
     message.metadata.action !== 'user.left' &&
@@ -199,10 +203,10 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
                   title={`Whisper to ${whisperPeer}`}
                   className="-my-3 inline-flex items-center align-middle text-xs font-semibold text-accent-ink underline-offset-2 hover:underline"
                 >
-                  {whisperLabel}
+                  {shownWhisperLabel}
                 </button>
               ) : (
-                <span className="text-xs font-semibold text-accent-ink">{whisperLabel}</span>
+                <span className="text-xs font-semibold text-accent-ink">{shownWhisperLabel}</span>
               )}
               <span className="sr-only">{onlyYou}</span>
             </>
@@ -262,10 +266,10 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
                 title={`Whisper to ${whisperPeer}`}
                 className="min-w-0 text-left text-xs font-semibold text-accent-ink underline-offset-2 hover:underline"
               >
-                {whisperLabel}
+                {shownWhisperLabel}
               </button>
             ) : (
-              <span className="min-w-0 text-left text-xs font-semibold text-accent-ink">{whisperLabel}</span>
+              <span className="min-w-0 text-left text-xs font-semibold text-accent-ink">{shownWhisperLabel}</span>
             )}
             <span className="sr-only">{onlyYou}</span>
           </>
