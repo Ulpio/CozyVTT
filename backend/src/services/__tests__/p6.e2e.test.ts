@@ -162,7 +162,7 @@ itIf('3. "Poção de cura" x2 from the compendium goes to the fighter\'s backpac
   expect(items[0]).toMatchObject({ name: POTION, quantity: 2, compendiumRef: { bookId: BOOK, slug: 'pocao-de-cura' } });
   expect(items[0].id).toEqual(expect.stringMatching(/.+/));
   expect(items[0].slot).toBeUndefined();
-  expectOneNotice(['gm', 'bruno'], `Você recebeu: ${POTION} ×2`, brunoId, { kind: 'gmNotice', characterId: ids.fighter, item: { name: POTION, quantity: 2 } });
+  expectOneNotice(['gm', 'bruno'], `Você recebeu: ${POTION} ×2`, brunoId, { kind: 'gmNotice', characterId: ids.fighter, item: { name: POTION, quantity: 2, compendiumRef: { bookId: BOOK, slug: 'pocao-de-cura' } } });
   expect(seen.ana.filter(noise).map((e) => e.name)).not.toContain('chat.message');
   const rows = await prisma.message.findMany({ where: { campaignId, content: `Você recebeu: ${POTION} ×2` } });
   expect(rows).toHaveLength(1);
