@@ -119,6 +119,8 @@ export interface UndoRecord {
    */
   sheets?: { characterId: string; before: Record<string, unknown> }[];
   conditions?: { tokenId: string; name: string }[];
+  /** A shot's ammunition (Faithful): the stack it came off, and the item to recreate if the stack is gone by the undo. */
+  ammo?: { characterId: string; itemId: string; slug: string; amount: number; label?: string; compendiumRef?: { bookId: string; slug: string } };
 }
 
 /**

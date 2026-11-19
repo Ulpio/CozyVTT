@@ -17,14 +17,15 @@
 import { randomUUID } from 'crypto';
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { prisma } from '../config/database';
-import { readTokens } from '../utils/prisma-json';
+import { readTokens, toJson } from '../utils/prisma-json';
 import { characterInCampaign } from '../utils/characterCampaign';
 import { ammoBundleSize, normalizeInventory, type InventoryHints, type InventorySlot, type Item, type ItemKind, type SheetLike } from '../utils/inventory';
 import { acAfter, planEquip, type EquipSheet, type ItemFacts } from '../rules/inventory/equip';
 import { freshSpend, getState, setState, withCombatLock, type TurnSpend } from '../websocket/initiativeState';
 import { resendInitiative } from '../websocket/handlers/initiative';
 import { REFUSAL_MESSAGES, applySpend, canSpend } from '../utils/turnEconomy';
-import type { Viewer } from '../rules/actions/actionCard';
+import type { ActionCard, Viewer } from '../rules/actions/actionCard';
+import { addToStack } from './actionResolver/ammunition';
 import { NOT_YOUR_TOKEN, holdSheets, refuse, writeSheets, type Refusal, type Sheet } from './actionResolver/common';
 
 export const ARMOUR_IN_COMBAT = 'Leva minutos para vestir ou tirar armadura.';
@@ -366,4 +367,82 @@ export async function openPack(campaignId: string, requester: Viewer, characterI
     await writeSheets(tx, held);
     return { ok: true as const };
   });
+}
+
+export const NO_RECOVERY_IN_COMBAT = 'Não dá para recolher munição durante o combate.';
+
+/** "3 flechas" or "3 flechas e 1 virote", the way the line names what came back. */
+function listed(parts: string[]): string {
+  return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} e ${parts[parts.length - 1]}` : (parts[0] ?? '');
+}
+
+/**
+ * After the fight, pick up half of what was shot (`floor(n / 2)` of each
+ * kind): it goes back to its stack, which is created if it is gone, the
+ * count is cleared, and a chat line says so. Refused while a fight is on.
+ * The GM may undo the card, which puts the stacks and the count back as they
+ * were.
+ */
+export async function recoverAmmo(
+  campaignId: string,
+  requester: Viewer,
+  characterId: string,
+): Promise<{ ok: true; recovered: Record<string, number>; messageId?: string; card?: ActionCard } | Refusal> {
+  const refused = await characterToChange(campaignId, requester, characterId);
+  if (refused) return refused;
+  if (getState(campaignId).active) return refuse(NO_RECOVERY_IN_COMBAT);
+
+  const outcome = await prisma.$transaction(async (tx) => {
+    const held = await holdSheets(tx, [characterId]);
+    const h = held.get(characterId);
+    if (!h) return refuse(NOT_FOUND_CHARACTER);
+    const counts = (h.data as { ammoToRecover?: Record<string, number> }).ammoToRecover ?? {};
+    if (Object.keys(counts).length === 0) return { ok: true as const, recovered: {} as Record<string, number> };
+
+    const items = (Array.isArray(h.data.inventory) ? h.data.inventory : []) as Item[];
+    const attacks = (Array.isArray(h.data.attacks) ? h.data.attacks : []) as { compendiumRef?: { bookId: string } }[];
+    const books = [...new Set([...items, ...attacks].map((i) => i?.compendiumRef?.bookId).filter((b): b is string => typeof b === 'string'))];
+    const gear = books.length > 0
+      ? await tx.compendiumEntry.findMany({ where: { type: 'gear', slug: { in: Object.keys(counts) }, bookId: { in: books } }, select: { bookId: true, slug: true, name: true } })
+      : [];
+
+    const before = { inventory: structuredClone(h.data.inventory ?? []), ammoToRecover: structuredClone(counts) };
+    const recovered: Record<string, number> = {};
+    const parts: string[] = [];
+    for (const [slug, shot] of Object.entries(counts)) {
+      const amount = Math.floor(shot / 2);
+      if (amount <= 0) continue;
+      const stack = items.find((i) => i.compendiumRef?.slug === slug);
+      const entry = gear.find((g) => g.slug === slug);
+      const ref = stack?.compendiumRef ?? (entry ? { bookId: entry.bookId, slug } : books[0] ? { bookId: books[0], slug } : undefined);
+      if (!ref) continue;
+      const label = (stack?.name ?? entry?.name ?? slug.replace(/-\d+$/, '').replace(/-/g, ' ')).replace(/\s*\(\d+\)\s*$/, '').toLowerCase();
+      addToStack(h.data, slug, label, ref, amount, stack?.id);
+      recovered[slug] = amount;
+      parts.push(`${amount} ${label}`);
+    }
+    delete (h.data as { ammoToRecover?: unknown }).ammoToRecover;
+    h.changed = true;
+    await writeSheets(tx, held);
+
+    const name = h.character.name;
+    const sentence = parts.length > 0 ? `${name} recolhe ${listed(parts)}.` : `${name} não encontra munição para recolher.`;
+    const card: ActionCard = {
+      kind: 'action',
+      actor: { tokenId: '', name, userId: requester.userId },
+      actionName: 'Recolher munição',
+      mode: 'normal',
+      targets: [],
+      extraText: sentence,
+      undo: { hp: [], sheets: [{ characterId, before }] },
+    };
+    const message = await tx.message.create({
+      data: { campaignId, userId: requester.userId, type: 'CHARACTER_ACTION', content: sentence, metadata: toJson(card) },
+      select: { id: true },
+    });
+    return { ok: true as const, recovered, messageId: message.id, card };
+  });
+  if (!outcome.ok) return outcome;
+  const { messageId, card, recovered } = outcome as { recovered: Record<string, number>; messageId?: string; card?: ActionCard };
+  return { ok: true, recovered, ...(messageId ? { messageId, card } : {}) };
 }

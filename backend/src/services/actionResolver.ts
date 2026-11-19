@@ -76,6 +76,7 @@ import {
 import { isTargetedAction, resolveTargetedAction } from './actionResolver/saves';
 import { resolveFeature } from './actionResolver/features';
 import { attacksPerActionFor, checkAndSpend, combatFor, giveBack, markOncePerTurn, type CombatTurn, type EconomyUndo, type TurnAt } from './actionResolver/economy';
+import { spendAmmunition } from './actionResolver/ammunition';
 import { applyRiders, chosenRiders, riderRefusal } from './actionResolver/riders';
 
 export {
@@ -201,6 +202,8 @@ export async function resolveAction(
   // marked used, given back if storing it fails.
   let economy: EconomyUndo | undefined;
   let marked: { keys: string[]; at: TurnAt } | undefined;
+  const faithfulAmmo = option.resolution === 'attack' && !!spec.ammunition
+    && (await prisma.campaign.findUnique({ where: { id: campaignId }, select: { detailLevel: true } }))?.detailLevel === 'FAITHFUL';
   const onceKeys = riders.filter((r) => r.feature.action.oncePerTurn).map((r) => r.feature.id);
   const outcome = await withMapsLocked([mapId], async (tx) => {
     const map = await tx.map.findUniqueOrThrow({ where: { id: mapId } });
@@ -256,6 +259,12 @@ export async function resolveAction(
     // The riders' pools and slots, before anything is rolled.
     const riderRefused = riderRefusal(riders, actorSheet, actor.features);
     if (riderRefused) return refuse(riderRefused);
+    // One shot, one piece of ammunition, taken before the turn is spent so "Sem flechas." costs no action;
+    // the sheet is stored only at the end, so a refusal below leaves the arrow where it was.
+    if (faithfulAmmo && actorSheet && actor.character) {
+      const empty = spendAmmunition(spec, actorSheet, actor.character.id, undo);
+      if (empty) return empty;
+    }
 
     // The turn: refused when already spent (or a once-a-turn rider already
     // used), spent before anything is rolled. The rider is marked only on a hit.

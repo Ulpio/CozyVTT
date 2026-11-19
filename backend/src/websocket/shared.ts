@@ -311,6 +311,10 @@ export const SOCKET_CEILINGS = {
     windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
     refusal: 'Too many packs opened at once. Wait a moment, then try again.',
   },
+  'character.ammo.recover': {
+    windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
+    refusal: 'Too many ammunition pick-ups at once. Wait a moment, then try again.',
+  },
   // Their own budget, apart from the drag frames: each drop is a write under
   // the map's lock, and on a lit map line of sight for every player.
   'token.move.start': tokenMoves,

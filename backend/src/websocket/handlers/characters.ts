@@ -4,7 +4,7 @@
 // ============================================
 // Character handlers: character.hp.update, character.hp.temporary,
 // character.hitdice.spend, character.rest, character.equip,
-// character.pack.open
+// character.pack.open, character.ammo.recover
 // Players act on their own characters; the GM may act on any of them.
 // ============================================
 
@@ -20,7 +20,7 @@ import { withinCeiling } from '../shared';
 import { ackFrom, refuseRequest } from '../ack';
 import { z } from 'zod';
 import { takeRest } from '../../services/rest';
-import { equipItem, openPack } from '../../services/inventory';
+import { equipItem, openPack, recoverAmmo } from '../../services/inventory';
 import { getState } from '../initiativeState';
 import { resendInitiative } from './initiative';
 import { viewerOf } from '../../services/actionMessages';
@@ -47,6 +47,10 @@ const CharacterEquipSchema = z.object({
 const CharacterPackOpenSchema = z.object({
   characterId: z.string().min(1).max(100),
   itemId: z.string().min(1).max(64),
+});
+
+const CharacterAmmoRecoverSchema = z.object({
+  characterId: z.string().min(1).max(100),
 });
 
 /**
@@ -471,6 +475,44 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
     } catch (error) {
       logger.error('character.pack.open failed', { err: error });
       refuseRequest(socket, ack, 'Failed to open the pack');
+    }
+  });
+
+  /**
+   * CHARACTER.AMMO.RECOVER - outside a fight, pick up half the ammunition shot
+   * since the last time (the sheet's `ammoToRecover`), with a chat line.
+   */
+  socket.on('character.ammo.recover', async (data: unknown, ackArg?: unknown) => {
+    const ack = ackFrom(ackArg);
+    try {
+      if (!socket.campaignId || !socket.userId) {
+        refuseRequest(socket, ack, 'Not authenticated to a campaign');
+        return;
+      }
+      if (!withinCeiling(socket, 'character.ammo.recover', ack)) return;
+      const parsed = CharacterAmmoRecoverSchema.safeParse(data);
+      if (!parsed.success) {
+        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Invalid request');
+        return;
+      }
+      const { characterId } = parsed.data;
+      const outcome = await recoverAmmo(socket.campaignId, viewerOf(socket.role, socket.userId), characterId);
+      if (!outcome.ok) {
+        refuseRequest(socket, ack, outcome.error);
+        return;
+      }
+      await sheetChanged(socket.campaignId, characterId, socket.userId);
+      if (outcome.messageId) {
+        try {
+          await announceMessage(io, socket.campaignId, outcome.messageId, outcome.card);
+        } catch (err) {
+          logger.warn('character.ammo.recover: card not announced; the recovery stands', { err, messageId: outcome.messageId });
+        }
+      }
+      (ack as ((a: unknown) => void) | null)?.({ ok: true, recovered: outcome.recovered });
+    } catch (error) {
+      logger.error('character.ammo.recover failed', { err: error });
+      refuseRequest(socket, ack, 'Failed to recover the ammunition');
     }
   });
 }
