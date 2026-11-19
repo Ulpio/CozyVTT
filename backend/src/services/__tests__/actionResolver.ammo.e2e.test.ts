@@ -12,7 +12,7 @@ import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampaigns } from '../../__tests__/helpers/db';
 import { listActions, resolveAction, undoAction, type ActionRequest } from '../actionResolver';
-import { equipItem, recoverAmmo } from '../inventory';
+import { ammoAmount, equipItem, recoverAmmo } from '../inventory';
 import { beginTurn, clearState, flushCombatWrites, setState, type CombatantEntry } from '../../websocket/initiativeState';
 import type { Viewer } from '../../rules/actions/actionCard';
 import type { Rng } from '../../rules/actions/types';
@@ -228,6 +228,21 @@ describe('picking the arrows up', () => {
     expect((await data()).ammoToRecover).toBeUndefined();
     const lines = await prisma.message.findMany({ where: { campaignId }, orderBy: { createdAt: 'desc' }, take: 1 });
     expect(lines[0].content).toBe('Patrulheira recolhe 3 flechas.');
+  });
+
+  it('says "1 flecha" for a single arrow', async () => {
+    for (let i = 0; i < 3; i++) ok(await shoot());
+    ok(await recoverAmmo(campaignId, p1, rangerId));
+    const lines = await prisma.message.findMany({ where: { campaignId }, orderBy: { createdAt: 'desc' }, take: 1 });
+    expect(lines[0].content).toBe('Patrulheira recolhe 1 flecha.');
+  });
+
+  it('names one of each of the book\'s kinds in the singular', () => {
+    expect(ammoAmount(1, 'virotes')).toBe('1 virote');
+    expect(ammoAmount(1, 'balas de funda')).toBe('1 bala de funda');
+    expect(ammoAmount(1, 'agulhas de zarabatana')).toBe('1 agulha de zarabatana');
+    expect(ammoAmount(2, 'virotes')).toBe('2 virotes');
+    expect(ammoAmount(1, 'pedras')).toBe('1 pedras');
   });
 
   it('is refused during an active fight', async () => {

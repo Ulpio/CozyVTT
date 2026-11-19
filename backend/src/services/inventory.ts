@@ -371,6 +371,19 @@ export async function openPack(campaignId: string, requester: Viewer, characterI
 
 export const NO_RECOVERY_IN_COMBAT = 'Não dá para recolher munição durante o combate.';
 
+/** One of each of the book's kinds of ammunition; any other keeps its label. */
+const ONE_OF: Record<string, string> = {
+  flechas: 'flecha',
+  virotes: 'virote',
+  'balas de funda': 'bala de funda',
+  'agulhas de zarabatana': 'agulha de zarabatana',
+};
+
+/** "3 flechas", "1 flecha". */
+export function ammoAmount(amount: number, label: string): string {
+  return `${amount} ${amount === 1 ? (ONE_OF[label] ?? label) : label}`;
+}
+
 /** "3 flechas" or "3 flechas e 1 virote", the way the line names what came back. */
 function listed(parts: string[]): string {
   return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} e ${parts[parts.length - 1]}` : (parts[0] ?? '');
@@ -434,7 +447,7 @@ export async function recoverAmmo(
       const itemId = addToStack(h.data, slug, label, ref, amount, stack?.id);
       back.push({ slug, itemId, amount, shot });
       recovered[slug] = amount;
-      parts.push(`${amount} ${label}`);
+      parts.push(ammoAmount(amount, label));
     }
     if (parts.length === 0) return nothing();
     if (Object.keys(kept).length > 0) (h.data as { ammoToRecover?: Record<string, number> }).ammoToRecover = kept;
