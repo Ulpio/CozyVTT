@@ -17,6 +17,8 @@ import type {
   ChatMessageAck,
   DiceRollAck,
   DoneAck,
+  SecretCheckRoll,
+  SecretCheckAck,
   ChatMessageBroadcast,
   ChatMessageUpdated,
   ChatSystemBroadcast,
@@ -539,6 +541,16 @@ class SocketClient {
 
   onDiceRolled(callback: EventCallback<DiceRolledEvent>) {
     this.addListener('dice.rolled', callback);
+  }
+
+  /** The GM rolls a secret check for several characters at once; only the GM hears the results. */
+  secretCheck(rolls: SecretCheckRoll[]): Promise<SecretCheckAck | { ok: false; error: string }> {
+    return this.askFor<SecretCheckAck>('gm.secretCheck', { rolls }, ROLL_ANSWER_TIMEOUT_MS, "The check didn't come back. Check your connection and try again.");
+  }
+
+  /** The GM sends a player a private notice that pops up over their map. */
+  sendNotice(data: { characterId: string; text: string }): Promise<DoneAck | { ok: false; error: string }> {
+    return this.askFor<DoneAck>('gm.notice', data, ROLL_ANSWER_TIMEOUT_MS, 'No answer from the server');
   }
 
   onDiceRolledSecret(callback: EventCallback<DiceRolledSecretEvent>) {

@@ -42,6 +42,7 @@ import TableRefusals from '@/components/campaign/TableRefusals';
 import NpcQuickEditor from '@/components/campaign/NpcQuickEditor';
 import CreatureLibrary from '@/components/campaign/CreatureLibrary';
 import TokenTemplateLibrary from '@/components/campaign/TokenTemplateLibrary';
+import SecretCheckPanel from '@/components/campaign/SecretCheckPanel';
 import TokenRoster from '@/components/campaign/TokenRoster';
 import CampaignSettingsModal from '@/components/campaign/CampaignSettingsModal';
 import CampaignDocumentsModal from '@/components/documents/CampaignDocumentsModal';
@@ -130,6 +131,7 @@ function CampaignPageContent() {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isCreatureLibraryOpen, setIsCreatureLibraryOpen] = useState(false);
   const [isTokenTemplateLibraryOpen, setIsTokenTemplateLibraryOpen] = useState(false);
+  const [isSecretCheckOpen, setIsSecretCheckOpen] = useState(false);
   // The token in the quick editor, with the map it was opened on, which its
   // saves name: the map on screen can change under it (the table moved from
   // elsewhere, the map being prepared deleted).
@@ -148,6 +150,7 @@ function CampaignPageContent() {
     templates: () => setIsTokenTemplateLibraryOpen(true),
     spirit: () => setIsSpiritLayerOpen(true),
     atmosphere: () => setIsAtmospherePanelOpen(true),
+    secretCheck: () => setIsSecretCheckOpen(true),
     settings: () => setIsSettingsOpen(true),
   };
 
@@ -299,6 +302,7 @@ function CampaignPageContent() {
               templates: isTokenTemplateLibraryOpen,
               spirit: isSpiritLayerOpen,
               atmosphere: isAtmospherePanelOpen,
+              secretCheck: isSecretCheckOpen,
               settings: isSettingsOpen,
             }}
             onOpenTool={(key) => sessionPanelOpeners[key]()}
@@ -346,6 +350,11 @@ function CampaignPageContent() {
           isOpen={isCreatureLibraryOpen}
           onClose={() => setIsCreatureLibraryOpen(false)}
         />
+      )}
+
+      {/* Secret check slide-over (GM only) */}
+      {userRole === 'GM' && (
+        <SecretCheckPanel isOpen={isSecretCheckOpen} onClose={() => setIsSecretCheckOpen(false)} />
       )}
 
       {/* Token Template Library slide-over (GM only) */}
