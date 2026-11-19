@@ -147,7 +147,7 @@ describe("a character's row, pressed and held by a finger", () => {
   }
 
   it.each([
-    ['the GM, on a player\'s character', 'GM', 'dm', "Ash's hero", ['View Character Sheet', 'Roll...', 'Edit Character Sheet', 'Add to Map', 'Remove from Campaign']],
+    ['the GM, on a player\'s character', 'GM', 'dm', "Ash's hero", ['View Character Sheet', 'Roll...', 'Edit Character Sheet', 'Add to Map', 'Give item…', 'Remove from Campaign']],
     ['a player, on their own character', 'PLAYER', 'p1', "Ash's hero", ['View Character Sheet', 'Roll...', 'Edit Character Sheet', 'Remove from Campaign']],
     ["a player, on another player's character", 'PLAYER', 'p1', "Bo's hero", ['View Character Sheet']],
   ])('opens the menu a right-click opens, item for item, for %s', async (_who, role, userId, name, items) => {
@@ -235,7 +235,7 @@ describe("a character's row, pressed and held by a finger", () => {
     const menus = document.querySelectorAll<HTMLElement>('div.fixed.z-50');
     expect(menus).toHaveLength(1);
     expect({ left: menus[0]!.style.left, top: menus[0]!.style.top }).toEqual({ left: '120px', top: '200px' });
-    expect(menuLabels()).toEqual(['View Character Sheet', 'Roll...', 'Edit Character Sheet', 'Add to Map', 'Remove from Campaign']);
+    expect(menuLabels()).toEqual(['View Character Sheet', 'Roll...', 'Edit Character Sheet', 'Add to Map', 'Give item…', 'Remove from Campaign']);
     vi.useRealTimers();
     fireEvent.click(screen.getByRole('button', { name: /Remove from Campaign/ }));
     fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));

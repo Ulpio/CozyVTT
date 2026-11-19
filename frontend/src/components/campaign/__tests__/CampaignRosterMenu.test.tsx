@@ -81,6 +81,7 @@ const EVERY_ITEM = [
   '[dices] Roll...',
   '[square-pen] Edit Character Sheet',
   '[map-pin] Add to Map',
+  '[gift] Give item…',
   '[x] Remove from Campaign (danger)',
 ];
 
@@ -106,7 +107,7 @@ describe("a roster character's menu", () => {
     render(<CampaignRoster />);
     await rightClick("Ash's hero");
 
-    expect(characterMenuRows()).toEqual(EVERY_ITEM.filter((r) => !r.includes('Add to Map')));
+    expect(characterMenuRows()).toEqual(EVERY_ITEM.filter((r) => !r.includes('Add to Map') && !r.includes('Give item')));
   });
 
   it("offers a player the sheet alone on another player's character", async () => {
@@ -157,6 +158,11 @@ describe("what a roster character's menu items do", () => {
     expect(h.api.addToken).toHaveBeenCalledWith('c1', 'map-1', expect.objectContaining({ characterId: 'p1-char', position: { x: 10, y: 10 } }));
   });
 
+  it('Give item… opens the dialog for that character and closes the menu', async () => {
+    expect(await choose('Give item…')).toBe(true);
+    expect(screen.getByRole('dialog', { name: "Give item to Ash's hero" })).toBeInTheDocument();
+  });
+
   it('Remove from Campaign asks first and closes the menu', async () => {
     expect(await choose('Remove from Campaign')).toBe(true);
     expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
@@ -171,7 +177,7 @@ describe("a roster character's menu on the compact layout", () => {
 
     const sheet = screen.getByRole('dialog', { name: "Ash's hero" });
     expect(within(sheet).getAllByRole('button').map((b) => b.textContent)).toEqual([
-      'View Character Sheet', 'Roll...', 'Edit Character Sheet', 'Add to Map', 'Remove from Campaign', 'Cancel',
+      'View Character Sheet', 'Roll...', 'Edit Character Sheet', 'Add to Map', 'Give item…', 'Remove from Campaign', 'Cancel',
     ]);
     expect(openCharacterMenu()).toBeNull();
   });

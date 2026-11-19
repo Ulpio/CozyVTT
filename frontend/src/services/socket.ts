@@ -19,6 +19,8 @@ import type {
   DoneAck,
   SecretCheckRoll,
   SecretCheckAck,
+  GiveItemRequest,
+  GiveItemAck,
   ChatMessageBroadcast,
   ChatMessageUpdated,
   ChatSystemBroadcast,
@@ -551,6 +553,11 @@ class SocketClient {
   /** The GM sends a player a private notice that pops up over their map. */
   sendNotice(data: { characterId: string; text: string }): Promise<DoneAck | { ok: false; error: string }> {
     return this.askFor<DoneAck>('gm.notice', data, ROLL_ANSWER_TIMEOUT_MS, 'No answer from the server');
+  }
+
+  /** The GM gives a character an item, straight into its backpack. */
+  giveItem(data: GiveItemRequest): Promise<GiveItemAck> {
+    return this.askFor<GiveItemAck>('character.item.give', data, ROLL_ANSWER_TIMEOUT_MS, 'No answer from the server');
   }
 
   onDiceRolledSecret(callback: EventCallback<DiceRolledSecretEvent>) {

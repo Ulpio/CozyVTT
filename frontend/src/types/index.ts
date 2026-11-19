@@ -1423,6 +1423,13 @@ export type SecretCheckAck =
   | { ok: true; results: Array<{ characterId: string; total: number; dice: number[]; breakdown: string }> }
   | { ok: false; error: string };
 
+/** The GM gives a character an item (`character.item.give`): one compendium item or a free one. */
+export type GiveItemRequest =
+  | { characterId: string; ref: { bookId: string; slug: string }; quantity: number }
+  | { characterId: string; name: string; notes?: string; quantity: number };
+/** `noticeSent` is false when nobody plays the character, so no notice went out. */
+export type GiveItemAck = { ok: true; noticeSent: boolean } | { ok: false; error: string };
+
 export interface DiceRolledEvent {
   /**
    * The stored roll's id. Optional because a roll made while the session is
