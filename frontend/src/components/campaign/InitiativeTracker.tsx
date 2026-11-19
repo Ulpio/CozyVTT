@@ -258,8 +258,8 @@ function menuPoint(e: React.MouseEvent): { x: number; y: number; byKeyboard: boo
 // and the GM's "Give back" menu
 // ---------------------------------------------------------------------------
 
-type RestorePart = 'action' | 'bonus' | 'reaction' | 'movement' | 'attack';
-const RESTORE_PARTS: RestorePart[] = ['action', 'bonus', 'reaction', 'movement', 'attack'];
+type RestorePart = 'action' | 'bonus' | 'reaction' | 'movement' | 'attack' | 'interaction';
+const RESTORE_PARTS: RestorePart[] = ['action', 'bonus', 'reaction', 'movement', 'attack', 'interaction'];
 
 function TurnPips({ spend }: { spend: TurnSpend }) {
   const { t } = useTranslation();

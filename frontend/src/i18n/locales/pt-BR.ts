@@ -665,6 +665,7 @@ const ptBR: Messages = {
       reaction: 'Reação',
       movement: 'Deslocamento',
       attack: 'Ataque',
+      interaction: 'Interação com objeto',
     },
     noActions: 'Nada a fazer com este token.',
     noSpells: 'Sem magias.',

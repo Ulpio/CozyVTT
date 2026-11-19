@@ -663,6 +663,7 @@ const en = {
       reaction: 'Reaction',
       movement: 'Movement',
       attack: 'Attack',
+      interaction: 'Object interaction',
     },
     noActions: 'Nothing to do with this token.',
     noSpells: 'No spells.',

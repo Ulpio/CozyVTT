@@ -90,11 +90,13 @@ describe('Give back', () => {
     expect(emitCombatRestore).toHaveBeenCalledWith({ tokenId: 'h', what: 'action' });
   });
 
-  it('offers the bonus action, reaction, movement and attack too', () => {
+  it('offers the bonus action, reaction, movement, attack and object interaction too', () => {
     fight({ h: freshSpend(), g: freshSpend() });
     render(<InitiativeTracker />);
     fireEvent.click(screen.getByRole('button', { name: 'Give back for Hero' }));
-    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Action', 'Bonus action', 'Reaction', 'Movement', 'Attack']);
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Action', 'Bonus action', 'Reaction', 'Movement', 'Attack', 'Object interaction']);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Object interaction' }));
+    expect(emitCombatRestore).toHaveBeenCalledWith({ tokenId: 'h', what: 'interaction' });
   });
 });
 
