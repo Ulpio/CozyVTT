@@ -21,7 +21,7 @@ import { ackFrom, refuseRequest } from '../ack';
 import { z } from 'zod';
 import { takeRest } from '../../services/rest';
 import { equipItem, openPack, recoverAmmo } from '../../services/inventory';
-import { sendNotice } from '../../services/gmNotice';
+import { GM_ONLY, NOTICE_LENGTH, NO_CHARACTER, sendNotice } from '../../services/gmNotice';
 import { getState } from '../initiativeState';
 import { resendInitiative } from './initiative';
 import { viewerOf } from '../../services/actionMessages';
@@ -48,11 +48,6 @@ const CharacterEquipSchema = z.object({
 const CharacterPackOpenSchema = z.object({
   characterId: z.string().min(1).max(100),
   itemId: z.string().min(1).max(64),
-});
-
-const GmNoticeSchema = z.object({
-  characterId: z.string().min(1).max(100),
-  text: z.string().max(5000),
 });
 
 const CharacterAmmoRecoverSchema = z.object({
@@ -535,12 +530,21 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
         return;
       }
       if (!withinCeiling(socket, 'gm.notice', ack)) return;
-      const parsed = GmNoticeSchema.safeParse(data);
-      if (!parsed.success) {
-        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Invalid request');
+      // The GM check comes first, so a player learns nothing from how a payload is judged.
+      if (socket.role !== 'GM') {
+        refuseRequest(socket, ack, GM_ONLY);
         return;
       }
-      const outcome = await sendNotice(socket.campaignId, viewerOf(socket.role, socket.userId), parsed.data.characterId, parsed.data.text);
+      const body = (typeof data === 'object' && data !== null ? data : {}) as { characterId?: unknown; text?: unknown };
+      if (typeof body.characterId !== 'string' || !body.characterId) {
+        refuseRequest(socket, ack, NO_CHARACTER);
+        return;
+      }
+      if (typeof body.text !== 'string') {
+        refuseRequest(socket, ack, NOTICE_LENGTH);
+        return;
+      }
+      const outcome = await sendNotice(socket.campaignId, viewerOf(socket.role, socket.userId), body.characterId, body.text);
       if (!outcome.ok) {
         refuseRequest(socket, ack, outcome.error);
         return;

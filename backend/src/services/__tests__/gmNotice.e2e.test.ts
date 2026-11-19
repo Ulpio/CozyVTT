@@ -10,7 +10,7 @@ import type { Socket as ClientSocket } from 'socket.io-client';
 import { createTestApp } from '../../__tests__/helpers/test-app';
 import { prisma, createTestUser, createTestCampaign, cleanupCampaigns, cleanupUsers, TEST_PASSWORD } from '../../__tests__/helpers/db';
 import { createWsTestServer, waitForEvent, expectNoEvent, WsTestServer } from '../../__tests__/helpers/websocket-test-server';
-import { GM_ONLY, NOTICE_LENGTH, NO_PLAYER, NO_CHARACTER, noticeRecipient } from '../gmNotice';
+import { GM_ONLY, NOTICE_LENGTH, NO_PLAYER, NO_CHARACTER, noticeRecipient, sendNotice } from '../gmNotice';
 
 jest.setTimeout(30000);
 
@@ -62,6 +62,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  await new Promise((r) => setTimeout(r, 1100)); // the per-second ceiling is per user, across sockets
   await prisma.message.deleteMany({ where: { campaignId } });
   gm = await server.connectAndAuth(await server.loginAs(gmId), campaignId);
   ana = await server.connectAndAuth(await server.loginAs(anaId), campaignId);
@@ -134,4 +135,48 @@ it('refuses a character with no player at the table', async () => {
 it('refuses an unknown character', async () => {
   expect(await notice(gm, 'nope', 'oi')).toEqual({ ok: false, error: NO_CHARACTER });
   expect(await noticeRecipient(campaignId, 'nope')).toBeNull();
+});
+
+it('answers an over-long or non-string text with the length refusal, and a player with GM_ONLY first', async () => {
+  const long = 'x'.repeat(6000);
+  expect(await notice(gm, anaCharId, long)).toEqual({ ok: false, error: NOTICE_LENGTH });
+  expect(await gm.timeout(5000).emitWithAck('gm.notice', { characterId: anaCharId, text: 5 })).toEqual({ ok: false, error: NOTICE_LENGTH });
+  expect(await gm.timeout(5000).emitWithAck('gm.notice', { characterId: '', text: 'oi' })).toEqual({ ok: false, error: NO_CHARACTER });
+  expect(await gm.timeout(5000).emitWithAck('gm.notice', null)).toEqual({ ok: false, error: NO_CHARACTER });
+  expect(await notice(ana, anaCharId, long)).toEqual({ ok: false, error: GM_ONLY });
+  expect(await ana.timeout(5000).emitWithAck('gm.notice', { text: 5 })).toEqual({ ok: false, error: GM_ONLY });
+  expect(await prisma.message.count({ where: { campaignId } })).toBe(0);
+});
+
+it('refuses a character of another campaign and delivers nothing', async () => {
+  const other = (await createTestCampaign(gmId, { name: 'Other notice campaign' })).id;
+  const otherChar = (await prisma.character.create({ data: { userId: anaId, campaignId: other, gameSystem: 'FIFTH_EDITION', name: 'Elsewhere', data: {} } })).id;
+  try {
+    const quiet = expectNoEvent(ana, 'chat.message', 500);
+    expect(await notice(gm, otherChar, 'oi')).toEqual({ ok: false, error: NO_CHARACTER });
+    await quiet;
+    expect(await prisma.message.count({ where: { campaignId: { in: [campaignId, other] } } })).toBe(0);
+  } finally {
+    await cleanupCampaigns([other]);
+  }
+});
+
+it('reaches a second GM live and carries the item in the metadata', async () => {
+  await prisma.campaignMembership.create({ data: { userId: goneId, campaignId, role: 'GM', characterIds: [] } });
+  const coGm = await server.connectAndAuth(await server.loginAs(goneId), campaignId);
+  try {
+    const toCo = waitForEvent<any>(coGm, 'chat.message');
+    const toAna = waitForEvent<any>(ana, 'chat.message');
+    const quiet = expectNoEvent(bruno, 'chat.message', 600);
+    const out = await sendNotice(campaignId, { role: 'GM', userId: gmId }, anaCharId, 'Você recebeu: Flechas ×3', { name: 'Flechas', quantity: 3 });
+    expect(out.ok).toBe(true);
+    const [c, a] = await Promise.all([toCo, toAna]);
+    await quiet;
+    for (const m of [c, a]) expect(m.metadata).toEqual({ kind: 'gmNotice', characterId: anaCharId, item: { name: 'Flechas', quantity: 3 } });
+    const row = await prisma.message.findFirstOrThrow({ where: { campaignId } });
+    expect((row.metadata as any).item).toEqual({ name: 'Flechas', quantity: 3 });
+  } finally {
+    coGm.disconnect();
+    await prisma.campaignMembership.delete({ where: { userId_campaignId: { userId: goneId, campaignId } } });
+  }
 });
