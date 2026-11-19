@@ -320,6 +320,12 @@ export const SOCKET_CEILINGS = {
     windows: [{ limit: 10, windowMs: SECOND }, { limit: 120, windowMs: MINUTE }],
     refusal: 'Too many notices at once. Wait a moment, then try again.',
   },
+  // One event rolls up to 20 characters, each a stored row: a GM's check or
+  // two in a row at most.
+  'gm.secretCheck': {
+    windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
+    refusal: 'Too many secret checks at once. Wait a moment, then try again.',
+  },
   // Their own budget, apart from the drag frames: each drop is a write under
   // the map's lock, and on a lit map line of sight for every player.
   'token.move.start': tokenMoves,

@@ -812,6 +812,7 @@ Three things decide what a player's map shows, and each has one source of truth.
 | `character.hitdice.spend` | 50 a second | `error` once |
 | `character.rest` | 5 a second and 60 a minute; each is a write under the characters' rows and the current map's lock | `error` once; through the acknowledgement when there is one |
 | `gm.notice` | 10 a second and 120 a minute; each is a stored chat message | `error` once; through the acknowledgement when there is one |
+| `gm.secretCheck` | 5 a second and 60 a minute; one call is one event, however many rolls (up to 20) it carries | `error` once; through the acknowledgement when there is one |
 | `character.equip` | 15 a second and 300 a minute; each is a write under the character's row | `error` once; through the acknowledgement when there is one |
 | `character.pack.open` | 5 a second and 60 a minute; each is a write under the character's row | `error` once; through the acknowledgement when there is one |
 | `character.ammo.recover` | 5 a second and 60 a minute; each is a write under the character's row | `error` once; through the acknowledgement when there is one |
@@ -1367,6 +1368,7 @@ _Who may send it is read from the shared permission predicates each handler call
 | `character.hitdice.spend` | GM, or the character's owner, never a spectator | spend one 5E hit die. |
 | `character.rest` | GM (any character of the campaign), or a player for their own characters, never a spectator | A short or long rest for the named characters; refused during combat. |
 | `gm.notice` | GM only | A private notice to the owner of a character, shown over their map and kept in the chat. |
+| `gm.secretCheck` | GM only | Rolls one expression for each of 1 to 20 characters of the campaign, all as secret rolls. Payload `{ rolls: [{ characterId, expression, purpose, characterName }] }`; acknowledged `{ ok: true, results: [{ characterId, total, dice, breakdown }] }` or `{ ok: false, error }`. Each roll is stored with `secret: true` and sent as `dice.rolled` to the GM's socket and `dice.rolled.secret` to the other GMs, never to a player. Nothing is rolled or stored if any roll or character is refused. |
 | `character.hp.temporary` | GM, or the character's owner, never a spectator | CHARACTER.HP.TEMPORARY: the character takes `temporary` temporary hit points in place of any it has. |
 | `character.hp.update` | GM, or the character's owner, never a spectator | — |
 | `character.pack.open` | GM (any character of the campaign), or a player for their own characters, never a spectator | Replaces one pack in the inventory by its items. |
