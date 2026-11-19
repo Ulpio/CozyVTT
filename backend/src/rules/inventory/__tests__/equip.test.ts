@@ -141,3 +141,32 @@ describe('acAfter', () => {
     expect(acAfter(sheet({ armorClass: 15, dex: 2 }), before, r.inventory, facts)).toEqual({ ac: 15, unknown: true });
   });
 });
+
+describe('handMoves and unknown armour', () => {
+  const moves = (inv: Item[], id: string, slot: Item['slot'] | null) => {
+    const r = planEquip(inv, id, slot ?? null, facts);
+    if (!r.ok) throw new Error('refused');
+    return r.handMoves;
+  };
+  it('counts only weapons entering or leaving a hand', () => {
+    expect(moves([mk('dagger', 'main')], 'dagger', 'off')).toBe(0);
+    expect(moves([mk('longsword', 'main')], 'longsword', 'both')).toBe(0);
+    expect(moves([mk('longsword', 'main')], 'longsword', null)).toBe(1);
+    expect(moves([mk('longsword', 'main')], 'longsword', 'main')).toBe(0);
+    expect(moves([mk('dagger')], 'dagger', 'main')).toBe(1);
+  });
+  it('an unchanged unlinked body armour still lets a shield change count', () => {
+    const before = [mk('mystery', 'armor'), mk('shield')];
+    const r = planEquip(before, 'shield', 'off', facts);
+    if (!r.ok) throw new Error('x');
+    expect(acAfter(sheet({ armorClass: 14 }), before, r.inventory, facts)).toEqual({ ac: 16, unknown: false });
+    const back = planEquip(r.inventory, 'shield', null, facts);
+    if (!back.ok) throw new Error('x');
+    expect(acAfter(sheet({ armorClass: 16 }), r.inventory, back.inventory, facts)).toEqual({ ac: 14, unknown: false });
+  });
+  it('monk shield rule distinguishes wisdom', () => {
+    const monk = sheet({ dex: 3, wis: 4, class: 'Monge' });
+    expect(acContribution(undefined, false, monk)).toBe(17);
+    expect(acContribution(undefined, true, monk)).toBe(15);
+  });
+});

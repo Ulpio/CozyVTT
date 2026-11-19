@@ -89,7 +89,7 @@ export function planEquip(
     if (was.slot === now.slot) return;
     const f = facts(was);
     if (f.kind === 'weapon' || f.kind === 'other') {
-      if (inHand(was.slot) || inHand(now.slot)) handMoves++;
+      if (inHand(was.slot) !== inHand(now.slot)) handMoves++;
     } else if (f.kind === 'shield') {
       shieldMoved = true;
     } else if (f.kind === 'armor') {
@@ -136,16 +136,20 @@ export function acContribution(
   return base + (shield ? 2 : 0);
 }
 
-function worn(items: Item[], facts: (item: Item) => ItemFacts): { body: ItemFacts['armor'] | 'unknown' | undefined; shield: boolean } {
+function worn(items: Item[], facts: (item: Item) => ItemFacts): { body: ItemFacts['armor'] | 'unknown' | undefined; bodyId?: string; shield: boolean } {
   let body: ItemFacts['armor'] | 'unknown' | undefined;
   let shield = false;
+  let bodyId: string | undefined;
   for (const item of items) {
     if (item.slot === undefined) continue;
     const f = facts(item);
-    if (f.kind === 'armor' && item.slot === 'armor') body = f.armor ?? 'unknown';
+    if (f.kind === 'armor' && item.slot === 'armor') {
+      body = f.armor ?? 'unknown';
+      bodyId = item.id;
+    }
     else if (f.kind === 'shield' && item.slot === 'off') shield = true;
   }
-  return { body, shield };
+  return { body, bodyId, shield };
 }
 
 export function acAfter(
@@ -157,6 +161,7 @@ export function acAfter(
   const stored = sheet.armorClass ?? 10;
   const b = worn(before, facts);
   const a = worn(after, facts);
+  if (b.bodyId !== undefined && b.bodyId === a.bodyId) return { ac: stored + 2 * (Number(a.shield) - Number(b.shield)), unknown: false };
   const was = acContribution(b.body, b.shield, sheet);
   const now = acContribution(a.body, a.shield, sheet);
   if (was === 'unknown' || now === 'unknown') return { ac: stored, unknown: true };
