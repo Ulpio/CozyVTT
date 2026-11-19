@@ -109,6 +109,12 @@ describe('itemLightFor', () => {
     expect(itemLightFor([item('a', 'lanterna-furta-fogo', { slot: 'main' })])).toBeNull();
   });
 
+  it('reads a hand-typed name as a word, and never the bullseye lantern', () => {
+    const lit = (name: string) => itemLightFor([{ id: 'n', name, quantity: 1, slot: 'main' } as any]);
+    for (const name of ['Vela de sebo', 'Velas (10)', 'Tochas', 'Lanterna de bronze', 'Torch']) expect(lit(name)).not.toBeNull();
+    for (const name of ['Velame', 'Velado', 'Lampejo', 'Lanterna furta-fogo', 'Lanterna de furta fogo', 'Lantern, bullseye', 'Corda']) expect(lit(name)).toBeNull();
+  });
+
   it('takes the biggest light of the hands', () => {
     const light = itemLightFor([item('t', 'tocha', { slot: 'main' }), item('l', 'lanterna-coberta', { slot: 'off' })]);
     expect(light).toMatchObject({ brightRadius: 6, dimRadius: 12, itemId: 'l' });
@@ -190,5 +196,23 @@ describe('a torch in hand lights the token', () => {
     const id = await newCharacter([item('torch', 'tocha')]);
     const map = await newMap();
     expect((await place(map, id)).light ?? null).toBeNull();
+  });
+});
+
+describe('a sheet saved in the editor', () => {
+  it('puts the light out when the held torch is gone from the sheet, and leaves a manual light alone', async () => {
+    const anaAgent = request.agent(app);
+    const email = (await prisma.user.findUniqueOrThrow({ where: { id: anaId } })).email;
+    expect((await anaAgent.post('/api/auth/login').send({ email, password: TEST_PASSWORD })).status).toBe(200);
+    const id = await newCharacter([item('torch', 'tocha', { slot: 'main' }), item('rope', 'corda')]);
+    const manual = { brightRadius: 2, dimRadius: 5, color: '#88aaff', source: 'manual' };
+    const map = await newMap([{ id: 'mt', characterId: id, name: 'Hero', imageUrl: '', position: { x: 1, y: 1 }, size: { width: 1, height: 1 }, layer: 'token', visible: true, light: manual }]);
+    const lit = await place(map, id);
+    expect(lit.light).toMatchObject({ source: 'item' });
+    const put = (inventory: unknown[]) => anaAgent.put(`/api/characters/${id}`).send({ data: sheet(inventory) });
+    expect((await put([item('rope', 'corda')])).status).toBe(200);
+    const tokens = (await prisma.map.findUniqueOrThrow({ where: { id: map } })).tokens as any[];
+    expect(tokens.find((t) => t.id === lit.id).light).toBeNull();
+    expect(tokens.find((t) => t.id === 'mt').light).toEqual(manual);
   });
 });

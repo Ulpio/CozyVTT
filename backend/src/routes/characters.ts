@@ -25,6 +25,7 @@ import {
 } from '../utils/gmNotes';
 import { resendInitiative } from '../websocket/handlers/initiative';
 import { originChanged, syncDarkvision } from '../services/darkvision';
+import { syncItemLight } from '../services/itemLight';
 import logger from '../utils/logger';
 import { cutText } from '../utils/cutText';
 import { readTokens, toJson, readJsonObject } from '../utils/prisma-json';
@@ -871,6 +872,17 @@ router.put('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
         await syncDarkvision(updatedCharacter.id);
       } catch (error) {
         logger.error('Failed to sync darkvision after character update', { err: error });
+      }
+    }
+
+    // The hands may have changed (a held torch deleted in the editor): the
+    // tokens carry the light the sheet's hands now give.
+    const inventoryOf = (d: unknown) => JSON.stringify((d as { inventory?: unknown } | null)?.inventory ?? null);
+    if (data !== undefined && inventoryOf(character.data) !== inventoryOf(updatedCharacter.data)) {
+      try {
+        await syncItemLight(updatedCharacter.id);
+      } catch (error) {
+        logger.error('Failed to sync item light after character update', { err: error });
       }
     }
 

@@ -37,15 +37,21 @@ const BY_NAME: Array<[string[], [number, number]]> = [
 
 const HANDS = new Set(['main', 'off', 'both']);
 
-function plain(text: unknown): string {
-  return typeof text === 'string' ? text.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase() : '';
-}
+const plain = (text: unknown): string =>
+  typeof text === 'string' ? text.normalize('NFD').replace(/\p{M}/gu, '').trim().toLowerCase() : '';
+
+/** The bullseye lantern throws a cone, which the table has no light for: it is not a light. */
+const BULLSEYE = /furta[\s-]?fogo|bullseye/;
+
+/** A prefix counts as a word: "Vela de sebo", "Velas (10)" and "Tochas" light, "Velame" and "Lampejo" do not. */
+const startsWord = (name: string, prefix: string): boolean => new RegExp(`^${prefix}(s|es)?(?![a-z0-9])`).test(name);
 
 function radiiOf(item: Item): [number, number] | null {
   const ref = item.compendiumRef;
   if (ref && typeof ref.slug === 'string') return BY_SLUG[ref.slug] ?? null;
   const name = plain(item.name);
-  for (const [prefixes, radii] of BY_NAME) if (prefixes.some((p) => name.startsWith(p))) return radii;
+  if (BULLSEYE.test(name)) return null;
+  for (const [prefixes, radii] of BY_NAME) if (prefixes.some((p) => startsWord(name, p))) return radii;
   return null;
 }
 
