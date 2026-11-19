@@ -20,7 +20,9 @@ import { withinCeiling } from '../shared';
 import { ackFrom, refuseRequest } from '../ack';
 import { z } from 'zod';
 import { takeRest } from '../../services/rest';
-import { equipItem, openPack, recoverAmmo } from '../../services/inventory';
+import {
+  COMPENDIUM_ITEM_NOT_FOUND, GIVE_NAME, GIVE_NOTES, GIVE_ONE_OF, GIVE_QUANTITY, equipItem, giveItem, openPack, recoverAmmo, type GiveTarget,
+} from '../../services/inventory';
 import { GM_ONLY, NOTICE_LENGTH, NO_CHARACTER, sendNotice } from '../../services/gmNotice';
 import { getState } from '../initiativeState';
 import { resendInitiative } from './initiative';
@@ -514,6 +516,74 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
     } catch (error) {
       logger.error('character.ammo.recover failed', { err: error });
       refuseRequest(socket, ack, 'Failed to recover the ammunition');
+    }
+  });
+
+  /**
+   * CHARACTER.ITEM.GIVE - the GM gives a character an item, from the
+   * compendium (`ref`) or typed free (`name`, `notes`), into the backpack; the
+   * owner gets a "Você recebeu" notice when they are a player at the table.
+   * Answered `{ ok: true, noticeSent }` or `{ ok: false, error }`.
+   */
+  socket.on('character.item.give', async (data: unknown, ackArg?: unknown) => {
+    const ack = ackFrom(ackArg);
+    try {
+      if (!socket.campaignId || !socket.userId) {
+        refuseRequest(socket, ack, 'Not authenticated to a campaign');
+        return;
+      }
+      if (!withinCeiling(socket, 'character.item.give', ack)) return;
+      // The GM check comes first, so a player learns nothing from how a payload is judged.
+      if (socket.role !== 'GM') {
+        refuseRequest(socket, ack, GM_ONLY);
+        return;
+      }
+      const body = (typeof data === 'object' && data !== null ? data : {}) as {
+        characterId?: unknown; ref?: unknown; name?: unknown; notes?: unknown; quantity?: unknown;
+      };
+      if (typeof body.characterId !== 'string' || !body.characterId) {
+        refuseRequest(socket, ack, NO_CHARACTER);
+        return;
+      }
+      if (typeof body.quantity !== 'number') {
+        refuseRequest(socket, ack, GIVE_QUANTITY);
+        return;
+      }
+      const hasRef = body.ref !== undefined && body.ref !== null;
+      const hasName = body.name !== undefined && body.name !== null;
+      if (hasRef === hasName) {
+        refuseRequest(socket, ack, GIVE_ONE_OF);
+        return;
+      }
+      let target: GiveTarget;
+      if (hasRef) {
+        const ref = body.ref as { bookId?: unknown; slug?: unknown };
+        if (typeof ref !== 'object' || typeof ref.bookId !== 'string' || typeof ref.slug !== 'string') {
+          refuseRequest(socket, ack, COMPENDIUM_ITEM_NOT_FOUND);
+          return;
+        }
+        target = { ref: { bookId: ref.bookId, slug: ref.slug } };
+      } else {
+        if (typeof body.name !== 'string') {
+          refuseRequest(socket, ack, GIVE_NAME);
+          return;
+        }
+        if (body.notes !== undefined && body.notes !== null && typeof body.notes !== 'string') {
+          refuseRequest(socket, ack, GIVE_NOTES);
+          return;
+        }
+        target = { name: body.name, ...(typeof body.notes === 'string' ? { notes: body.notes } : {}) };
+      }
+      const outcome = await giveItem(socket.campaignId, viewerOf(socket.role, socket.userId), body.characterId, target, body.quantity);
+      if (!outcome.ok) {
+        refuseRequest(socket, ack, outcome.error);
+        return;
+      }
+      await sheetChanged(socket.campaignId, body.characterId, socket.userId);
+      (ack as ((a: unknown) => void) | null)?.({ ok: true, noticeSent: outcome.noticeSent });
+    } catch (error) {
+      logger.error('character.item.give failed', { err: error });
+      refuseRequest(socket, ack, 'Failed to give the item');
     }
   });
 

@@ -315,6 +315,12 @@ export const SOCKET_CEILINGS = {
     windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
     refusal: 'Too many ammunition pick-ups at once. Wait a moment, then try again.',
   },
+  // A write under the character's row and a stored chat message, and one a GM
+  // does a few of in a row at most.
+  'character.item.give': {
+    windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
+    refusal: 'Too many items given at once. Wait a moment, then try again.',
+  },
   // A write to the chat, and one a GM sends a few of in a row at most.
   'gm.notice': {
     windows: [{ limit: 10, windowMs: SECOND }, { limit: 120, windowMs: MINUTE }],
