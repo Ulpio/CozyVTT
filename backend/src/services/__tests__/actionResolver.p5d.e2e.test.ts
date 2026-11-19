@@ -193,6 +193,8 @@ describeIf('the P5d done-when session, against the real curated data', () => {
       expect(s.inventory.find((i: any) => i.name === 'Pacote de Explorador')).toBeUndefined();
       const rations = s.inventory.find((i: any) => i.compendiumRef?.slug === 'racoes-de-viagem-1-dia');
       expect(rations?.quantity).toBe(10);
+      expect(s.inventory.find((i: any) => i.compendiumRef?.slug === 'tocha')?.quantity).toBe(10);
+      expect(s.inventory.find((i: any) => i.compendiumRef?.slug === 'corda-de-canhamo-15-metros')?.quantity).toBe(1);
       expect(s.inventory.length).toBeGreaterThan(5);
       expect(s.inventory.find((i: any) => i.name === 'Flechas')).toMatchObject({ slot: 'ammo', quantity: 20 });
     });
@@ -209,6 +211,11 @@ describeIf('the P5d done-when session, against the real curated data', () => {
       ok(await undoAction(campaignId, gm, third.messageId));
       expect(await qty('ranger', 'Flechas')).toBe(18);
       expect((await data('ranger')).ammoToRecover).toEqual({ 'flechas-20': 2 });
+      // One more shot: an odd 3 pending, so the pickup below shows the rounding down.
+      nextTurn('ranger');
+      ok(await shoot());
+      expect(await qty('ranger', 'Flechas')).toBe(17);
+      expect((await data('ranger')).ammoToRecover).toEqual({ 'flechas-20': 3 });
 
       const s = await data('ranger');
       s.inventory.find((i: any) => i.name === 'Flechas').quantity = 0;
@@ -271,6 +278,8 @@ describeIf('the P5d done-when session, against the real curated data', () => {
       ok(await undoAction(campaignId, gm, out.messageId));
       expect((await data('ranger')).inventory.find((i: any) => i.compendiumRef?.slug === 'racoes-de-viagem-1-dia').quantity).toBe(10);
       expect(await qty('fighter', 'Rações de viagem (1 dia)')).toBe(4);
+      expect((await data('scout')).inventory).toEqual([{ name: 'Corda', quantity: 1 }]);
+      expect(await whispers()).toHaveLength(1);
     });
   });
 
