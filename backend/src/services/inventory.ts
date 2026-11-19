@@ -374,7 +374,7 @@ export async function openPack(campaignId: string, requester: Viewer, characterI
 
 export const COMPENDIUM_ITEM_NOT_FOUND = 'Item não encontrado no compêndio.';
 export const GIVE_QUANTITY = 'A quantidade precisa ser um número inteiro de 1 a 999.';
-export const GIVE_NAME = 'O nome do item precisa ter de 1 a 100 caracteres.';
+export const GIVE_NAME = 'O nome do item precisa ter de 1 a 120 caracteres.';
 export const GIVE_NOTES = 'A anotação do item pode ter até 500 caracteres.';
 export const BACKPACK_FULL = 'A mochila está cheia.';
 export const GIVE_ONE_OF = 'Escolha um item do compêndio ou digite um nome, não os dois.';
@@ -407,7 +407,7 @@ export async function giveItem(
   let free: { name: string; notes?: string } | null = null;
   if ('name' in item) {
     const name = typeof item.name === 'string' ? item.name.trim() : '';
-    if (name.length < 1 || name.length > 100) return refuse(GIVE_NAME);
+    if (name.length < 1 || name.length > 120) return refuse(GIVE_NAME);
     const notes = typeof item.notes === 'string' ? item.notes.trim() : '';
     if (item.notes !== undefined && typeof item.notes !== 'string') return refuse(GIVE_NOTES);
     if (notes.length > 500) return refuse(GIVE_NOTES);
@@ -444,7 +444,7 @@ export async function giveItem(
     const items = ((sheet.inventory ?? []) as StoredItem[]).map((i) => ({ ...i }));
     const taken = new Set(items.map((i) => i.id).filter((id): id is string => !!id));
 
-    let given: { id: string; name: string; quantity: number };
+    let given: { id: string; name: string; quantity: number; ref?: { bookId: string; slug: string } };
     if (entry) {
       const key = `${entry.bookId}/${entry.slug}`;
       const isAmmo = (await lookUp([{ name: entry.name, compendiumRef: { bookId: entry.bookId, slug: entry.slug } }], tx)).ammo.has(key);
@@ -454,7 +454,7 @@ export async function giveItem(
       const same = items.find((i) => keyOf(i.compendiumRef) === key && i.slot === undefined) ?? items.find((i) => keyOf(i.compendiumRef) === key && i.slot === 'ammo');
       if (same) {
         same.quantity = (same.quantity ?? 1) + units;
-        given = { id: same.id as string, name, quantity: units };
+        given = { id: same.id as string, name, quantity: units, ref: { bookId: entry.bookId, slug: entry.slug } };
       } else {
         if (items.length >= SHEET_LIST_MAX) return refuse(BACKPACK_FULL);
         const kg = entry.data.weight;
@@ -466,7 +466,7 @@ export async function giveItem(
           ...(typeof kg === 'number' ? { weight: (kg * 2) / (bundle ?? 1) } : {}),
           compendiumRef: { bookId: entry.bookId, slug: entry.slug },
         });
-        given = { id, name, quantity: units };
+        given = { id, name, quantity: units, ref: { bookId: entry.bookId, slug: entry.slug } };
       }
     } else {
       if (items.length >= SHEET_LIST_MAX) return refuse(BACKPACK_FULL);
@@ -488,7 +488,7 @@ export async function giveItem(
     const text = given.quantity === 1 ? `Você recebeu: ${given.name}` : `Você recebeu: ${given.name} ×${given.quantity}`;
     // The item is stored; a notice that cannot be sent does not take it back.
     try {
-      noticeSent = (await sendNotice(campaignId, requester, characterId, text, { name: given.name, quantity: given.quantity })).ok;
+      noticeSent = (await sendNotice(campaignId, requester, characterId, text, { name: given.name, quantity: given.quantity, ...(given.ref ? { compendiumRef: given.ref } : {}) })).ok;
     } catch {
       noticeSent = false;
     }

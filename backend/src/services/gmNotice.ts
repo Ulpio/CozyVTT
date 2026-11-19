@@ -31,7 +31,7 @@ export async function sendNotice(
   requester: Viewer,
   characterId: string,
   text: string,
-  item?: { name: string; quantity: number },
+  item?: { name: string; quantity: number; compendiumRef?: { bookId: string; slug: string } },
 ): Promise<{ ok: true; messageId: string } | Refusal> {
   if (requester.role !== 'GM') return refuse(GM_ONLY);
   const content = text.trim();
@@ -41,7 +41,7 @@ export async function sendNotice(
   const recipientId = await noticeRecipient(campaignId, characterId);
   if (!recipientId) return refuse(NO_PLAYER);
 
-  const metadata = { kind: 'gmNotice', characterId, ...(item ? { item: { name: item.name, quantity: item.quantity } } : {}) };
+  const metadata = { kind: 'gmNotice', characterId, ...(item ? { item: { name: item.name, quantity: item.quantity, ...(item.compendiumRef ? { compendiumRef: item.compendiumRef } : {}) } } : {}) };
   const message = await prisma.message.create({
     data: { campaignId, userId: requester.userId, type: 'WHISPER', recipientId, content, metadata },
     include: { user: { select: { displayName: true } }, recipient: { select: { displayName: true } } },

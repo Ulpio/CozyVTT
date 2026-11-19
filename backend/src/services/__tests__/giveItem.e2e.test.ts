@@ -107,7 +107,7 @@ it('gives a compendium item: backpack, no slot, an id, weight in pounds, the upd
   expect(JSON.stringify(await updated)).toContain('Poção de Cura');
   const message = await toAna;
   expect(message).toMatchObject({ content: 'Você recebeu: Poção de Cura ×2', type: 'WHISPER', recipientId: anaId });
-  expect(message.metadata).toEqual({ kind: 'gmNotice', characterId: anaCharId, item: { name: 'Poção de Cura', quantity: 2 } });
+  expect(message.metadata).toEqual({ kind: 'gmNotice', characterId: anaCharId, item: { name: 'Poção de Cura', quantity: 2, compendiumRef: ref('pocao-de-cura') } });
 });
 
 it('tells the open sheet its new inventory in character.updated', async () => {
@@ -126,6 +126,7 @@ it('gives a free item with the plain notice text and keeps its notes', async () 
   const [row] = await notices();
   expect(row.content).toBe('Você recebeu: Mapa rasgado');
   expect((row.metadata as any).item).toEqual({ name: 'Mapa rasgado', quantity: 1 });
+  expect((row.metadata as any).item).not.toHaveProperty('compendiumRef');
 });
 
 it('adds a bundle of arrows to the stack already in the backpack: one stack of 25', async () => {
@@ -220,9 +221,14 @@ it('refuses a payload with both or neither of ref and name, or a bad name', asyn
   expect(await bag()).toEqual([]);
 });
 
-it.each([[''], ['   '], ['x'.repeat(101)], [5]])('refuses the free name %p', async (name) => {
-  expect(await give(gm, { characterId: anaCharId, name, quantity: 1 })).toEqual({ ok: false, error: 'O nome do item precisa ter de 1 a 100 caracteres.' });
+it.each([[''], ['   '], ['x'.repeat(121)], [5]])('refuses the free name %p', async (name) => {
+  expect(await give(gm, { characterId: anaCharId, name, quantity: 1 })).toEqual({ ok: false, error: 'O nome do item precisa ter de 1 a 120 caracteres.' });
   expect(await bag()).toEqual([]);
+});
+
+it('accepts a free name of exactly 120 characters', async () => {
+  expect(await give(gm, { characterId: anaCharId, name: 'y'.repeat(120), quantity: 1 })).toEqual({ ok: true, noticeSent: true });
+  expect((await bag())[0].name).toHaveLength(120);
 });
 
 it('refuses notes over 500 characters', async () => {
