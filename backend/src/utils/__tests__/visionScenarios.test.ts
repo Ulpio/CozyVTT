@@ -9,10 +9,11 @@
 
 import { readFileSync } from 'fs';
 import path from 'path';
-import { filterTokensByLighting } from '../spirit-layer';
+import { tokensSentTo, type MapTokenSight } from '../spirit-layer';
+import type { TokenLight } from '../tokenLights';
 import type { Token } from '../../websocket/shared';
 
-interface ScenarioToken { id: string; x: number; y: number; controlledBy?: string; sightRadius?: number; size?: { width: number; height: number } }
+interface ScenarioToken { id: string; x: number; y: number; controlledBy?: string; sightRadius?: number; size?: { width: number; height: number }; light?: TokenLight }
 interface Scenario {
   name: string;
   globalIllumination: boolean;
@@ -30,16 +31,19 @@ function toToken(t: ScenarioToken): Token {
     id: t.id, name: t.id, imageUrl: '', position: { x: t.x, y: t.y },
     size: t.size ?? { width: 1, height: 1 }, layer: 'token', visible: true,
     controlledBy: t.controlledBy ?? null, rotation: 0, conditions: [], metadata: {},
-    sightRadius: t.sightRadius ?? 0,
+    sightRadius: t.sightRadius ?? 0, light: t.light ?? null,
   } as unknown as Token;
 }
 
 describe('vision scenarios (server: which tokens are sent)', () => {
   it.each(fixture.scenarios.map((s) => [s.name, s] as const))('%s', (_name, s) => {
     const { width, height, gridSize } = fixture.map;
-    const sent = filterTokensByLighting(
-      s.tokens.map(toToken), fixture.viewer, s.walls, width, height, gridSize, true, s.lights, s.globalIllumination
-    );
+    // The path every map read takes, so a token's light counts as it does in play.
+    const map = {
+      tokens: s.tokens.map(toToken), lightingEnabled: true, wallSegments: s.walls, width, height, gridSize,
+      lights: s.lights, globalIllumination: s.globalIllumination,
+    } as unknown as MapTokenSight;
+    const sent = tokensSentTo(map, 'PLAYER', false, fixture.viewer);
     expect(sent.map((t) => t.id).sort()).toEqual([...s.expectVisible].sort());
   });
 });

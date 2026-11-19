@@ -567,6 +567,65 @@
           "tier": "dark"
         }
       ]
+    },
+    {
+      "name": "a token carrying a torch (bright 4, dim 8) lights a dark room for a human with no darkvision",
+      "globalIllumination": false,
+      "walls": [],
+      "lights": [],
+      "tokens": [
+        {
+          "id": "me",
+          "x": 2,
+          "y": 5,
+          "controlledBy": "p1",
+          "sightRadius": 0
+        },
+        {
+          "id": "torchbearer",
+          "x": 4,
+          "y": 5,
+          "light": {
+            "brightRadius": 4,
+            "dimRadius": 8,
+            "color": "#ffcc66",
+            "source": "item",
+            "itemId": "torch-1"
+          }
+        },
+        {
+          "id": "inDim",
+          "x": 9,
+          "y": 5
+        },
+        {
+          "id": "beyond",
+          "x": 15,
+          "y": 5
+        }
+      ],
+      "expectVisible": [
+        "me",
+        "torchbearer",
+        "inDim"
+      ],
+      "samples": [
+        {
+          "x": 700,
+          "y": 1450,
+          "tier": "bright"
+        },
+        {
+          "x": 1100,
+          "y": 1450,
+          "tier": "dim"
+        },
+        {
+          "x": 1400,
+          "y": 1450,
+          "tier": "dark"
+        }
+      ]
     }
   ]
 }

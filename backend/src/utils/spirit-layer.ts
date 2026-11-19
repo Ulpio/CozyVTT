@@ -7,6 +7,7 @@ import { isSeen, type Viewer, type Lit, type InsideFn } from './visibilityRule';
 import { tokenCentre } from './tokenCentre';
 import type { WallSegment, LightSource } from '../types/walls';
 import { tokenSentTo } from './tokenMask';
+import { effectiveLights } from './tokenLights';
 import logger from './logger';
 import type { Token } from '../websocket/shared';
 
@@ -350,11 +351,30 @@ export function filterTokensByLighting(
 /**
  * What each light reaches, by the map read it came from. A fan-out asks for
  * every player's sight from one read of the map, and the lights' reach does
- * not depend on the player, so it is raycast once per read and not once per
- * player. Keyed on the read's own wall and light arrays, so a later read, or
- * a change, never sees an old answer, and nothing is kept once they go.
+ * not depend on the player, so it is worked out once per read and not once
+ * per player. Keyed on the read's own wall array, so a later read, or a
+ * change to the walls, never sees an old answer, and nothing is kept once it
+ * goes; and, within it, on where every light stands and how far it reaches.
+ * The lights are not one stored array: tokens carry lights too
+ * (effectiveLights), and a drag asks again from the same read with the
+ * carrier somewhere else each time.
  */
-const litCache = new WeakMap<object, WeakMap<object, { key: string; lits: Lit[] }>>();
+const litCache = new WeakMap<object, { key: string; lits: Lit[] }>();
+
+/** The lights' places and radii, all a light's reach and glow are worked out from. */
+function lightsFingerprint(lights: LightSource[]): string {
+  return JSON.stringify(lights.map((l) => [l.x, l.y, l.brightRadius, l.dimRadius]));
+}
+
+/**
+ * Every light a map is lit by: its own and those its tokens carry
+ * (tokenLights.ts). Taken from every token on the map, not only those a
+ * player may be sent: a torch carried round a corner lights the floor the
+ * player can see, though the token carrying it is not sent.
+ */
+export function mapLights(map: { lights: unknown; tokens: unknown; gridSize: number; height: number }): LightSource[] {
+  return effectiveLights(map.lights, map.tokens, map.gridSize, map.height);
+}
 
 /**
  * What each light reaches, kept from one read of the map to the next. Every
@@ -411,16 +431,14 @@ function lightReach(
 
 function litsFor(
   walls: unknown,
-  lights: unknown,
   wallSegs: WallSegment[],
   enabledLights: LightSource[],
   mapWidthPx: number,
   mapHeightPx: number,
   gridSize: number
 ): Lit[] {
-  const key = `${mapWidthPx}x${mapHeightPx}@${gridSize}`;
-  const byWalls = Array.isArray(lights) && Array.isArray(walls) ? litCache.get(lights) : undefined;
-  const hit = byWalls?.get(walls as object);
+  const key = `${mapWidthPx}x${mapHeightPx}@${gridSize}:${lightsFingerprint(enabledLights)}`;
+  const hit = Array.isArray(walls) ? litCache.get(walls) : undefined;
   if (hit && hit.key === key) return hit.lits;
   // Light positions are already in map-space pixels (Y=0 at top), so no flip
   // is needed.
@@ -435,11 +453,7 @@ function litsFor(
       dimPx: dimRadiusPx,
     };
   });
-  if (Array.isArray(lights) && Array.isArray(walls)) {
-    const entry = litCache.get(lights) ?? new WeakMap<object, { key: string; lits: Lit[] }>();
-    entry.set(walls, { key, lits });
-    litCache.set(lights, entry);
-  }
+  if (Array.isArray(walls)) litCache.set(walls, { key, lits });
   return lits;
 }
 
@@ -526,7 +540,7 @@ export function playerSightOnLitMap(
 
   // What each light reaches, bounded by its own walls: the same for every
   // player, so worked out once per map read (litsFor).
-  const lits = litsFor(walls, lights, wallSegs, enabledLights, mapWidthPx, mapHeightPx, gridSize);
+  const lits = litsFor(walls, wallSegs, enabledLights, mapWidthPx, mapHeightPx, gridSize);
   const inside: InsideFn = (p, poly) => isPointVisible(p, poly);
 
   const elapsed = Date.now() - startMs;
@@ -836,7 +850,7 @@ export function tokensSentTo(
   const forRole = filterTokensByRole(map.tokens, userRole, spiritVisible, userId);
   if (userRole === 'GM' || !map.lightingEnabled || !userId) return forRole;
   return filterTokensByLighting(
-    forRole, viewerIdFor(userRole, userId), map.wallSegments, map.width, map.height, map.gridSize, true, map.lights, map.globalIllumination
+    forRole, viewerIdFor(userRole, userId), map.wallSegments, map.width, map.height, map.gridSize, true, mapLights(map), map.globalIllumination
   );
 }
 

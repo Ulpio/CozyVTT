@@ -9,7 +9,7 @@ import { AuthenticatedSocket } from '../auth';
 import { prisma } from '../../config/database';
 import {
   canActOnTokenPlane, getSpiritVisibilityBatch, filterTokensByRole, filterTokensByLighting, playerSightOnLitMap,
-  tokenForRecipient, viewerIdFor,
+  tokenForRecipient, viewerIdFor, mapLights,
 } from '../../utils/spirit-layer';
 import type { Map as MapRow } from '@prisma/client';
 import type { WallSegment } from '../../types/walls';
@@ -153,7 +153,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
     if (!map.lightingEnabled) return { sees: () => true, shown };
     const sight = playerSightOnLitMap(
       forRole, viewer, map.wallSegments as unknown as WallSegment[],
-      map.width, map.height, map.gridSize, map.lights, map.globalIllumination
+      map.width, map.height, map.gridSize, mapLights(map), map.globalIllumination
     );
     return { sees: (t) => sight.seesToken(t), shown };
   }
@@ -663,6 +663,8 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
           .filter((a) => a.role !== 'GM' && a.userId)
           .map((a) => a.userId as string);
         const spiritVisibility = await getSpiritVisibilityBatch(socket.campaignId, playerIds);
+        // Lit by the map and by every token on it, the moved one where it now stands.
+        const lightsNow = mapLights(stored);
         for (const s of stillInCampaign(members, socket.campaignId)) {
           const authedSocket = s as unknown as AuthenticatedSocket;
           if (authedSocket.role === 'GM') {
@@ -687,7 +689,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
             stored.height,
             stored.gridSize,
             true,
-            stored.lights,
+            lightsNow,
             stored.globalIllumination
           );
           const visibleById = new Map(visible.map((t) => [t.id, t]));

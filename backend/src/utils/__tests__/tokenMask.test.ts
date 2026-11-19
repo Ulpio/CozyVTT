@@ -68,6 +68,7 @@ describe('maskObscuredToken', () => {
  */
 describe('tokenSentTo', () => {
   const hp = { current: 5, max: 9, temp: 0 };
+  const torch = { brightRadius: 4, dimRadius: 8, color: '#ffcc66', source: 'item' as const, itemId: 'i1' };
   const token = {
     id: 't1', name: 'Goblin', imageUrl: '', position: { x: 1, y: 1 }, size: { width: 1, height: 1 },
     layer: 'token' as const, visible: true, controlledBy: 'user-a', rotation: 0, conditions: [], metadata: {},
@@ -93,6 +94,16 @@ describe('tokenSentTo', () => {
     expect(tokenSentTo(token, false)).not.toHaveProperty('sightRadius');
   });
 
+  it('carries the token\'s light to the controller only, and never the GM\'s manual-darkvision mark', () => {
+    // Anyone else learns of the light as lit ground with no token attached
+    // (sent apart from the tokens), never as a field on a token they may see.
+    const lit = { ...token, light: torch, sightRadiusManual: true };
+    expect(tokenSentTo(lit, true).light).toEqual(torch);
+    expect(tokenSentTo(lit, false)).not.toHaveProperty('light');
+    expect(tokenSentTo({ ...lit, obscured: true }, false)).not.toHaveProperty('light');
+    for (const own of [true, false]) expect(tokenSentTo(lit, own)).not.toHaveProperty('sightRadiusManual');
+  });
+
   it('carries the creature template link to the controller only', () => {
     // The link resolves to the library entry, whose stat block and true name
     // the GM may have renamed the token to hide.
@@ -114,7 +125,7 @@ describe('tokenSentTo', () => {
   it('is built from a list of what may be sent, so a field added later is left out by default', () => {
     const everything = {
       ...token, characterId: 'char-1', type: 'npc' as const, disposition: 'hostile' as const, initiative: 12,
-      displayMode: 'pog' as const, creatureTemplateId: 'tmpl-1', showHpBar: true,
+      displayMode: 'pog' as const, creatureTemplateId: 'tmpl-1', showHpBar: true, light: torch, sightRadiusManual: true,
       // A field tokens do not have today, standing in for a GM-only one added later.
       trapTrigger: 'the third flagstone',
     };
@@ -123,7 +134,7 @@ describe('tokenSentTo', () => {
     }
     expect(Object.keys(tokenSentTo(everything, true)).sort()).toEqual([...PLAYER_TOKEN_FIELDS].sort());
     expect(Object.keys(tokenSentTo(everything, false)).sort()).toEqual(
-      PLAYER_TOKEN_FIELDS.filter((f) => f !== 'sightRadius' && f !== 'creatureTemplateId').sort()
+      PLAYER_TOKEN_FIELDS.filter((f) => f !== 'sightRadius' && f !== 'creatureTemplateId' && f !== 'light').sort()
     );
   });
 

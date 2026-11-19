@@ -7,6 +7,7 @@
 // ============================================
 
 import type { FogState, FogOperation } from '../types/walls';
+import type { TokenLight } from '../utils/tokenLights';
 import type { Server } from 'socket.io';
 import type { AuthenticatedSocket } from './auth';
 import type { SocketAck } from './ack';
@@ -52,6 +53,14 @@ export interface Token {
   notes?: string;
   initiative?: number | null;
   sightRadius?: number;
+  /** The GM set `sightRadius` by hand, so the character sheet no longer sets it. GM only; never sent to players. */
+  sightRadiusManual?: boolean;
+  /**
+   * The light this token carries, moving with it (utils/tokenLights.ts);
+   * null or absent for none. Sent on a token only to its controller
+   * (tokenMask.ts); anyone else learns of it only as lit ground.
+   */
+  light?: TokenLight | null;
   displayMode?: 'pog' | 'top-down' | 'full-art';
   statBlock?: Record<string, unknown> | null;
   creatureTemplateId?: string | null;

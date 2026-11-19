@@ -9,7 +9,7 @@
  */
 
 import * as raycasting from '../raycasting';
-import { filterTokensByLighting, LIGHT_REACH_POINTS_KEPT } from '../spirit-layer';
+import { filterTokensByLighting, tokensSentTo, LIGHT_REACH_POINTS_KEPT, type MapTokenSight } from '../spirit-layer';
 import type { Token } from '../../websocket/shared';
 import type { WallSegment, LightSource } from '../../types/walls';
 
@@ -103,6 +103,47 @@ describe('a light\'s reach across reads of the map', () => {
     const read = JSON.parse(JSON.stringify({ walls, lights: [light('torch', 1300)] })) as { walls: unknown; lights: unknown };
     filterTokensByLighting(tokens, 'p1', read.walls, SIZE + 1, SIZE, GRID, true, read.lights, false);
     expect(lightsRaycast()).toBe(before + 2);
+  });
+});
+
+describe('a token\'s light within one read of the map', () => {
+  // A drag or a fan-out asks again with the same read's wall and light
+  // arrays while a torch-carrying token stands somewhere else each time:
+  // what the lights reach must follow the token, not the arrays.
+  const torch = { brightRadius: 2, dimRadius: 4, color: '#ffcc66', source: 'manual' as const };
+  const read = JSON.parse(JSON.stringify({ walls: [wallAt(1600)], lights: [] })) as { walls: unknown; lights: unknown };
+  const sentWithCarrierAt = (x: number) => {
+    const carrier = { ...token('bearer', x, 12), light: torch } as unknown as Token;
+    const map = {
+      tokens: [...tokens, carrier], lightingEnabled: true, wallSegments: read.walls, width: SIZE, height: SIZE,
+      gridSize: GRID, lights: read.lights, globalIllumination: false,
+    } as unknown as MapTokenSight;
+    return tokensSentTo(map, 'PLAYER', false, 'p1').map((t) => t.id).filter((id) => id !== 'bearer').sort();
+  };
+
+  it('lights what the token stands by, and stops when it walks away or behind a wall', () => {
+    // The bearer two rows above the NPC: the NPC (x 14) is in its light.
+    expect(sentWithCarrierAt(14)).toEqual(['me', 'npc']);
+    // Far to the left: the NPC is in the dark again.
+    expect(sentWithCarrierAt(5)).toEqual(['me']);
+    // Right of the wall at x 1600: the wall shades the NPC from it.
+    expect(sentWithCarrierAt(17)).toEqual(['me']);
+    expect(sentWithCarrierAt(14)).toEqual(['me', 'npc']);
+  });
+
+  it('keeps what a map with no token lights reaches, read after read', () => {
+    const lights = [light('torch', 1750)];
+    const walls = [wallAt(1600)];
+    const once = JSON.parse(JSON.stringify({ walls, lights })) as { walls: unknown; lights: unknown };
+    const map = {
+      tokens, lightingEnabled: true, wallSegments: once.walls, width: SIZE, height: SIZE, gridSize: GRID,
+      lights: once.lights, globalIllumination: false,
+    } as unknown as MapTokenSight;
+    tokensSentTo(map, 'PLAYER', false, 'p1');
+    const before = reaches.mock.calls.length;
+    for (let i = 0; i < 5; i++) tokensSentTo(map, 'PLAYER', false, 'p1');
+    // Only each ask's own line of sight is raycast: no light is worked out again.
+    expect(reaches.mock.calls.length - before).toBe(5);
   });
 });
 

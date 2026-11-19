@@ -50,6 +50,7 @@ export interface MaskableToken {
   notes?: unknown;
   statBlock?: unknown;
   sightRadius?: unknown;
+  light?: unknown;
 }
 
 /** Every field a masked token has, so a test can pin the exact set. */
@@ -111,9 +112,12 @@ export function maskObscuredToken<T extends MaskableToken>(token: T): T {
  * player gets is built from this list, never by copying the token and
  * deleting the GM's fields, so a field added to tokens later is not sent
  * until it is added here. Of these, `hp` goes only to the controller or with
- * the bar on, and `sightRadius` and `creatureTemplateId` only to the
- * controller. Left out: `notes` and `statBlock`, the GM's. `metadata` is
- * sent: only the GM writes it, and a player who may see the token may read it.
+ * the bar on, and `sightRadius`, `creatureTemplateId` and `light` only to the
+ * controller. Left out: `notes` and `statBlock`, the GM's, and
+ * `sightRadiusManual`, the GM's mark on `sightRadius`. `metadata` is sent:
+ * only the GM writes it, and a player who may see the token may read it.
+ * Anyone else is told of a token's light only as lit ground, apart from the
+ * tokens and naming none, so a light never says which token carries it.
  */
 export const PLAYER_TOKEN_FIELDS = [
   'id',
@@ -137,13 +141,14 @@ export const PLAYER_TOKEN_FIELDS = [
   'displayMode',
   'creatureTemplateId',
   'obscured',
+  'light',
 ] as const satisfies readonly (keyof MaskableToken)[];
 
 /**
  * The token as a recipient who does or does not control it is sent it: the
  * fields in PLAYER_TOKEN_FIELDS, so never the GM's notes or the stat block,
- * hit points only for their own token or one whose bar is on, darkvision and
- * the creature template link only for their own, and an obscured token they
+ * hit points only for their own token or one whose bar is on, darkvision, the
+ * creature template link and the light only for their own, and an obscured token they
  * do not control through the mask above. The server applies this before
  * sending; the GM's Player Preview applies it to show the same thing.
  */
@@ -157,6 +162,7 @@ export function tokenSentTo<T extends MaskableToken>(token: T, own: boolean): T 
     // The link resolves to a library entry, whose stat block and true name
     // the GM may have renamed the token to hide.
     delete sent.creatureTemplateId;
+    delete sent.light;
   }
   return !own && token.obscured === true ? maskObscuredToken(sent) : sent;
 }
