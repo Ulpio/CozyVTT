@@ -11,7 +11,7 @@ import { h, token, longsword, fireBolt, magicMissile, scimitar, shortbow, fireBr
 vi.mock('@/contexts/CampaignContext', () => ({
   useCampaign: () => ({
     userRole: h.role,
-    campaign: { id: 'camp-1', gameSystem: h.gameSystem, characters: h.characters },
+    campaign: { id: 'camp-1', gameSystem: h.gameSystem, detailLevel: h.detailLevel, characters: h.characters },
     currentMap: { id: 'map-1' },
   }),
 }));
@@ -28,6 +28,7 @@ vi.mock('@/services/api', () => ({ api: { getCharacter: (id: string) => h.getCha
 vi.mock('@/hooks/useTableRoll', () => ({ useTableRoll: () => h.roll }));
 vi.mock('@/services/socket', () => ({
   default: {
+    equipItem: (...a: unknown[]) => h.equip(...a),
     on: (e: string, fn: (d: unknown) => void) => { (h.handlers.get(e) ?? h.handlers.set(e, new Set()).get(e)!).add(fn); },
     off: (e: string, fn: (d: unknown) => void) => { h.handlers.get(e)?.delete(fn); },
   },
@@ -65,6 +66,9 @@ function seed() {
   h.roll.mockReset();
   h.recharge.mockReset();
   h.rechargeReset.mockReset();
+  h.equip.mockReset();
+  h.equip.mockResolvedValue({ ok: true });
+  h.detailLevel = 'FAITHFUL';
   h.roll.mockResolvedValue(true);
   h.handlers.clear();
   window.localStorage.clear();
@@ -453,5 +457,110 @@ describe('riders on a weapon attack', () => {
     render(<ActionBar />);
     fireEvent.click(await screen.findByRole('button', { name: 'Longsword' }));
     expect(await screen.findByRole('checkbox', { name: 'with Sneak Attack' })).toBeDisabled();
+  });
+});
+
+const longbow = { id: 'attack:0', name: 'Longbow', group: 'attack', resolution: 'attack', cost: 'attack', reach: { kind: 'feet', normal: 150, long: 600 }, ammunition: { slug: 'flechas-20', label: 'flechas' } } as never;
+const archerSheet = (inventory: unknown[]) => ({
+  ...fighterSheet, data: { ...fighterSheet.data, inventory },
+});
+const arrows = (extra: object) => ({ id: 'arrows', name: 'Arrows', quantity: 17, compendiumRef: { bookId: 'b', slug: 'flechas-20' }, ...extra });
+
+describe('the bar\'s items, weapon swap and ammunition', () => {
+  it('shows the items as icons with their quantity', async () => {
+    h.sheets['c-fighter'] = archerSheet([{ id: 'arrows', name: 'Arrows', quantity: 20 }, { id: 'rope', name: 'Rope' }]);
+    render(<ActionBar />);
+    await screen.findByRole('button', { name: 'Longsword' });
+    fireEvent.click(screen.getByRole('button', { name: 'Items' }));
+    const panel = await screen.findByRole('group', { name: 'Items' });
+    expect(within(panel).getAllByTestId('item-icon')).toHaveLength(2);
+    expect(within(panel).getByText('×20')).toBeInTheDocument();
+    expect(within(panel).queryByText('×1')).toBeNull();
+  });
+
+  it('swaps the weapon in hand through the server: a two-handed one is held in both hands', async () => {
+    h.sheets['c-fighter'] = archerSheet([
+      { id: 'sword', name: 'Longsword', slot: 'main', equipped: true, compendiumRef: { bookId: 'b', slug: 'espada-longa' } },
+      { id: 'great', name: 'Greatsword', notes: 'Heavy, two-handed', compendiumRef: { bookId: 'b', slug: 'espada-grande' } },
+      { id: 'rope', name: 'Rope' },
+    ]);
+    render(<ActionBar />);
+    await screen.findByRole('button', { name: 'Longsword' });
+    fireEvent.click(screen.getByRole('button', { name: 'Swap weapon' }));
+    const panel = await screen.findByRole('group', { name: 'Swap weapon' });
+    expect(within(panel).queryByRole('button', { name: /Rope/ })).toBeNull();
+    fireEvent.click(within(panel).getByRole('button', { name: /Greatsword/ }));
+    await waitFor(() => expect(h.equip).toHaveBeenCalledWith({ characterId: 'c-fighter', itemId: 'great', slot: 'both' }));
+  });
+
+  it('tries main first and again with both when the server says the item does not go there', async () => {
+    h.sheets['c-fighter'] = archerSheet([{ id: 'great', name: 'Greatsword', compendiumRef: { bookId: 'b', slug: 'espada-grande' } }]);
+    h.equip.mockResolvedValueOnce({ ok: false, error: 'Esse item não vai nesse espaço.' }).mockResolvedValueOnce({ ok: true });
+    render(<ActionBar />);
+    await screen.findByRole('button', { name: 'Longsword' });
+    fireEvent.click(screen.getByRole('button', { name: 'Swap weapon' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Greatsword/ }));
+    await waitFor(() => expect(h.equip).toHaveBeenCalledTimes(2));
+    expect(h.equip.mock.calls.map((c) => (c[0] as { slot: string }).slot)).toEqual(['main', 'both']);
+  });
+
+  it('reports the refusal and sends one request at a time', async () => {
+    h.sheets['c-fighter'] = archerSheet([{ id: 'dagger', name: 'Dagger', compendiumRef: { bookId: 'b', slug: 'adaga' } }]);
+    let answer: (v: unknown) => void = () => {};
+    h.equip.mockReturnValueOnce(new Promise((resolve) => { answer = resolve; }));
+    render(<ActionBar />);
+    await screen.findByRole('button', { name: 'Longsword' });
+    fireEvent.click(screen.getByRole('button', { name: 'Swap weapon' }));
+    const pick = await screen.findByRole('button', { name: /Dagger/ });
+    fireEvent.click(pick);
+    fireEvent.click(pick);
+    expect(h.equip).toHaveBeenCalledTimes(1);
+    expect(pick).toBeDisabled();
+    await act(async () => { answer({ ok: false, error: 'Não é a sua vez.' }); });
+    await waitFor(() => expect(useActionStore.getState().lastError?.message).toBe('Não é a sua vez.'));
+    expect(pick).toBeEnabled();
+  });
+
+  it('puts the weapon in hand back in the backpack', async () => {
+    h.sheets['c-fighter'] = archerSheet([{ id: 'sword', name: 'Longsword', slot: 'main', equipped: true, compendiumRef: { bookId: 'b', slug: 'espada-longa' } }]);
+    render(<ActionBar />);
+    await screen.findByRole('button', { name: 'Longsword' });
+    fireEvent.click(screen.getByRole('button', { name: 'Swap weapon' }));
+    const panel = await screen.findByRole('group', { name: 'Swap weapon' });
+    fireEvent.click(within(panel).getByRole('button', { name: /Longsword/ }));
+    await waitFor(() => expect(h.equip).toHaveBeenCalledWith({ characterId: 'c-fighter', itemId: 'sword', slot: null }));
+  });
+
+  it('shows the arrows left on a bow in Faithful, from the stack in the ammo slot', async () => {
+    h.options['tok-fighter'] = [longbow];
+    h.sheets['c-fighter'] = archerSheet([arrows({ slot: 'ammo' }), arrows({ id: 'spare', quantity: 5 })]);
+    render(<ActionBar />);
+    expect(await screen.findByRole('button', { name: 'Longbow · 17' })).toBeInTheDocument();
+  });
+
+  it('counts the first stack in the backpack when none is in the ammo slot, and 0 when there is none', async () => {
+    h.options['tok-fighter'] = [longbow];
+    h.sheets['c-fighter'] = archerSheet([arrows({ quantity: 9 })]);
+    const { unmount } = render(<ActionBar />);
+    expect(await screen.findByRole('button', { name: 'Longbow · 9' })).toBeInTheDocument();
+    unmount();
+    h.sheets['c-fighter'] = archerSheet([]);
+    render(<ActionBar />);
+    expect(await screen.findByRole('button', { name: 'Longbow · 0' })).toBeInTheDocument();
+  });
+
+  it('skips an empty stack in the ammo slot for one in the backpack, as the server shoots', async () => {
+    h.options['tok-fighter'] = [longbow];
+    h.sheets['c-fighter'] = archerSheet([arrows({ slot: 'ammo', quantity: 0 }), arrows({ id: 'spare', quantity: 20 })]);
+    render(<ActionBar />);
+    expect(await screen.findByRole('button', { name: 'Longbow · 20' })).toBeInTheDocument();
+  });
+
+  it('shows no count in Flexible', async () => {
+    h.detailLevel = 'FLEXIBLE';
+    h.options['tok-fighter'] = [longbow];
+    h.sheets['c-fighter'] = archerSheet([arrows({ slot: 'ammo' })]);
+    render(<ActionBar />);
+    expect(await screen.findByRole('button', { name: 'Longbow' })).toBeInTheDocument();
   });
 });

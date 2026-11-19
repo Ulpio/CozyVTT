@@ -31,6 +31,7 @@ import {
   type Sheet,
   type TokenEdits,
 } from './common';
+import { restoreAmmunition, restoreRations, restoreRecovery } from './ammunition';
 import { giveBack, markOncePerTurn } from './economy';
 import { changeUses, setActiveState, setCondition } from './features';
 
@@ -65,6 +66,9 @@ export async function undoAction(campaignId: string, requester: Viewer, messageI
       ...(undo.uses ?? []).map((u) => u.characterId),
       undo.state?.characterId,
       ...(undo.sheets ?? []).map((s) => s.characterId),
+      undo.ammo?.characterId,
+      undo.ammoRecovered?.characterId,
+      ...(undo.rations ?? []).map((r) => r.characterId),
     ].filter((id): id is string => !!id);
     const held = await holdSheets(tx, characterIds);
     const edits = await mapTokensTx(tx, undo.mapId);
@@ -93,6 +97,9 @@ export async function undoAction(campaignId: string, requester: Viewer, messageI
     restoreRecharge(card, edits);
     restoreFeature(card, held, edits);
     restoreRest(card, held, edits);
+    restoreAmmunition(undo, held);
+    restoreRecovery(undo, held);
+    restoreRations(undo, held);
 
     await writeTokens(tx, undo.mapId, edits);
     const written = await writeSheets(tx, held);

@@ -192,7 +192,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "rapieira"
-      }
+      },
+      "itemId": "inv-0"
     },
     {
       "name": "Adaga",
@@ -208,7 +209,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "adaga"
-      }
+      },
+      "itemId": "inv-3"
     }
   ],
   "currency": {
@@ -224,11 +226,13 @@
       "quantity": 1,
       "weight": 2,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "rapieira"
-      }
+      },
+      "slot": "main",
+      "id": "inv-0"
     },
     {
       "name": "Alaúde",
@@ -237,7 +241,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "alaude"
-      }
+      },
+      "id": "inv-1"
     },
     {
       "name": "A couro",
@@ -248,18 +253,22 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "couro"
-      }
+      },
+      "slot": "armor",
+      "id": "inv-2"
     },
     {
       "name": "Adaga",
       "quantity": 1,
       "weight": 1,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "adaga"
-      }
+      },
+      "slot": "off",
+      "id": "inv-3"
     }
   ],
   "proficiencies": {

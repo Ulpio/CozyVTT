@@ -47,7 +47,7 @@ import { sheetAsRead } from '../../legacy/sheetConversion';
 import { endAllStates } from '../../services/actionResolver/features';
 
 /** The parts of a turn the GM can give back with combat.restore. */
-const RESTORABLE = ['action', 'bonus', 'reaction', 'movement', 'attack'] as const;
+const RESTORABLE = ['action', 'bonus', 'reaction', 'movement', 'attack', 'interaction'] as const;
 
 /** What a send needs of a socket; a connected one and a fetched one both have it. */
 type Recipient = Pick<AuthenticatedFields, 'userId' | 'role'> & {
@@ -770,6 +770,8 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
           case 'reaction': spent.reaction = false; break;
           case 'movement': spent.movedFeet = 0; spent.dashes = 0; spent.overBudgetWarned = false; break;
           case 'attack': spent.attacksLeft += 1; break;
+          // The weapons drawn or stowed this turn: the next one is free again.
+          case 'interaction': spent.objectInteractions = 0; break;
         }
         setCombatState(campaignId, state);
         return true;

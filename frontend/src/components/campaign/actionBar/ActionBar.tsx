@@ -12,7 +12,7 @@
 // they are never clipped by the sheet the compact layout shows the bar in.
 // ============================================
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useGameStore, useCharacterHp } from '@/stores/gameStore';
@@ -24,7 +24,9 @@ import { getCharacterRolls, type CharacterRolls, type RollOption } from '@/utils
 import { buildNpcRolls } from '@/utils/npcRolls';
 import { applyRollMode, ROLL_MODES } from '@/utils/rollModes';
 import type { ActionOption } from '@/types/actions';
-import type { FifthEditionCharacterData } from '@/types/game-systems';
+import type { FifthEditionCharacterData, FifthEditionInventoryItem } from '@/types/game-systems';
+import ItemIcon from '@/components/character-sheets/fifth-edition/components/ItemIcon';
+import { itemCategory } from '@/utils/itemIcons';
 import ActionButton, { RechargeButtons } from './ActionButton';
 import FeatureMenu from './FeatureMenu';
 import RiderToggles from './RiderToggles';
@@ -38,7 +40,7 @@ import TargetingHint from './TargetingHint';
 import { useBarActorChoice, useActorSheet } from './useBarActor';
 import { useActionList } from './useActionOptions';
 
-type Menu = 'spells' | 'items' | 'checks' | 'features' | 'common';
+type Menu = 'spells' | 'items' | 'swap' | 'checks' | 'features' | 'common';
 
 const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
@@ -60,6 +62,8 @@ export default function ActionBar() {
   const tableRoll = useTableRoll(socketClient);
   const [menu, setMenu] = useState<Menu | null>(null);
   const [gripFor, setGripFor] = useState<ActionOption | null>(null);
+  const [swapping, setSwapping] = useState(false);
+  const swapPending = useRef(false);
   // The bar is the page's only reader of the selection here; kept to re-render on it.
   useGameStore((s) => s.selectedTokenId);
 
@@ -112,7 +116,45 @@ export default function ActionBar() {
     if (!answer.ok) useActionStore.getState().report(answer.error ?? '');
   };
 
-  const items = (sheetData?.inventory ?? []).map((item) => ({ item, action: attacks.find((o) => o.group === 'attack' && sameName(o.name, item.name)) }));
+  const faithful = campaign?.detailLevel !== 'FLEXIBLE';
+  const inventory = sheetData?.inventory ?? [];
+
+  /**
+   * The ammunition left for a weapon, from the stack the next shot is taken
+   * from (the server's rule, actionResolver/ammunition.ts): of the non-empty
+   * stacks of that kind, the one in the ammo slot, else the first in the
+   * backpack, else the first.
+   */
+  const ammoLeft = (slug: string) => {
+    const ofKind = inventory.filter((i) => i.compendiumRef?.slug === slug && (i.quantity ?? 1) > 0);
+    const stack = ofKind.find((i) => i.slot === 'ammo') ?? ofKind.find((i) => i.slot === undefined) ?? ofKind[0];
+    return stack ? (stack.quantity ?? 1) : 0;
+  };
+  const label = (option: ActionOption) => (faithful && option.ammunition ? t('actionBar.withAmmo', { name: option.name, count: ammoLeft(option.ammunition.slug) }) : option.name);
+
+  const isWeapon = (item: FifthEditionInventoryItem) => { const c = itemCategory(item); return c === 'meleeWeapon' || c === 'rangedWeapon'; };
+  const inHand = inventory.filter((i) => i.id && (i.slot === 'main' || i.slot === 'off' || i.slot === 'both') && isWeapon(i));
+  const inPack = inventory.filter((i) => i.id && i.slot === undefined && isWeapon(i));
+
+  /** One request at a time. A two-handed weapon goes to both hands: the item's own text says so, else the server's refusal does. */
+  const swap = async (item: FifthEditionInventoryItem, stow: boolean) => {
+    if (swapPending.current || !characterId || !item.id) return;
+    swapPending.current = true;
+    setSwapping(true);
+    try {
+      const send = (slot: 'main' | 'both' | null) => socketClient.equipItem({ characterId, itemId: item.id as string, slot });
+      const twoHanded = /duas m[aã]os|two-handed/i.test(item.notes ?? '');
+      let answer = await send(stow ? null : twoHanded ? 'both' : 'main');
+      if (!answer.ok && !stow && !twoHanded && answer.error === 'Esse item não vai nesse espaço.') answer = await send('both');
+      if (answer.ok) setMenu(null);
+      else useActionStore.getState().report(answer.error ?? '');
+    } finally {
+      swapPending.current = false;
+      setSwapping(false);
+    }
+  };
+
+  const items = inventory.map((item) => ({ item, action: attacks.find((o) => o.group === 'attack' && sameName(o.name, item.name)) }));
 
 
   return (
@@ -141,10 +183,16 @@ export default function ActionBar() {
               {commons.map((option) => <ActionButton key={option.id} menu disabled={gateFor(option, combat, t) !== undefined} title={gateFor(option, combat, t)} onClick={() => run(option)}>{option.name}</ActionButton>)}
             </div>
           )}
+          {menu === 'swap' && (inHand.length + inPack.length === 0 ? <p className="text-sm text-ink-muted">{t('actionBar.swapNone')}</p> : (
+            <div className="space-y-2">
+              {inHand.length > 0 && <SwapRow title={t('actionBar.swapHands')} items={inHand} hint={t('actionBar.stowHint')} busy={swapping} onPick={(item) => void swap(item, true)} />}
+              {inPack.length > 0 && <SwapRow title={t('actionBar.swapBackpack')} items={inPack} busy={swapping} onPick={(item) => void swap(item, false)} />}
+            </div>
+          ))}
           {menu === 'items' && (items.length === 0 ? <p className="text-sm text-ink-muted">{t('actionBar.noItems')}</p> : (
             <div className="flex flex-wrap gap-1.5">
               {items.map(({ item, action }, index) => (
-                <ActionButton key={index} menu disabled={!action} detail={action ? undefined : t('actionBar.itemWithoutAction')} onClick={() => action && pick(action)}>{item.name}</ActionButton>
+                <ActionButton key={index} menu disabled={!action} detail={action ? undefined : t('actionBar.itemWithoutAction')} onClick={() => action && pick(action)}><span className="flex items-center gap-1.5"><ItemIcon item={item} size={24} /><span className="truncate">{item.name}</span>{(item.quantity ?? 1) > 1 && <span className="text-ink-muted">×{item.quantity}</span>}</span></ActionButton>
               ))}
             </div>
           ))}
@@ -159,12 +207,13 @@ export default function ActionBar() {
           {attacks.map((option) => option.recharge?.spent ? (
             <RechargeButtons key={option.id} option={option} isGm={userRole === 'GM'} onRoll={() => void recharge(option, 'roll')} onReset={() => void recharge(option, 'reset')} />
           ) : (
-            <ActionButton key={option.id} detail={option.summary} pressed={pending?.option.id === option.id} disabled={gateFor(option, combat, t) !== undefined} title={gateFor(option, combat, t)} onClick={() => pick(option)}>{option.name}</ActionButton>
+            <ActionButton key={option.id} detail={option.summary} pressed={pending?.option.id === option.id} disabled={gateFor(option, combat, t) !== undefined} title={gateFor(option, combat, t)} onClick={() => pick(option)}>{label(option)}</ActionButton>
           ))}
           {features.length > 0 && <ActionButton menu pressed={menu === 'features'} onClick={() => toggle('features')}>{t('actionBar.menus.features')}</ActionButton>}
           {commons.length > 0 && <ActionButton menu pressed={menu === 'common'} onClick={() => toggle('common')}>{t('actionBar.menus.common')}</ActionButton>}
           {spells.length > 0 && <ActionButton menu pressed={menu === 'spells'} onClick={() => toggle('spells')}>{t('actionBar.menus.spells')}</ActionButton>}
           {actor.kind === 'character' && <ActionButton menu pressed={menu === 'items'} onClick={() => toggle('items')}>{t('actionBar.menus.items')}</ActionButton>}
+          {actor.kind === 'character' && <ActionButton menu pressed={menu === 'swap'} onClick={() => toggle('swap')}>{t('actionBar.menus.swap')}</ActionButton>}
           <ActionButton menu pressed={menu === 'checks'} onClick={() => toggle('checks')}>{t('actionBar.menus.checks')}</ActionButton>
         </div>
 
@@ -184,5 +233,19 @@ export default function ActionBar() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** A row of weapons the swap menu offers: pressing one sends the change; the buttons wait for the answer. */
+function SwapRow({ title, items, hint, busy, onPick }: { title: string; items: FifthEditionInventoryItem[]; hint?: string; busy: boolean; onPick: (item: FifthEditionInventoryItem) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-sm text-ink-muted">{title}</span>
+      {items.map((item) => (
+        <ActionButton key={item.id} menu disabled={busy} title={hint} onClick={() => onPick(item)}>
+          <span className="flex items-center gap-1.5"><ItemIcon item={item} size={24} /><span className="truncate">{item.name}</span></span>
+        </ActionButton>
+      ))}
+    </div>
   );
 }

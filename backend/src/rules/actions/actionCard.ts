@@ -119,6 +119,12 @@ export interface UndoRecord {
    */
   sheets?: { characterId: string; before: Record<string, unknown> }[];
   conditions?: { tokenId: string; name: string }[];
+  /** A shot's ammunition (Faithful): the stack it came off, and the item to recreate if the stack is gone by the undo. */
+  ammo?: { characterId: string; itemId: string; slug: string; amount: number; label?: string; compendiumRef?: { bookId: string; slug: string } };
+  /** A pick-up of shot ammunition: per kind what went back on the stack and what had been counted, so the undo takes back just that. */
+  ammoRecovered?: { characterId: string; back: { slug: string; itemId: string; amount: number; shot: number }[] };
+  /** The rations a long rest ate: what to give back to each character, without touching the rest of the inventory. */
+  rations?: { characterId: string; itemId: string; name: string; compendiumRef?: { bookId: string; type?: string; slug: string }; amount: number }[];
 }
 
 /**

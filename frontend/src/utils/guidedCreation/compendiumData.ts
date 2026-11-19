@@ -149,6 +149,8 @@ export interface WeaponData {
   longRange?: number;
   cost: string;
   weight: number;
+  /** Slug of the gear item this weapon shoots. */
+  ammunition?: string;
 }
 
 export interface ArmorData {
@@ -168,4 +170,17 @@ export interface FeatData {
     abilityIncrease?: Partial<Record<AbilityKey, number>>;
     proficiencies?: string[];
   };
+}
+
+/** One thing a pack holds: a compendium item, or a name only. */
+export type PackItemData =
+  | { ref: { type: Exclude<EquipmentItemType, 'pack'>; slug: string }; quantity: number }
+  | { name: string; quantity: number };
+
+export interface PackData {
+  cost?: string;
+  contents?: string[];
+  weight?: number;
+  /** What the pack opens into; a pack without it stays one item. */
+  items?: PackItemData[];
 }

@@ -151,7 +151,7 @@ export default function EquipmentStep({ data, choices, update, campaign }: StepP
             </thead>
             <tbody>
               {equipment.inventory.map((item) => (
-                <tr key={`${item.type}-${item.slug}`} className="border-t border-ink/10 text-ink">
+                <tr key={`${item.type}-${item.slug ?? item.name}`} className="border-t border-ink/10 text-ink">
                   <td className="py-1">{item.name}</td>
                   <td className="py-1 text-right">{item.quantity}</td>
                   {showWeight && (

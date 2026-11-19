@@ -31,7 +31,7 @@ describe('the read-only sheet', () => {
   it('works the carrying capacity out from the character\'s Strength', () => {
     render(<FifthEditionCharacterView character={fifthEditionCharacter({ stats: { ...stats, strength: { score: 16, modifier: 3 } } })} />);
     fireEvent.click(screen.getByRole('tab', { name: /Inventory/ }));
-    expect(screen.getByText(/Carrying capacity/)).toHaveTextContent('240 lb');
+    expect(screen.getByText(/^Load:/)).toHaveTextContent('Load: 5 of 120 kg');
   });
 
   it('names the player', () => {

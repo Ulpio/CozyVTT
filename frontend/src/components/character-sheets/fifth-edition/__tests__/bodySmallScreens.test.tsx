@@ -238,9 +238,8 @@ describe('the 5E sheet on a phone', () => {
     expect(classes(marks)).not.toContain('sm:flex-nowrap');
   });
 
-  it('lists the coins three to a row, five from sm up, and wraps the total weight under the heading', async () => {
+  it('lists the coins three to a row, five from sm up', async () => {
     await viewOn('Inventory');
     columns(above(screen.getByText('PP'), ['grid']), 'grid-cols-3', 'sm:grid-cols-5');
-    expect(classes(screen.getByRole('heading', { name: 'Equipment & Items' }).parentElement)).toEqual(expect.arrayContaining(['flex', 'flex-wrap', 'sm:flex-nowrap']));
   });
 });

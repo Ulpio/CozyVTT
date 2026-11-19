@@ -52,6 +52,8 @@ export interface ActionOption {
   meleeWeapon?: true;
   /** A monster's Multiattack: it takes the Attack action, so its attacks that follow pass as part of it. */
   startsAttackAction?: true;
+  /** Weapon attacks that fire ammunition: the gear slug it fires and its name in lower case; only the list sends it, the spec keeps it too. */
+  ammunition?: { slug: string; label: string };
   /** Class features: the uses left in the pool the feature spends. */
   uses?: { left: number; max: number };
   /** Class feature that heals an amount the player chooses (Lay on Hands): the bar asks for it. */
@@ -90,6 +92,10 @@ export interface ResolvedActionSpec {
   source: 'spell' | 'monster' | 'weapon' | 'feature';
   /** Weapon attacks: the weapon has finesse, so it may use STR or DEX. */
   finesse?: true;
+  /** Weapon attacks from an item in hand: how it is held, which decides a versatile weapon's damage. */
+  grip?: 'one' | 'two';
+  /** Weapon attacks: what the weapon fires (the gear slug, and its plural name in lower case). */
+  ammunition?: { slug: string; label: string };
   /** Class feature options: the feature the button resolves. */
   feature?: ActorFeature;
 }
@@ -134,7 +140,15 @@ export interface CompendiumWeapon {
     normalRange?: number;
     longRange?: number;
     damage?: { dice: string; type: string };
+    /** The gear slug of the ammunition the weapon fires. */
+    ammunition?: string;
   };
+}
+
+/** "Flechas (20)" -> "flechas"; with no gear entry, the slug's words without a trailing number. */
+function ammunitionLabel(name: string | undefined, slug: string): string {
+  const source = name ?? slug.replace(/-\d+$/, '').replace(/-/g, ' ');
+  return source.replace(/\s*\(\d+\)\s*$/, '').trim().toLowerCase();
 }
 
 type Reach = NonNullable<ActionOption['reach']>;
@@ -302,8 +316,11 @@ export function characterActions(
   sheet: FifthEditionCharacterData,
   spells: Map<string, CompendiumSpell>,
   weapons: Map<string, CompendiumWeapon>,
+  /** Gear names keyed `bookId/slug`, for the ammunition weapons fire. */
+  gear: Map<string, string> = new Map(),
 ): ResolvedActionSpec[] {
   const out: ResolvedActionSpec[] = [];
+  const itemSlots = new Map((sheet?.inventory ?? []).map((i) => [i.id, i.slot] as const));
   const spellAttackBonus = fifthEditionSpellAttackBonus(sheet);
 
   // Spells first, so an attack cantrip that is also in attacks[] is listed once.
@@ -334,6 +351,13 @@ export function characterActions(
   const attackSpellRefs = new Set(spellSpecs.filter((s) => s.option.resolution === 'attack').map((s) => s.option.id.slice('spell:'.length)));
 
   (sheet?.attacks ?? []).forEach((atk, i) => {
+    // A row linked to an item is listed while the item is in a hand; a row with no item stays.
+    let grip: 'one' | 'two' | undefined;
+    if (atk.itemId) {
+      const slot = itemSlots.get(atk.itemId);
+      if (slot !== 'main' && slot !== 'off' && slot !== 'both') return;
+      grip = slot === 'both' ? 'two' : 'one';
+    }
     if (atk.compendiumRef && attackSpellRefs.has(key(atk.compendiumRef))) {
       // The spell keeps the book's dice; the sheet row's flat modifier (an invocation, say) is added.
       const flat = flatModifier(atk.damageRoll);
@@ -372,9 +396,15 @@ export function characterActions(
 
     const option: ActionOption = { id: `attack:${i}`, name: atk.name, group: 'attack', resolution: 'attack', reach, cost: 'attack' };
     if (wpn ? wpn.data.range !== 'ranged' : sheetRange === undefined || thrownWeapon) option.meleeWeapon = true;
-    if (versatile) option.grips = ['one', 'two'];
+    // An item in hand is held one way or the other: no grip to choose.
+    if (versatile && !grip) option.grips = ['one', 'two'];
     const spec: ResolvedActionSpec = { option, attackBonus: atk.attackBonus, damage, source: 'weapon' };
     if (versatile) spec.versatileDamage = versatile;
+    if (grip) spec.grip = grip;
+    const fires = wpn?.data.ammunition;
+    if (atk.compendiumRef && typeof fires === 'string' && fires) {
+      spec.ammunition = { slug: fires, label: ammunitionLabel(gear.get(`${atk.compendiumRef.bookId}/${fires}`), fires) };
+    }
     if (finesse) spec.finesse = true;
     out.push(spec);
 

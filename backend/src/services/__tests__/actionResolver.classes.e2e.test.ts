@@ -15,6 +15,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampaigns } from '../../__tests__/helpers/db';
+import { holdWeapons } from '../../__tests__/helpers/holdWeapons';
 import { resolveAction, listActions, type ActionRequest } from '../actionResolver';
 import type { Viewer } from '../../rules/actions/actionCard';
 import type { Rng } from '../../rules/actions/types';
@@ -41,7 +42,7 @@ function seq(...values: number[]): Rng {
 
 function sheet(name: string): any {
   const raw = readFileSync(resolve(SHEETS, `${name}.json`), 'utf8').replace(/"book-test"/g, JSON.stringify(BOOK));
-  return JSON.parse(raw);
+  return holdWeapons(JSON.parse(raw));
 }
 
 /** `NdM+K` split into its parts. */

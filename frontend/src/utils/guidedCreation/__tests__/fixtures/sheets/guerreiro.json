@@ -191,7 +191,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "espada-longa"
-      }
+      },
+      "itemId": "inv-1"
     },
     {
       "name": "Machado grande",
@@ -205,7 +206,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "machado-grande"
-      }
+      },
+      "itemId": "inv-2"
     }
   ],
   "currency": {
@@ -225,18 +227,22 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "cota-de-malha"
-      }
+      },
+      "slot": "armor",
+      "id": "inv-0"
     },
     {
       "name": "Espada longa",
       "quantity": 1,
       "weight": 3,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "espada-longa"
-      }
+      },
+      "slot": "main",
+      "id": "inv-1"
     },
     {
       "name": "Machado grande",
@@ -247,7 +253,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "machado-grande"
-      }
+      },
+      "id": "inv-2"
     },
     {
       "name": "P aventureiro",
@@ -255,7 +262,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "pacote-de-aventureiro"
-      }
+      },
+      "id": "inv-3"
     }
   ],
   "proficiencies": {

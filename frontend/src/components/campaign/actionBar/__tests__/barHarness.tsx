@@ -19,6 +19,8 @@ export const h = {
   getCharacter: vi.fn(),
   recharge: vi.fn(),
   rechargeReset: vi.fn(),
+  equip: vi.fn(),
+  detailLevel: 'FAITHFUL' as string,
   handlers: new Map<string, Set<(data: unknown) => void>>(),
 };
 

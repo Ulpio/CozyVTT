@@ -40,6 +40,8 @@ CozyVTT contains game content: the sheets of its three game systems, the arithme
 
 UI icons are provided by [Lucide](https://lucide.dev/), licensed under the ISC License (Copyright (c) Lucide Icons and Contributors). The icons Lucide derives from [Feather](https://github.com/feathericons/feather) are under the MIT License (Copyright (c) 2013-present Cole Bemis).
 
+Item icons in the character sheet's inventory come from [game-icons.net](https://game-icons.net), through the [react-icons](https://github.com/react-icons/react-icons) package (MIT, Copyright 2018 kamijin_fanta): game-icons.net authors (Lorc, Delapouite and contributors), licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), https://game-icons.net. The icons are used as they come, with no changes beyond colour and size.
+
 ## Pictures
 
 The pictures in the repository are CozyVTT's own artwork: its logo, its mascot and the app's icons. None came from a game publisher.

@@ -181,7 +181,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "maca"
-      }
+      },
+      "itemId": "inv-1"
     }
   ],
   "currency": {
@@ -201,18 +202,22 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "cota-de-malha"
-      }
+      },
+      "slot": "armor",
+      "id": "inv-0"
     },
     {
       "name": "Maca",
       "quantity": 1,
       "weight": 4,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "maca"
-      }
+      },
+      "slot": "main",
+      "id": "inv-1"
     },
     {
       "name": "A escudo",
@@ -223,7 +228,9 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "escudo"
-      }
+      },
+      "slot": "off",
+      "id": "inv-2"
     },
     {
       "name": "G simbolo",
@@ -232,7 +239,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "simbolo-sagrado"
-      }
+      },
+      "id": "inv-3"
     }
   ],
   "proficiencies": {

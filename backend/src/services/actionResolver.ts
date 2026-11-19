@@ -76,6 +76,9 @@ import {
 import { isTargetedAction, resolveTargetedAction } from './actionResolver/saves';
 import { resolveFeature } from './actionResolver/features';
 import { attacksPerActionFor, checkAndSpend, combatFor, giveBack, markOncePerTurn, type CombatTurn, type EconomyUndo, type TurnAt } from './actionResolver/economy';
+import { spendAmmunition } from './actionResolver/ammunition';
+import { normalizedSheet } from './inventory';
+import type { SheetLike } from '../utils/inventory';
 import { applyRiders, chosenRiders, riderRefusal } from './actionResolver/riders';
 
 export {
@@ -146,8 +149,9 @@ export async function listActions(
 ): Promise<ActionList | { error: string }> {
   const actor = await loadActor(campaignId, requester, mapId, actorTokenId);
   if ('ok' in actor) return { error: actor.error };
-  const options = actor.spec.map(({ option }) => {
+  const options = actor.spec.map(({ option, ammunition }) => {
     const copy: ActionOption = { ...option };
+    if (ammunition) copy.ammunition = { ...ammunition };
     if (option.grips) copy.grips = [...option.grips];
     if (option.reach) copy.reach = { ...option.reach };
     if (requester.role !== 'GM') delete copy.summary;
@@ -201,6 +205,8 @@ export async function resolveAction(
   // marked used, given back if storing it fails.
   let economy: EconomyUndo | undefined;
   let marked: { keys: string[]; at: TurnAt } | undefined;
+  const faithfulAmmo = option.resolution === 'attack' && !!spec.ammunition
+    && (await prisma.campaign.findUnique({ where: { id: campaignId }, select: { detailLevel: true } }))?.detailLevel === 'FAITHFUL';
   const onceKeys = riders.filter((r) => r.feature.action.oncePerTurn).map((r) => r.feature.id);
   const outcome = await withMapsLocked([mapId], async (tx) => {
     const map = await tx.map.findUniqueOrThrow({ where: { id: mapId } });
@@ -256,6 +262,18 @@ export async function resolveAction(
     // The riders' pools and slots, before anything is rolled.
     const riderRefused = riderRefusal(riders, actorSheet, actor.features);
     if (riderRefused) return refuse(riderRefused);
+    // One shot, one piece of ammunition, taken before the turn is spent so "Sem flechas." costs no action;
+    // the sheet is stored only at the end, so a refusal below leaves the arrow where it was.
+    if (faithfulAmmo && actorSheet && actor.character) {
+      // The stored sheet as the normaliser reads it now: a bundle left whole by a
+      // backfill run before the book said it was ammunition is split into units first.
+      if (Array.isArray(actorSheet.data.inventory)) {
+        const normal = await normalizedSheet(campaignId, actorSheet.data as SheetLike);
+        actorSheet.data = { ...actorSheet.data, inventory: normal.inventory } as Sheet;
+      }
+      const empty = spendAmmunition(spec, actorSheet, actor.character.id, undo);
+      if (empty) return empty;
+    }
 
     // The turn: refused when already spent (or a once-a-turn rider already
     // used), spent before anything is rolled. The rider is marked only on a hit.
@@ -285,7 +303,7 @@ export async function resolveAction(
         const { hit, critical } = attackHits(roll, ac, crit);
         entry.attack = { d20s: roll.d20s, natural: roll.natural, total: roll.total, hit, critical };
         if (hit) {
-          const lines = damageLines(spec, req.grip, actorSheet?.data ?? null, slotLevel);
+          const lines = damageLines(spec, spec.grip ?? req.grip, actorSheet?.data ?? null, slotLevel);
           // A running state's flat bonus (Rage) joins the weapon's first line, never doubled.
           const stateBonus = actorSheet ? stateDamageBonus(actor.features, spec, actorSheet.data) : 0;
           if (stateBonus !== 0 && lines.length > 0) lines[0] = { ...lines[0], dice: `${lines[0].dice}${stateBonus > 0 ? '+' : '-'}${Math.abs(stateBonus)}` };

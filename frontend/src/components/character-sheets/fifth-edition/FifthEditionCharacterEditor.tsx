@@ -84,6 +84,7 @@ import {
   SPELL_SLOTS_MAX,
 } from '@/constants/sheetLimits';
 import { COLOR_PRESETS } from './colorPresets';
+import ItemIcon from './components/ItemIcon';
 import Button from '@/components/ui/Button';
 import { SheetTabs, sheetTabPanel, type SheetTab } from '../SheetTabs';
 
@@ -2854,6 +2855,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
           {(formData.inventory || []).map((item, index) => (
             <div key={index} className="bg-paper border border-ink/20 rounded-lg p-3 space-y-2">
               <div className="flex items-start justify-between">
+                <span className="mr-2 mt-0.5"><ItemIcon item={item} size={28} /></span>
                 <input
                   type="text"
                   value={item.name || ''}
@@ -2930,15 +2932,6 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 />
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm sm:flex-nowrap">
-                <label className="flex items-center space-x-1 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={item.equipped || false}
-                    onChange={(e) => updateField(`inventory.${index}.equipped`, e.target.checked)}
-                    className="w-4 h-4 accent-accent border-ink/20 rounded-sm focus:ring-2 focus:ring-brand"
-                  />
-                  <span className="text-ink-secondary">Equipped</span>
-                </label>
                 <label className="flex items-center space-x-1 cursor-pointer">
                   <input
                     type="checkbox"

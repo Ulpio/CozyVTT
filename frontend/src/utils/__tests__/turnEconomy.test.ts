@@ -32,6 +32,10 @@ describe('turn economy', () => {
     expect(s.attacksLeft).toBe(1);
   });
 
+  it('starts a turn with no object interactions used', () => {
+    expect(freshSpend().objectInteractions).toBe(0);
+  });
+
   it('zeroes the attacks when another action is taken', () => {
     const s = applySpend(applySpend(freshSpend(), 'attack', per2), 'action', per2);
     expect(s.attacksLeft).toBe(0);

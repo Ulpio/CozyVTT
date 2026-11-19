@@ -15,6 +15,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampaigns } from '../../__tests__/helpers/db';
+import { holdWeapons } from '../../__tests__/helpers/holdWeapons';
 import { resolveAction, listActions, undoAction, type ActionRequest } from '../actionResolver';
 import { endAllStates } from '../actionResolver/features';
 import { beginTurn, clearState, flushCombatWrites, freshSpend, getState, setState, type CombatantEntry } from '../../websocket/initiativeState';
@@ -36,7 +37,7 @@ function seq(...values: number[]): Rng {
 
 function sheet(name: string): any {
   const raw = readFileSync(resolve(SHEETS, `${name}.json`), 'utf8').replace(/"book-test"/g, JSON.stringify(BOOK));
-  return JSON.parse(raw);
+  return holdWeapons(JSON.parse(raw));
 }
 
 const feature = (name: string, level: number, action: Record<string, unknown>) => ({ name, description: 'Inventada.', level, mechanics: { action } });

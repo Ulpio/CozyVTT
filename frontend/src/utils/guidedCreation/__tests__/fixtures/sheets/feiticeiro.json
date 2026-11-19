@@ -187,7 +187,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "adaga"
-      }
+      },
+      "itemId": "inv-0"
     },
     {
       "name": "Dardo",
@@ -202,7 +203,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "dardo"
-      }
+      },
+      "itemId": "inv-1"
     },
     {
       "name": "S raio-de-fogo",
@@ -228,22 +230,26 @@
       "quantity": 2,
       "weight": 1,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "adaga"
-      }
+      },
+      "slot": "main",
+      "id": "inv-0"
     },
     {
       "name": "Dardo",
       "quantity": 10,
       "weight": 0.25,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "dardo"
-      }
+      },
+      "slot": "off",
+      "id": "inv-1"
     }
   ],
   "proficiencies": {

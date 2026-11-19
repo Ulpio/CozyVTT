@@ -194,7 +194,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "besta-leve"
-      }
+      },
+      "itemId": "inv-0"
     },
     {
       "name": "Adaga",
@@ -210,7 +211,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "adaga"
-      }
+      },
+      "itemId": "inv-2"
     },
     {
       "name": "S rajada-mistica",
@@ -246,11 +248,13 @@
       "quantity": 1,
       "weight": 5,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "besta-leve"
-      }
+      },
+      "slot": "both",
+      "id": "inv-0"
     },
     {
       "name": "A couro",
@@ -261,7 +265,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "couro"
-      }
+      },
+      "id": "inv-1"
     },
     {
       "name": "Adaga",
@@ -272,7 +277,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "adaga"
-      }
+      },
+      "id": "inv-2"
     }
   ],
   "proficiencies": {
