@@ -32,7 +32,7 @@ interface InventoryPanelProps {
 
 const DRAG_TYPE = 'text/plain';
 
-const isPack = (item: InventoryItem) => /^pacote-/.test(item.compendiumRef?.slug ?? '') || /^pacoteb/i.test(item.name.trim());
+const isPack = (item: InventoryItem) => /^pacote-/.test(item.compendiumRef?.slug ?? '') || /^pacote\b/i.test(item.name.trim());
 
 /** The slots worth offering for an item; the server is the authority and refuses the rest. */
 function slotsFor(item: InventoryItem): InventorySlot[] {
@@ -59,7 +59,7 @@ export function InventoryPanel({ characterId, inventory = [], currency, strength
   const inFight = useCombatState().active;
   const faithful = detailLevel !== 'FLEXIBLE';
   const [openId, setOpenId] = useState<string | null>(null);
-  const [report, setReport] = useState<string | null>(null);
+  const [report, setReport] = useState<{ text: string; inDetail: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const pending = useRef(false);
   const number = (n: number) => n.toLocaleString(i18n.language, { maximumFractionDigits: 2 });
@@ -71,15 +71,15 @@ export function InventoryPanel({ characterId, inventory = [], currency, strength
   const opened = inventory.find((i) => i.id !== undefined && i.id === openId);
 
   // One request at a time: a second click or drop before the answer would send it twice.
-  const run = async (send: () => Promise<{ ok: boolean; error?: string; acUnknown?: boolean }>, closeOnDone: boolean) => {
+  const run = async (send: () => Promise<{ ok: boolean; error?: string; acUnknown?: boolean }>, closeOnDone: boolean, inDetail = true) => {
     if (pending.current || !socket) return;
     pending.current = true;
     setBusy(true);
     setReport(null);
     try {
       const answer = await send();
-      if (!answer.ok) setReport(answer.error ?? t('inventoryPanel.failed'));
-      else if (answer.acUnknown) setReport(t('inventoryPanel.acUnknown'));
+      if (!answer.ok) setReport({ text: answer.error ?? t('inventoryPanel.failed'), inDetail });
+      else if (answer.acUnknown) setReport({ text: t('inventoryPanel.acUnknown'), inDetail });
       else if (closeOnDone) setOpenId(null);
     } finally {
       pending.current = false;
@@ -88,7 +88,7 @@ export function InventoryPanel({ characterId, inventory = [], currency, strength
   };
   const equip = (itemId: string, slot: InventorySlot | null) => run(() => socket!.equipItem({ characterId, itemId, slot }), true);
   const openPack = (itemId: string) => run(() => socket!.openPack({ characterId, itemId }), true);
-  const recover = () => run(() => socket!.recoverAmmo({ characterId }), false);
+  const recover = () => run(() => socket!.recoverAmmo({ characterId }), false, false);
 
   const dropOn = (slot: InventorySlot | null) => (e: React.DragEvent) => {
     if (!mayAct) return;
@@ -157,7 +157,7 @@ export function InventoryPanel({ characterId, inventory = [], currency, strength
         </div>
       </div>
 
-      {report && !opened && <p role="alert" className="rounded-sm border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger-ink">{report}</p>}
+      {report && (!opened || !report.inDetail) && <p role="alert" className="rounded-sm border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger-ink">{report.text}</p>}
 
       <div role="group" aria-label={t('inventoryPanel.backpack')} onDragOver={allowDrop} onDrop={dropOn(null)} className="rounded-lg border border-ink/10 bg-ink/5 p-3">
         <h4 className="mb-2 font-semibold text-ink">{t('inventoryPanel.backpack')}</h4>
@@ -190,11 +190,11 @@ export function InventoryPanel({ characterId, inventory = [], currency, strength
           <div className="flex items-center gap-2">
             <ItemIcon item={opened} size={40} />
             <span className="font-semibold text-ink">{t('inventoryPanel.quantity', { count: opened.quantity ?? 1, name: opened.name })}</span>
-            <button type="button" onClick={() => setOpenId(null)} className="ml-auto text-sm text-ink-muted hover:text-ink">{t('inventoryPanel.close')}</button>
+            <button type="button" onClick={() => { setReport(null); setOpenId(null); }} className="ml-auto text-sm text-ink-muted hover:text-ink">{t('inventoryPanel.close')}</button>
           </div>
           {faithful && opened.weight != null && <p className="text-sm text-ink-secondary">{t('inventoryPanel.weight', { kg: number(kg(opened.weight * (opened.quantity ?? 1))) })}</p>}
           {opened.notes && <p className="text-sm text-ink-muted">{opened.notes}</p>}
-          {report && <p role="alert" className="rounded-sm border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger-ink">{report}</p>}
+          {report?.inDetail && <p role="alert" className="rounded-sm border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger-ink">{report.text}</p>}
           {mayAct && (
             <div className="flex flex-wrap gap-2">
               {detailActions.map((slot) => (

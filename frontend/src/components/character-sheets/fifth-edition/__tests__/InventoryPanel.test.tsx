@@ -159,4 +159,30 @@ describe('the inventory panel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Corda de cânhamo' }));
     expect(screen.queryByRole('alert')).toBeNull();
   });
+
+  it('offers to open a pack by its name when it has no compendium link', () => {
+    render(<InventoryPanel {...base} inventory={[{ id: 'p', name: 'Pacote de Explorador', quantity: 1 }]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Pacote de Explorador' }));
+    expect(screen.getByRole('button', { name: 'Open pack' })).toBeInTheDocument();
+  });
+
+  it('clears the refusal when the detail is closed', async () => {
+    socket.equipItem.mockResolvedValue({ ok: false, error: 'Esse item não vai nesse espaço.' });
+    render(<InventoryPanel {...base} />);
+    fireEvent.click(screen.getByRole('button', { name: /Adaga/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'With both hands' }));
+    await screen.findByRole('alert');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('shows a recovery refusal by the button, not in an open item detail', async () => {
+    socket.recoverAmmo.mockResolvedValue({ ok: false, error: 'Não dá para recolher munição durante o combate.' });
+    render(<InventoryPanel {...base} ammoToRecover={{ flechas: 7 }} />);
+    fireEvent.click(screen.getByRole('button', { name: /Adaga/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Recover ammunition/ }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Não dá para recolher');
+    expect(within(screen.getByText(/× Adaga/).parentElement!.parentElement!).queryByRole('alert')).toBeNull();
+  });
 });
