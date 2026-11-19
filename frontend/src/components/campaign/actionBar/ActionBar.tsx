@@ -119,9 +119,15 @@ export default function ActionBar() {
   const faithful = campaign?.detailLevel !== 'FLEXIBLE';
   const inventory = sheetData?.inventory ?? [];
 
-  /** The ammunition left for a weapon: the stack in the ammo slot, else the first one in the backpack (the server's rule). */
+  /**
+   * The ammunition left for a weapon, from the stack the next shot is taken
+   * from (the server's rule, actionResolver/ammunition.ts): of the non-empty
+   * stacks of that kind, the one in the ammo slot, else the first in the
+   * backpack, else the first.
+   */
   const ammoLeft = (slug: string) => {
-    const stack = inventory.find((i) => i.slot === 'ammo' && i.compendiumRef?.slug === slug) ?? inventory.find((i) => i.slot === undefined && i.compendiumRef?.slug === slug);
+    const ofKind = inventory.filter((i) => i.compendiumRef?.slug === slug && (i.quantity ?? 1) > 0);
+    const stack = ofKind.find((i) => i.slot === 'ammo') ?? ofKind.find((i) => i.slot === undefined) ?? ofKind[0];
     return stack ? (stack.quantity ?? 1) : 0;
   };
   const label = (option: ActionOption) => (faithful && option.ammunition ? t('actionBar.withAmmo', { name: option.name, count: ammoLeft(option.ammunition.slug) }) : option.name);

@@ -549,6 +549,13 @@ describe('the bar\'s items, weapon swap and ammunition', () => {
     expect(await screen.findByRole('button', { name: 'Longbow · 0' })).toBeInTheDocument();
   });
 
+  it('skips an empty stack in the ammo slot for one in the backpack, as the server shoots', async () => {
+    h.options['tok-fighter'] = [longbow];
+    h.sheets['c-fighter'] = archerSheet([arrows({ slot: 'ammo', quantity: 0 }), arrows({ id: 'spare', quantity: 20 })]);
+    render(<ActionBar />);
+    expect(await screen.findByRole('button', { name: 'Longbow · 20' })).toBeInTheDocument();
+  });
+
   it('shows no count in Flexible', async () => {
     h.detailLevel = 'FLEXIBLE';
     h.options['tok-fighter'] = [longbow];
