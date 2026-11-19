@@ -3,7 +3,8 @@
 
 // ============================================
 // Character handlers: character.hp.update, character.hp.temporary,
-// character.hitdice.spend, character.rest
+// character.hitdice.spend, character.rest, character.equip,
+// character.pack.open
 // Players act on their own characters; the GM may act on any of them.
 // ============================================
 
@@ -19,6 +20,9 @@ import { withinCeiling } from '../shared';
 import { ackFrom, refuseRequest } from '../ack';
 import { z } from 'zod';
 import { takeRest } from '../../services/rest';
+import { equipItem, openPack } from '../../services/inventory';
+import { getState } from '../initiativeState';
+import { resendInitiative } from './initiative';
 import { viewerOf } from '../../services/actionMessages';
 import { announceMessage } from './actions';
 import { emitCharacterUpdated } from '../utils';
@@ -33,6 +37,32 @@ const CharacterRestSchema = z.object({
   characterIds: z.array(z.string().min(1).max(100)).min(1, 'characterIds is required').max(50),
   kind: z.enum(['short', 'long']),
 });
+
+const CharacterEquipSchema = z.object({
+  characterId: z.string().min(1).max(100),
+  itemId: z.string().min(1).max(64),
+  slot: z.enum(['main', 'off', 'both', 'armor', 'ammo']).nullable(),
+});
+
+const CharacterPackOpenSchema = z.object({
+  characterId: z.string().min(1).max(100),
+  itemId: z.string().min(1).max(64),
+});
+
+/**
+ * Tell the table a sheet changed through an inventory event: the sheet as
+ * each member may read it, and the fight's state when one is on (the spend
+ * may have changed with it). The change stands whatever happens here.
+ */
+async function sheetChanged(campaignId: string, characterId: string, userId: string): Promise<void> {
+  try {
+    const character = await prisma.character.findUnique({ where: { id: characterId } });
+    if (character) await emitCharacterUpdated(campaignId, character, { characterId, userId, tokensChanged: false });
+    if (getState(campaignId).active) await resendInitiative(campaignId);
+  } catch (err) {
+    logger.warn('Inventory change not broadcast; the change stands', { err, characterId });
+  }
+}
 
 /** The parts of a character blob this handler touches — see `charData` below. */
 interface HpBlock {
@@ -380,6 +410,67 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
     } catch (error) {
       logger.error('character.rest failed', { err: error });
       refuseRequest(socket, ack, 'Failed to take the rest');
+    }
+  });
+
+  /**
+   * CHARACTER.EQUIP - put an inventory item in a body slot, or back in the
+   * backpack (`slot` null), as the hand rules allow; the armour class follows.
+   */
+  socket.on('character.equip', async (data: unknown, ackArg?: unknown) => {
+    const ack = ackFrom(ackArg);
+    try {
+      if (!socket.campaignId || !socket.userId) {
+        refuseRequest(socket, ack, 'Not authenticated to a campaign');
+        return;
+      }
+      if (!withinCeiling(socket, 'character.equip', ack)) return;
+      const parsed = CharacterEquipSchema.safeParse(data);
+      if (!parsed.success) {
+        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Invalid request');
+        return;
+      }
+      const { characterId, itemId, slot } = parsed.data;
+      const outcome = await equipItem(socket.campaignId, viewerOf(socket.role, socket.userId), characterId, itemId, slot);
+      if (!outcome.ok) {
+        refuseRequest(socket, ack, outcome.error);
+        return;
+      }
+      await sheetChanged(socket.campaignId, characterId, socket.userId);
+      (ack as ((a: unknown) => void) | null)?.({ ok: true, ac: outcome.ac, acUnknown: outcome.acUnknown });
+    } catch (error) {
+      logger.error('character.equip failed', { err: error });
+      refuseRequest(socket, ack, 'Failed to equip the item');
+    }
+  });
+
+  /**
+   * CHARACTER.PACK.OPEN - replace one pack in the inventory by its items.
+   */
+  socket.on('character.pack.open', async (data: unknown, ackArg?: unknown) => {
+    const ack = ackFrom(ackArg);
+    try {
+      if (!socket.campaignId || !socket.userId) {
+        refuseRequest(socket, ack, 'Not authenticated to a campaign');
+        return;
+      }
+      if (!withinCeiling(socket, 'character.pack.open', ack)) return;
+      const parsed = CharacterPackOpenSchema.safeParse(data);
+      if (!parsed.success) {
+        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Invalid request');
+        return;
+      }
+      const { characterId, itemId } = parsed.data;
+      const outcome = await openPack(socket.campaignId, viewerOf(socket.role, socket.userId), characterId, itemId);
+      if (!outcome.ok) {
+        refuseRequest(socket, ack, outcome.error);
+        return;
+      }
+      await sheetChanged(socket.campaignId, characterId, socket.userId);
+      (ack as ((a: unknown) => void) | null)?.({ ok: true });
+    } catch (error) {
+      logger.error('character.pack.open failed', { err: error });
+      refuseRequest(socket, ack, 'Failed to open the pack');
     }
   });
 }

@@ -843,7 +843,7 @@ class SocketClient {
   }
 
   /** The GM gives a combatant back part of what it spent this turn (`combat.restore`); the state comes back as `initiative.state`. */
-  emitCombatRestore(data: { tokenId: string; what: 'action' | 'bonus' | 'reaction' | 'movement' | 'attack' }) {
+  emitCombatRestore(data: { tokenId: string; what: 'action' | 'bonus' | 'reaction' | 'movement' | 'attack' | 'interaction' }) {
     this.socket?.emit('combat.restore', data);
   }
 

@@ -37,6 +37,8 @@ import { FLEXIBLE_TEMPLATES } from '../utils/character-templates/flexible-templa
 import { normaliseGameSystem } from '../legacy/gameSystemAliases';
 import { isHorrorD100, sheetAsRead, sheetAsSent, sheetKeepingConversionRecord } from '../legacy/sheetConversion';
 import { NO_CAMPAIGN } from './abilityRolls';
+import { normalizedSheet } from '../services/inventory';
+import type { SheetLike } from '../utils/inventory';
 
 const router = Router();
 
@@ -238,6 +240,9 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
       // wrote, or the one the request carries, as a character file exported
       // from 1.7.0 does (legacy/sheetConversion.ts).
       sheetData = validationResult.data;
+      // A 5e sheet is stored with every inventory item given an id and a
+      // body slot, the shape the equip events read (services/inventory.ts).
+      if (finalGameSystem === 'FIFTH_EDITION') sheetData = await normalizedSheet(campaignId || null, sheetData as SheetLike);
     } else if (data !== undefined) {
       // A Flexible sheet, checked as sent: the identity step above would turn
       // a string or a list into an object before it could be refused.
@@ -668,6 +673,8 @@ router.put('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
         });
       }
       sheetData = validationResult.data;
+      // Stored with every inventory item given an id and a body slot, as at creation.
+      if (sheetSystem === 'FIFTH_EDITION') sheetData = await normalizedSheet(character.campaignId, sheetData as SheetLike);
     } else if (data !== undefined) {
       const flexible = validateFlexibleSheet(data);
       if (!flexible.success) {

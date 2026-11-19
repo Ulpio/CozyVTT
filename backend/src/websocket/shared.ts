@@ -301,6 +301,16 @@ export const SOCKET_CEILINGS = {
     windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
     refusal: 'Too many rests at once. Wait a moment, then try again.',
   },
+  // Each is a write under the character's row lock; a player swapping
+  // weapons clicks two or three in a second at most.
+  'character.equip': {
+    windows: [{ limit: 15, windowMs: SECOND }, { limit: 300, windowMs: MINUTE }],
+    refusal: 'Too many equipment changes at once. Wait a moment, then try again.',
+  },
+  'character.pack.open': {
+    windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
+    refusal: 'Too many packs opened at once. Wait a moment, then try again.',
+  },
   // Their own budget, apart from the drag frames: each drop is a write under
   // the map's lock, and on a lit map line of sight for every player.
   'token.move.start': tokenMoves,

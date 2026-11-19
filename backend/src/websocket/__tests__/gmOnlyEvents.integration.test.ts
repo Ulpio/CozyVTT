@@ -80,7 +80,7 @@ const PAYLOADS: Record<string, () => unknown> = {
   'exploration:reset': () => ({ mapId }),
   'fog:operation': () => ({ mapId, operation: { op: 'reveal_all' } }),
   'initiative.add': () => ({ tokenId: tokenC, mapId }),
-  'combat.restore': () => ({ tokenId: tokenA, what: 'action' }),
+  'combat.restore': () => ({ tokenId: tokenA, what: 'interaction' }),
   'initiative.end': () => undefined,
   'initiative.next': () => undefined,
   'initiative.remove': () => ({ tokenId: tokenA }),
@@ -290,6 +290,15 @@ describe('the GM, sending the same payloads', () => {
     });
     gm.emit(event, PAYLOADS[event]());
     expect(await outcome).toBe(broadcast);
+  });
+
+  it('combat.restore with what: interaction gives back the object interactions', async () => {
+    const state = getState(campaignId);
+    setState(campaignId, { ...state, spend: { ...state.spend, [tokenA]: { ...state.spend[tokenA], objectInteractions: 2 } } });
+    const sent = waitForEvent(player, 'initiative.state');
+    gm.emit('combat.restore', { tokenId: tokenA, what: 'interaction' });
+    await sent;
+    expect(getState(campaignId).spend[tokenA].objectInteractions).toBe(0);
   });
 
   it('initiative.reorder puts the combatants in the order sent', async () => {

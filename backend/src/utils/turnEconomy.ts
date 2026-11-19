@@ -17,6 +17,8 @@ export interface TurnSpend {
   /** Features used that can be used once each turn, by id. */
   oncePerTurn: string[];
   overBudgetWarned: boolean;
+  /** Weapons drawn or stowed this turn: the first is free, each further one takes the action. */
+  objectInteractions: number;
 }
 
 export function freshSpend(): TurnSpend {
@@ -31,6 +33,7 @@ export function freshSpend(): TurnSpend {
     attackActionTaken: false,
     oncePerTurn: [],
     overBudgetWarned: false,
+    objectInteractions: 0,
   };
 }
 

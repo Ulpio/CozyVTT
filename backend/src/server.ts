@@ -22,6 +22,7 @@ import { personalFilesBeingRemoved } from './services/accountDeletion';
 import { makeDummyPasswordHash } from './services/auth';
 import { backgroundWork } from './utils/backgroundWork';
 import { convertStoredHorrorD100SheetsAtStart } from './legacy/storedHorrorD100Sheets';
+import { backfillInventory } from './services/inventoryBackfill';
 
 // An error nothing caught is written to the log before the process ends.
 onProcessFailure();
@@ -67,6 +68,14 @@ void makeDummyPasswordHash();
  */
 async function start(): Promise<void> {
   await convertStoredHorrorD100SheetsAtStart(prisma);
+  // Every 5e sheet made before body slots is given item ids and slots, once.
+  // A failure is logged and the server starts: the sheets are normalised
+  // again when saved, and the equip events normalise what they read.
+  try {
+    await backfillInventory();
+  } catch (error) {
+    logger.error('Could not backfill the 5e inventories', { err: error });
+  }
   // The fights in progress come back from the database before anyone connects.
   try {
     await hydrateCombatStates();

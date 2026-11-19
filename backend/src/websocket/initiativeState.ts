@@ -178,7 +178,9 @@ export async function hydrateCombatStates(): Promise<void> {
   for (const row of rows) {
     const stored = row.state as unknown as CombatStateInput | null;
     if (!stored || !Array.isArray(stored.combatants)) continue;
-    campaignStates.set(row.campaignId, withSpend(stored));
+    // A spend stored before a field was added (objectInteractions, P5d) reads it as fresh.
+    const spend = Object.fromEntries(Object.entries(stored.spend ?? {}).map(([id, s]) => [id, { ...freshSpend(), ...s }]));
+    campaignStates.set(row.campaignId, withSpend({ ...stored, spend }));
     bump(row.campaignId);
   }
 }
