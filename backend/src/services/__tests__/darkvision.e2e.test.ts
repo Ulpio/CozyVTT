@@ -134,6 +134,19 @@ describe('placing a token', () => {
     expect(typed.sightRadius).toBe(5);
     expect(typed.sightRadiusManual).toBe(true);
   });
+
+  it('does not freeze a range echoed from a copy: 12 for a dwarf follows the sheet, 6 is the GM own', async () => {
+    const [m1, m2] = [await newMap(), await newMap()];
+    const id = await newCharacter(sheet({ race: ref('anao') }));
+    const echoed = await place(m1, id, { sightRadius: 12 });
+    expect(echoed.sightRadius).toBe(12);
+    expect(echoed.sightRadiusManual).not.toBe(true);
+    const typed = await place(m2, id, { sightRadius: 6 });
+    expect(typed.sightRadiusManual).toBe(true);
+    expect((await setRace(anaAgent, id, { race: ref('humano') })).status).toBe(200);
+    expect((await stored(m1, id)).sightRadius).toBe(0);
+    expect((await stored(m2, id)).sightRadius).toBe(6);
+  });
 });
 
 describe('a race change on the sheet', () => {

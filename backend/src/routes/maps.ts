@@ -17,12 +17,13 @@ import {
 import { emitToMapReaders, emitToMapReadersAs, getSocketInstance } from '../websocket/utils';
 import { normalizeAssetUrl, extractAssetId } from '../utils/asset-urls';
 import { storedFilePath } from '../utils/storedPath';
-import { inBackgroundAfter } from '../utils/backgroundWork';
 import { canReadAssetById, canReferenceAsset, isMapPicture, isTokenPicture, canControlToken, canHoldTokens, canMoveTokensNow, canReadMap, PAUSED_MOVE_REFUSAL } from '../services/permissions';
 import { WallSegmentSchema, WallSegmentsArraySchema, FogOperationSchema, LightSourceSchema, LightSourcesArraySchema, LightSourceUpdateSchema, DUPLICATE_WALL_ID_MESSAGE, DUPLICATE_LIGHT_ID_MESSAGE, MAX_WALL_SEGMENTS, MAX_LIGHT_SOURCES, TOO_MANY_WALLS_MESSAGE, TOO_MANY_LIGHTS_MESSAGE } from '../validators/walls';
 import { validateTokenShapes, TokenMetadataSchema, MoveTokensSchema, TOKEN_TYPES, TOKEN_DISPOSITIONS, TOKEN_DISPLAY_MODES, TOKEN_IMAGE_NOT_A_TOKEN_PICTURE_MESSAGE } from '../validators/tokens';
 import { withMapsLocked, clampTokenPosition } from '../utils/mapTokens';
 import type { WallSegment, FogState, LightSource, SkippedWall, WallsAdded } from '../types/walls';
+import { resendIfCurrent, resendSoonIfCurrent } from '../services/mapResend';
+export { resendSoonIfCurrent };
 import { darkvisionSquares } from '../services/darkvision';
 import { parseUVTT } from '../services/uvttParser';
 import { buildUVTT } from '../services/uvttExporter';
@@ -232,41 +233,6 @@ function scaledLights(stored: unknown, kx: number, ky: number): LightSource[] {
   return lights.map((l) => ({ ...l, x: Math.round(l.x * kx), y: Math.round(l.y * ky) }));
 }
 
-async function resendIfCurrent(campaignId: string, map: Parameters<typeof broadcastMapData>[2]): Promise<void> {
-  try {
-    const campaign = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { currentMapId: true } });
-    if (campaign?.currentMapId === map.id) await broadcastMapData(getSocketInstance(), campaignId, map);
-  } catch (err) {
-    logger.warn('Map not re-sent to the table; the change stands', { err, mapId: map.id });
-  }
-}
-
-/**
- * resendIfCurrent for the token routes, which a player may call for a token
- * they control as often as the request limit allows. Each re-send builds the
- * map for every member, with sight on a lit map, so these routes ask for one
- * and it goes at most once per TOKEN_RESEND_MS for each map, read as it
- * stands when it goes: a burst of changes reaches the table as one map
- * carrying them all. The window is fixed from the first request, so a steady
- * stream cannot put the re-send off, or multiply it.
- */
-const TOKEN_RESEND_MS = 100;
-const pendingTokenResends = new Set<string>();
-
-export function resendSoonIfCurrent(campaignId: string, mapId: string): void {
-  const key = `${campaignId}:${mapId}`;
-  if (pendingTokenResends.has(key)) return;
-  pendingTokenResends.add(key);
-  inBackgroundAfter('the map re-sent after a token change', TOKEN_RESEND_MS, async () => {
-    pendingTokenResends.delete(key);
-    try {
-      const map = await prisma.map.findUnique({ where: { id: mapId } });
-      if (map && map.campaignId === campaignId) await resendIfCurrent(campaignId, map);
-    } catch (err) {
-      logger.warn('Map not re-sent to the table after a token change; the change stands', { err, mapId });
-    }
-  });
-}
 
 // The token shape lives in websocket/shared.ts — see the note there on why this
 // file no longer keeps its own copy.
@@ -1543,8 +1509,8 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
       if (!controllerGiven && (await canHoldTokens(campaignId, character.userId))) {
         controlledBy = character.userId;
       }
-      // Darkvision from the sheet's race, unless the GM typed a range.
-      if (!shapes.value.sightRadius) sheetSightRadius = await darkvisionSquares(character.data, character.gameSystem);
+      // Darkvision from the sheet's race, unless the GM typed another range.
+      sheetSightRadius = await darkvisionSquares(character.data, character.gameSystem);
     }
 
     // Build the new token with defaults
@@ -1570,7 +1536,9 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
       // Darkvision in squares; 0 = none. Decides what the server sends this
       // token's owner, so it is set here and by the GM, never by a player.
       sightRadius: shapes.value.sightRadius || sheetSightRadius || 0,
-      ...(shapes.value.sightRadius ? { sightRadiusManual: true } : {}),
+      // Manual only when the sent range differs from the sheet's: a copy or
+      // duplicate echoes the source's range and must keep following the sheet.
+      ...(shapes.value.sightRadius && shapes.value.sightRadius !== sheetSightRadius ? { sightRadiusManual: true } : {}),
       displayMode: displayMode,
       statBlock: shapes.value.statBlock ?? null,
       creatureTemplateId: shapes.value.creatureTemplateId ?? null,

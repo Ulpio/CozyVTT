@@ -11,7 +11,7 @@ import { prisma } from '../config/database';
 import { readTokens, toJson } from '../utils/prisma-json';
 import { withMapsLocked } from '../utils/mapTokens';
 import logger from '../utils/logger';
-import { resendSoonIfCurrent } from '../routes/maps';
+import { resendSoonIfCurrent } from './mapResend';
 
 /** One metre-to-square step: a square is 1.5 m (5 ft). */
 const METRES_PER_SQUARE = 1.5;
