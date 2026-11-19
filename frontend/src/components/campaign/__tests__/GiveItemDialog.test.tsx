@@ -75,6 +75,20 @@ describe('GiveItemDialog', () => {
     expect(h.giveItem).toHaveBeenCalledWith({ characterId: 'c-ana', name: 'Amuleto da vovó', notes: 'Brilha à noite', quantity: 1 });
   });
 
+  it('says why Give is off when the quantity is not a whole number from 1 to 999', async () => {
+    open();
+    await pickPotion();
+    const qty = screen.getByLabelText('Quantity');
+    expect(screen.queryByText('From 1 to 999')).not.toBeInTheDocument();
+    for (const bad of ['0', '1000', '', '2.5']) {
+      fireEvent.change(qty, { target: { value: bad } });
+      expect(screen.getByText('From 1 to 999')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Give' })).toBeDisabled();
+    }
+    fireEvent.change(qty, { target: { value: '3' } });
+    expect(screen.queryByText('From 1 to 999')).not.toBeInTheDocument();
+  });
+
   it('does not give a free item with no name', () => {
     open();
     fireEvent.click(screen.getByRole('radio', { name: 'Free item' }));

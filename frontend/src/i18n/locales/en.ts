@@ -66,6 +66,7 @@ const en = {
     name: 'Name',
     notes: 'Notes',
     quantity: 'Quantity',
+    quantityHint: 'From 1 to 999',
     give: 'Give',
     giving: 'Giving…',
     cancel: 'Cancel',

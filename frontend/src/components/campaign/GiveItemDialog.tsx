@@ -207,6 +207,7 @@ export default function GiveItemDialog({ campaignId, characterId, characterName,
             onChange={(e) => setQuantity(e.target.value)}
             className="input-cozy w-24 text-sm pointer-coarse:min-h-11"
           />
+          {count === null && <p className="mt-1 text-xs text-danger">{t('giveItem.quantityHint')}</p>}
         </div>
 
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}

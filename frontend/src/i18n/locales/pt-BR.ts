@@ -69,6 +69,7 @@ const ptBR: Messages = {
     name: 'Nome',
     notes: 'Notas',
     quantity: 'Quantidade',
+    quantityHint: 'De 1 a 999',
     give: 'Dar',
     giving: 'Dando…',
     cancel: 'Cancelar',
