@@ -34,15 +34,15 @@ const notCommon = <T extends { option: { group: string } }>(xs: T[]): T[] => xs.
 const characterActions = (...args: Parameters<typeof characterActionsAll>) => notCommon(characterActionsAll(...args));
 const npcActions = (...args: Parameters<typeof npcActionsAll>) => notCommon(npcActionsAll(...args));
 describe('characterActions', () => {
-  it('lists a fighter weapon with both grips', () => {
+  it('lists the fighter weapon held in the main hand with one grip, and leaves the greataxe in the backpack out', () => {
     const out = characterActions(sheet('guerreiro'), spells, weapons);
     const a = out.find((s) => s.option.id === 'attack:0')!;
-    expect(a.option).toMatchObject({ name: 'Espada longa', group: 'attack', resolution: 'attack', grips: ['one', 'two'], reach: { kind: 'feet', normal: 5 } });
+    expect(a.option).toMatchObject({ name: 'Espada longa', group: 'attack', resolution: 'attack', reach: { kind: 'feet', normal: 5 } });
+    expect(a.option.grips).toBeUndefined();
     expect(a.attackBonus).toBe(5);
     expect(a.damage).toEqual([{ dice: '1d8+3', type: 'cortante' }]);
     expect(a.versatileDamage).toEqual({ dice: '1d10+3', type: 'cortante' });
-    const b = out.find((s) => s.option.id === 'attack:1')!;
-    expect(b.option.grips).toBeUndefined();
+    expect(out.find((s) => s.option.id === 'attack:1')).toBeUndefined();
   });
 
   it('lists a wizard attack cantrip once, as the spell', () => {

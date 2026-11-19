@@ -67,7 +67,10 @@ function fighterSheet() {
   // The weapons are held (the bar lists what is in hand); the short bow has no item, so it stays listed.
   const held = (name: string, slot: string) => {
     const item = s.inventory.find((i: any) => i.name === name);
-    item.id = name === 'Espada longa' ? 'sword' : 'axe';
+    const id = name === 'Espada longa' ? 'sword' : 'axe';
+    // The fixture sheet already links the attack rows to its items; keep the links through the new id.
+    for (const a of s.attacks) if (a.itemId === item.id) a.itemId = id;
+    item.id = id;
     item.slot = slot;
     item.equipped = true;
   };

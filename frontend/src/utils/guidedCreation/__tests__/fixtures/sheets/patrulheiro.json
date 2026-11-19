@@ -187,7 +187,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "arco-longo"
-      }
+      },
+      "itemId": "inv-1"
     },
     {
       "name": "Espada curta",
@@ -201,7 +202,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "espada-curta"
-      }
+      },
+      "itemId": "inv-3"
     }
   ],
   "currency": {
@@ -221,27 +223,34 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "couro"
-      }
+      },
+      "slot": "armor",
+      "id": "inv-0"
     },
     {
       "name": "Arco longo",
       "quantity": 1,
       "weight": 2,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "arco-longo"
-      }
+      },
+      "slot": "both",
+      "id": "inv-1"
     },
     {
-      "name": "G flechas",
+      "name": "Flechas",
       "quantity": 20,
-      "weight": 1,
+      "weight": 0.05,
       "compendiumRef": {
         "bookId": "book-test",
-        "slug": "aljava-flechas"
-      }
+        "slug": "flechas-20"
+      },
+      "slot": "ammo",
+      "id": "inv-2",
+      "equipped": true
     },
     {
       "name": "Espada curta",
@@ -252,7 +261,23 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "espada-curta"
-      }
+      },
+      "id": "inv-3"
+    },
+    {
+      "name": "Rações de viagem (1 dia)",
+      "quantity": 10,
+      "weight": 2,
+      "compendiumRef": {
+        "bookId": "book-test",
+        "slug": "racoes-de-viagem-1-dia"
+      },
+      "id": "inv-4"
+    },
+    {
+      "name": "Corda de cânhamo",
+      "quantity": 1,
+      "id": "inv-5"
     }
   ],
   "proficiencies": {

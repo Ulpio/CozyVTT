@@ -185,7 +185,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "espada-curta"
-      }
+      },
+      "itemId": "inv-0"
     },
     {
       "name": "Dardo",
@@ -200,7 +201,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "dardo"
-      }
+      },
+      "itemId": "inv-1"
     },
     {
       "name": "Ataque Desarmado",
@@ -222,22 +224,26 @@
       "quantity": 1,
       "weight": 2,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "espada-curta"
-      }
+      },
+      "slot": "main",
+      "id": "inv-0"
     },
     {
       "name": "Dardo",
       "quantity": 10,
       "weight": 0.25,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "dardo"
-      }
+      },
+      "slot": "off",
+      "id": "inv-1"
     }
   ],
   "proficiencies": {

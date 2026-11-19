@@ -547,3 +547,35 @@ describe('buildSheet, review fixes', () => {
     expect(weapons).not.toMatch(/\bfunda\b/);
   });
 });
+
+describe('buildSheet, packs, ammunition and slots', () => {
+  const find = (sheet: FifthEditionCharacterData, name: string) => sheet.inventory?.find((i) => i.name === name);
+
+  it('ranger: the explorer pack opens into rations and a rope, 20 arrows are units in the ammo slot, the longbow is held in both hands', () => {
+    const sheet = sheetOf('patrulheiro');
+    expect(find(sheet, 'Pacote de Explorador')).toBeUndefined();
+    expect(find(sheet, 'Rações de viagem (1 dia)')).toMatchObject({ quantity: 10 });
+    expect(find(sheet, 'Corda de cânhamo')).toMatchObject({ quantity: 1 });
+    expect(find(sheet, 'Flechas')).toMatchObject({ quantity: 20, slot: 'ammo', equipped: true });
+    expect(find(sheet, 'Flechas (20)')).toBeUndefined();
+    const bow = find(sheet, 'Arco longo');
+    expect(bow).toMatchObject({ slot: 'both', equipped: true });
+    expect(find(sheet, 'Espada curta')?.slot).toBeUndefined();
+    expect(sheet.attacks?.find((a) => a.compendiumRef?.slug === 'arco-longo')?.itemId).toBe(bow?.id);
+    // The arrows' weight is per unit: 0.5 kg for 20 arrows is 20 pounds-halves of 1 lb.
+    const arrows = find(sheet, 'Flechas');
+    expect((arrows?.weight ?? 0) * (arrows?.quantity ?? 0)).toBeCloseTo(1);
+  });
+
+  it('fighter with a shield: longsword in main, shield in off, chain mail worn, AC unchanged', () => {
+    const base = SAMPLES.find((s) => s.choices.classSlug === 'guerreiro')!.choices;
+    const sheet = buildSheet({ ...base, equipmentPicks: [0, 0], anyOfPicks: { '1.0.0': 'espada-longa' } }, CREATION_DATA);
+    expect(find(sheet, 'Espada longa')).toMatchObject({ slot: 'main', equipped: true });
+    expect(find(sheet, 'A escudo')).toMatchObject({ slot: 'off', equipped: true });
+    expect(find(sheet, 'A cota-de-malha')).toMatchObject({ slot: 'armor', equipped: true });
+    expect(sheet.armorClass).toBe(19); // chain mail 16 + Defense 1 + shield 2, as before the slots
+    const sword = find(sheet, 'Espada longa');
+    expect(sheet.attacks?.find((a) => a.compendiumRef?.slug === 'espada-longa')?.itemId).toBe(sword?.id);
+    expect(sheet.inventory?.every((i) => !!i.id)).toBe(true);
+  });
+});

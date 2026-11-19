@@ -191,7 +191,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "espada-longa"
-      }
+      },
+      "itemId": "inv-0"
     },
     {
       "name": "Azagaia",
@@ -205,7 +206,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "azagaia"
-      }
+      },
+      "itemId": "inv-3"
     }
   ],
   "currency": {
@@ -221,11 +223,13 @@
       "quantity": 1,
       "weight": 3,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "espada-longa"
-      }
+      },
+      "slot": "main",
+      "id": "inv-0"
     },
     {
       "name": "A escudo",
@@ -236,7 +240,9 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "escudo"
-      }
+      },
+      "slot": "off",
+      "id": "inv-1"
     },
     {
       "name": "A cota-de-malha",
@@ -247,7 +253,9 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "cota-de-malha"
-      }
+      },
+      "slot": "armor",
+      "id": "inv-2"
     },
     {
       "name": "Azagaia",
@@ -258,7 +266,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "azagaia"
-      }
+      },
+      "id": "inv-3"
     }
   ],
   "proficiencies": {

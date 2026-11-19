@@ -191,7 +191,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "bordao"
-      }
+      },
+      "itemId": "inv-0"
     },
     {
       "name": "S raio-de-fogo",
@@ -217,11 +218,13 @@
       "quantity": 1,
       "weight": 4,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "bordao"
-      }
+      },
+      "slot": "main",
+      "id": "inv-0"
     },
     {
       "name": "P estudioso",
@@ -229,7 +232,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "pacote-de-estudioso"
-      }
+      },
+      "id": "inv-1"
     }
   ],
   "proficiencies": {

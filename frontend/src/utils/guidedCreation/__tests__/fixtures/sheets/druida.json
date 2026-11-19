@@ -191,7 +191,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "bordao"
-      }
+      },
+      "itemId": "inv-1"
     },
     {
       "name": "S produzir-chamas",
@@ -221,18 +222,22 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "couro"
-      }
+      },
+      "slot": "armor",
+      "id": "inv-0"
     },
     {
       "name": "Bordao",
       "quantity": 1,
       "weight": 4,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "bordao"
-      }
+      },
+      "slot": "main",
+      "id": "inv-1"
     }
   ],
   "proficiencies": {

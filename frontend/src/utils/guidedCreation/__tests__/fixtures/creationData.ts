@@ -59,7 +59,7 @@ const weapon = (
 const WEAPONS = [
   weapon('espada-longa', 'martial', 'melee', '1d8', 'cortante', ['versátil'], { versatile: '1d10', weight: 1.5 }),
   weapon('machado-grande', 'martial', 'melee', '1d12', 'cortante', ['pesada', 'duas mãos'], { weight: 3.5 }),
-  weapon('arco-longo', 'martial', 'ranged', '1d8', 'perfurante', ['munição', 'pesada', 'duas mãos'], { normalRange: 45, longRange: 180 }),
+  weapon('arco-longo', 'martial', 'ranged', '1d8', 'perfurante', ['munição', 'pesada', 'duas mãos'], { normalRange: 45, longRange: 180, ammunition: 'flechas-20' }),
   weapon('rapieira', 'martial', 'melee', '1d8', 'perfurante', ['acuidade']),
   weapon('espada-curta', 'martial', 'melee', '1d6', 'perfurante', ['acuidade', 'leve']),
   weapon('adaga', 'simple', 'melee', '1d4', 'perfurante', ['acuidade', 'leve', 'arremesso'], { normalRange: 6, longRange: 18, weight: 0.5 }),
@@ -100,8 +100,18 @@ const TOOLS = [
   entry('kit-de-jogo-conjunto-de-dados', 'Kit de jogo: conjunto de dados', {}),
 ];
 
-const GEAR = [entry('aljava-flechas', 'G flechas', { weight: 0.5 }), entry('simbolo-sagrado', 'G simbolo', { weight: 0.5 })];
-const PACKS = [entry('pacote-de-aventureiro', 'P aventureiro', {}), entry('pacote-de-estudioso', 'P estudioso', {})];
+const GEAR = [
+  entry('flechas-20', 'Flechas (20)', { weight: 0.5 }),
+  entry('racoes-de-viagem-1-dia', 'Rações de viagem (1 dia)', { weight: 1 }),
+  entry('aljava-flechas', 'G flechas', { weight: 0.5 }), entry('simbolo-sagrado', 'G simbolo', { weight: 0.5 })];
+const PACKS = [
+  entry('pacote-de-explorador', 'Pacote de Explorador', {
+    items: [
+      { ref: { type: 'gear', slug: 'racoes-de-viagem-1-dia' }, quantity: 10 },
+      { name: 'Corda de cânhamo', quantity: 1 },
+    ],
+  }),
+  entry('pacote-de-aventureiro', 'P aventureiro', {}), entry('pacote-de-estudioso', 'P estudioso', {})];
 
 // --- Equipment helpers --------------------------------------------------------
 
@@ -328,7 +338,8 @@ const CLASSES = [
     spellcasting: { ability: 'wis', slots: HALF_SLOTS, spellsKnown: [0, 2, 3] },
     startingEquipmentChoices: [
       choice(bundle([ref('armor', 'brunea')]), bundle([ref('armor', 'couro')])),
-      fixed(ref('weapon', 'arco-longo'), ref('gear', 'aljava-flechas', 20), ref('weapon', 'espada-curta', 2)),
+      fixed(ref('weapon', 'arco-longo'), ref('gear', 'flechas-20'), ref('weapon', 'espada-curta', 2)),
+      fixed(ref('pack', 'pacote-de-explorador')),
     ],
   }),
 ];

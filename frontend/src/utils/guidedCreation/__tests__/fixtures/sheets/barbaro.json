@@ -185,7 +185,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "machado-grande"
-      }
+      },
+      "itemId": "inv-0"
     },
     {
       "name": "Azagaia",
@@ -199,7 +200,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "azagaia"
-      }
+      },
+      "itemId": "inv-1"
     }
   ],
   "currency": {
@@ -215,11 +217,13 @@
       "quantity": 1,
       "weight": 7,
       "equippable": true,
-      "equipped": false,
+      "equipped": true,
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "machado-grande"
-      }
+      },
+      "slot": "both",
+      "id": "inv-0"
     },
     {
       "name": "Azagaia",
@@ -230,7 +234,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "azagaia"
-      }
+      },
+      "id": "inv-1"
     },
     {
       "name": "P aventureiro",
@@ -238,7 +243,8 @@
       "compendiumRef": {
         "bookId": "book-test",
         "slug": "pacote-de-aventureiro"
-      }
+      },
+      "id": "inv-2"
     }
   ],
   "proficiencies": {

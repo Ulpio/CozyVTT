@@ -13,6 +13,7 @@ import type {
   FifthEditionStats,
 } from '@/types/game-systems/fifthEdition';
 import type { FeatureEntry } from '@/utils/featureEntries';
+import { normalizeInventory, type InventoryHints, type InventorySlot } from '@/utils/inventory';
 import { flattenProficiencyGroups } from '@/utils/proficiencies';
 import { abilityPicksOf, collectEffects, pruneChoices, type ChoicePicks, type RulesData, type RulesEntry } from './collectEffects';
 import type {
@@ -21,6 +22,7 @@ import type {
   ClassData,
   FeatData,
   Named,
+  PackData,
   RaceData,
   SpellData,
   SubclassData,
@@ -65,7 +67,7 @@ export interface CreationData extends RulesData {
   armor: CreationEntry<ArmorData>[];
   gear: CreationEntry<{ weight?: number }>[];
   tools: CreationEntry<{ weight?: number }>[];
-  packs: CreationEntry<unknown>[];
+  packs: CreationEntry<PackData>[];
 }
 
 const LEVEL = 3;
@@ -219,6 +221,7 @@ export function buildSheet(input: CreationChoices, data: CreationData): FifthEdi
     ...attacksFor(equipment.weapons, scores, proficiencies.weapons, effects),
     ...cantripAttacks(spells?.attackCantrips ?? [], scores, effects),
   ].map((a) => sheetAttack(a, data));
+  const { inventory, attacks: linkedAttacks } = inventoryOf(equipment.inventory, worn?.slug, attacks, data);
 
   const tools = toolProficiencies(cls.data, background?.data, raceLines, effects, data);
   const thieves = data.tools.find((t) => t.slug === THIEVES_TOOLS);
@@ -262,9 +265,9 @@ export function buildSheet(input: CreationChoices, data: CreationData): FifthEdi
     hp: { maximum: maxHp, current: maxHp, temporary: 0 },
     hitDice: [{ class: cls.name, die: `d${hitDie}`, maximum: LEVEL, remaining: LEVEL }],
     deathSaves: { successes: 0, failures: 0 },
-    attacks,
+    attacks: linkedAttacks,
     currency: { cp: 0, sp: 0, ep: 0, gp: equipment.gp, pp: 0 },
-    inventory: equipment.inventory.map((item) => sheetItem(item, worn?.slug, data)),
+    inventory,
     proficiencies: boxes,
     proficienciesAndLanguages: flattenProficiencyGroups(boxes),
     featuresAndTraits: features(race, subrace, cls, subclass, background, picks, data),
@@ -552,4 +555,77 @@ function slotsOf(slots: number[]): FifthEditionSpellSlots {
   return Object.fromEntries(
     Array.from({ length: 9 }, (_, i) => [String(i + 1), { total: slots[i] ?? 0, expended: 0 }]),
   ) as unknown as FifthEditionSpellSlots;
+}
+
+const TWO_HANDED = 'duas mãos';
+
+/**
+ * The inventory with ids, the body slots the creation chose and the attacks
+ * linked to their items, in the form the server stores it.
+ *
+ * Worn armor goes in `armor`, a shield in `off`; the weapons go in the hands in
+ * order: a two-handed one in `both` when both hands are free, any other in
+ * `main`, then `off` when it is free. What does not fit stays in the backpack.
+ * The first ammunition goes in `ammo`.
+ */
+function inventoryOf(
+  lines: InventoryItem[],
+  wornArmor: string | undefined,
+  attacks: FifthEditionAttack[],
+  data: CreationData,
+): { inventory: FifthEditionInventoryItem[]; attacks: FifthEditionAttack[] } {
+  const items = lines.map((item) => sheetItem(item, wornArmor, data));
+  const ammoSlugs = new Set(data.weapons.flatMap((w) => (w.data.ammunition ? [w.data.ammunition] : [])));
+  const bySlug = <T extends { slug: string }>(list: T[], item: FifthEditionInventoryItem) =>
+    list.find((e) => e.slug === item.compendiumRef?.slug);
+  const hints: InventoryHints = {
+    kindOf: (item) => {
+      const slug = item.compendiumRef?.slug;
+      if (!slug) return 'other';
+      if (data.weapons.some((w) => w.slug === slug)) return 'weapon';
+      const armor = data.armor.find((a) => a.slug === slug);
+      if (armor) return armor.data.category === 'shield' ? 'shield' : 'armor';
+      if (ammoSlugs.has(slug)) return 'ammo';
+      return data.packs.some((p) => p.slug === slug) ? 'pack' : 'other';
+    },
+    twoHanded: (item) => !!bySlug(data.weapons, item as FifthEditionInventoryItem)?.data.properties.includes(TWO_HANDED),
+  };
+
+  let main = false;
+  let off = false;
+  let both = false;
+  let ammo = false;
+  const put = (item: FifthEditionInventoryItem, slot: InventorySlot) => {
+    item.slot = slot;
+  };
+  for (const item of items) {
+    if (hints.kindOf(item) === 'armor' && item.compendiumRef?.slug === wornArmor) put(item, 'armor');
+    else if (hints.kindOf(item) === 'shield' && !off) {
+      put(item, 'off');
+      off = true;
+    }
+  }
+  for (const item of items) {
+    if (hints.kindOf(item) !== 'weapon') continue;
+    if (hints.twoHanded(item)) {
+      if (!main && !off && !both) {
+        put(item, 'both');
+        both = true;
+      }
+    } else if (!both && !main) {
+      put(item, 'main');
+      main = true;
+    } else if (!both && !off) {
+      put(item, 'off');
+      off = true;
+    }
+  }
+  for (const item of items) {
+    if (hints.kindOf(item) === 'ammo' && !ammo) {
+      put(item, 'ammo');
+      ammo = true;
+    }
+  }
+  const { inventory, attacks: linked } = normalizeInventory({ inventory: items, attacks }, hints);
+  return { inventory: inventory as FifthEditionInventoryItem[], attacks: linked as FifthEditionAttack[] };
 }

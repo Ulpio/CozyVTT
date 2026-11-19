@@ -6,6 +6,7 @@ import type {
   EquipmentAnyOf,
   EquipmentChoiceData,
   EquipmentItemType,
+  PackData,
   SpellData,
   WeaponData,
 } from './compendiumData';
@@ -20,13 +21,14 @@ export interface EquipmentItems {
   armor?: RulesEntry<ArmorData>[];
   gear?: RulesEntry<{ weight?: number }>[];
   tools?: RulesEntry<{ weight?: number }>[];
-  packs?: RulesEntry<unknown>[];
+  packs?: RulesEntry<PackData>[];
 }
 
 /** One inventory line; `weight` is per unit. */
 export interface InventoryItem {
   type: EquipmentItemType;
-  slug: string;
+  /** Absent on a pack's name-only line. */
+  slug?: string;
   name: string;
   quantity: number;
   weight?: number;
@@ -81,6 +83,8 @@ const CLASS_WEAPONS: Record<string, string[]> = {
 };
 
 const FINESSE = 'acuidade';
+/** "Flechas (20)": the name and the bundle size. */
+const BUNDLE = /^(.*\S)\s*\((\d+)\)\s*$/;
 const TWO_HANDED = 'duas mãos';
 const HEAVY = 'pesada';
 
@@ -227,15 +231,46 @@ export function resolveEquipment(
   const offered = offeredOptions(classData, backgroundData, proficiencies, items);
   const inventory: InventoryItem[] = [];
   let gp = 0;
-  const add = (type: EquipmentItemType, slug: string, quantity: number) => {
-    const existing = inventory.find((i) => i.type === type && i.slug === slug);
+  const ammoSlugs = new Set((items.weapons ?? []).flatMap((w) => (w.data.ammunition ? [w.data.ammunition] : [])));
+  const push = (type: EquipmentItemType, slug: string | undefined, name: string, quantity: number, weight: number | undefined) => {
+    const existing = inventory.find((i) => i.type === type && (slug !== undefined ? i.slug === slug : i.slug === undefined && i.name === name));
     if (existing) {
       existing.quantity += quantity;
       return;
     }
+    inventory.push({
+      type,
+      ...(slug !== undefined ? { slug } : {}),
+      name,
+      quantity,
+      ...(weight !== undefined ? { weight } : {}),
+    });
+  };
+  const add = (type: EquipmentItemType, slug: string, quantity: number) => {
     const entry = listFor(type, items).find((e) => e.slug === slug);
+    const name = entry?.name ?? slug;
     const weight = weightOf(entry);
-    inventory.push({ type, slug, name: entry?.name ?? slug, quantity, ...(weight !== undefined ? { weight } : {}) });
+    // A bundle of ammunition ("Flechas (20)") becomes its units; the weight follows each unit.
+    const bundle = type === 'gear' && ammoSlugs.has(slug) ? BUNDLE.exec(name) : null;
+    if (bundle && Number(bundle[2]) > 0) {
+      const size = Number(bundle[2]);
+      push(type, slug, bundle[1], quantity * size, weight !== undefined ? weight / size : undefined);
+      return;
+    }
+    push(type, slug, name, quantity, weight);
+  };
+  /** A pack opens into its items; one without any stays as one item. */
+  const addPack = (slug: string, quantity: number) => {
+    const entry = items.packs?.find((e) => e.slug === slug);
+    const contents = entry?.data.items;
+    if (!contents?.length) {
+      add('pack', slug, quantity);
+      return;
+    }
+    for (const line of contents) {
+      if ('ref' in line) add(line.ref.type, line.ref.slug, line.quantity * quantity);
+      else push('gear', undefined, line.name, line.quantity * quantity, undefined);
+    }
   };
 
   equipmentChoicesOf(classData, backgroundData).forEach((choice, c) => {
@@ -248,7 +283,8 @@ export function resolveEquipment(
     gp += bundle.gp ?? 0;
     bundle.items.forEach((item, i) => {
       if (item.ref) {
-        add(item.ref.type, item.ref.slug, item.quantity);
+        if (item.ref.type === 'pack') addPack(item.ref.slug, item.quantity);
+        else add(item.ref.type, item.ref.slug, item.quantity);
         return;
       }
       if (!item.anyOf) return;
