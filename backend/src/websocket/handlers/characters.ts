@@ -4,7 +4,7 @@
 // ============================================
 // Character handlers: character.hp.update, character.hp.temporary,
 // character.hitdice.spend, character.rest, character.equip,
-// character.pack.open, character.ammo.recover
+// character.pack.open, character.ammo.recover, gm.notice
 // Players act on their own characters; the GM may act on any of them.
 // ============================================
 
@@ -21,6 +21,7 @@ import { ackFrom, refuseRequest } from '../ack';
 import { z } from 'zod';
 import { takeRest } from '../../services/rest';
 import { equipItem, openPack, recoverAmmo } from '../../services/inventory';
+import { sendNotice } from '../../services/gmNotice';
 import { getState } from '../initiativeState';
 import { resendInitiative } from './initiative';
 import { viewerOf } from '../../services/actionMessages';
@@ -47,6 +48,11 @@ const CharacterEquipSchema = z.object({
 const CharacterPackOpenSchema = z.object({
   characterId: z.string().min(1).max(100),
   itemId: z.string().min(1).max(64),
+});
+
+const GmNoticeSchema = z.object({
+  characterId: z.string().min(1).max(100),
+  text: z.string().max(5000),
 });
 
 const CharacterAmmoRecoverSchema = z.object({
@@ -513,6 +519,36 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
     } catch (error) {
       logger.error('character.ammo.recover failed', { err: error });
       refuseRequest(socket, ack, 'Failed to recover the ammunition');
+    }
+  });
+
+  /**
+   * GM.NOTICE - the GM sends the owner of a character a private notice (a
+   * stored whisper that pops up over their map). Answered `{ ok: true }` or
+   * `{ ok: false, error }`.
+   */
+  socket.on('gm.notice', async (data: unknown, ackArg?: unknown) => {
+    const ack = ackFrom(ackArg);
+    try {
+      if (!socket.campaignId || !socket.userId) {
+        refuseRequest(socket, ack, 'Not authenticated to a campaign');
+        return;
+      }
+      if (!withinCeiling(socket, 'gm.notice', ack)) return;
+      const parsed = GmNoticeSchema.safeParse(data);
+      if (!parsed.success) {
+        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Invalid request');
+        return;
+      }
+      const outcome = await sendNotice(socket.campaignId, viewerOf(socket.role, socket.userId), parsed.data.characterId, parsed.data.text);
+      if (!outcome.ok) {
+        refuseRequest(socket, ack, outcome.error);
+        return;
+      }
+      (ack as ((a: unknown) => void) | null)?.({ ok: true });
+    } catch (error) {
+      logger.error('gm.notice failed', { err: error });
+      refuseRequest(socket, ack, 'Failed to send the notice');
     }
   });
 }
