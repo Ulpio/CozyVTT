@@ -52,6 +52,8 @@ export interface ActionOption {
   meleeWeapon?: true;
   /** A monster's Multiattack: it takes the Attack action, so its attacks that follow pass as part of it. */
   startsAttackAction?: true;
+  /** Weapon attacks that fire ammunition: the gear slug it fires and its name in lower case; only the list sends it, the spec keeps it too. */
+  ammunition?: { slug: string; label: string };
   /** Class features: the uses left in the pool the feature spends. */
   uses?: { left: number; max: number };
   /** Class feature that heals an amount the player chooses (Lay on Hands): the bar asks for it. */

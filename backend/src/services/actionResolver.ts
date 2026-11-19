@@ -147,8 +147,9 @@ export async function listActions(
 ): Promise<ActionList | { error: string }> {
   const actor = await loadActor(campaignId, requester, mapId, actorTokenId);
   if ('ok' in actor) return { error: actor.error };
-  const options = actor.spec.map(({ option }) => {
+  const options = actor.spec.map(({ option, ammunition }) => {
     const copy: ActionOption = { ...option };
+    if (ammunition) copy.ammunition = { ...ammunition };
     if (option.grips) copy.grips = [...option.grips];
     if (option.reach) copy.reach = { ...option.reach };
     if (requester.role !== 'GM') delete copy.summary;

@@ -54,6 +54,8 @@ export interface ActionOption {
   chosenAmount?: true;
   /** Class feature states: running now. */
   active?: true;
+  /** Weapon attacks that fire ammunition: the gear slug it fires and its name in lower case. */
+  ammunition?: { slug: string; label: string };
   /** Weapon attacks: the features that can add to the hit (Sneak Attack, Divine Smite). */
   riders?: ActionFeatureRider[];
 }

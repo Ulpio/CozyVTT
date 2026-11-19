@@ -11,7 +11,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampaigns } from '../../__tests__/helpers/db';
-import { resolveAction, undoAction, type ActionRequest } from '../actionResolver';
+import { listActions, resolveAction, undoAction, type ActionRequest } from '../actionResolver';
 import { equipItem, recoverAmmo } from '../inventory';
 import { beginTurn, clearState, flushCombatWrites, setState, type CombatantEntry } from '../../websocket/initiativeState';
 import type { Viewer } from '../../rules/actions/actionCard';
@@ -203,6 +203,18 @@ describe('a shot in a Faithful campaign', () => {
     ok(await shoot());
     expect(await count('arrows')).toBe(20);
     expect((await data()).ammoToRecover).toBeUndefined();
+  });
+});
+
+describe('listing a weapon that fires ammunition', () => {
+  it('tells the bar which gear it fires, and lists nothing of the kind for a thrown dagger', async () => {
+    const bow = await listActions(campaignId, p1, mapId, 'ranger');
+    if ('error' in bow) throw new Error(bow.error);
+    expect(bow.options.find((o) => o.id === 'attack:0')?.ammunition).toEqual({ slug: 'flechas-20', label: 'flechas' });
+    await patch(holdDagger);
+    const dagger = await listActions(campaignId, p1, mapId, 'ranger');
+    if ('error' in dagger) throw new Error(dagger.error);
+    expect(dagger.options.every((o) => o.ammunition === undefined)).toBe(true);
   });
 });
 
