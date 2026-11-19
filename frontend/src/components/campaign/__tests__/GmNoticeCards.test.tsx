@@ -88,13 +88,13 @@ describe('the GM notice cards', () => {
     render(<GmNoticeCards />);
     const ref = { bookId: 'b1', slug: 'flechas-20' };
     send(notice('n1', 'Você recebeu: Flechas ×20', { metadata: { kind: 'gmNotice', characterId: 'c1', item: { name: 'Flechas', quantity: 20, compendiumRef: ref } } }));
-    expect(vi.mocked(ItemIcon).mock.calls.at(-1)![0].item).toEqual({ name: 'Flechas', compendiumRef: ref });
+    expect(vi.mocked(ItemIcon).mock.calls[vi.mocked(ItemIcon).mock.calls.length - 1]![0].item).toEqual({ name: 'Flechas', compendiumRef: ref });
   });
 
   it('gives the icon the name alone for a free item', () => {
     render(<GmNoticeCards />);
     send(notice('n1', 'x', { metadata: { kind: 'gmNotice', characterId: 'c1', item: { name: 'Mapa', quantity: 1 } } }));
-    expect(vi.mocked(ItemIcon).mock.calls.at(-1)![0].item).toEqual({ name: 'Mapa' });
+    expect(vi.mocked(ItemIcon).mock.calls[vi.mocked(ItemIcon).mock.calls.length - 1]![0].item).toEqual({ name: 'Mapa' });
   });
 
   it('shows nothing when a history page is loaded (only the live stream raises cards)', () => {

@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
-import { CampaignRole, type RosterMember } from '@/types';
+import { CampaignRole, GameSystem, type RosterMember } from '@/types';
 import { useGameStore } from '@/stores/gameStore';
 import { characterMenuRows, openCharacterMenu } from '@/test/characterMenuRows';
 
@@ -52,7 +52,7 @@ vi.mock('../CharacterRollPicker', () => ({
 import CampaignRoster from '../CampaignRoster';
 import { LayoutProvider } from '@/contexts/LayoutContext';
 
-const member = (userId: string, userName: string, role: CampaignRole, gameSystem: RosterMember['characters'][number]['gameSystem'] = 'FIFTH_EDITION'): RosterMember => ({
+const member = (userId: string, userName: string, role: CampaignRole, gameSystem: GameSystem | null = GameSystem.FIFTH_EDITION): RosterMember => ({
   userId, userName, userAvatar: null, role, joinedAt: '2026-10-01T00:00:00.000Z',
   characters: role === CampaignRole.GM ? [] : [{
     id: `${userId}-char`, name: `${userName}'s hero`, tokenImageUrl: null, gameSystem, userId, hp: { current: 7, max: 10, temp: 0 },
@@ -64,7 +64,7 @@ beforeEach(() => {
   h.seat.userId = 'dm';
   h.currentMap = { id: 'map-1', width: 20, height: 20 };
   h.api.getCampaignCharacters.mockReset().mockResolvedValue({
-    roster: [member('dm', 'Mara', CampaignRole.GM), member('p1', 'Ash', CampaignRole.PLAYER), member('p2', 'Bea', CampaignRole.PLAYER, 'HORROR_D100')],
+    roster: [member('dm', 'Mara', CampaignRole.GM), member('p1', 'Ash', CampaignRole.PLAYER), member('p2', 'Bea', CampaignRole.PLAYER, GameSystem.HORROR_D100)],
   });
   h.api.getCharacter.mockReset().mockImplementation(async (id: string) => ({ character: { id } }));
   h.api.assignCharacterToCampaign.mockReset().mockResolvedValue({});
@@ -223,7 +223,7 @@ describe('Temporary HP... on a roster character', () => {
     expect(characterMenuRows()).not.toContain(TEMPORARY_HP);
     unmount();
 
-    h.api.getCampaignCharacters.mockResolvedValue({ roster: inSystem('HORROR_D100') });
+    h.api.getCampaignCharacters.mockResolvedValue({ roster: inSystem(GameSystem.HORROR_D100) });
     render(<CampaignRoster />);
     await rightClick("Ash's hero");
     expect(characterMenuRows()).not.toContain(TEMPORARY_HP);

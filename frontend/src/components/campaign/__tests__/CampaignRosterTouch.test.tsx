@@ -20,7 +20,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
-import { CampaignRole, type RosterMember } from '@/types';
+import { CampaignRole, GameSystem, type RosterMember } from '@/types';
 import { useGameStore } from '@/stores/gameStore';
 import { contact } from '@/test/pointer';
 
@@ -57,7 +57,7 @@ import CampaignRoster from '../CampaignRoster';
 
 const member = (userId: string, userName: string, hp: number | null = null): RosterMember => ({
   userId, userName, userAvatar: null, role: userId === 'dm' ? CampaignRole.GM : CampaignRole.PLAYER, joinedAt: '2026-10-01T00:00:00.000Z',
-  characters: hp === null ? [] : [{ id: `${userId}-char`, name: `${userName}'s hero`, tokenImageUrl: null, gameSystem: 'FIFTH_EDITION' as const, userId, hp: { current: hp, max: 10, temp: 0 } }],
+  characters: hp === null ? [] : [{ id: `${userId}-char`, name: `${userName}'s hero`, tokenImageUrl: null, gameSystem: GameSystem.FIFTH_EDITION, userId, hp: { current: hp, max: 10, temp: 0 } }],
 });
 
 beforeEach(() => {
