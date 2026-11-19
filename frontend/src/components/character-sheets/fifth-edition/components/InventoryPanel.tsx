@@ -8,7 +8,7 @@
  * AC and the fight's costs; its refusal is shown here as it comes.
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Coins } from 'lucide-react';
 import { useOptionalWebSocket } from '@/contexts/WebSocketContext';
@@ -32,7 +32,7 @@ interface InventoryPanelProps {
 
 const DRAG_TYPE = 'text/plain';
 
-const isPack = (item: InventoryItem) => item.compendiumRef?.type === 'pack' || /^pacote\b/i.test(item.name.trim());
+const isPack = (item: InventoryItem) => /^pacote-/.test(item.compendiumRef?.slug ?? '') || /^pacoteb/i.test(item.name.trim());
 
 /** The slots worth offering for an item; the server is the authority and refuses the rest. */
 function slotsFor(item: InventoryItem): InventorySlot[] {
@@ -60,6 +60,8 @@ export function InventoryPanel({ characterId, inventory = [], currency, strength
   const faithful = detailLevel !== 'FLEXIBLE';
   const [openId, setOpenId] = useState<string | null>(null);
   const [report, setReport] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const pending = useRef(false);
   const number = (n: number) => n.toLocaleString(i18n.language, { maximumFractionDigits: 2 });
   const mayAct = canAct && !!socket;
 
@@ -68,27 +70,25 @@ export function InventoryPanel({ characterId, inventory = [], currency, strength
   const backpack = inventory.filter((i) => i.slot === undefined);
   const opened = inventory.find((i) => i.id !== undefined && i.id === openId);
 
-  const equip = async (itemId: string, slot: InventorySlot | null) => {
-    if (!socket) return;
+  // One request at a time: a second click or drop before the answer would send it twice.
+  const run = async (send: () => Promise<{ ok: boolean; error?: string; acUnknown?: boolean }>, closeOnDone: boolean) => {
+    if (pending.current || !socket) return;
+    pending.current = true;
+    setBusy(true);
     setReport(null);
-    const answer = await socket.equipItem({ characterId, itemId, slot });
-    if (!answer.ok) setReport(answer.error ?? t('inventoryPanel.failed'));
-    else if (answer.acUnknown) setReport(t('inventoryPanel.acUnknown'));
-    else setOpenId(null);
+    try {
+      const answer = await send();
+      if (!answer.ok) setReport(answer.error ?? t('inventoryPanel.failed'));
+      else if (answer.acUnknown) setReport(t('inventoryPanel.acUnknown'));
+      else if (closeOnDone) setOpenId(null);
+    } finally {
+      pending.current = false;
+      setBusy(false);
+    }
   };
-  const openPack = async (itemId: string) => {
-    if (!socket) return;
-    setReport(null);
-    const answer = await socket.openPack({ characterId, itemId });
-    if (!answer.ok) setReport(answer.error ?? t('inventoryPanel.failed'));
-    else setOpenId(null);
-  };
-  const recover = async () => {
-    if (!socket) return;
-    setReport(null);
-    const answer = await socket.recoverAmmo({ characterId });
-    if (!answer.ok) setReport(answer.error ?? t('inventoryPanel.failed'));
-  };
+  const equip = (itemId: string, slot: InventorySlot | null) => run(() => socket!.equipItem({ characterId, itemId, slot }), true);
+  const openPack = (itemId: string) => run(() => socket!.openPack({ characterId, itemId }), true);
+  const recover = () => run(() => socket!.recoverAmmo({ characterId }), false);
 
   const dropOn = (slot: InventorySlot | null) => (e: React.DragEvent) => {
     if (!mayAct) return;
@@ -110,7 +110,7 @@ export function InventoryPanel({ characterId, inventory = [], currency, strength
         }
       : {};
 
-  const select = (item: InventoryItem) => setOpenId((current) => (current === item.id ? null : (item.id ?? null)));
+  const select = (item: InventoryItem) => { setReport(null); setOpenId((current) => (current === item.id ? null : (item.id ?? null))); };
 
   const toRecover = Object.values(ammoToRecover ?? {}).filter((n) => n > 0);
   const recoverTotal = toRecover.reduce((a, b) => a + b, 0);
@@ -150,14 +150,14 @@ export function InventoryPanel({ characterId, inventory = [], currency, strength
         <div className="flex flex-col items-center gap-1">
           {slotBox('ammo')}
           {showRecover && (
-            <button type="button" onClick={() => void recover()} className="max-w-40 rounded-cozy border border-moss-green/30 px-2 py-1 text-xs text-ink-muted hover:bg-moss-green/10">
+            <button type="button" disabled={busy} onClick={() => void recover()} className="max-w-40 rounded-cozy border border-moss-green/30 px-2 py-1 text-xs text-ink-muted hover:bg-moss-green/10">
               {t('inventoryPanel.recover', { half: recoverHalf, total: recoverTotal })}
             </button>
           )}
         </div>
       </div>
 
-      {report && <p role="alert" className="rounded-sm border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger-ink">{report}</p>}
+      {report && !opened && <p role="alert" className="rounded-sm border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger-ink">{report}</p>}
 
       <div role="group" aria-label={t('inventoryPanel.backpack')} onDragOver={allowDrop} onDrop={dropOn(null)} className="rounded-lg border border-ink/10 bg-ink/5 p-3">
         <h4 className="mb-2 font-semibold text-ink">{t('inventoryPanel.backpack')}</h4>
@@ -194,20 +194,21 @@ export function InventoryPanel({ characterId, inventory = [], currency, strength
           </div>
           {faithful && opened.weight != null && <p className="text-sm text-ink-secondary">{t('inventoryPanel.weight', { kg: number(kg(opened.weight * (opened.quantity ?? 1))) })}</p>}
           {opened.notes && <p className="text-sm text-ink-muted">{opened.notes}</p>}
+          {report && <p role="alert" className="rounded-sm border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger-ink">{report}</p>}
           {mayAct && (
             <div className="flex flex-wrap gap-2">
               {detailActions.map((slot) => (
-                <button key={slot} type="button" onClick={() => void equip(opened.id as string, slot)} className="min-h-9 rounded-cozy border border-moss-green/30 px-3 text-sm text-ink hover:bg-moss-green/10">
+                <button key={slot} type="button" disabled={busy} onClick={() => void equip(opened.id as string, slot)} className="min-h-9 rounded-cozy border border-moss-green/30 px-3 text-sm text-ink hover:bg-moss-green/10">
                   {t(`inventoryPanel.actions.${slot}`)}
                 </button>
               ))}
               {opened.slot !== undefined && (
-                <button type="button" onClick={() => void equip(opened.id as string, null)} className="min-h-9 rounded-cozy border border-moss-green/30 px-3 text-sm text-ink hover:bg-moss-green/10">
+                <button type="button" disabled={busy} onClick={() => void equip(opened.id as string, null)} className="min-h-9 rounded-cozy border border-moss-green/30 px-3 text-sm text-ink hover:bg-moss-green/10">
                   {t('inventoryPanel.actions.stow')}
                 </button>
               )}
               {isPack(opened) && (
-                <button type="button" onClick={() => void openPack(opened.id as string)} className="min-h-9 rounded-cozy border border-moss-green/30 px-3 text-sm text-ink hover:bg-moss-green/10">
+                <button type="button" disabled={busy} onClick={() => void openPack(opened.id as string)} className="min-h-9 rounded-cozy border border-moss-green/30 px-3 text-sm text-ink hover:bg-moss-green/10">
                   {t('inventoryPanel.actions.openPack')}
                 </button>
               )}

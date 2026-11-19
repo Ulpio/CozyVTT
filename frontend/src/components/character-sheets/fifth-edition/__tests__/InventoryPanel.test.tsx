@@ -14,10 +14,10 @@ vi.mock('@/contexts/WebSocketContext', () => ({
 }));
 
 const ranger = (): FifthEditionInventoryItem[] => [
-  { id: 'bow', name: 'Arco longo', quantity: 1, weight: 4, slot: 'both', equipped: true, compendiumRef: { bookId: 'phb', slug: 'arco-longo', type: 'weapon' } },
-  { id: 'arrows', name: 'Flechas', quantity: 20, weight: 0.05, slot: 'ammo', equipped: true },
-  { id: 'dagger', name: 'Adaga', quantity: 1, weight: 1, compendiumRef: { bookId: 'phb', slug: 'adaga', type: 'weapon' } },
-  { id: 'pack', name: 'Pacote de Explorador', quantity: 1, weight: 10, compendiumRef: { bookId: 'phb', slug: 'pacote-de-explorador', type: 'pack' } },
+  { id: 'bow', name: 'Arco longo', quantity: 1, weight: 4, slot: 'both', equipped: true, compendiumRef: { bookId: 'phb', slug: 'arco-longo' } },
+  { id: 'arrows', name: 'Flechas', quantity: 20, weight: 0.05, slot: 'ammo', equipped: true, compendiumRef: { bookId: 'phb', slug: 'flechas-20' } },
+  { id: 'dagger', name: 'Adaga', quantity: 1, weight: 1, compendiumRef: { bookId: 'phb', slug: 'adaga' } },
+  { id: 'pack', name: 'Pacote de Explorador', quantity: 1, weight: 10, compendiumRef: { bookId: 'phb', slug: 'pacote-de-explorador' } },
   { id: 'rope', name: 'Corda de cânhamo', quantity: 1, weight: 10 },
   { id: 'rations', name: 'Rações de viagem (1 dia)', quantity: 10, weight: 2 },
 ];
@@ -131,5 +131,32 @@ describe('the inventory panel', () => {
     expect(screen.queryByRole('button', { name: /Recover ammunition/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Pacote de Explorador/ }));
     expect(screen.queryByRole('button', { name: 'Open pack' })).toBeNull();
+  });
+
+  it('sends one request while the first is unanswered', async () => {
+    let answer: (v: unknown) => void = () => {};
+    socket.openPack.mockReturnValue(new Promise((resolve) => { answer = resolve; }));
+    render(<InventoryPanel {...base} />);
+    fireEvent.click(screen.getByRole('button', { name: /Pacote de Explorador/ }));
+    const open = screen.getByRole('button', { name: 'Open pack' });
+    fireEvent.click(open);
+    fireEvent.click(open);
+    expect(socket.openPack).toHaveBeenCalledTimes(1);
+    expect(open).toBeDisabled();
+    const dt = { setData: vi.fn(), getData: () => 'dagger', effectAllowed: '' };
+    fireEvent.drop(slot('Off hand'), { dataTransfer: dt });
+    expect(socket.equipItem).not.toHaveBeenCalled();
+    answer({ ok: true });
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Open pack' })).toBeNull());
+  });
+
+  it('shows the refusal in the detail and clears it when another item is picked', async () => {
+    socket.equipItem.mockResolvedValue({ ok: false, error: 'Esse item não vai nesse espaço.' });
+    render(<InventoryPanel {...base} />);
+    fireEvent.click(screen.getByRole('button', { name: /Adaga/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'With both hands' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Esse item não vai nesse espaço.');
+    fireEvent.click(screen.getByRole('button', { name: 'Corda de cânhamo' }));
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });
