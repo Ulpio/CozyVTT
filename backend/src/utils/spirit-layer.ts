@@ -387,8 +387,12 @@ export type TokenLightSent = Pick<LightSource, 'x' | 'y' | 'brightRadius' | 'dim
  * the map, in the map itself and as `map.tokenLights` when it changes.
  */
 export function tokenLightsOf(map: { tokens: unknown; gridSize: number; height: number }): TokenLightSent[] {
+  // In order of place, not of the tokens: the list's order must not let a
+  // player follow one carrier from one send to the next.
   return effectiveLights([], map.tokens, map.gridSize, map.height)
-    .map(({ x, y, brightRadius, dimRadius, color }) => ({ x, y, brightRadius, dimRadius, color }));
+    .map(({ x, y, brightRadius, dimRadius, color }) => ({ x, y, brightRadius, dimRadius, color }))
+    .sort((a, b) => a.x - b.x || a.y - b.y || a.dimRadius - b.dimRadius || a.brightRadius - b.brightRadius
+      || (a.color < b.color ? -1 : a.color > b.color ? 1 : 0));
 }
 
 /**

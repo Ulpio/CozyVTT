@@ -9,7 +9,7 @@ import { AuthenticatedSocket } from '../auth';
 import { prisma } from '../../config/database';
 import {
   canActOnTokenPlane, getSpiritVisibilityBatch, filterTokensByRole, filterTokensByLighting, playerSightOnLitMap,
-  tokenForRecipient, viewerIdFor, mapLights, tokenLightsOf,
+  tokenForRecipient, viewerIdFor, mapLights, tokenLightsOf, type PlayerSight,
 } from '../../utils/spirit-layer';
 import type { Map as MapRow } from '@prisma/client';
 import type { WallSegment } from '../../types/walls';
@@ -660,10 +660,10 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
         if (index === -1) return { refused: 'Token not found' };
         const from = tokens[index].position;
         const position = clampTokenPosition({ x: dropX, y: dropY }, tokens[index].size ?? { width: 1, height: 1 }, fresh);
-        const groundBefore = JSON.stringify(tokenLightsOf({ ...fresh, tokens }));
+        const before = { ...fresh, tokens: [...tokens] };
         tokens[index] = { ...tokens[index], position };
         await tx.map.update({ where: { id: mapId }, data: { tokens: toJson(tokens) } });
-        return { written: tokens[index], from, stored: { ...fresh, tokens }, groundBefore };
+        return { written: tokens[index], from, stored: { ...fresh, tokens }, before };
       });
       if ('refused' in dropped) {
         // TODO(play): a drop refused here for its bounds (the GM shrank the map during the drag) is put back
@@ -672,7 +672,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
         socket.emit('error', { message: dropped.refused });
         return;
       }
-      const { written, from, stored, groundBefore } = dropped;
+      const { written, from, stored, before } = dropped;
       const updatedTokens = stored.tokens;
       const currentMapId = stored.campaign.currentMapId;
       const { x, y } = written.position;
@@ -681,7 +681,11 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
       // again below, as for their own token moving. Only on the drop; the
       // ground a drag's frames pass over is not sent.
       const ground = { mapId, tokenLights: tokenLightsOf(stored) };
-      const groundMoved = JSON.stringify(ground.tokenLights) !== groundBefore;
+      const groundMoved = JSON.stringify(ground.tokenLights) !== JSON.stringify(tokenLightsOf(before));
+      // Who the drag's frames left holding the token: a frame may have given it
+      // to a player who could not see it where it stood.
+      const dragAudience = sawTheDrag ? await sawTheDrag.catch(() => null) : null;
+      const lightsBefore = mapLights(before);
 
       if (stored.lightingEnabled) {
         // Dynamic lighting: per-player visibility filtering. The plane and
@@ -731,6 +735,18 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
           // hidden and off-plane tokens are not in forRole, so no
           // token:disappeared carries their ids.
           const mayHave = new Set(forRole.map((t) => t.id));
+          // What this player saw before the drop, worked out only when needed:
+          // a token is named to them as gone only if they had it.
+          let wasSight: PlayerSight | null = null;
+          const sawBefore = (t: Token) => {
+            wasSight ??= playerSightOnLitMap(
+              filterTokensByRole(before.tokens, authedSocket.role ?? 'PLAYER', spiritVisibility.get(authedSocket.userId!) ?? false, authedSocket.userId),
+              viewer, before.wallSegments as unknown as WallSegment[], before.width, before.height, before.gridSize,
+              lightsBefore, before.globalIllumination
+            );
+            return wasSight.seesToken(t);
+          };
+          const movedBefore = before.tokens.find((t) => t.id === tokenId);
 
           const moved = visibleById.get(tokenId);
           if (moved) {
@@ -738,19 +754,24 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
             // in case this player did not have it yet.
             s.emit('token.moved', { tokenId, mapId, x, y, movedBy: moverShownTo(written, authedSocket) });
             s.emit('token:appeared', { token: moved, mapId });
-          } else if (mayHave.has(tokenId)) {
+          } else if (mayHave.has(tokenId) && (dragAudience?.holding.has(s.id) || (movedBefore !== undefined && sawBefore(movedBefore)))) {
+            // Only to a player who had it: one who never saw it is not told its id.
             s.emit('token:disappeared', { tokenId, mapId });
           }
 
           // If a player moved their OWN token, their view changed: re-sync all
           // OTHER tokens so those that left or entered view go at once. So
-          // did it if the token carries a light, which lit other ground.
-          if (viewer && (written.controlledBy === viewer || groundMoved)) {
+          // did it if the token carries a light, which lit other ground; then
+          // only the tokens whose seen or unseen state changed are named, so a
+          // token they never saw stays unnamed.
+          const ownMoved = viewer !== undefined && written.controlledBy === viewer;
+          if (viewer && (ownMoved || groundMoved)) {
             for (const otherToken of forRole) {
               if (otherToken.id === tokenId) continue; // already handled above
               // Skip own tokens — always included by filterTokensByLighting
               if ((otherToken as Token).controlledBy === viewer) continue;
               const other = visibleById.get(otherToken.id);
+              if (!ownMoved && (other !== undefined) === sawBefore(otherToken)) continue;
               if (other) {
                 s.emit('token:appeared', { token: other, mapId });
               } else {
@@ -846,7 +867,8 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
         const tokens = readTokens(fresh.tokens);
         const index = tokens.findIndex((t) => t.id === tokenId);
         if (index === -1) return { refused: isGM ? TOKEN_NOT_FOUND : NOT_YOUR_TOKEN };
-        if (!canControlToken(socket.role, tokens[index].controlledBy, socket.userId)) return { refused: NOT_YOUR_TOKEN };
+        if (!canControlToken(socket.role, tokens[index].controlledBy, socket.userId)
+          || !(await canActOnTokenPlane(socket.role, tokens[index], campaignId, socket.userId!))) return { refused: NOT_YOUR_TOKEN };
         const before = { ...fresh, tokens: [...tokens] };
         tokens[index] = { ...tokens[index], light };
         await tx.map.update({ where: { id: mapId }, data: { tokens: toJson(tokens) } });
@@ -887,6 +909,9 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
         .map((a) => a.userId as string);
       const spiritVisibility = await getSpiritVisibilityBatch(campaignId, playerIds);
       const ground = { mapId, tokenLights: tokenLightsOf(after) };
+      // Only when the lit ground changed: a light on a token the GM hides, or
+      // one set to what it was, tells nobody else anything.
+      const groundChanged = JSON.stringify(ground.tokenLights) !== JSON.stringify(tokenLightsOf(before));
       const lit = { mapId, tokenId: token.id, light: token.light ?? null };
       const lightsBefore = mapLights(before);
       const lightsAfter = mapLights(after);
@@ -895,7 +920,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
         if (!canReadMap(member.role, mapId, currentMapId)) continue;
         if (member.role === 'GM') {
           s.emit('token.light.updated', lit);
-          s.emit('map.tokenLights', ground);
+          if (groundChanged) s.emit('map.tokenLights', ground);
           continue;
         }
         if (!member.userId) continue;
@@ -904,8 +929,8 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
         const role = member.role ?? 'PLAYER';
         const forRole = filterTokensByRole(after.tokens, role, spiritVisible, member.userId);
         if (viewer && token.controlledBy === viewer && forRole.some((t) => t.id === token.id)) s.emit('token.light.updated', lit);
-        s.emit('map.tokenLights', ground);
-        if (!after.lightingEnabled) continue;
+        if (groundChanged) s.emit('map.tokenLights', ground);
+        if (!after.lightingEnabled || !groundChanged) continue;
         const sightOf = (map: LitMap, lights: ReturnType<typeof mapLights>) => playerSightOnLitMap(
           filterTokensByRole(map.tokens, role, spiritVisible, member.userId), viewer,
           map.wallSegments as unknown as WallSegment[], map.width, map.height, map.gridSize, lights, map.globalIllumination

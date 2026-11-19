@@ -44,7 +44,9 @@ const TORCH = { brightRadius: 4, dimRadius: 8, color: '#ffcc66', source: 'manual
  * goblin east of it at (11, 10), centre (575, 475), out of the hero's sight;
  * a chest at (10, 6), centre (525, 675), is in the hero's sight (the line
  * passes under the wall's end) but in the dark, and the goblin's torch would
- * light it. Bea's scout stands far off at (2, 1).
+ * light it. Bea's scout stands far off at (2, 1). An ogre sits east of the
+ * wall at (18, 18), centre (925, 75), out of the hero's sight and beyond the
+ * torch either way.
  */
 const WALL = { id: randomUUID(), x1: 500, y1: 0, x2: 500, y2: 600, type: 'wall' };
 const token = (id: string, x: number, y: number, extra: Record<string, unknown> = {}) => ({
@@ -55,6 +57,7 @@ let hero: string;
 let goblin: string;
 let chest: string;
 let scout: string;
+let ogre: string;
 let mapId: string;
 
 async function newMap(goblinExtra: Record<string, unknown> = {}): Promise<void> {
@@ -62,6 +65,7 @@ async function newMap(goblinExtra: Record<string, unknown> = {}): Promise<void> 
   goblin = `goblin-${randomUUID()}`;
   chest = `chest-${randomUUID()}`;
   scout = `scout-${randomUUID()}`;
+  ogre = `ogre-${randomUUID()}`;
   const map = await prisma.map.create({
     data: {
       campaignId, name: 'Dark', imageUrl: '/api/assets/maps/x', baseLayerUrl: '/api/assets/maps/x',
@@ -72,6 +76,7 @@ async function newMap(goblinExtra: Record<string, unknown> = {}): Promise<void> 
         token(goblin, 11, 10, goblinExtra),
         token(chest, 10, 6),
         token(scout, 2, 1, { controlledBy: beaId }),
+        token(ogre, 18, 18),
       ]),
     },
   });
@@ -173,8 +178,8 @@ describe('a goblin carrying a torch round a corner (Review Focus 1)', () => {
     const seen = record(ana);
     expect(await setLight(gm, { mapId, tokenId: goblin, light: TORCH })).toEqual({ ok: true });
     await settled();
-    expect(named(seen, 'map.tokenLights')).toEqual([{ mapId, tokenLights: [] }]);
-    expect(named(seen, 'token:appeared')).toEqual([]);
+    // The lit ground did not change, so the players are told nothing at all.
+    expect(seen.filter(([e]) => e !== 'presence.update')).toEqual([]);
     expect((await storedToken(goblin)).light).toEqual(TORCH);
   });
 
@@ -186,10 +191,34 @@ describe('a goblin carrying a torch round a corner (Review Focus 1)', () => {
     await moved;
     await settled();
     expect(named(seen, 'map.tokenLights')).toEqual([{ mapId, tokenLights: [{ x: 625, y: 475, brightRadius: 4, dimRadius: 8, color: '#ffcc66' }] }]);
-    // The goblin itself is never sent (the drop names a token out of sight
-    // only to take it away, as it always has).
-    expect(named(seen, 'token:appeared').map((d) => d.token.id)).not.toContain(goblin);
+    // Neither the goblin nor the ogre, which the player never saw, is named
+    // to them in any event: not as a token, nor by id as gone.
+    expect(JSON.stringify(seen)).not.toContain(goblin);
+    expect(JSON.stringify(seen)).not.toContain(ogre);
     expect(JSON.stringify(seen)).not.toContain('"goblin"');
+  });
+
+  it('takes away what the carrier no longer lights, naming only that', async () => {
+    await newMap({ light: TORCH });
+    const seen = record(ana);
+    const moved = waitForEvent(gm, 'token.moved');
+    // Carried off north, the torch no longer reaches the chest.
+    gm.emit('token.move.end', { tokenId: goblin, mapId, x: 12, y: 19 });
+    await moved;
+    await settled();
+    expect(named(seen, 'token:disappeared').map((d) => d.tokenId)).toEqual([chest]);
+    expect(named(seen, 'token:appeared')).toEqual([]);
+    expect(JSON.stringify(seen)).not.toContain(goblin);
+    expect(JSON.stringify(seen)).not.toContain(ogre);
+  });
+
+  it('sends the lit ground in order of place, not of the tokens', async () => {
+    await newMap({ light: TORCH });
+    const seen = record(ana);
+    expect(await setLight(gm, { mapId, tokenId: chest, light: { ...TORCH, brightRadius: 1, dimRadius: 2 } })).toEqual({ ok: true });
+    await settled();
+    // The chest (x 525) comes before the goblin (x 575), though stored after it.
+    expect(named(seen, 'map.tokenLights')[0].tokenLights.map((l: { x: number }) => l.x)).toEqual([525, 575]);
   });
 });
 
