@@ -23,6 +23,7 @@ import { WallSegmentSchema, WallSegmentsArraySchema, FogOperationSchema, LightSo
 import { validateTokenShapes, TokenMetadataSchema, MoveTokensSchema, TOKEN_TYPES, TOKEN_DISPOSITIONS, TOKEN_DISPLAY_MODES, TOKEN_IMAGE_NOT_A_TOKEN_PICTURE_MESSAGE } from '../validators/tokens';
 import { withMapsLocked, clampTokenPosition } from '../utils/mapTokens';
 import type { WallSegment, FogState, LightSource, SkippedWall, WallsAdded } from '../types/walls';
+import { darkvisionSquares } from '../services/darkvision';
 import { parseUVTT } from '../services/uvttParser';
 import { buildUVTT } from '../services/uvttExporter';
 import { fileTypeFromBuffer } from 'file-type';
@@ -1521,6 +1522,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
     // GM had taken control of came back to its owner whenever it was copied.
     const controllerGiven = shapes.value.controlledBy !== undefined;
     let controlledBy: string | null = shapes.value.controlledBy ?? null;
+    let sheetSightRadius: number | null = null;
     if (controlledBy && !(await canHoldTokens(campaignId, controlledBy))) {
       return res.status(400).json({
         error: 'Validation Error',
@@ -1530,7 +1532,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
     if (characterId) {
       const character = await prisma.character.findUnique({
         where: { id: characterId },
-        select: { userId: true, campaignId: true },
+        select: { userId: true, campaignId: true, data: true, gameSystem: true },
       });
       if (!character || character.campaignId !== campaignId) {
         return res.status(400).json({
@@ -1541,6 +1543,8 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
       if (!controllerGiven && (await canHoldTokens(campaignId, character.userId))) {
         controlledBy = character.userId;
       }
+      // Darkvision from the sheet's race, unless the GM typed a range.
+      if (!shapes.value.sightRadius) sheetSightRadius = await darkvisionSquares(character.data, character.gameSystem);
     }
 
     // Build the new token with defaults
@@ -1565,7 +1569,8 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
       initiative: shapes.value.initiative ?? null,
       // Darkvision in squares; 0 = none. Decides what the server sends this
       // token's owner, so it is set here and by the GM, never by a player.
-      sightRadius: shapes.value.sightRadius ?? 0,
+      sightRadius: shapes.value.sightRadius || sheetSightRadius || 0,
+      ...(shapes.value.sightRadius ? { sightRadiusManual: true } : {}),
       displayMode: displayMode,
       statBlock: shapes.value.statBlock ?? null,
       creatureTemplateId: shapes.value.creatureTemplateId ?? null,
@@ -1861,7 +1866,9 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
         }
       }
 
-      const token: Token = { ...current, ...changes, ...(position && { position }), ...(metadata && { metadata }) };
+      // A range the GM sets by hand is theirs: the sheet no longer writes it.
+      const byHand = changes.sightRadius !== undefined && changes.sightRadius !== (current.sightRadius ?? 0);
+      const token: Token = { ...current, ...changes, ...(byHand && { sightRadiusManual: true }), ...(position && { position }), ...(metadata && { metadata }) };
       tokens[index] = token;
       const map = await tx.map.update({ where: { id: mapId }, data: { tokens: toJson(tokens) } });
       return { done: { token, map, from: current.position } };
