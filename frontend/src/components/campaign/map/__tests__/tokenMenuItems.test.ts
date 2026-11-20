@@ -25,7 +25,7 @@ function actions(): Record<keyof TokenMenuActions, Mock<(...args: unknown[]) => 
   return {
     viewSheet: spy(), rollCharacter: spy(), grantTemporaryHp: spy(), rotate: spy(), rollCreature: spy(), edit: spy(),
     addToInitiative: spy(), duplicate: spy(), saveAsTemplate: spy(), setVisible: spy(), setObscured: spy(),
-    setLayer: spy(), moveToMap: spy(), remove: spy(),
+    setLayer: spy(), moveToMap: spy(), remove: spy(), setLight: spy(), customLight: spy(),
   };
 }
 
@@ -36,6 +36,7 @@ function context(extra: Partial<TokenMenuContext> = {}): TokenMenuContext {
     mayRoll: false,
     mayGrantTemporaryHp: false,
     mayRotate: true,
+    mayLight: false,
     mapId: 'map-a',
     maps: [{ id: 'map-a', name: 'Map A' }, { id: 'map-b', name: 'Map B' }, { id: 'map-c', name: 'Map C' }],
     busy: { crossing: false, moving: false },
@@ -293,5 +294,43 @@ describe('whether there is a menu', () => {
     const { actions: _actions, ...view } = context({ role: CampaignRole.PLAYER, mayRotate: false });
     expect(tokenMenuHasItems(token(), view)).toBe(false);
     expect(tokenMenuHasItems(token({ characterId: 'char-1' }), { ...view, mayViewSheet: true })).toBe(true);
+  });
+});
+
+describe('the Light submenu', () => {
+  const lightOf = (items: MenuItem[]) => commandOf(items, 'light');
+  const choices = (items: MenuItem[]) => (lightOf(items).children ?? []).map((c) => c.label);
+
+  it('offers the GM none, four presets and a custom light, in order', () => {
+    const items = tokenMenuItems(token(), context({ mayLight: true }));
+    expect(lightOf(items).label).toBe('Light');
+    expect(choices(items)).toEqual(['✓ None', 'Candle', 'Torch', 'Lamp', 'Lantern', 'Custom…']);
+  });
+
+  it('is offered to a player only where mayLight says so', () => {
+    const own = tokenMenuItems(token(), context({ role: CampaignRole.PLAYER, mayLight: true, mayRotate: false }));
+    expect(labels(own)).toEqual(['Light']);
+    expect(tokenMenuItems(token(), context({ role: CampaignRole.PLAYER, mayLight: false, mayRotate: false }))).toEqual([]);
+  });
+
+  it('sets the preset as a hand-set light, and None as no light', () => {
+    const ctx = context({ mayLight: true });
+    const t = token();
+    const kids = lightOf(tokenMenuItems(t, ctx)).children ?? [];
+    kids.find((c) => c.label === 'Torch')?.run();
+    expect(ctx.actions.setLight).toHaveBeenCalledWith(t, { brightRadius: 4, dimRadius: 8, color: '#ffcc66', source: 'manual' });
+    kids.find((c) => c.label === '✓ None')?.run();
+    expect(ctx.actions.setLight).toHaveBeenLastCalledWith(t, null);
+    kids.find((c) => c.label === 'Custom…')?.run();
+    expect(ctx.actions.customLight).toHaveBeenCalledWith(t);
+  });
+
+  it('checks the current light, and says an item light is an item in hand', () => {
+    const manual = token({ light: { brightRadius: 6, dimRadius: 12, color: '#ffcc66', source: 'manual' } });
+    expect(choices(tokenMenuItems(manual, context({ mayLight: true })))).toContain('✓ Lantern');
+    const item = token({ light: { brightRadius: 4, dimRadius: 8, color: '#ffcc66', source: 'item', itemId: 'i1' } });
+    expect(choices(tokenMenuItems(item, context({ mayLight: true })))).toContain('✓ Torch (light from an item in hand)');
+    const odd = token({ light: { brightRadius: 2, dimRadius: 5, color: '#112233', source: 'manual' } });
+    expect(choices(tokenMenuItems(odd, context({ mayLight: true })))).toContain('✓ Custom…');
   });
 });

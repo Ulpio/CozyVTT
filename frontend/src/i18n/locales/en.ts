@@ -851,6 +851,23 @@ const en = {
     darkHint: 'On: only lights and darkvision show the map. Off: everything in sight is lit.',
     darkNoLights: 'No lights placed and the map is dark: players see only their darkvision.',
   },
+  tokenLight: {
+    menu: 'Light',
+    none: 'None',
+    candle: 'Candle',
+    torch: 'Torch',
+    lamp: 'Lamp',
+    lantern: 'Lantern',
+    custom: 'Custom…',
+    fromItem: '(light from an item in hand)',
+    title: 'Light for {{name}}',
+    bright: 'Bright radius (squares)',
+    dim: 'Dim radius (squares)',
+    color: 'Colour',
+    hint: 'Bright up to 120 squares, never more than the dim radius.',
+    apply: 'Apply',
+    cancel: 'Cancel',
+  },
 };
 
 export default en;

@@ -853,6 +853,23 @@ const ptBR: Messages = {
     darkHint: 'Ligado: só luzes e visão no escuro mostram o mapa. Desligado: tudo à vista fica iluminado.',
     darkNoLights: 'Nenhuma luz posta e o mapa está escuro: os jogadores veem só pela visão no escuro.',
   },
+  tokenLight: {
+    menu: 'Luz',
+    none: 'Nenhuma',
+    candle: 'Vela',
+    torch: 'Tocha',
+    lamp: 'Lampião',
+    lantern: 'Lanterna',
+    custom: 'Personalizar…',
+    fromItem: '(luz de item na mão)',
+    title: 'Luz de {{name}}',
+    bright: 'Raio de luz forte (quadrados)',
+    dim: 'Raio de penumbra (quadrados)',
+    color: 'Cor',
+    hint: 'Até 120 quadrados; a luz forte nunca passa da penumbra.',
+    apply: 'Aplicar',
+    cancel: 'Cancelar',
+  },
 };
 
 export default ptBR;

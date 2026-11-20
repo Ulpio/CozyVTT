@@ -137,6 +137,7 @@ import CharacterRollPicker from '@/components/campaign/CharacterRollPicker';
 import NpcRollPicker from '@/components/campaign/NpcRollPicker';
 import RemoveTokenDialog from '@/components/campaign/RemoveTokenDialog';
 import TemporaryHpDialog from '@/components/campaign/TemporaryHpDialog';
+import TokenLightDialog from '@/components/campaign/TokenLightDialog';
 import { tokenDisplayName, tokenPublicName, characterRollPublicName, UNKNOWN_CREATURE } from '@/utils/tokenDisplayName';
 import { setTokenFlag } from '@/utils/tokenFlags';
 import AtmosphereOverlay from '@/components/campaign/AtmosphereOverlay';
@@ -438,6 +439,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   const [npcRollPicker, setNpcRollPicker] = useState<{ tokenId: string; at: { x: number; y: number } } | null>(null);
   // The token whose Temporary HP... dialog is open.
   const [temporaryHpTokenId, setTemporaryHpTokenId] = useState<string | null>(null);
+  const [lightTokenId, setLightTokenId] = useState<string | null>(null);
   /**
    * Where the token menu was last opened. A roll picker its Roll... opens
    * stands there; the items themselves carry no position.
@@ -897,6 +899,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     setRollPicker(null);
     setNpcRollPicker(null);
     setTemporaryHpTokenId(null);
+    setLightTokenId(null);
   }, [currentMap?.id, closeTokenMenu]);
   /**
    * Let go of a held token this page has been told is gone from the map it
@@ -3529,12 +3532,20 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
    * token they control, so a creature or an object they do not control
    * opens no menu.
    */
+  /** Light a token by hand, or put its light out; a refusal shows as any token refusal does. */
+  const lightToken = async (token: Token, light: Token['light']) => {
+    if (!socket || !currentMap) return;
+    const ack = await socket.setTokenLight({ mapId: currentMap.id, tokenId: token.id, light: light ?? null });
+    if (!ack.ok) showToast(ack.error, 'error');
+  };
+
   const tokenMenuView = (token: Token): TokenMenuView => ({
     role: userRole,
     mayViewSheet: campaignHasTokenCharacter(campaign, token.characterId),
     mayRoll: canRollForToken(token),
     mayGrantTemporaryHp: temporaryHpOf(token) !== null,
     mayRotate: canRotateToken(token),
+    mayLight: isGM || controlsToken(token, user?.id, userRole),
     mapId: currentMap?.id ?? null,
     maps: campaign?.maps ?? [],
     busy: { crossing: isMovingTokenLayer, moving: isMoveToMapLoading },
@@ -3754,6 +3765,8 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       });
     },
     grantTemporaryHp: (token) => setTemporaryHpTokenId(token.id),
+    setLight: (token, light) => { void lightToken(token, light); },
+    customLight: (token) => setLightTokenId(token.id),
     rotate: (token, step) => { rotateToken(token.id, step); },
     rollCreature: (token) => setNpcRollPicker({ tokenId: token.id, at: menuPointRef.current }),
     edit: (token) => onEditToken?.(token),
@@ -5462,6 +5475,19 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
             system={target.system}
             onTake={(temporary) => { void takeTemporaryHp(target, temporary); }}
             onClose={() => setTemporaryHpTokenId(null)}
+          />
+        );
+      })()}
+
+      {lightTokenId && (() => {
+        const token = tokens.find((t) => t.id === lightTokenId);
+        if (!token) return null;
+        return (
+          <TokenLightDialog
+            name={tokenDisplayName(token)}
+            initial={token.light ?? null}
+            onApply={(light) => { void lightToken(token, light); }}
+            onClose={() => setLightTokenId(null)}
           />
         );
       })()}

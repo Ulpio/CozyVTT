@@ -39,12 +39,12 @@ function tokenActions(): TokenMenuActions {
   return {
     viewSheet: vi.fn(), rollCharacter: vi.fn(), grantTemporaryHp: vi.fn(), rotate: vi.fn(), rollCreature: vi.fn(), edit: vi.fn(), addToInitiative: vi.fn(),
     duplicate: vi.fn(), saveAsTemplate: vi.fn(), setVisible: vi.fn(), setObscured: vi.fn(), setLayer: vi.fn(), moveToMap: vi.fn(),
-    remove: vi.fn(),
+    remove: vi.fn(), setLight: vi.fn(), customLight: vi.fn(),
   };
 }
 
 const GM_VIEW: TokenMenuView = {
-  role: CampaignRole.GM, mayViewSheet: true, mayRoll: true, mayGrantTemporaryHp: false, mayRotate: true, mapId: 'map-a',
+  role: CampaignRole.GM, mayViewSheet: true, mayRoll: true, mayGrantTemporaryHp: false, mayRotate: true, mayLight: false, mapId: 'map-a',
   maps: [{ id: 'map-a', name: 'Map A' }, { id: 'map-b', name: 'Map B' }, { id: 'map-c', name: 'Map C' }],
   busy: { crossing: false, moving: false },
 };

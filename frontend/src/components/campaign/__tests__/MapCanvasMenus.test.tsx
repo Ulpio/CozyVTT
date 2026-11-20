@@ -237,6 +237,7 @@ async function choose(label: string | RegExp) {
 const ITEM = 'w-full px-4 py-2 pointer-coarse:min-h-11 text-left text-sm';
 const LOOKS: Record<string, string> = {
   [`${ITEM} text-stone-gray hover:bg-moss-green/10 transition-colors`]: '',
+  [`${ITEM} text-stone-gray hover:bg-moss-green/10 transition-colors flex items-center justify-between`]: ' (opens a submenu)',
   [`${ITEM} text-brand-ink hover:bg-moss-green/10 transition-colors`]: ' (brand)',
   [`${ITEM} text-brand-ink font-medium hover:bg-moss-green/10 transition-colors`]: ' (brand, bold)',
   [`${ITEM} text-accent-ink hover:bg-warm-amber/10 transition-colors`]: ' (accent)',
@@ -296,7 +297,8 @@ function rows(): string[] {
   return out;
 }
 
-const ROTATE = ['Rotate Left [Turn 45 degrees anticlockwise]', 'Rotate Right [Turn 45 degrees clockwise]'];
+const LIGHT = 'Light▶ (opens a submenu)';
+const ROTATE = ['Rotate Left [Turn 45 degrees anticlockwise]', 'Rotate Right [Turn 45 degrees clockwise]', LIGHT];
 /** The GM's items after any Roll... of the creature's, for a creature on the material plane. */
 const GM_ITEMS = [
   'Edit Token (brand, bold)',
@@ -513,17 +515,17 @@ describe("a player's token menu", () => {
     expect(openMenu()).toBeNull();
   });
 
-  it.each(['PAUSED', 'INACTIVE'])('while %s: no turns, and no menu on their own token with no character', (status) => {
+  it.each(['PAUSED', 'INACTIVE'])('while %s: no turns, and only Light on their own token with no character', (status) => {
     h.set({ status });
     render(<MapCanvas />);
     show(hero('char-mine', 'me'), goblin({ controlledBy: 'me' }));
 
     rightClick(2, 19);
-    expect(rows()).toEqual(['View Character Sheet', 'Roll...']);
+    expect(rows()).toEqual(['View Character Sheet', 'Roll...', LIGHT]);
     fireEvent.click(document.body);
 
     rightClick(0, 19);
-    expect(openMenu()).toBeNull();
+    expect(rows()).toEqual([LIGHT]);
   });
 });
 
