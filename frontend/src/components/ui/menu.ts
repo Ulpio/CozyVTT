@@ -63,6 +63,8 @@ export interface SubmenuChoice {
   id: string;
   label: string;
   run: () => void;
+  /** For a choice among several: whether it is the current one. Drawn as a checked radio row. */
+  checked?: boolean;
 }
 
 /** A rule between groups of rows. */

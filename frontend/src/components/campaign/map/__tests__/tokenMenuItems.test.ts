@@ -313,24 +313,34 @@ describe('the Light submenu', () => {
     expect(tokenMenuItems(token(), context({ role: CampaignRole.PLAYER, mayLight: false, mayRotate: false }))).toEqual([]);
   });
 
-  it('sets the preset as a hand-set light, and None as no light', () => {
+  it('sets the preset as a hand-set light, None as a manual light of no radius, and custom opens the dialog', () => {
     const ctx = context({ mayLight: true });
     const t = token();
     const kids = lightOf(tokenMenuItems(t, ctx)).children ?? [];
     kids.find((c) => c.label === 'Torch')?.run();
     expect(ctx.actions.setLight).toHaveBeenCalledWith(t, { brightRadius: 4, dimRadius: 8, color: '#ffcc66', source: 'manual' });
     kids.find((c) => c.label === '✓ None')?.run();
-    expect(ctx.actions.setLight).toHaveBeenLastCalledWith(t, null);
+    expect(ctx.actions.setLight).toHaveBeenLastCalledWith(t, { brightRadius: 0, dimRadius: 0, color: '#ffcc66', source: 'manual' });
     kids.find((c) => c.label === 'Custom…')?.run();
     expect(ctx.actions.customLight).toHaveBeenCalledWith(t);
   });
 
-  it('checks the current light, and says an item light is an item in hand', () => {
-    const manual = token({ light: { brightRadius: 6, dimRadius: 12, color: '#ffcc66', source: 'manual' } });
-    expect(choices(tokenMenuItems(manual, context({ mayLight: true })))).toContain('✓ Lantern');
-    const item = token({ light: { brightRadius: 4, dimRadius: 8, color: '#ffcc66', source: 'item', itemId: 'i1' } });
-    expect(choices(tokenMenuItems(item, context({ mayLight: true })))).toContain('✓ Torch (light from an item in hand)');
-    const odd = token({ light: { brightRadius: 2, dimRadius: 5, color: '#112233', source: 'manual' } });
-    expect(choices(tokenMenuItems(odd, context({ mayLight: true })))).toContain('✓ Custom…');
+  it('offers From the item in hand only on a character token, and it sends no light', () => {
+    const ctx = context({ mayLight: true });
+    expect(choices(tokenMenuItems(token(), ctx))).not.toContain('From the item in hand');
+    const hero = token({ characterId: 'c1' });
+    const kids = lightOf(tokenMenuItems(hero, ctx)).children ?? [];
+    expect(kids.map((c) => c.label)).toEqual(['None', '✓ From the item in hand', 'Candle', 'Torch', 'Lamp', 'Lantern', 'Custom…']);
+    kids.find((c) => c.label === 'None')?.run();
+    kids.find((c) => c.label.endsWith('From the item in hand'))?.run();
+    expect(ctx.actions.setLight).toHaveBeenLastCalledWith(hero, null);
+  });
+
+  it('checks the current light; an item light checks From the item in hand', () => {
+    const checked = (t: Token) => (lightOf(tokenMenuItems(t, context({ mayLight: true }))).children ?? []).filter((c) => c.checked).map((c) => c.label);
+    expect(checked(token({ light: { brightRadius: 6, dimRadius: 12, color: '#ffcc66', source: 'manual' } }))).toEqual(['✓ Lantern']);
+    expect(checked(token({ characterId: 'c', light: { brightRadius: 4, dimRadius: 8, color: '#ffcc66', source: 'item', itemId: 'i1' } }))).toEqual(['✓ From the item in hand']);
+    expect(checked(token({ light: { brightRadius: 2, dimRadius: 5, color: '#112233', source: 'manual' } }))).toEqual(['✓ Custom…']);
+    expect(checked(token({ light: { brightRadius: 0, dimRadius: 0, color: '#ffcc66', source: 'manual' } }))).toEqual(['✓ None']);
   });
 });

@@ -34,6 +34,11 @@ describe('effectiveLights', () => {
     expect(lights).toEqual(staticLights);
   });
 
+  it('counts no light from a light put out by hand (0 and 0)', () => {
+    const out: TokenLight = { brightRadius: 0, dimRadius: 0, color: '#ffcc66', source: 'manual' };
+    expect(effectiveLights([], [carrier('a', 1, 1, out)], GRID, MAP_HEIGHT)).toEqual([]);
+  });
+
   it('returns a new array and leaves the map lights alone', () => {
     const before = JSON.stringify(staticLights);
     const lights = effectiveLights(staticLights, [carrier('a', 1, 1, torch)], GRID, MAP_HEIGHT);

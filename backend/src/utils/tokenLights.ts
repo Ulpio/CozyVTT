@@ -68,7 +68,9 @@ function carriesLight(token: unknown): token is LightCarrier & { light: TokenLig
   // A token the GM keeps hidden is not on the table yet, and the spirit
   // plane is not the material one: neither lights anything.
   if (t.visible === false || t.layer === 'spirit') return false;
-  return tokenLightValid(t.light);
+  if (!tokenLightValid(t.light)) return false;
+  // A light of no radius is a light put out by hand: it lights nothing.
+  return t.light.dimRadius > 0;
 }
 
 /**

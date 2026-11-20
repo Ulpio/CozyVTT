@@ -29,3 +29,11 @@ export function presetOf(light: TokenLight): LightPresetId | null {
   );
   return found ? found.id : null;
 }
+
+/** A light put out by hand: no radius, and manual, so the inventory never relights it. */
+export const LIGHT_OUT: TokenLight = { brightRadius: 0, dimRadius: 0, color: FLAME_COLOR, source: 'manual' };
+
+/** Whether a light is the one put out by hand. */
+export function isLightOut(light: TokenLight): boolean {
+  return light.dimRadius === 0;
+}

@@ -859,7 +859,7 @@ const en = {
     lamp: 'Lamp',
     lantern: 'Lantern',
     custom: 'Custom…',
-    fromItem: '(light from an item in hand)',
+    hand: 'From the item in hand',
     title: 'Light for {{name}}',
     bright: 'Bright radius (squares)',
     dim: 'Dim radius (squares)',

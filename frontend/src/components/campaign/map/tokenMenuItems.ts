@@ -14,7 +14,7 @@ import { gmTokenControls } from '@/utils/gmTokenMenu';
 import { ROTATION_STEP } from '@/utils/tokenRotation';
 import i18n from '@/i18n';
 import type { TokenLight } from '@/utils/tokenLights';
-import { LIGHT_PRESETS, presetLight, presetOf, type LightPresetId } from './tokenLightChoices';
+import { LIGHT_OUT, LIGHT_PRESETS, isLightOut, presetLight, presetOf, type LightPresetId } from './tokenLightChoices';
 
 /** What the menu's items do, each given the token the menu is open on. */
 export interface TokenMenuActions {
@@ -200,23 +200,31 @@ export function tokenMenuHasItems(token: Token, view: TokenMenuView): boolean {
 }
 
 /**
- * Luz: none, a candle, a torch, a lamp, a lantern, or a custom light, the
- * token's own marked. A light an item in hand made carries a hint saying so.
+ * Luz: none (put out by hand, so the inventory never relights it), from the
+ * item in hand (a character's token: no light of its own), a candle, a torch,
+ * a lamp, a lantern, or a custom light. The token's own is marked.
  */
 function lightSubmenu(token: Token, act: TokenMenuActions): MenuItem {
-  const t = (key: 'menu' | 'none' | 'custom' | 'fromItem' | LightPresetId): string => i18n.t(`tokenLight.${key}`);
+  const t = (key: 'menu' | 'none' | 'custom' | 'hand' | LightPresetId): string => i18n.t(`tokenLight.${key}`);
   const light = token.light ?? null;
-  const current = light ? presetOf(light) ?? 'custom' : 'none';
-  const hint = light?.source === 'item' ? ` ${t('fromItem')}` : '';
-  const mark = (id: string, label: string) => (current === id ? `✓ ${label}${hint}` : label);
+  const hasHand = !!token.characterId;
+  // No light of its own on a character's token is the hands deciding.
+  const current = light === null ? (hasHand ? 'hand' : 'none')
+    : light.source === 'item' ? 'hand'
+    : isLightOut(light) ? 'none'
+    : presetOf(light) ?? 'custom';
+  const choice = (id: string, label: string, run: () => void) => ({
+    id: `light:${id}`, label: current === id ? `✓ ${label}` : label, checked: current === id, run,
+  });
   return {
     kind: 'command',
     id: 'light',
     label: t('menu'),
     children: [
-      { id: 'light:none', label: mark('none', t('none')), run: () => act.setLight(token, null) },
-      ...LIGHT_PRESETS.map((p) => ({ id: `light:${p.id}`, label: mark(p.id, t(p.id)), run: () => act.setLight(token, presetLight(p)) })),
-      { id: 'light:custom', label: mark('custom', t('custom')), run: () => act.customLight(token) },
+      choice('none', t('none'), () => act.setLight(token, LIGHT_OUT)),
+      ...(hasHand ? [choice('hand', t('hand'), () => act.setLight(token, null))] : []),
+      ...LIGHT_PRESETS.map((p) => choice(p.id, t(p.id), () => act.setLight(token, presetLight(p)))),
+      choice('custom', t('custom'), () => act.customLight(token)),
     ],
   };
 }

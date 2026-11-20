@@ -3525,13 +3525,6 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     }
   };
 
-  /**
-   * This viewer, what they may do with `token`, and the table, as the token
-   * menu reads them (map/tokenMenuItems.ts). The GM always has the token
-   * actions; anyone else has the character's sheet and rolls, and turning a
-   * token they control, so a creature or an object they do not control
-   * opens no menu.
-   */
   /** Light a token by hand, or put its light out; a refusal shows as any token refusal does. */
   const lightToken = async (token: Token, light: Token['light']) => {
     if (!socket || !currentMap) return;
@@ -3539,6 +3532,13 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     if (!ack.ok) showToast(ack.error, 'error');
   };
 
+  /**
+   * This viewer, what they may do with `token`, and the table, as the token
+   * menu reads them (map/tokenMenuItems.ts). The GM always has the token
+   * actions; anyone else has the character's sheet and rolls, and turning a
+   * token they control, so a creature or an object they do not control
+   * opens no menu.
+   */
   const tokenMenuView = (token: Token): TokenMenuView => ({
     role: userRole,
     mayViewSheet: campaignHasTokenCharacter(campaign, token.characterId),

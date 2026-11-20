@@ -281,3 +281,34 @@ describe('who may light a token (Review Focus 4)', () => {
     await expectNoEvent(bea, 'map.tokenLights');
   });
 });
+
+describe('a light put out by hand, and the light from the hands', () => {
+  const OUT = { brightRadius: 0, dimRadius: 0, color: '#ffcc66', source: 'manual' as const };
+
+  it('stores a manual 0/0 light but sends no lit ground for it', async () => {
+    await newMap({ light: TORCH });
+    const seen = record(bea);
+    expect(await setLight(gm, { mapId, tokenId: goblin, light: OUT })).toEqual({ ok: true });
+    await settled();
+    expect((await storedToken(goblin)).light).toEqual(OUT);
+    expect(named(seen, 'map.tokenLights')).toEqual([{ mapId, tokenLights: [] }]);
+  });
+
+  it('relights from the item in hand at once on null, and stays null with nothing in hand', async () => {
+    const sheet = (inventory: unknown[]) => ({ inventory });
+    const character = await prisma.character.create({
+      data: { userId: anaId, campaignId, gameSystem: 'FIFTH_EDITION', name: 'Holder', data: sheet([{ id: 't1', name: 'Tocha', quantity: 1, slot: 'main' }]) as object },
+    });
+    await newMap({ characterId: character.id, light: OUT });
+    expect(await setLight(gm, { mapId, tokenId: goblin, light: null })).toEqual({ ok: true });
+    await settled();
+    expect((await storedToken(goblin)).light).toEqual({ brightRadius: 4, dimRadius: 8, color: '#ffcc66', source: 'item', itemId: 't1' });
+
+    await prisma.character.update({ where: { id: character.id }, data: { data: sheet([{ id: 't1', name: 'Tocha', quantity: 1 }]) as object } });
+    expect(await setLight(gm, { mapId, tokenId: goblin, light: OUT })).toEqual({ ok: true });
+    expect(await setLight(gm, { mapId, tokenId: goblin, light: null })).toEqual({ ok: true });
+    await settled();
+    expect((await storedToken(goblin)).light ?? null).toBeNull();
+    await prisma.character.delete({ where: { id: character.id } });
+  });
+});

@@ -861,7 +861,7 @@ const ptBR: Messages = {
     lamp: 'Lampião',
     lantern: 'Lanterna',
     custom: 'Personalizar…',
-    fromItem: '(luz de item na mão)',
+    hand: 'Da mão (automática)',
     title: 'Luz de {{name}}',
     bright: 'Raio de luz forte (quadrados)',
     dim: 'Raio de penumbra (quadrados)',

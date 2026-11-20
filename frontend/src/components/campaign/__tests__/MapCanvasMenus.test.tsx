@@ -113,6 +113,7 @@ vi.mock('@/contexts/WebSocketContext', async () => {
     emitInitiativeRoll: record('initiative.roll'),
     emitMapPing: record('map.ping'),
     emitCharacterTemporaryHp: record('character.hp.temporary'),
+    setTokenLight: (payload: unknown) => { h.sent.push(['token.light.set', payload]); return Promise.resolve({ ok: true }); },
   } as Record<string, unknown>, {
     get(target, prop: string) {
       if (prop in target) return target[prop];
@@ -1231,5 +1232,18 @@ describe('Temporary HP...', () => {
     show(goblin({ hp: { current: 7, max: 7, temp: 0 } }));
     rightClick(0, 19);
     expect(screen.queryByText('Temporary HP...')).toBeNull();
+  });
+});
+
+describe('Light', () => {
+  it('sends token.light.set with the torch as a hand-set light when the GM picks Torch', async () => {
+    render(<MapCanvas />);
+    show(goblin());
+    rightClick(0, 19);
+    fireEvent.click(screen.getByText('Light'));
+    await choose('Torch');
+    expect(h.sent.filter(([e]) => e === 'token.light.set')).toEqual([
+      ['token.light.set', { mapId: 'map-a', tokenId: 'tok-goblin', light: { brightRadius: 4, dimRadius: 8, color: '#ffcc66', source: 'manual' } }],
+    ]);
   });
 });

@@ -24,6 +24,7 @@ import { createTurnQueue } from '../../utils/turnQueue';
 import { recordMove } from '../../services/combatMovement';
 import { tokenLightValid, type TokenLight } from '../../utils/tokenLights';
 import { sendTokenLightChange } from '../../services/tokenLightFanout';
+import { syncItemLight } from '../../services/itemLight';
 import { ackFrom, refuseRequest } from '../ack';
 
 /** token.light.set's refusals. A player is told NOT_YOUR_TOKEN for a token that is not there too, so ids tell them nothing. */
@@ -879,6 +880,15 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
       ack?.({ ok: true });
 
       await sendTokenLightChange(io, campaignId, [written.token], mapId, written.currentMapId, written.before, written.after);
+      // "From the item in hand": no light of its own, so the hands decide at once.
+      const characterId = (written.token as { characterId?: unknown }).characterId;
+      if (light === null && typeof characterId === 'string' && characterId) {
+        try {
+          await syncItemLight(characterId);
+        } catch (error) {
+          logger.warn('token.light.set: item light not synced', { err: error, tokenId });
+        }
+      }
       logger.debug('token.light.set', { tokenId, mapId, lit: light !== null, userId: socket.userId });
     } catch (error) {
       logger.error('token.light.set failed', { err: error });
