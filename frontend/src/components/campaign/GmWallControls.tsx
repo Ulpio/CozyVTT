@@ -8,6 +8,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import type { WallType } from '@/types/walls';
+import { wallStrokeColor } from './map/layers/drawWalls';
 
 export type WallToolMode = 'wall-draw' | 'wall-select' | 'wall-split' | 'wall-erase' | 'wall-polygon' | 'wall-brush' | null;
 
@@ -60,13 +61,8 @@ export interface GmWallControlsProps {
   onBrushSizeChange?: (v: number) => void;
 }
 
-const WALL_TYPE_COLORS: Record<WallType, string> = {
-  'wall':        'bg-warning/25 text-warning-ink border-warning/50',
-  'door-closed': 'bg-spirit/25 text-spirit-ink border-spirit/50',
-  'door-open':   'bg-success/25 text-success-ink border-success/50',
-  'door-locked': 'bg-danger/25 text-danger-ink border-danger/50',
-  'window':      'bg-info/25 text-info-ink border-info/50',
-};
+/** A chip of the selected type: the border and the swatch carry the colour the map draws it in. */
+const WALL_CHIP_ON = 'bg-brand/15 text-ink';
 
 const WALL_TYPE_LABELS: Record<WallType, string> = {
   'wall':        'Wall',
@@ -318,11 +314,13 @@ export default function GmWallControls({
                         onClick={() => onSelectedTypeChange?.(t)}
                         className={`px-2 py-1 rounded text-xs font-medium transition-colors border ${
                           selectedSegmentType === t
-                            ? WALL_TYPE_COLORS[t]
+                            ? WALL_CHIP_ON
                             : 'bg-surface-light/60 text-ink-muted border-moss-green/30 hover:bg-moss-green/10'
                         }`}
                         aria-label={`Set type: ${WALL_TYPE_LABELS[t]}`}
+                        style={{ borderColor: wallStrokeColor(t, wallColor) }}
                       >
+                        <span data-wall-swatch aria-hidden="true" className="inline-block w-2 h-2 rounded-full mr-1 align-middle" style={{ backgroundColor: wallStrokeColor(t, wallColor) }} />
                         {WALL_TYPE_LABELS[t]}
                       </button>
                     ))}
@@ -378,11 +376,13 @@ export default function GmWallControls({
                     onClick={() => onWallTypeChange(t)}
                     className={`px-2 py-1 rounded text-xs font-medium transition-colors border ${
                       wallType === t
-                        ? WALL_TYPE_COLORS[t]
+                        ? WALL_CHIP_ON
                         : 'bg-surface-light/60 text-ink-muted border-moss-green/30 hover:bg-moss-green/10'
                     }`}
                     aria-label={`Wall type: ${WALL_TYPE_LABELS[t]}`}
+                    style={{ borderColor: wallStrokeColor(t, wallColor) }}
                   >
+                    <span data-wall-swatch aria-hidden="true" className="inline-block w-2 h-2 rounded-full mr-1 align-middle" style={{ backgroundColor: wallStrokeColor(t, wallColor) }} />
                     {WALL_TYPE_LABELS[t]}
                   </button>
                 ))}
@@ -451,7 +451,7 @@ export default function GmWallControls({
                 onSnapToGridChange(e.target.checked);
                 if (e.target.checked) onSnapToEndpointChange(false);
               }}
-              className="accent-warm-amber"
+              className="accent-brand"
               aria-label="Snap wall points to grid"
             />
             <span className="text-xs text-ink">Snap to grid</span>
@@ -464,7 +464,7 @@ export default function GmWallControls({
               checked={snapToEndpoint}
               disabled={snapToGrid}
               onChange={(e) => onSnapToEndpointChange(e.target.checked)}
-              className="accent-warm-amber"
+              className="accent-brand"
               aria-label="Snap wall points to nearest existing endpoint"
             />
             <span className="text-xs text-ink">Snap to endpoint</span>

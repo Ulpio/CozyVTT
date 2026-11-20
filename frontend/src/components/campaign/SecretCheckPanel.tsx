@@ -179,7 +179,7 @@ export default function SecretCheckPanel({ isOpen, onClose }: Props) {
         {roster.length === 0 && <p className="text-sm text-ink-muted">{t('secretCheck.noCharacters')}</p>}
         {loading && <p className="text-sm text-ink-muted">{t('secretCheck.loading')}</p>}
         {failed.map((name) => (
-          <p key={name} role="alert" className="text-sm text-danger">{t('secretCheck.loadFailed', { name })}</p>
+          <p key={name} role="alert" className="text-sm text-danger-ink">{t('secretCheck.loadFailed', { name })}</p>
         ))}
 
         {passive.length > 0 && (
@@ -267,7 +267,7 @@ export default function SecretCheckPanel({ isOpen, onClose }: Props) {
                   type="button"
                   disabled={rolling || !current}
                   onClick={() => void doRoll()}
-                  className="min-h-9 rounded-lg bg-brand px-4 text-sm font-semibold text-white disabled:opacity-50"
+                  className="min-h-9 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-text disabled:opacity-50"
                 >
                   {rolling ? t('secretCheck.rolling') : t('secretCheck.roll')}
                 </button>
@@ -276,7 +276,7 @@ export default function SecretCheckPanel({ isOpen, onClose }: Props) {
           </section>
         )}
 
-        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+        {error && <p role="alert" className="text-sm text-danger-ink">{error}</p>}
 
         {run && (
           <section>
@@ -316,11 +316,11 @@ export default function SecretCheckPanel({ isOpen, onClose }: Props) {
                                 className="w-full rounded-lg border border-moss-green/30 bg-surface-light px-2 py-1"
                               />
                               <div className="flex items-center gap-2">
-                                <button type="button" disabled={sending || noticeText.trim() === ''} onClick={() => void sendNotice(sheet.id)} className="min-h-8 rounded-lg bg-brand px-3 text-sm font-semibold text-white disabled:opacity-50">{t('secretCheck.send')}</button>
+                                <button type="button" disabled={sending || noticeText.trim() === ''} onClick={() => void sendNotice(sheet.id)} className="min-h-8 rounded-lg bg-brand px-3 text-sm font-semibold text-brand-text disabled:opacity-50">{t('secretCheck.send')}</button>
                                 <button type="button" onClick={() => { setNoticeFor(null); setNoticeError(null); }} className="min-h-8 px-2 text-sm text-ink-muted">{t('secretCheck.cancel')}</button>
                                 <span className="ml-auto text-xs text-ink-muted">{t('secretCheck.noticeHint', { count: noticeText.length })}</span>
                               </div>
-                              {noticeError && <p role="alert" className="text-xs text-danger">{noticeError}</p>}
+                              {noticeError && <p role="alert" className="text-xs text-danger-ink">{noticeError}</p>}
                             </div>
                           ) : (
                             <>

@@ -36,6 +36,19 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+/** The fixed strokes of doors and windows: data, shared by the map and the wall panel's chips. */
+export const WALL_STROKES = {
+  'door-closed': 'rgba(167, 139, 250, 0.9)',
+  'door-open': 'rgba(134, 239, 172, 0.9)',
+  'door-locked': 'rgba(239, 68, 68, 0.9)',
+  window: 'rgba(147, 197, 253, 0.9)',
+} as const;
+
+/** The colour the map strokes a segment of this type in (plain walls take the GM's chosen colour). */
+export function wallStrokeColor(type: WallSegment['type'], wallColor: string): string {
+  return type === 'wall' ? hexToRgba(wallColor, 0.9) : WALL_STROKES[type];
+}
+
 export function drawWallSegment(
   ctx: CanvasRenderingContext2D,
   seg: WallSegment,
@@ -54,10 +67,10 @@ export function drawWallSegment(
     // GM-selected color for walls; fixed colors for doors/windows (functional indicators)
     switch (seg.type) {
       case 'wall':        ctx.strokeStyle = hexToRgba(wallColor, isHovered ? 1 : 0.9); break;
-      case 'door-closed': ctx.strokeStyle = isHovered ? 'rgba(196, 181, 253, 1)' : 'rgba(167, 139, 250, 0.9)'; break;
-      case 'door-open':   ctx.strokeStyle = isHovered ? 'rgba(187, 247, 208, 1)' : 'rgba(134, 239, 172, 0.9)'; break;
-      case 'door-locked': ctx.strokeStyle = isHovered ? 'rgba(252, 165, 165, 1)' : 'rgba(239, 68, 68, 0.9)'; break;
-      case 'window':      ctx.strokeStyle = 'rgba(147, 197, 253, 0.9)'; break;
+      case 'door-closed': ctx.strokeStyle = isHovered ? 'rgba(196, 181, 253, 1)' : WALL_STROKES['door-closed']; break;
+      case 'door-open':   ctx.strokeStyle = isHovered ? 'rgba(187, 247, 208, 1)' : WALL_STROKES['door-open']; break;
+      case 'door-locked': ctx.strokeStyle = isHovered ? 'rgba(252, 165, 165, 1)' : WALL_STROKES['door-locked']; break;
+      case 'window':      ctx.strokeStyle = WALL_STROKES.window; break;
     }
     if (seg.type === 'door-open')  ctx.setLineDash([6 / zoom, 4 / zoom]);
     if (seg.type === 'window')     ctx.setLineDash([2 / zoom, 3 / zoom]);

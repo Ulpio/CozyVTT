@@ -397,7 +397,7 @@ export default function GmLightControls({
                       }}
                       className={`w-5 h-5 rounded-full border-2 transition-transform ${
                         displayColor === c.value
-                          ? 'border-white scale-110'
+                          ? 'border-ink scale-110'
                           : 'border-moss-green/40 hover:border-ink-muted'
                       }`}
                       style={{ backgroundColor: c.value }}
