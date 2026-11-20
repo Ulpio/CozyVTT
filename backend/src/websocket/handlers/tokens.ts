@@ -773,7 +773,8 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
               if (!ownMoved && (other !== undefined) === sawBefore(otherToken)) continue;
               if (other) {
                 s.emit('token:appeared', { token: other, mapId });
-              } else {
+              } else if (!ownMoved || sawBefore(otherToken)) {
+                // A token they never saw is not named as gone, even on their own move.
                 s.emit('token:disappeared', { tokenId: otherToken.id, mapId });
               }
             }
