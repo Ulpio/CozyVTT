@@ -846,6 +846,11 @@ const en = {
     recharged: 'recharged',
     stillSpent: 'still spent',
   },
+  gmLights: {
+    dark: 'Dark',
+    darkHint: 'On: only lights and darkvision show the map. Off: everything in sight is lit.',
+    darkNoLights: 'No lights placed and the map is dark: players see only their darkvision.',
+  },
 };
 
 export default en;

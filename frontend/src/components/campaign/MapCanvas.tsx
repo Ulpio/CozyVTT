@@ -67,6 +67,7 @@ import {
   type Viewport,
 } from './map/layers';
 import { createVisionCache } from './map/vision';
+import { drawnLights } from './map/drawnLights';
 import { pickTokenAt, pickMovableTokenAt, blockingTokensAt, visibleTokenHp, isTokenVisibleTo, tokenCoversCell } from './map/tokenHitTest';
 import { cachedTokenImage } from './map/layers/drawTokens';
 import { revealedSetFromFogState } from './map/fogSelection';
@@ -1854,7 +1855,13 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
    * lighting layer and the door filter all ask this, so they cannot disagree.
    */
   const ruleFor = useCallback((myTokens: readonly Token[], viewport: Viewport) => {
-    const enabledLights = lightSources.filter((l) => l.enabled);
+    // The map's lights and every token light, each once (map/drawnLights.ts):
+    // a player's from the lit ground the server sends, the GM's from the
+    // tokens themselves.
+    const enabledLights = drawnLights({
+      isGM, staticLights: lightSources, tokens, tokenLights: currentMap?.tokenLights,
+      gridSize: viewport.gridSize, mapHeight: viewport.mapHeight,
+    });
     const globalIllumination = currentMap?.globalIllumination ?? true;
     const vision = visionCacheRef.current.compute(myTokens, enabledLights, wallSegments, viewport, { globalIllumination });
     const viewers: Viewer[] = myTokens.map((t, i) => ({
@@ -1881,7 +1888,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       return isSeen({ x: x + (dx / d) * 2, y: y + (dy / d) * 2 }, [v], lits, globalIllumination, inside);
     });
     return { vision, enabledLights, globalIllumination, canSee };
-  }, [lightSources, wallSegments, currentMap?.globalIllumination]);
+  }, [lightSources, wallSegments, currentMap?.globalIllumination, currentMap?.tokenLights, isGM, tokens]);
 
   /**
    * Who is asking which doors the map offers (doorAccess.ts): the viewer's

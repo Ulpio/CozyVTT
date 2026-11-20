@@ -10,6 +10,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect, useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { LightSource } from '@/types/walls';
 
 export type LightToolMode = 'light-place' | 'light-select' | null;
@@ -60,7 +61,11 @@ interface GmLightControlsProps {
   lightingEnabled?: boolean;
   /** The map's Global Illumination flag: everything in line of sight counts as lit. */
   globalIllumination?: boolean;
-  /** The GM ticked or unticked Global Illumination. Absent: no switch is shown. */
+  /**
+   * The GM turned the "Dark" switch, which is Global Illumination the other
+   * way round: called with the new Global Illumination (Dark on → false).
+   * Absent: no switch is shown.
+   */
   onGlobalIlluminationChange?: (on: boolean) => void;
   /** Called when placement defaults change so parent can use them for new lights. */
   onDefaultsChange?: (defaults: LightPlacementDefaults) => void;
@@ -108,6 +113,7 @@ export default function GmLightControls({
   onDefaultsChange,
   placementDefaults = DEFAULT_PLACEMENT,
 }: GmLightControlsProps) {
+  const { t } = useTranslation();
   const [confirmClear, setConfirmClear] = useState(false);
   // Folded away to begin with, like the other map tools: a GM arriving at the
   // table wants to see the map, not three open panels over it.
@@ -200,6 +206,32 @@ export default function GmLightControls({
         <span className="text-stone-400 text-xs" aria-hidden="true">{collapsed ? '▶' : '▼'}</span>
       </button>
 
+      {/* "Dark": Global Illumination the other way round. Off, everything in
+          line of sight is lit; on, only lights and darkvision show the map,
+          which is when lights matter. Outside the folded part, so a GM finds
+          it without opening the panel. */}
+      {onGlobalIlluminationChange && (
+        <div className="flex items-center gap-2 px-2 pb-1.5 text-[11px] text-stone-300 select-none" title={t('gmLights.darkHint')}>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!globalIllumination}
+            aria-label={t('gmLights.dark')}
+            disabled={!lightingEnabled}
+            onClick={() => onGlobalIlluminationChange(!globalIllumination)}
+            className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full border transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+              !globalIllumination ? 'bg-amber-400/60 border-amber-400/70' : 'bg-stone-700 border-stone-600'
+            }`}
+          >
+            <span
+              aria-hidden="true"
+              className={`inline-block h-3 w-3 rounded-full bg-stone-100 transition-transform ${!globalIllumination ? 'translate-x-3' : 'translate-x-0.5'}`}
+            />
+          </button>
+          <span aria-hidden="true">{t('gmLights.dark')}</span>
+        </div>
+      )}
+
       {!collapsed && (
         <div id={bodyId} className="flex flex-col gap-2 p-2 pt-1">
           {/* Warning when lighting is off */}
@@ -209,24 +241,9 @@ export default function GmLightControls({
             </div>
           )}
 
-          {/* Global Illumination: everything in line of sight counts as lit.
-              Off, lights and darkvision decide, which is when lights matter. */}
-          {onGlobalIlluminationChange && (
-            <label className="flex items-center gap-2 px-0.5 text-[11px] text-stone-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="w-3.5 h-3.5 accent-amber-400"
-                checked={globalIllumination}
-                disabled={!lightingEnabled}
-                onChange={(e) => onGlobalIlluminationChange(e.target.checked)}
-                aria-label="Global Illumination"
-              />
-              Global Illumination
-            </label>
-          )}
           {lightingEnabled && !globalIllumination && lightCount === 0 && (
             <div className="text-[10px] text-amber-400/60 bg-amber-400/5 rounded-sm px-1.5 py-1 border border-amber-400/10">
-              No lights placed and Global Illumination is off: players see only their darkvision.
+              {t('gmLights.darkNoLights')}
             </div>
           )}
 

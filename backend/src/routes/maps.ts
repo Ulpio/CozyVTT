@@ -364,12 +364,15 @@ router.post('/', campaignGM, async (req: AuthenticatedRequest, res: Response) =>
         spiritLayerUrl: normalizedSpiritLayerUrl,
         tokens: [], // Initialize empty tokens array
         annotations: [], // Initialize empty annotations array
-        // New maps start with manual fog off and lights that matter; the GM
-        // turns either on when a map needs it. The columns default to on so
-        // maps from before the flags existed keep the behaviour they had.
-        fogEnabled: false,
-        globalIllumination: false,
-        explorationEnabled: false,
+        // A map made in the app starts ready for lighting: walls and lights
+        // work at once, fog and explored memory are on, and everything in
+        // sight is lit until the GM turns on "Escuro" (globalIllumination
+        // off). Only this path: an imported map keeps what its file gives
+        // it, and a map stored before keeps its own flags.
+        lightingEnabled: true,
+        fogEnabled: true,
+        globalIllumination: true,
+        explorationEnabled: true,
       },
     });
 

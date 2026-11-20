@@ -848,6 +848,11 @@ const ptBR: Messages = {
     recharged: 'recarregou',
     stillSpent: 'ainda gasta',
   },
+  gmLights: {
+    dark: 'Escuro',
+    darkHint: 'Ligado: só luzes e visão no escuro mostram o mapa. Desligado: tudo à vista fica iluminado.',
+    darkNoLights: 'Nenhuma luz posta e o mapa está escuro: os jogadores veem só pela visão no escuro.',
+  },
 };
 
 export default ptBR;
