@@ -852,6 +852,7 @@ const ptBR: Messages = {
     dark: 'Escuro',
     darkHint: 'Ligado: só luzes e visão no escuro mostram o mapa. Desligado: tudo à vista fica iluminado.',
     darkNeedsLighting: 'Ligue a iluminação do mapa para usar o escuro.',
+    darkChangeFailed: 'Não deu para mudar o escuro.',
     darkNoLights: 'Nenhuma luz posta e o mapa está escuro: os jogadores veem só pela visão no escuro.',
   },
   tokenLight: {

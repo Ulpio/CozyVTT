@@ -4984,7 +4984,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
                 await mapService.updateMap(campaign.id, mapId, { globalIllumination: on });
               } catch (err) {
                 updateMap(mapId, (latest) => ({ ...latest, globalIllumination: before }));
-                showToast(apiErrorMessage(err) || 'Could not change Global Illumination', 'error');
+                showToast(apiErrorMessage(err) || i18n.t('gmLights.darkChangeFailed'), 'error');
               }
             }}
             placementDefaults={lightPlacementDefaults}

@@ -850,6 +850,7 @@ const en = {
     dark: 'Dark',
     darkHint: 'On: only lights and darkvision show the map. Off: everything in sight is lit.',
     darkNeedsLighting: "Turn on the map's lighting to use dark.",
+    darkChangeFailed: 'Could not change dark.',
     darkNoLights: 'No lights placed and the map is dark: players see only their darkvision.',
   },
   tokenLight: {
