@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MapPin, Loader2, ZoomIn, ZoomOut, Sparkles } from 'lucide-react';
 import { api } from '@/services/api';
 import mapService from '@/services/map.service';
@@ -91,6 +92,7 @@ export default function EditMapModal({
   const [diagonalRule, setDiagonalRule] = useState<'flat' | 'alternating'>('flat');
   const [lightingEnabled, setLightingEnabled] = useState(false);
   const [fogEnabled, setFogEnabled] = useState(true);
+  const { t } = useTranslation();
   const [globalIllumination, setGlobalIllumination] = useState(true);
   const [explorationEnabled, setExplorationEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -524,22 +526,22 @@ export default function EditMapModal({
                         </div>
                       </label>
                     </div>
-                    {/* Global Illumination */}
+                    {/* Dark: the global illumination turned the other way */}
                     <div className="py-2">
                       <label className={`flex items-center gap-3 group ${lightingEnabled ? 'cursor-pointer' : 'opacity-50'}`}>
                         <input
                           type="checkbox"
-                          checked={globalIllumination}
+                          checked={!globalIllumination}
                           disabled={!lightingEnabled}
-                          onChange={(e) => setGlobalIllumination(e.target.checked)}
+                          onChange={(e) => setGlobalIllumination(!e.target.checked)}
                           className="w-4 h-4 accent-moss-green"
-                          aria-label="Global Illumination"
+                          aria-label={t('gmLights.dark')}
                         />
                         <div>
                           <span className="text-sm text-stone-gray group-hover:text-brand-ink transition-colors">
-                            Global Illumination
+                            {t('gmLights.dark')}
                           </span>
-                          <p className="text-xs text-stone-gray/50">Everything in line of sight is lit. Untick to make lights and darkvision matter</p>
+                          <p className="text-xs text-stone-gray/50">{t('gmLights.darkHint')}</p>
                         </div>
                       </label>
                     </div>

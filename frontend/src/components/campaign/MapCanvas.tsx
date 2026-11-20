@@ -21,6 +21,7 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useCoarsePointer } from '@/hooks/useMediaQuery';
 import type {
   Token,
+  TokenLightSent,
   TokenMoveStartEvent,
   TokenMoveEvent,
   TokenMoveEndEvent,
@@ -66,6 +67,7 @@ import {
   type Viewport,
 } from './map/layers';
 import { createVisionCache } from './map/vision';
+import { drawnLights } from './map/drawnLights';
 import { pickTokenAt, pickMovableTokenAt, blockingTokensAt, visibleTokenHp, isTokenVisibleTo, tokenCoversCell } from './map/tokenHitTest';
 import { cachedTokenImage } from './map/layers/drawTokens';
 import { revealedSetFromFogState } from './map/fogSelection';
@@ -135,6 +137,7 @@ import CharacterRollPicker from '@/components/campaign/CharacterRollPicker';
 import NpcRollPicker from '@/components/campaign/NpcRollPicker';
 import RemoveTokenDialog from '@/components/campaign/RemoveTokenDialog';
 import TemporaryHpDialog from '@/components/campaign/TemporaryHpDialog';
+import TokenLightDialog from '@/components/campaign/TokenLightDialog';
 import { tokenDisplayName, tokenPublicName, characterRollPublicName, UNKNOWN_CREATURE } from '@/utils/tokenDisplayName';
 import { setTokenFlag } from '@/utils/tokenFlags';
 import AtmosphereOverlay from '@/components/campaign/AtmosphereOverlay';
@@ -436,6 +439,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   const [npcRollPicker, setNpcRollPicker] = useState<{ tokenId: string; at: { x: number; y: number } } | null>(null);
   // The token whose Temporary HP... dialog is open.
   const [temporaryHpTokenId, setTemporaryHpTokenId] = useState<string | null>(null);
+  const [lightTokenId, setLightTokenId] = useState<string | null>(null);
   /**
    * Where the token menu was last opened. A roll picker its Roll... opens
    * stands there; the items themselves carry no position.
@@ -895,6 +899,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     setRollPicker(null);
     setNpcRollPicker(null);
     setTemporaryHpTokenId(null);
+    setLightTokenId(null);
   }, [currentMap?.id, closeTokenMenu]);
   /**
    * Let go of a held token this page has been told is gone from the map it
@@ -1601,8 +1606,20 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       }));
     };
 
+    // A token's light, sent to the GM and the token's controller only.
+    const handleTokenLightUpdated = (data: { mapId: string; tokenId: string; light: Token['light'] }) => {
+      useGameStore.getState().patchToken(data.tokenId, { light: data.light }, data.mapId);
+    };
+
+    // Every token light on the map as lit ground, carriers unnamed.
+    const handleTokenLights = (data: { mapId: string; tokenLights: TokenLightSent[] }) => {
+      updateMap(data.mapId, (latest) => ({ ...latest, tokenLights: data.tokenLights }));
+    };
+
     socketInstance.on('token:appeared', handleTokenAppeared);
     socketInstance.on('token:disappeared', handleTokenDisappeared);
+    socketInstance.on('token.light.updated', handleTokenLightUpdated);
+    socketInstance.on('map.tokenLights', handleTokenLights);
     socketInstance.on('map:settings:updated', handleSettingsUpdated);
 
     // Light source events, applied unless they echo this page's own edit,
@@ -1644,6 +1661,8 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     return () => {
       socketInstance.off('token:appeared', handleTokenAppeared);
       socketInstance.off('token:disappeared', handleTokenDisappeared);
+      socketInstance.off('token.light.updated', handleTokenLightUpdated);
+      socketInstance.off('map.tokenLights', handleTokenLights);
       socketInstance.off('map:settings:updated', handleSettingsUpdated);
       socketInstance.off('wall:added', handleWallAdded);
       socketInstance.off('wall:removed', handleWallRemoved);
@@ -1839,7 +1858,13 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
    * lighting layer and the door filter all ask this, so they cannot disagree.
    */
   const ruleFor = useCallback((myTokens: readonly Token[], viewport: Viewport) => {
-    const enabledLights = lightSources.filter((l) => l.enabled);
+    // The map's lights and every token light, each once (map/drawnLights.ts):
+    // a player's from the lit ground the server sends, the GM's from the
+    // tokens themselves.
+    const enabledLights = drawnLights({
+      isGM, staticLights: lightSources, tokens, tokenLights: currentMap?.tokenLights,
+      gridSize: viewport.gridSize, mapHeight: viewport.mapHeight,
+    });
     const globalIllumination = currentMap?.globalIllumination ?? true;
     const vision = visionCacheRef.current.compute(myTokens, enabledLights, wallSegments, viewport, { globalIllumination });
     const viewers: Viewer[] = myTokens.map((t, i) => ({
@@ -1866,7 +1891,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       return isSeen({ x: x + (dx / d) * 2, y: y + (dy / d) * 2 }, [v], lits, globalIllumination, inside);
     });
     return { vision, enabledLights, globalIllumination, canSee };
-  }, [lightSources, wallSegments, currentMap?.globalIllumination]);
+  }, [lightSources, wallSegments, currentMap?.globalIllumination, currentMap?.tokenLights, isGM, tokens]);
 
   /**
    * Who is asking which doors the map offers (doorAccess.ts): the viewer's
@@ -3500,6 +3525,13 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     }
   };
 
+  /** Light a token by hand, or put its light out; a refusal shows as any token refusal does. */
+  const lightToken = async (token: Token, light: Token['light']) => {
+    if (!socket || !currentMap) return;
+    const ack = await socket.setTokenLight({ mapId: currentMap.id, tokenId: token.id, light: light ?? null });
+    if (!ack.ok) showToast(ack.error, 'error');
+  };
+
   /**
    * This viewer, what they may do with `token`, and the table, as the token
    * menu reads them (map/tokenMenuItems.ts). The GM always has the token
@@ -3513,6 +3545,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     mayRoll: canRollForToken(token),
     mayGrantTemporaryHp: temporaryHpOf(token) !== null,
     mayRotate: canRotateToken(token),
+    mayLight: isGM || controlsToken(token, user?.id, userRole),
     mapId: currentMap?.id ?? null,
     maps: campaign?.maps ?? [],
     busy: { crossing: isMovingTokenLayer, moving: isMoveToMapLoading },
@@ -3732,6 +3765,8 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       });
     },
     grantTemporaryHp: (token) => setTemporaryHpTokenId(token.id),
+    setLight: (token, light) => { void lightToken(token, light); },
+    customLight: (token) => setLightTokenId(token.id),
     rotate: (token, step) => { rotateToken(token.id, step); },
     rollCreature: (token) => setNpcRollPicker({ tokenId: token.id, at: menuPointRef.current }),
     edit: (token) => onEditToken?.(token),
@@ -4949,7 +4984,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
                 await mapService.updateMap(campaign.id, mapId, { globalIllumination: on });
               } catch (err) {
                 updateMap(mapId, (latest) => ({ ...latest, globalIllumination: before }));
-                showToast(apiErrorMessage(err) || 'Could not change Global Illumination', 'error');
+                showToast(apiErrorMessage(err) || i18n.t('gmLights.darkChangeFailed'), 'error');
               }
             }}
             placementDefaults={lightPlacementDefaults}
@@ -5440,6 +5475,19 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
             system={target.system}
             onTake={(temporary) => { void takeTemporaryHp(target, temporary); }}
             onClose={() => setTemporaryHpTokenId(null)}
+          />
+        );
+      })()}
+
+      {lightTokenId && (() => {
+        const token = tokens.find((t) => t.id === lightTokenId);
+        if (!token) return null;
+        return (
+          <TokenLightDialog
+            name={tokenDisplayName(token)}
+            initial={token.light ?? null}
+            onApply={(light) => { void lightToken(token, light); }}
+            onClose={() => setLightTokenId(null)}
           />
         );
       })()}

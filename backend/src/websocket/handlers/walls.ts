@@ -12,7 +12,7 @@ import { doorBesideRevealed } from '../../utils/doorFog';
 import logger from '../../utils/logger';
 import { emitToMapReaders, emitToMapReadersAs } from '../utils';
 import {
-  filterTokensByRole, getSpiritVisibility, playerSightOnLitMap, viewerIdFor, wallChangeReachesPlayers, wallChangeSentTo,
+  filterTokensByRole, getSpiritVisibility, playerSightOnLitMap, mapLights, viewerIdFor, wallChangeReachesPlayers, wallChangeSentTo,
   wallListChangeReachesPlayers, wallSentTo, wallsReplacedSentTo, wallsSentTo, type PlayerSight,
 } from '../../utils/spirit-layer';
 import { mapEditLimiter, MAP_EDITS_PER_SECOND, TOO_MANY_MAP_EDITS_MESSAGE, limiterKey, stateRequestAllowed, resendSightAfterChange, loadFogState, FogTooLargeError } from '../shared';
@@ -81,7 +81,7 @@ async function doorSightFor(
   const spiritVisible = await getSpiritVisibility(campaignId, userId);
   return playerSightOnLitMap(
     filterTokensByRole(map.tokens, role ?? 'PLAYER', spiritVisible, userId), viewerIdFor(role, userId), map.wallSegments,
-    map.width, map.height, map.gridSize, map.lights, map.globalIllumination
+    map.width, map.height, map.gridSize, mapLights(map), map.globalIllumination
   );
 }
 

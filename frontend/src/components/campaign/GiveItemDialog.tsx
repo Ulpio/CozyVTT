@@ -164,7 +164,7 @@ export default function GiveItemDialog({ campaignId, characterId, characterName,
             />
             {typed.length < MIN_LETTERS && <p className="text-xs text-warm-gray">{t('giveItem.typeHint')}</p>}
             {searching && <p className="text-xs text-warm-gray">{t('giveItem.searching')}</p>}
-            {searchFailed && <p role="alert" className="text-xs text-danger">{t('giveItem.searchFailed')}</p>}
+            {searchFailed && <p role="alert" className="text-xs text-danger-ink">{t('giveItem.searchFailed')}</p>}
             {!searching && !searchFailed && results && results.length === 0 && <p className="text-sm text-warm-gray">{t('giveItem.noResults')}</p>}
             {results && results.length > 0 && (
               <ul className="max-h-60 space-y-1 overflow-y-auto">
@@ -207,10 +207,10 @@ export default function GiveItemDialog({ campaignId, characterId, characterName,
             onChange={(e) => setQuantity(e.target.value)}
             className="input-cozy w-24 text-sm pointer-coarse:min-h-11"
           />
-          {count === null && <p className="mt-1 text-xs text-danger">{t('giveItem.quantityHint')}</p>}
+          {count === null && <p className="mt-1 text-xs text-danger-ink">{t('giveItem.quantityHint')}</p>}
         </div>
 
-        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+        {error && <p role="alert" className="text-sm text-danger-ink">{error}</p>}
 
         <div className="flex items-center justify-end gap-3">
           <Button type="button" variant="secondary" className="touch-target" onClick={onClose} disabled={sending}>{t('giveItem.cancel')}</Button>

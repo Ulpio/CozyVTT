@@ -34,6 +34,8 @@ const DRAG_TYPE = 'text/plain';
 
 const isPack = (item: InventoryItem) => /^pacote-/.test(item.compendiumRef?.slug ?? '') || /^pacote\b/i.test(item.name.trim());
 
+const BULLSEYE = /furta[\s-]?fogo|bullseye/i;
+
 /** The slots worth offering for an item; the server is the authority and refuses the rest. */
 function slotsFor(item: InventoryItem): InventorySlot[] {
   switch (itemCategory(item)) {
@@ -47,6 +49,9 @@ function slotsFor(item: InventoryItem): InventorySlot[] {
       return ['armor'];
     case 'ammo':
       return ['ammo'];
+    case 'light':
+      // A torch, candle or lamp goes in a hand; the bullseye lantern throws a cone the table has no light for, and the server refuses it.
+      return BULLSEYE.test(`${item.compendiumRef?.slug ?? ''} ${item.name}`) ? [] : ['main', 'off'];
     default:
       return item.equippable ? ['main', 'off'] : [];
   }

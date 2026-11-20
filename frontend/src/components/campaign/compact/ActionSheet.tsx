@@ -158,6 +158,7 @@ export default function ActionSheet({ open, title, items, onClose, subtitle, lea
                       <button
                         key={choice.id}
                         type="button"
+                        {...(choice.checked === undefined ? {} : { role: 'menuitemradio', 'aria-checked': choice.checked })}
                         onClick={() => pressRow(choice, onClose)}
                         className={cn(SHEET_ROW, 'text-ink hover:bg-ink/5')}
                       >

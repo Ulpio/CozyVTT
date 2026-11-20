@@ -7,6 +7,7 @@
 // ============================================
 
 import type { FogState, FogOperation } from '../types/walls';
+import type { TokenLight } from '../utils/tokenLights';
 import type { Server } from 'socket.io';
 import type { AuthenticatedSocket } from './auth';
 import type { SocketAck } from './ack';
@@ -52,6 +53,14 @@ export interface Token {
   notes?: string;
   initiative?: number | null;
   sightRadius?: number;
+  /** The GM set `sightRadius` by hand, so the character sheet no longer sets it. GM only; never sent to players. */
+  sightRadiusManual?: boolean;
+  /**
+   * The light this token carries, moving with it (utils/tokenLights.ts);
+   * null or absent for none. Sent on a token only to its controller
+   * (tokenMask.ts); anyone else learns of it only as lit ground.
+   */
+  light?: TokenLight | null;
   displayMode?: 'pog' | 'top-down' | 'full-art';
   statBlock?: Record<string, unknown> | null;
   creatureTemplateId?: string | null;
@@ -336,6 +345,12 @@ export const SOCKET_CEILINGS = {
   // the map's lock, and on a lit map line of sight for every player.
   'token.move.start': tokenMoves,
   'token.move.end': tokenMoves,
+  // A write under the map's lock and, on a lit map, line of sight for every
+  // player twice over; someone lights or puts out a torch now and then.
+  'token.light.set': {
+    windows: [{ limit: 10, windowMs: SECOND }, { limit: 120, windowMs: MINUTE }],
+    refusal: 'Muitas mudanças de luz de uma vez. Espere um momento e tente de novo.',
+  },
   // A page joins once per socket, and again after each reconnect; a browser
   // restoring its tabs joins with all of them at once.
   authenticate: {

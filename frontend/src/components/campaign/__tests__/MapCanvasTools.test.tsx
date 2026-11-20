@@ -1639,19 +1639,19 @@ describe('moving the pointer', () => {
   });
 });
 
-// A refused Global Illumination change put the switch back and said nothing,
+// A refused "Dark" (Global Illumination) change put the switch back and said nothing,
 // so the GM could not tell it had been refused, or why.
-describe('the Global Illumination switch', () => {
+describe('the Dark switch', () => {
   it('says why a change was refused, and shows the switch as the map has it', async () => {
     h.set({ currentMap: mapWith({ lightingEnabled: true, globalIllumination: true }) });
     vi.mocked(mapService.updateMap).mockRejectedValueOnce({ response: { status: 429, data: { message: 'Too many requests, please slow down' } } });
     render(<MapCanvas />);
     fireEvent.click(screen.getByText(/^Lights/));
-    const toggle = screen.getByLabelText('Global Illumination') as HTMLInputElement;
+    const toggle = screen.getByRole('switch', { name: 'Dark' });
     await act(async () => { fireEvent.click(toggle); });
 
     expect(await screen.findByText('Too many requests, please slow down')).toBeTruthy();
-    expect((screen.getByLabelText('Global Illumination') as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByRole('switch', { name: 'Dark' })).toHaveAttribute('aria-checked', 'false');
   });
 });
 

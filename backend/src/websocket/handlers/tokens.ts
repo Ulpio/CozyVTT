@@ -9,7 +9,7 @@ import { AuthenticatedSocket } from '../auth';
 import { prisma } from '../../config/database';
 import {
   canActOnTokenPlane, getSpiritVisibilityBatch, filterTokensByRole, filterTokensByLighting, playerSightOnLitMap,
-  tokenForRecipient, viewerIdFor,
+  tokenForRecipient, viewerIdFor, mapLights, tokenLightsOf, type PlayerSight,
 } from '../../utils/spirit-layer';
 import type { Map as MapRow } from '@prisma/client';
 import type { WallSegment } from '../../types/walls';
@@ -18,10 +18,34 @@ import { Token, tokenMoveLimiter, limiterKey, withinCeiling } from '../shared';
 import { readTokens, toJson } from '../../utils/prisma-json';
 import { withMapsLocked, clampTokenPosition } from '../../utils/mapTokens';
 import { canControlToken, canMoveTokensNow, canReadMap, PAUSED_MOVE_REFUSAL } from '../../services/permissions';
-import { bestEffort, campaignSockets, stillInCampaign } from '../utils';
+import { bestEffort, campaignSockets, emitToMapReaders, stillInCampaign } from '../utils';
 import { inBackground } from '../../utils/backgroundWork';
 import { createTurnQueue } from '../../utils/turnQueue';
 import { recordMove } from '../../services/combatMovement';
+import { tokenLightValid, type TokenLight } from '../../utils/tokenLights';
+import { sendTokenLightChange } from '../../services/tokenLightFanout';
+import { syncItemLight } from '../../services/itemLight';
+import { ackFrom, refuseRequest } from '../ack';
+
+/** token.light.set's refusals. A player is told NOT_YOUR_TOKEN for a token that is not there too, so ids tell them nothing. */
+export const NOT_YOUR_TOKEN = 'Você não controla esse token.';
+export const LIGHT_NOT_VALID = 'Essa luz não é válida.';
+const MAP_NOT_FOUND = 'Mapa não encontrado.';
+const TOKEN_NOT_FOUND = 'Token não encontrado.';
+
+/**
+ * The light a token.light.set asks for, as it would be stored, or undefined
+ * when it is not one. Whatever the client says, a light set this way is set
+ * by hand: `source` is forced to `'manual'` and any `itemId` dropped, so the
+ * inventory never takes it over. `null` puts the light out.
+ */
+function requestedLight(value: unknown): TokenLight | null | undefined {
+  if (value === null) return null;
+  if (typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const { itemId: _itemId, ...rest } = value as Record<string, unknown>;
+  const light = { ...rest, source: 'manual' };
+  return tokenLightValid(light) ? light : undefined;
+}
 
 /** How one member is sent a dragged token. */
 interface FrameRecipient {
@@ -153,7 +177,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
     if (!map.lightingEnabled) return { sees: () => true, shown };
     const sight = playerSightOnLitMap(
       forRole, viewer, map.wallSegments as unknown as WallSegment[],
-      map.width, map.height, map.gridSize, map.lights, map.globalIllumination
+      map.width, map.height, map.gridSize, mapLights(map), map.globalIllumination
     );
     return { sees: (t) => sight.seesToken(t), shown };
   }
@@ -635,9 +659,10 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
         if (index === -1) return { refused: 'Token not found' };
         const from = tokens[index].position;
         const position = clampTokenPosition({ x: dropX, y: dropY }, tokens[index].size ?? { width: 1, height: 1 }, fresh);
+        const before = { ...fresh, tokens: [...tokens] };
         tokens[index] = { ...tokens[index], position };
         await tx.map.update({ where: { id: mapId }, data: { tokens: toJson(tokens) } });
-        return { written: tokens[index], from, stored: { ...fresh, tokens } };
+        return { written: tokens[index], from, stored: { ...fresh, tokens }, before };
       });
       if ('refused' in dropped) {
         // TODO(play): a drop refused here for its bounds (the GM shrank the map during the drag) is put back
@@ -646,10 +671,20 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
         socket.emit('error', { message: dropped.refused });
         return;
       }
-      const { written, from, stored } = dropped;
+      const { written, from, stored, before } = dropped;
       const updatedTokens = stored.tokens;
       const currentMapId = stored.campaign.currentMapId;
       const { x, y } = written.position;
+      // A token carrying a light took the lit ground with it: every reader is
+      // sent it again, and on a lit map every player's sight is gone over
+      // again below, as for their own token moving. Only on the drop; the
+      // ground a drag's frames pass over is not sent.
+      const ground = { mapId, tokenLights: tokenLightsOf(stored) };
+      const groundMoved = JSON.stringify(ground.tokenLights) !== JSON.stringify(tokenLightsOf(before));
+      // Who the drag's frames left holding the token: a frame may have given it
+      // to a player who could not see it where it stood.
+      const dragAudience = sawTheDrag ? await sawTheDrag.catch(() => null) : null;
+      const lightsBefore = mapLights(before);
 
       if (stored.lightingEnabled) {
         // Dynamic lighting: per-player visibility filtering. The plane and
@@ -663,14 +698,18 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
           .filter((a) => a.role !== 'GM' && a.userId)
           .map((a) => a.userId as string);
         const spiritVisibility = await getSpiritVisibilityBatch(socket.campaignId, playerIds);
+        // Lit by the map and by every token on it, the moved one where it now stands.
+        const lightsNow = mapLights(stored);
         for (const s of stillInCampaign(members, socket.campaignId)) {
           const authedSocket = s as unknown as AuthenticatedSocket;
           if (authedSocket.role === 'GM') {
             s.emit('token.moved', { tokenId, mapId, x, y, movedBy: socket.userId });
+            if (groundMoved) s.emit('map.tokenLights', ground);
             continue;
           }
           if (!authedSocket.userId) continue;
           if (!canReadMap(authedSocket.role, mapId, currentMapId)) continue;
+          if (groundMoved) s.emit('map.tokenLights', ground);
 
           const viewer = viewerIdFor(authedSocket.role, authedSocket.userId);
           const forRole = filterTokensByRole(
@@ -687,7 +726,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
             stored.height,
             stored.gridSize,
             true,
-            stored.lights,
+            lightsNow,
             stored.globalIllumination
           );
           const visibleById = new Map(visible.map((t) => [t.id, t]));
@@ -695,6 +734,18 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
           // hidden and off-plane tokens are not in forRole, so no
           // token:disappeared carries their ids.
           const mayHave = new Set(forRole.map((t) => t.id));
+          // What this player saw before the drop, worked out only when needed:
+          // a token is named to them as gone only if they had it.
+          let wasSight: PlayerSight | null = null;
+          const sawBefore = (t: Token) => {
+            wasSight ??= playerSightOnLitMap(
+              filterTokensByRole(before.tokens, authedSocket.role ?? 'PLAYER', spiritVisibility.get(authedSocket.userId!) ?? false, authedSocket.userId),
+              viewer, before.wallSegments as unknown as WallSegment[], before.width, before.height, before.gridSize,
+              lightsBefore, before.globalIllumination
+            );
+            return wasSight.seesToken(t);
+          };
+          const movedBefore = before.tokens.find((t) => t.id === tokenId);
 
           const moved = visibleById.get(tokenId);
           if (moved) {
@@ -702,21 +753,28 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
             // in case this player did not have it yet.
             s.emit('token.moved', { tokenId, mapId, x, y, movedBy: moverShownTo(written, authedSocket) });
             s.emit('token:appeared', { token: moved, mapId });
-          } else if (mayHave.has(tokenId)) {
+          } else if (mayHave.has(tokenId) && (dragAudience?.holding.has(s.id) || (movedBefore !== undefined && sawBefore(movedBefore)))) {
+            // Only to a player who had it: one who never saw it is not told its id.
             s.emit('token:disappeared', { tokenId, mapId });
           }
 
           // If a player moved their OWN token, their view changed: re-sync all
-          // OTHER tokens so those that left or entered view go at once.
-          if (viewer && written.controlledBy === viewer) {
+          // OTHER tokens so those that left or entered view go at once. So
+          // did it if the token carries a light, which lit other ground; then
+          // only the tokens whose seen or unseen state changed are named, so a
+          // token they never saw stays unnamed.
+          const ownMoved = viewer !== undefined && written.controlledBy === viewer;
+          if (viewer && (ownMoved || groundMoved)) {
             for (const otherToken of forRole) {
               if (otherToken.id === tokenId) continue; // already handled above
               // Skip own tokens — always included by filterTokensByLighting
               if ((otherToken as Token).controlledBy === viewer) continue;
               const other = visibleById.get(otherToken.id);
+              if (!ownMoved && (other !== undefined) === sawBefore(otherToken)) continue;
               if (other) {
                 s.emit('token:appeared', { token: other, mapId });
-              } else {
+              } else if (!ownMoved || sawBefore(otherToken)) {
+                // A token they never saw is not named as gone, even on their own move.
                 s.emit('token:disappeared', { tokenId: otherToken.id, mapId });
               }
             }
@@ -727,6 +785,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
         await emitMoveToVisibleSockets(
           'token.moved', written, mapId, currentMapId, { tokenId, mapId, x, y }, true
         );
+        if (groundMoved) await emitToMapReaders(io, socket.campaignId, mapId, 'map.tokenLights', ground);
       }
 
       // Counted once the drop is stored and told; it never undoes or delays the move.
@@ -738,6 +797,103 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
       socket.emit('error', { message: 'Failed to finalize token movement' });
     } finally {
       done?.();
+    }
+  });
+
+  /**
+   * TOKEN.LIGHT.SET - light a token, or put its light out (`light: null`).
+   * The GM may light any token; a player only one they control, on a plane
+   * they may act on (the rule a move asks). Acknowledged `{ ok: true }`, or
+   * refused through the acknowledgement. The token's light goes to the GM
+   * and its controllers (`token.light.updated`); every reader of the map is
+   * sent the map's token lights again as lit ground (`map.tokenLights`), and
+   * on a lit map each player the tokens it shows or hides from them.
+   */
+  socket.on('token.light.set', async (data: unknown, ackArg?: unknown) => {
+    const ack = ackFrom(ackArg);
+    const refuse = (message: string) => refuseRequest(socket, ack, message);
+    try {
+      const campaignId = socket.campaignId;
+      if (!campaignId || !socket.userId) {
+        refuse('Not authenticated to a campaign');
+        return;
+      }
+      if (!withinCeiling(socket, 'token.light.set', ack)) return;
+      const isGM = socket.role === 'GM';
+      // A spectator controls nothing, whatever the payload.
+      if (!isGM && socket.role !== 'PLAYER') {
+        refuse(NOT_YOUR_TOKEN);
+        return;
+      }
+      const payload = (typeof data === 'object' && data !== null ? data : {}) as Record<string, unknown>;
+      const { mapId, tokenId } = payload;
+      if (typeof mapId !== 'string' || !mapId || typeof tokenId !== 'string' || !tokenId) {
+        refuse(isGM ? TOKEN_NOT_FOUND : NOT_YOUR_TOKEN);
+        return;
+      }
+
+      // Who may light it first, so a player learns nothing from how the light is judged.
+      const map = await prisma.map.findUnique({ where: { id: mapId }, include: { campaign: { select: { currentMapId: true } } } });
+      if (!map || map.campaignId !== campaignId || !canReadMap(socket.role, mapId, map.campaign.currentMapId)) {
+        refuse(MAP_NOT_FOUND);
+        return;
+      }
+      const token = readTokens(map.tokens).find((t) => t.id === tokenId);
+      if (!token) {
+        refuse(isGM ? TOKEN_NOT_FOUND : NOT_YOUR_TOKEN);
+        return;
+      }
+      if (!canControlToken(socket.role, token.controlledBy, socket.userId)
+        || !(await canActOnTokenPlane(socket.role, token, campaignId, socket.userId))) {
+        refuse(NOT_YOUR_TOKEN);
+        return;
+      }
+      const light = requestedLight(payload.light);
+      if (light === undefined) {
+        refuse(LIGHT_NOT_VALID);
+        return;
+      }
+
+      // Written into the token as it is under the map's lock, asked again
+      // there: its controller may have changed since the read above.
+      const written = await withMapsLocked([mapId], async (tx) => {
+        const fresh = await tx.map.findUniqueOrThrow({
+          where: { id: mapId },
+          select: {
+            tokens: true, width: true, height: true, gridSize: true, lightingEnabled: true, wallSegments: true,
+            lights: true, globalIllumination: true, campaign: { select: { currentMapId: true } },
+          },
+        });
+        const tokens = readTokens(fresh.tokens);
+        const index = tokens.findIndex((t) => t.id === tokenId);
+        if (index === -1) return { refused: isGM ? TOKEN_NOT_FOUND : NOT_YOUR_TOKEN };
+        if (!canControlToken(socket.role, tokens[index].controlledBy, socket.userId)
+          || !(await canActOnTokenPlane(socket.role, tokens[index], campaignId, socket.userId!))) return { refused: NOT_YOUR_TOKEN };
+        const before = { ...fresh, tokens: [...tokens] };
+        tokens[index] = { ...tokens[index], light };
+        await tx.map.update({ where: { id: mapId }, data: { tokens: toJson(tokens) } });
+        return { before, after: { ...fresh, tokens }, token: tokens[index], currentMapId: fresh.campaign.currentMapId };
+      });
+      if (written.refused !== undefined) {
+        refuse(written.refused);
+        return;
+      }
+      ack?.({ ok: true });
+
+      await sendTokenLightChange(io, campaignId, [written.token], mapId, written.currentMapId, written.before, written.after);
+      // "From the item in hand": no light of its own, so the hands decide at once.
+      const characterId = (written.token as { characterId?: unknown }).characterId;
+      if (light === null && typeof characterId === 'string' && characterId) {
+        try {
+          await syncItemLight(characterId);
+        } catch (error) {
+          logger.warn('token.light.set: item light not synced', { err: error, tokenId });
+        }
+      }
+      logger.debug('token.light.set', { tokenId, mapId, lit: light !== null, userId: socket.userId });
+    } catch (error) {
+      logger.error('token.light.set failed', { err: error });
+      refuse('Não foi possível mudar a luz do token.');
     }
   });
 }

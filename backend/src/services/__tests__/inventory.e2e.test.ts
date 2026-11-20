@@ -48,6 +48,7 @@ const ENTRIES: { type: string; slug: string; name: string; data: Record<string, 
   { type: 'gear', slug: 'racoes-de-viagem-1-dia', name: 'Rações de viagem (1 dia)', data: { cost: '5 pp', weight: 1 } },
   { type: 'gear', slug: 'corda-de-canhamo-15-metros', name: 'Corda de cânhamo (15 metros)', data: { cost: '1 po', weight: 5 } },
   { type: 'gear', slug: 'mochila', name: 'Mochila', data: { cost: '2 po', weight: 2.5 } },
+  { type: 'gear', slug: 'pedra-de-amolar', name: 'Pedra de amolar', data: { cost: '1 pc', weight: 0.5 } },
   {
     type: 'pack', slug: 'pacote-de-explorador', name: 'Pacote de Explorador',
     data: {
@@ -80,6 +81,7 @@ function fighterSheet(): any {
     { id: 'leather', name: 'Couro', quantity: 1, equipped: false, compendiumRef: ref('couro') },
     { id: 'dagger', name: 'Adaga', quantity: 1, equipped: false, compendiumRef: ref('adaga') },
     { id: 'torch', name: 'Tocha', quantity: 2, compendiumRef: ref('tocha') },
+    { id: 'rope', name: 'Pedra de amolar', quantity: 1, compendiumRef: ref('pedra-de-amolar') },
   ];
   sheet.attacks = [
     { name: 'Espada longa', attackBonus: 5, damageRoll: '1d8+3', damageType: 'cortante', itemId: 'sword', compendiumRef: ref('espada-longa') },
@@ -271,7 +273,7 @@ describe('outside a fight, and in Flexible', () => {
 
   it('refuses an item in a slot it cannot go in', async () => {
     expect(await equipItem(campaignId, p1, fighterId, 'shield', 'main')).toEqual({ ok: false, error: WRONG_SLOT });
-    expect(await equipItem(campaignId, p1, fighterId, 'torch', 'main')).toEqual({ ok: false, error: WRONG_SLOT });
+    expect(await equipItem(campaignId, p1, fighterId, 'rope', 'main')).toEqual({ ok: false, error: WRONG_SLOT });
   });
 
   it('puts a two-handed weapon dropped on one hand in both', async () => {

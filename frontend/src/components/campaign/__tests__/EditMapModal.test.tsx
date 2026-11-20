@@ -158,7 +158,7 @@ describe('Edit Map layout', () => {
     const preview = await screen.findByText('Grid Preview');
     const row = preview.closest('.grid');
     const section = screen.getByRole('group', { name: 'Lighting and Fog' });
-    for (const name of ['Enable dynamic lighting', 'Fog of war on this map', 'Global Illumination', 'Remember explored areas']) {
+    for (const name of ['Enable dynamic lighting', 'Fog of war on this map', 'Dark', 'Remember explored areas']) {
       const box = screen.getByRole('checkbox', { name });
       expect(section.contains(box)).toBe(true);
       expect(row?.contains(box)).toBe(false);
@@ -211,5 +211,21 @@ describe('Edit Map and the diagonal rules', () => {
   it('names the game system whose default the alternating rule is by its short name', async () => {
     open();
     expect(await screen.findByText('ORC d20 default')).toBeInTheDocument();
+  });
+});
+
+// The Lights panel calls this setting "Dark" (no global illumination); the
+// modal must say the same, with the meaning the right way round.
+describe("Edit Map's Dark switch", () => {
+  it('is checked when the map has no global illumination, and unchecking it turns the illumination on', async () => {
+    open();
+    const dark = await screen.findByRole('checkbox', { name: 'Dark' });
+    expect(dark).toBeChecked();
+    expect(screen.queryByText('Global Illumination')).not.toBeInTheDocument();
+
+    fireEvent.click(dark);
+    fireEvent.click(screen.getByText('Save Changes'));
+    await waitFor(() => expect(updateMap).toHaveBeenCalled());
+    expect(sent()).toMatchObject({ globalIllumination: true });
   });
 });

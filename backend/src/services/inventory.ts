@@ -15,6 +15,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import logger from '../utils/logger';
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { prisma } from '../config/database';
 import { readTokens, toJson } from '../utils/prisma-json';
@@ -29,6 +30,7 @@ import { SHEET_LIST_MAX } from '../validators/game-systems/sheetLimits';
 import { enabledBookIds } from '../compendium/campaignBooks';
 import { GM_ONLY, NO_CHARACTER, noticeRecipient, sendNotice } from './gmNotice';
 import { addToStack } from './actionResolver/ammunition';
+import { givesLight, syncItemLight } from './itemLight';
 import { NOT_YOUR_TOKEN, holdSheets, refuse, writeSheets, type Refusal, type Sheet } from './actionResolver/common';
 
 export const ARMOUR_IN_COMBAT = 'Leva minutos para vestir ou tirar armadura.';
@@ -233,6 +235,8 @@ function mayGoInASlot(known: Known, item: Item & { equippable?: boolean }): bool
   const kind = kindOf(known, item);
   if (kind === 'pack') return false;
   if (kind !== 'other') return true;
+  // A torch, lamp, lantern or candle is carried in a hand to light the way.
+  if (givesLight(item)) return true;
   return !entryOf(known, item) && item.equippable === true;
 }
 
@@ -282,6 +286,14 @@ export async function equipItem(
       return { ok: true as const, ac: ac.ac, acUnknown: ac.unknown };
     });
     if (spent) await resendInitiative(campaignId);
+    if (outcome.ok) {
+      // The hands changed: the character's tokens carry the light they now give. The change stands whether or not it is sent.
+      try {
+        await syncItemLight(characterId);
+      } catch (error) {
+        logger.warn('Item light not updated after an equip change; the change stands', { err: error, characterId });
+      }
+    }
     return outcome;
   } catch (error) {
     if (spent) {

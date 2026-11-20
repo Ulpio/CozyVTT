@@ -3,7 +3,7 @@
  * one broadcast every client listens to.
  *
  * Before `fogEnabled` existed every map was fogged for players from creation
- * with no way off. Now a new map starts with fog off, the GM can set it on the
+ * with no way off. Now the GM can set it on the
  * update route, and any flag change reaches connected clients as a single
  * `map:settings:updated` event carrying every flag.
  *
@@ -68,7 +68,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await server.close();
-  await prisma.asset.deleteMany({ where: { id: assetId } });
+  await prisma.asset.deleteMany({ where: { uploadedById: gmId } });
   await cleanupCampaigns([campaignId]);
   await cleanupUsers([gmId, playerId]);
   await prisma.$disconnect();
@@ -85,13 +85,26 @@ async function createMap(onScreen = true): Promise<{ id: string; fogEnabled: boo
   return res.body.map;
 }
 
+/**
+ * A map with every flag off, as maps were made before P7, so a test can turn
+ * each flag on and see what that does.
+ */
+async function createMapAllOff(onScreen = true): ReturnType<typeof createMap> {
+  const made = await createMap(onScreen);
+  const flags = { lightingEnabled: false, fogEnabled: false, globalIllumination: false, explorationEnabled: false };
+  await prisma.map.update({ where: { id: made.id }, data: flags });
+  return { ...made, ...flags };
+}
+
 describe('creating a map', () => {
-  it('starts with fog, dynamic lighting, global illumination and explored memory off', async () => {
+  // Ready for lighting: walls and lights work at once, and a GM who wants the
+  // dark flips "Escuro" (globalIllumination off) rather than four switches.
+  it('starts ready for lighting: fog, dynamic lighting, global illumination and explored memory on', async () => {
     const map = await createMap();
-    expect(map.fogEnabled).toBe(false);
-    expect(map.lightingEnabled).toBe(false);
-    expect(map.globalIllumination).toBe(false);
-    expect(map.explorationEnabled).toBe(false);
+    expect(map.fogEnabled).toBe(true);
+    expect(map.lightingEnabled).toBe(true);
+    expect(map.globalIllumination).toBe(true);
+    expect(map.explorationEnabled).toBe(true);
   });
 
   it('is listed with its flags', async () => {
@@ -99,20 +112,53 @@ describe('creating a map', () => {
     const res = await agent.get(`/api/campaigns/${campaignId}/maps`);
     expect(res.status).toBe(200);
     const listed = (res.body.maps as Array<{ id: string; fogEnabled: boolean }>).find((m) => m.id === map.id);
-    expect(listed?.fogEnabled).toBe(false);
+    expect(listed?.fogEnabled).toBe(true);
+  });
+
+  // Only maps made from now on start lit: a map stored before, with lighting
+  // off, is read back exactly as it was.
+  it('leaves a map stored earlier with its flags off as it was', async () => {
+    const old = await prisma.map.create({
+      data: {
+        campaignId, name: 'Before P7', imageUrl: `/api/assets/maps/${assetId}`, baseLayerUrl: `/api/assets/maps/${assetId}`, width: 10, height: 10,
+        tokens: [], annotations: [],
+        lightingEnabled: false, fogEnabled: false, globalIllumination: false, explorationEnabled: false,
+      },
+    });
+    const res = await agent.get(`/api/campaigns/${campaignId}/maps/${old.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.map).toMatchObject({ lightingEnabled: false, fogEnabled: false, globalIllumination: false, explorationEnabled: false });
+    expect(await prisma.map.findUniqueOrThrow({ where: { id: old.id } })).toMatchObject({
+      lightingEnabled: false, fogEnabled: false, globalIllumination: false, explorationEnabled: false,
+    });
+  });
+
+  // An imported map keeps what the import gives it, not the new-map defaults.
+  it('keeps an imported map\'s own flags', async () => {
+    const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const uvtt = Buffer.from(JSON.stringify({
+      format: 0.3,
+      resolution: { map_origin: { x: 0, y: 0 }, map_size: { x: 10, y: 10 }, pixels_per_grid: 140 },
+      line_of_sight: [], objects_line_of_sight: [], portals: [], lights: [],
+      environment: { baked_lighting: false, ambient_light: '00000000' },
+      image: png,
+    }));
+    const res = await agent.post(`/api/campaigns/${campaignId}/maps/import-uvtt`).attach('file', uvtt, 'old.uvtt');
+    expect(res.status).toBe(201);
+    expect(res.body.map).toMatchObject({ lightingEnabled: false, fogEnabled: false, globalIllumination: false, explorationEnabled: false });
   });
 });
 
 describe('updating the flags', () => {
   it.each([['fogEnabled'], ['globalIllumination'], ['lightingEnabled'], ['explorationEnabled']])('refuses a %s that is not a boolean', async (flag) => {
-    const map = await createMap();
+    const map = await createMapAllOff();
     const res = await agent.put(`/api/campaigns/${campaignId}/maps/${map.id}`).send({ [flag]: 'yes' });
     expect(res.status).toBe(400);
     expect(res.body.message).toContain(flag);
   });
 
   it('stores the change and tells every client about every flag at once', async () => {
-    const map = await createMap();
+    const map = await createMapAllOff();
     const playerCookie = await server.loginAs(playerId);
     const client = await server.connectAndAuth(playerCookie, campaignId);
 
@@ -132,7 +178,7 @@ describe('updating the flags', () => {
     // A client asks for fog state when its flag flips, but the flip it sees
     // first is its own optimistic one, sent before this row is written, and
     // the server has nothing to say to it. The route pushes the state itself.
-    const map = await createMap();
+    const map = await createMapAllOff();
     const gmClient = await server.connectAndAuth(await server.loginAs(gmId), campaignId);
     const playerClient = await server.connectAndAuth(await server.loginAs(playerId), campaignId);
 
@@ -157,7 +203,7 @@ describe('updating the flags', () => {
   });
 
   it('the lighting toggle route reports both flags too', async () => {
-    const map = await createMap();
+    const map = await createMapAllOff();
     const playerCookie = await server.loginAs(playerId);
     const client = await server.connectAndAuth(playerCookie, campaignId);
 
@@ -181,7 +227,7 @@ describe('a change that alters what players can see', () => {
    * Global Illumination is on or lighting is off altogether.
    */
   async function createLitMap(current = true): Promise<string> {
-    const map = await createMap(current);
+    const map = await createMapAllOff(current);
     const base = { imageUrl: '', size: { width: 1, height: 1 }, visible: true, rotation: 0, conditions: [] as string[], metadata: {} as Record<string, unknown>, layer: 'token' };
     await prisma.map.update({
       where: { id: map.id },

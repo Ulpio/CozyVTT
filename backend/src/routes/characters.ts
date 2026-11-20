@@ -24,6 +24,8 @@ import {
   characterForReader, clearGmNotes, hasGmNotes, isGmOf, sheetKeepingGmNotes, sheetWithoutGmNotes,
 } from '../utils/gmNotes';
 import { resendInitiative } from '../websocket/handlers/initiative';
+import { originChanged, syncDarkvision } from '../services/darkvision';
+import { syncItemLight } from '../services/itemLight';
 import logger from '../utils/logger';
 import { cutText } from '../utils/cutText';
 import { readTokens, toJson, readJsonObject } from '../utils/prisma-json';
@@ -860,6 +862,27 @@ router.put('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
         // The character update itself already succeeded and is what the user
         // asked for; a failure to repaint tokens must not fail the request.
         logger.error('Failed to sync token images after character update', { err: error });
+      }
+    }
+
+    // A new race or subrace gives the character's tokens that race's darkvision
+    // (a range the GM set by hand stays). The sheet is saved by now.
+    if (data !== undefined && originChanged(character.data, updatedCharacter.data)) {
+      try {
+        await syncDarkvision(updatedCharacter.id);
+      } catch (error) {
+        logger.error('Failed to sync darkvision after character update', { err: error });
+      }
+    }
+
+    // The hands may have changed (a held torch deleted in the editor): the
+    // tokens carry the light the sheet's hands now give.
+    const inventoryOf = (d: unknown) => JSON.stringify((d as { inventory?: unknown } | null)?.inventory ?? null);
+    if (data !== undefined && inventoryOf(character.data) !== inventoryOf(updatedCharacter.data)) {
+      try {
+        await syncItemLight(updatedCharacter.id);
+      } catch (error) {
+        logger.error('Failed to sync item light after character update', { err: error });
       }
     }
 

@@ -1,10 +1,12 @@
 /**
- * The Lights panel's Global Illumination switch and its warning.
+ * The Lights panel's "Dark" switch and its warning.
  *
- * With lighting on, Global Illumination off and no lights placed, players
+ * "Dark" (Escuro) is the map's Global Illumination turned the other way:
+ * on, only lights and darkvision show the map; off, everything in line of
+ * sight is lit. With lighting on, the map dark and no lights placed, players
  * see only their darkvision, which for most tokens is nothing. The panel
- * says so, because a GM who has just untied the setting from "see
- * everything" needs to know why the map went dark for the table.
+ * says so, because a GM who has just made the map dark needs to know why it
+ * went dark for the table.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -13,7 +15,7 @@ import userEvent from '@testing-library/user-event';
 import ts from 'typescript';
 import GmLightControls from '../GmLightControls';
 
-function renderPanel(over: Partial<{ lightCount: number; lightingEnabled: boolean; globalIllumination: boolean }> = {}) {
+function renderPanel(over: Partial<{ lightCount: number; lightingEnabled: boolean; globalIllumination: boolean }> = {}, unfold = true) {
   const onGlobalIlluminationChange = vi.fn();
   render(
     <GmLightControls
@@ -27,14 +29,15 @@ function renderPanel(over: Partial<{ lightCount: number; lightingEnabled: boolea
       {...over}
     />
   );
-  fireEvent.click(screen.getByText(/^Lights/)); // the panel starts folded
+  if (unfold) fireEvent.click(screen.getByText(/^Lights/)); // the panel starts folded
   return { onGlobalIlluminationChange };
 }
 
-const WARNING = /No lights placed and Global Illumination is off/;
+const WARNING = /No lights placed and the map is dark/;
+const darkSwitch = () => screen.getByRole('switch', { name: 'Dark' });
 
 describe('GmLightControls', () => {
-  it('warns when lighting is on, Global Illumination is off and there are no lights', () => {
+  it('warns when lighting is on, the map is dark and there are no lights', () => {
     renderPanel();
     expect(screen.getByText(WARNING)).toBeTruthy();
   });
@@ -52,19 +55,51 @@ describe('GmLightControls', () => {
   it('does not warn while dynamic lighting is off, and disables the switch', () => {
     renderPanel({ lightingEnabled: false });
     expect(screen.queryByText(WARNING)).toBeNull();
-    expect((screen.getByLabelText('Global Illumination') as HTMLInputElement).disabled).toBe(true);
+    expect(darkSwitch()).toBeDisabled();
   });
 
-  // As Edit Map, the guides and the panel's own warning spell it.
-  it('names the switch Global Illumination, on the screen and for a screen reader', () => {
+  it('says why the Dark switch is disabled while dynamic lighting is off', () => {
+    renderPanel({ lightingEnabled: false });
+    expect(screen.getByText(/Turn on the map/)).toBeTruthy();
+    expect(darkSwitch().closest('[title]')).toHaveAttribute('title', expect.stringMatching(/Turn on the map/));
+  });
+
+  it('shows no such hint while lighting is on', () => {
     renderPanel();
-    expect(screen.getByRole('checkbox', { name: 'Global Illumination' }).closest('label')).toHaveTextContent(/^Global Illumination$/);
+    expect(screen.queryByText(/Turn on the map/)).toBeNull();
   });
 
-  it('reports the switch being ticked', () => {
-    const { onGlobalIlluminationChange } = renderPanel();
-    fireEvent.click(screen.getByLabelText('Global Illumination'));
+  it('shows the Dark switch on, when Global Illumination is off', () => {
+    renderPanel({ globalIllumination: false });
+    expect(darkSwitch()).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('shows the Dark switch off, when Global Illumination is on', () => {
+    renderPanel({ globalIllumination: true });
+    expect(darkSwitch()).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('turning Dark on sends Global Illumination off', () => {
+    const { onGlobalIlluminationChange } = renderPanel({ globalIllumination: true });
+    fireEvent.click(darkSwitch());
+    expect(onGlobalIlluminationChange).toHaveBeenCalledWith(false);
+  });
+
+  it('turning Dark off sends Global Illumination on', () => {
+    const { onGlobalIlluminationChange } = renderPanel({ globalIllumination: false });
+    fireEvent.click(darkSwitch());
     expect(onGlobalIlluminationChange).toHaveBeenCalledWith(true);
+  });
+
+  // Easy to find: a GM need not unfold the panel to make the map dark.
+  it('shows the Dark switch with the panel folded', () => {
+    renderPanel({ globalIllumination: true }, false);
+    expect(darkSwitch()).toBeTruthy();
+  });
+
+  it('shows no switch when nothing listens for it', () => {
+    render(<GmLightControls lightMode={null} onLightModeChange={vi.fn()} lightCount={0} onClearAll={vi.fn()} lightingEnabled />);
+    expect(screen.queryByRole('switch')).toBeNull();
   });
 });
 

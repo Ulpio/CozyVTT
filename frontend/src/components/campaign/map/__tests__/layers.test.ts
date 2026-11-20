@@ -962,6 +962,14 @@ describe('drawDynamicLighting', () => {
     }
   });
 
+  // A warm glow was drawn round each of the viewer's own tokens, light or
+  // none. It lit nothing and said a torch was there when there was none: a
+  // token with no light does not glow.
+  it('draws no glow round a viewer token that carries no light', () => {
+    const { main } = run({ withLight: false, sightRadius: 6 });
+    expect(main.gradients).toEqual([]);
+  });
+
   it('draws remembered ground as a grey, darker copy of the terrain, masked to what is out of sight', () => {
     const { memoryMask, memory, main } = run({ withLight: false, withMemory: true });
     // explored raster in, current coverage subtracted three times

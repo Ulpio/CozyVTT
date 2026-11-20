@@ -25,7 +25,7 @@ function actions(): Record<keyof TokenMenuActions, Mock<(...args: unknown[]) => 
   return {
     viewSheet: spy(), rollCharacter: spy(), grantTemporaryHp: spy(), rotate: spy(), rollCreature: spy(), edit: spy(),
     addToInitiative: spy(), duplicate: spy(), saveAsTemplate: spy(), setVisible: spy(), setObscured: spy(),
-    setLayer: spy(), moveToMap: spy(), remove: spy(),
+    setLayer: spy(), moveToMap: spy(), remove: spy(), setLight: spy(), customLight: spy(),
   };
 }
 
@@ -36,6 +36,7 @@ function context(extra: Partial<TokenMenuContext> = {}): TokenMenuContext {
     mayRoll: false,
     mayGrantTemporaryHp: false,
     mayRotate: true,
+    mayLight: false,
     mapId: 'map-a',
     maps: [{ id: 'map-a', name: 'Map A' }, { id: 'map-b', name: 'Map B' }, { id: 'map-c', name: 'Map C' }],
     busy: { crossing: false, moving: false },
@@ -293,5 +294,53 @@ describe('whether there is a menu', () => {
     const { actions: _actions, ...view } = context({ role: CampaignRole.PLAYER, mayRotate: false });
     expect(tokenMenuHasItems(token(), view)).toBe(false);
     expect(tokenMenuHasItems(token({ characterId: 'char-1' }), { ...view, mayViewSheet: true })).toBe(true);
+  });
+});
+
+describe('the Light submenu', () => {
+  const lightOf = (items: MenuItem[]) => commandOf(items, 'light');
+  const choices = (items: MenuItem[]) => (lightOf(items).children ?? []).map((c) => c.label);
+
+  it('offers the GM none, four presets and a custom light, in order', () => {
+    const items = tokenMenuItems(token(), context({ mayLight: true }));
+    expect(lightOf(items).label).toBe('Light');
+    expect(choices(items)).toEqual(['✓ None', 'Candle', 'Torch', 'Lamp', 'Lantern', 'Custom…']);
+  });
+
+  it('is offered to a player only where mayLight says so', () => {
+    const own = tokenMenuItems(token(), context({ role: CampaignRole.PLAYER, mayLight: true, mayRotate: false }));
+    expect(labels(own)).toEqual(['Light']);
+    expect(tokenMenuItems(token(), context({ role: CampaignRole.PLAYER, mayLight: false, mayRotate: false }))).toEqual([]);
+  });
+
+  it('sets the preset as a hand-set light, None as a manual light of no radius, and custom opens the dialog', () => {
+    const ctx = context({ mayLight: true });
+    const t = token();
+    const kids = lightOf(tokenMenuItems(t, ctx)).children ?? [];
+    kids.find((c) => c.label === 'Torch')?.run();
+    expect(ctx.actions.setLight).toHaveBeenCalledWith(t, { brightRadius: 4, dimRadius: 8, color: '#ffcc66', source: 'manual' });
+    kids.find((c) => c.label === '✓ None')?.run();
+    expect(ctx.actions.setLight).toHaveBeenLastCalledWith(t, { brightRadius: 0, dimRadius: 0, color: '#ffcc66', source: 'manual' });
+    kids.find((c) => c.label === 'Custom…')?.run();
+    expect(ctx.actions.customLight).toHaveBeenCalledWith(t);
+  });
+
+  it('offers From the item in hand only on a character token, and it sends no light', () => {
+    const ctx = context({ mayLight: true });
+    expect(choices(tokenMenuItems(token(), ctx))).not.toContain('From the item in hand');
+    const hero = token({ characterId: 'c1' });
+    const kids = lightOf(tokenMenuItems(hero, ctx)).children ?? [];
+    expect(kids.map((c) => c.label)).toEqual(['None', '✓ From the item in hand', 'Candle', 'Torch', 'Lamp', 'Lantern', 'Custom…']);
+    kids.find((c) => c.label === 'None')?.run();
+    kids.find((c) => c.label.endsWith('From the item in hand'))?.run();
+    expect(ctx.actions.setLight).toHaveBeenLastCalledWith(hero, null);
+  });
+
+  it('checks the current light; an item light checks From the item in hand', () => {
+    const checked = (t: Token) => (lightOf(tokenMenuItems(t, context({ mayLight: true }))).children ?? []).filter((c) => c.checked).map((c) => c.label);
+    expect(checked(token({ light: { brightRadius: 6, dimRadius: 12, color: '#ffcc66', source: 'manual' } }))).toEqual(['✓ Lantern']);
+    expect(checked(token({ characterId: 'c', light: { brightRadius: 4, dimRadius: 8, color: '#ffcc66', source: 'item', itemId: 'i1' } }))).toEqual(['✓ From the item in hand']);
+    expect(checked(token({ light: { brightRadius: 2, dimRadius: 5, color: '#112233', source: 'manual' } }))).toEqual(['✓ Custom…']);
+    expect(checked(token({ light: { brightRadius: 0, dimRadius: 0, color: '#ffcc66', source: 'manual' } }))).toEqual(['✓ None']);
   });
 });

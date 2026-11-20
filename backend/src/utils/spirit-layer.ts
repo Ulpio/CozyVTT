@@ -7,6 +7,7 @@ import { isSeen, type Viewer, type Lit, type InsideFn } from './visibilityRule';
 import { tokenCentre } from './tokenCentre';
 import type { WallSegment, LightSource } from '../types/walls';
 import { tokenSentTo } from './tokenMask';
+import { effectiveLights } from './tokenLights';
 import logger from './logger';
 import type { Token } from '../websocket/shared';
 
@@ -350,11 +351,49 @@ export function filterTokensByLighting(
 /**
  * What each light reaches, by the map read it came from. A fan-out asks for
  * every player's sight from one read of the map, and the lights' reach does
- * not depend on the player, so it is raycast once per read and not once per
- * player. Keyed on the read's own wall and light arrays, so a later read, or
- * a change, never sees an old answer, and nothing is kept once they go.
+ * not depend on the player, so it is worked out once per read and not once
+ * per player. Keyed on the read's own wall array, so a later read, or a
+ * change to the walls, never sees an old answer, and nothing is kept once it
+ * goes; and, within it, on where every light stands and how far it reaches.
+ * The lights are not one stored array: tokens carry lights too
+ * (effectiveLights), and a drag asks again from the same read with the
+ * carrier somewhere else each time.
  */
-const litCache = new WeakMap<object, WeakMap<object, { key: string; lits: Lit[] }>>();
+const litCache = new WeakMap<object, { key: string; lits: Lit[] }>();
+
+/** The lights' places and radii, all a light's reach and glow are worked out from. */
+function lightsFingerprint(lights: LightSource[]): string {
+  return JSON.stringify(lights.map((l) => [l.x, l.y, l.brightRadius, l.dimRadius]));
+}
+
+/**
+ * Every light a map is lit by: its own and those its tokens carry
+ * (tokenLights.ts). Taken from every token on the map, not only those a
+ * player may be sent: a torch carried round a corner lights the floor the
+ * player can see, though the token carrying it is not sent.
+ */
+export function mapLights(map: { lights: unknown; tokens: unknown; gridSize: number; height: number }): LightSource[] {
+  return effectiveLights(map.lights, map.tokens, map.gridSize, map.height);
+}
+
+/** One lit circle a token's light makes, in map pixels (y from the top), with nothing of the token. */
+export type TokenLightSent = Pick<LightSource, 'x' | 'y' | 'brightRadius' | 'dimRadius' | 'color'>;
+
+/**
+ * Every token light on a map as lit ground, the same lights mapLights counts
+ * (a token the GM hides or one on the spirit plane lights nothing), but with
+ * no token id: a player's client draws the floor a torch lights from these,
+ * though the token carrying it is not sent to them. Sent to every reader of
+ * the map, in the map itself and as `map.tokenLights` when it changes.
+ */
+export function tokenLightsOf(map: { tokens: unknown; gridSize: number; height: number }): TokenLightSent[] {
+  // In order of place, not of the tokens: the list's order must not let a
+  // player follow one carrier from one send to the next.
+  return effectiveLights([], map.tokens, map.gridSize, map.height)
+    .map(({ x, y, brightRadius, dimRadius, color }) => ({ x, y, brightRadius, dimRadius, color }))
+    .sort((a, b) => a.x - b.x || a.y - b.y || a.dimRadius - b.dimRadius || a.brightRadius - b.brightRadius
+      || (a.color < b.color ? -1 : a.color > b.color ? 1 : 0));
+}
 
 /**
  * What each light reaches, kept from one read of the map to the next. Every
@@ -411,16 +450,14 @@ function lightReach(
 
 function litsFor(
   walls: unknown,
-  lights: unknown,
   wallSegs: WallSegment[],
   enabledLights: LightSource[],
   mapWidthPx: number,
   mapHeightPx: number,
   gridSize: number
 ): Lit[] {
-  const key = `${mapWidthPx}x${mapHeightPx}@${gridSize}`;
-  const byWalls = Array.isArray(lights) && Array.isArray(walls) ? litCache.get(lights) : undefined;
-  const hit = byWalls?.get(walls as object);
+  const key = `${mapWidthPx}x${mapHeightPx}@${gridSize}:${lightsFingerprint(enabledLights)}`;
+  const hit = Array.isArray(walls) ? litCache.get(walls) : undefined;
   if (hit && hit.key === key) return hit.lits;
   // Light positions are already in map-space pixels (Y=0 at top), so no flip
   // is needed.
@@ -435,11 +472,7 @@ function litsFor(
       dimPx: dimRadiusPx,
     };
   });
-  if (Array.isArray(lights) && Array.isArray(walls)) {
-    const entry = litCache.get(lights) ?? new WeakMap<object, { key: string; lits: Lit[] }>();
-    entry.set(walls, { key, lits });
-    litCache.set(lights, entry);
-  }
+  if (Array.isArray(walls)) litCache.set(walls, { key, lits });
   return lits;
 }
 
@@ -526,7 +559,7 @@ export function playerSightOnLitMap(
 
   // What each light reaches, bounded by its own walls: the same for every
   // player, so worked out once per map read (litsFor).
-  const lits = litsFor(walls, lights, wallSegs, enabledLights, mapWidthPx, mapHeightPx, gridSize);
+  const lits = litsFor(walls, wallSegs, enabledLights, mapWidthPx, mapHeightPx, gridSize);
   const inside: InsideFn = (p, poly) => isPointVisible(p, poly);
 
   const elapsed = Date.now() - startMs;
@@ -775,6 +808,13 @@ export const MAP_FIELDS_DECIDED_PER_RECIPIENT = [
  */
 export const MAP_FIELDS_NEVER_SENT = [] as const satisfies readonly (keyof MapRow)[];
 
+/**
+ * Sent to every member beside the columns, worked out from them rather than
+ * stored: `tokenLights` (tokenLightsOf). Not a column, so in none of the
+ * three lists; the frontend's CampaignMap and the API document carry it too.
+ */
+export const MAP_FIELDS_DERIVED = ['tokenLights'] as const;
+
 type MapFieldSentToEveryone = (typeof MAP_FIELDS_SENT_TO_EVERYONE)[number];
 type MapFieldDecidedPerRecipient = (typeof MAP_FIELDS_DECIDED_PER_RECIPIENT)[number];
 
@@ -807,7 +847,10 @@ interface MapFieldsDecided {
 type DecidedForRecipient = { [K in MapFieldDecidedPerRecipient]: MapFieldsDecided[K] };
 
 /** A map as one member is sent it: the columns sent to everyone, and those decided for them. */
-export type MapSent = Pick<MapRow, MapFieldSentToEveryone> & DecidedForRecipient;
+export type MapSent = Pick<MapRow, MapFieldSentToEveryone> & DecidedForRecipient & {
+  /** Every token light on the map as lit ground (tokenLightsOf), worked out from its tokens, not a column. */
+  [K in (typeof MAP_FIELDS_DERIVED)[number]]: TokenLightSent[];
+};
 
 function mapFieldsSentToEveryone(map: MapRow): Pick<MapRow, MapFieldSentToEveryone> {
   return Object.fromEntries(MAP_FIELDS_SENT_TO_EVERYONE.map((field) => [field, map[field]])) as Pick<MapRow, MapFieldSentToEveryone>;
@@ -836,7 +879,7 @@ export function tokensSentTo(
   const forRole = filterTokensByRole(map.tokens, userRole, spiritVisible, userId);
   if (userRole === 'GM' || !map.lightingEnabled || !userId) return forRole;
   return filterTokensByLighting(
-    forRole, viewerIdFor(userRole, userId), map.wallSegments, map.width, map.height, map.gridSize, true, map.lights, map.globalIllumination
+    forRole, viewerIdFor(userRole, userId), map.wallSegments, map.width, map.height, map.gridSize, true, mapLights(map), map.globalIllumination
   );
 }
 
@@ -880,5 +923,5 @@ export function filterMapData(
     fogData: userRole === 'GM' ? mapData.fogData : null,
     annotations: [],
   };
-  return { ...mapFieldsSentToEveryone(mapData), ...decided };
+  return { ...mapFieldsSentToEveryone(mapData), ...decided, tokenLights: tokenLightsOf(mapData) };
 }

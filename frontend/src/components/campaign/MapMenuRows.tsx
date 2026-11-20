@@ -70,7 +70,12 @@ export default function MapMenuRows({ items, onClose, openSubmenu = null, onTogg
                       <p className="text-xs text-stone-gray px-2 py-1">{item.busy.label}</p>
                     ) : (
                       item.children.map((child) => (
-                        <button key={child.id} className={SUBMENU_COMMAND} onClick={() => press(child)}>
+                        <button
+                          key={child.id}
+                          className={SUBMENU_COMMAND}
+                          {...(child.checked === undefined ? {} : { role: 'menuitemradio', 'aria-checked': child.checked })}
+                          onClick={() => press(child)}
+                        >
                           {child.label}
                         </button>
                       ))

@@ -12,6 +12,9 @@ import { CampaignRole, TokenLayer, TokenType, type Token } from '@/types';
 import type { MenuAction, MenuItem } from '@/components/ui/menu';
 import { gmTokenControls } from '@/utils/gmTokenMenu';
 import { ROTATION_STEP } from '@/utils/tokenRotation';
+import i18n from '@/i18n';
+import type { TokenLight } from '@/utils/tokenLights';
+import { LIGHT_OUT, LIGHT_PRESETS, isLightOut, presetLight, presetOf, type LightPresetId } from './tokenLightChoices';
 
 /** What the menu's items do, each given the token the menu is open on. */
 export interface TokenMenuActions {
@@ -34,6 +37,10 @@ export interface TokenMenuActions {
   moveToMap: (token: Token, mapId: string) => void;
   /** Asks first, through the same dialog as the Token Roster. */
   remove: (token: Token) => void;
+  /** Lights the token (by hand), or puts its light out with null. */
+  setLight: (token: Token, light: TokenLight | null) => void;
+  /** Opens the custom light dialog. */
+  customLight: (token: Token) => void;
 }
 
 /** The viewer, what they may do with this token, and the table around it. */
@@ -58,6 +65,8 @@ export interface TokenMenuView {
    * time, a player a token they control while the session is live.
    */
   mayRotate: boolean;
+  /** The viewer may light the token: the GM any token, a player one they control (the server's rule). */
+  mayLight: boolean;
   /** The map on screen, or null while none is. */
   mapId: string | null;
   /** The campaign's maps, in its order; Move to Map… offers all but the one on screen. */
@@ -104,6 +113,8 @@ export function tokenMenuItems(token: Token, ctx: TokenMenuContext): MenuItem[] 
       }),
     );
   }
+
+  if (ctx.mayLight) items.push(lightSubmenu(token, act));
 
   if (ctx.role !== CampaignRole.GM) return items;
 
@@ -176,7 +187,7 @@ const NO_ACTIONS: TokenMenuActions = {
   viewSheet: () => undefined, rollCharacter: () => undefined, grantTemporaryHp: () => undefined, rotate: () => undefined, rollCreature: () => undefined,
   edit: () => undefined, addToInitiative: () => undefined, duplicate: () => undefined, saveAsTemplate: () => undefined,
   setVisible: () => undefined, setObscured: () => undefined, setLayer: () => undefined, moveToMap: () => undefined,
-  remove: () => undefined,
+  remove: () => undefined, setLight: () => undefined, customLight: () => undefined,
 };
 
 /**
@@ -186,4 +197,34 @@ const NO_ACTIONS: TokenMenuActions = {
  */
 export function tokenMenuHasItems(token: Token, view: TokenMenuView): boolean {
   return tokenMenuItems(token, { ...view, actions: NO_ACTIONS }).length > 0;
+}
+
+/**
+ * Luz: none (put out by hand, so the inventory never relights it), from the
+ * item in hand (a character's token: no light of its own), a candle, a torch,
+ * a lamp, a lantern, or a custom light. The token's own is marked.
+ */
+function lightSubmenu(token: Token, act: TokenMenuActions): MenuItem {
+  const t = (key: 'menu' | 'none' | 'custom' | 'hand' | LightPresetId): string => i18n.t(`tokenLight.${key}`);
+  const light = token.light ?? null;
+  const hasHand = !!token.characterId;
+  // No light of its own on a character's token is the hands deciding.
+  const current = light === null ? (hasHand ? 'hand' : 'none')
+    : light.source === 'item' ? 'hand'
+    : isLightOut(light) ? 'none'
+    : presetOf(light) ?? 'custom';
+  const choice = (id: string, label: string, run: () => void) => ({
+    id: `light:${id}`, label: current === id ? `✓ ${label}` : label, checked: current === id, run,
+  });
+  return {
+    kind: 'command',
+    id: 'light',
+    label: t('menu'),
+    children: [
+      choice('none', t('none'), () => act.setLight(token, LIGHT_OUT)),
+      ...(hasHand ? [choice('hand', t('hand'), () => act.setLight(token, null))] : []),
+      ...LIGHT_PRESETS.map((p) => choice(p.id, t(p.id), () => act.setLight(token, presetLight(p)))),
+      choice('custom', t('custom'), () => act.customLight(token)),
+    ],
+  };
 }

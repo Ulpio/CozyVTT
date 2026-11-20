@@ -11,6 +11,7 @@ import fixture from '../__fixtures__/vision-scenarios.json';
 import { computeVisibility, isPointVisible } from '../raycasting';
 import { tierAt, isSeen, type Viewer, type Lit, type InsideFn } from '../visibilityRule';
 import { tokenCentre } from '../tokenCentre';
+import { effectiveLights, type TokenLight } from '../tokenLights';
 import type { WallSegment } from '@/types/walls';
 
 const { width, height, gridSize } = fixture.map;
@@ -18,7 +19,7 @@ const mapW = width * gridSize;
 const mapH = height * gridSize;
 const inside: InsideFn = (p, poly) => poly.points.length >= 3 && isPointVisible(p, poly);
 
-type ScenarioToken = (typeof fixture.scenarios)[number]['tokens'][number] & { controlledBy?: string; sightRadius?: number; size?: { width: number; height: number } };
+type ScenarioToken = (typeof fixture.scenarios)[number]['tokens'][number] & { controlledBy?: string; sightRadius?: number; size?: { width: number; height: number }; light?: TokenLight };
 
 // Token grid coordinates count y from the bottom row; pixels count from the top.
 // The centre is the server's, from the file both packages share.
@@ -41,7 +42,12 @@ describe('vision scenarios (client: tiers and what is seen)', () => {
         selfPx: (Math.max(c.w, c.h) / 2) * gridSize,
       };
     });
-    const lits: Lit[] = s.lights.map((l) => ({
+    // The map's lights and every token's own, as the server counts them.
+    const carriers = (s.tokens as ScenarioToken[]).map((t) => ({
+      id: t.id, position: { x: t.x, y: t.y }, size: t.size ?? { width: 1, height: 1 }, light: t.light ?? null,
+    }));
+    const lights = effectiveLights(s.lights, carriers, gridSize, height).filter((l) => l.enabled);
+    const lits: Lit[] = lights.map((l) => ({
       cx: l.x, cy: l.y,
       reach: computeVisibility({ x: l.x, y: l.y }, walls, mapW, mapH, l.dimRadius * gridSize),
       brightPx: l.brightRadius * gridSize,

@@ -1,7 +1,7 @@
 // ============================================
 // Dynamic lighting layer — opaque darkness with the coverage mask
 // subtracted (offscreen compositing: bright 1.0, dim 0.5, dim + dim =
-// bright), warm token/light glows, and the GM's light-source icons.
+// bright), the lights' glows, and the GM's light-source icons.
 //
 // Pure: no React. The offscreen canvases persist between frames
 // (allocating ~5MB per frame causes GC jank), so the caller passes
@@ -265,23 +265,8 @@ export function drawDynamicLighting(
   ctx.drawImage(offscreen, 0, 0, mapWidthPx, mapHeightPx);
   ctx.restore();
 
-  // Cozy torch-glow: warm radial gradient around each controlled token
-  ctx.save();
-  for (const token of state.myTokens) {
-    const cx = (token.position.x + token.size.width / 2) * viewport.gridSize;
-    const cy = gridYToCentrePx(token.position.y, token.size.height, viewport.mapHeight, viewport.gridSize);
-    const glowR = Math.max(
-      viewport.gridSize * 2,
-      (token.sightRadius ?? 3) * viewport.gridSize * 0.25
-    );
-    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
-    glow.addColorStop(0, 'rgba(255, 200, 100, 0.10)');
-    glow.addColorStop(1, 'rgba(255, 200, 100, 0)');
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  // A token glows only by the light it carries, which is one of
+  // state.enabledLights (map/drawnLights.ts): there is no glow of its own.
 
   // Two-zone light glow: bright inner + dim outer. Additive compositing
   // lets overlapping dim zones read as bright.
@@ -342,7 +327,6 @@ export function drawDynamicLighting(
   }
   ctx.globalCompositeOperation = 'source-over';
   ctx.restore(); // the sight clip around the light glows
-  ctx.restore(); // the token torch-glow save
 }
 
 /**

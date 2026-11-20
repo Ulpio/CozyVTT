@@ -21,6 +21,7 @@ import type {
   SecretCheckAck,
   GiveItemRequest,
   GiveItemAck,
+  TokenLightSetRequest,
   ChatMessageBroadcast,
   ChatMessageUpdated,
   ChatSystemBroadcast,
@@ -553,6 +554,14 @@ class SocketClient {
   /** The GM sends a player a private notice that pops up over their map. */
   sendNotice(data: { characterId: string; text: string }): Promise<DoneAck | { ok: false; error: string }> {
     return this.askFor<DoneAck>('gm.notice', data, ROLL_ANSWER_TIMEOUT_MS, 'No answer from the server');
+  }
+
+  /**
+   * Light a token, or put its light out: the GM any token, a player one they
+   * control. The server stores it as a light set by hand.
+   */
+  setTokenLight(data: TokenLightSetRequest): Promise<DoneAck | { ok: false; error: string }> {
+    return this.askFor<DoneAck>('token.light.set', data, ROLL_ANSWER_TIMEOUT_MS, 'No answer from the server');
   }
 
   /** The GM gives a character an item, straight into its backpack. */

@@ -503,8 +503,10 @@ describe('filterMapData on a whole map', () => {
   const fighter = { ...fighterSent, notes: 'Owes the GM a favour' };
   const goblinSent = { ...base, id: 'goblin', name: 'Goblin', position: { x: 4, y: 5 }, layer: 'token', controlledBy: null, type: 'npc', showHpBar: false };
   const goblin = { ...goblinSent, hp: { current: 7, max: 7, temp: 0 }, notes: 'Carries the key', statBlock: { ac: 15 }, creatureTemplateId: 'template-goblin', sightRadius: 12 };
-  const assassin = { ...base, id: 'assassin', name: 'Assassin', position: { x: 3, y: 5 }, layer: 'token', controlledBy: null, visible: false };
-  const ogre = { ...base, id: 'ogre', name: 'Ogre', position: { x: 15, y: 5 }, layer: 'token', controlledBy: null };
+  // The ogre carries a torch, out of everyone's sight; the hidden assassin's lights nothing.
+  const carried = { brightRadius: 4, dimRadius: 8, color: '#ffcc66', source: 'manual' as const };
+  const assassin = { ...base, id: 'assassin', name: 'Assassin', position: { x: 3, y: 5 }, layer: 'token', controlledBy: null, visible: false, light: carried };
+  const ogre = { ...base, id: 'ogre', name: 'Ogre', position: { x: 15, y: 5 }, layer: 'token', controlledBy: null, light: carried };
   const ghostSent = { ...base, id: 'ghost', name: 'Ghost', position: { x: 2, y: 2 }, layer: 'spirit', controlledBy: 'player-b' };
   const ghost = { ...ghostSent, notes: 'Bound to the crypt' };
   const wisp = { ...base, id: 'wisp', name: 'Wisp', position: { x: 4, y: 2 }, layer: 'spirit', controlledBy: null };
@@ -544,6 +546,9 @@ describe('filterMapData on a whole map', () => {
 
   // Anyone but the GM: a locked door as a closed one, only the lights that
   // are on, and no fog data.
+  // Every member is sent the ogre's torch as lit ground, never the ogre.
+  const tokenLights = [{ x: 775, y: 225, brightRadius: 4, dimRadius: 8, color: '#ffcc66' }];
+
   const asPlayersHaveIt = {
     wallSegments: [wall, { ...lockedDoor, type: 'door-closed' }],
     lights: [torch],
@@ -551,7 +556,7 @@ describe('filterMapData on a whole map', () => {
   };
 
   it('sends the GM the stored map, without its annotations', () => {
-    expect(filterMapData(row, 'GM', true, 'dm-user')).toStrictEqual({ ...row, annotations: [] });
+    expect(filterMapData(row, 'GM', true, 'dm-user')).toStrictEqual({ ...row, annotations: [], tokenLights });
   });
 
   it('sends a player on the material plane what they see of it there, and no spirit layer', () => {
@@ -561,6 +566,7 @@ describe('filterMapData on a whole map', () => {
       tokens: [fighterSent, goblinSent],
       spiritLayerUrl: null,
       annotations: [],
+      tokenLights,
     });
   });
 
@@ -570,6 +576,7 @@ describe('filterMapData on a whole map', () => {
       ...asPlayersHaveIt,
       tokens: [ghostSent, wisp],
       annotations: [],
+      tokenLights,
     });
   });
 
@@ -580,6 +587,7 @@ describe('filterMapData on a whole map', () => {
       tokens: [],
       spiritLayerUrl: null,
       annotations: [],
+      tokenLights,
     });
   });
 });
