@@ -195,3 +195,28 @@ describe('the inventory panel', () => {
     expect(within(screen.getByText(/× Adaga/).parentElement!.parentElement!).queryByRole('alert')).toBeNull();
   });
 });
+
+describe('lights in the backpack', () => {
+  const withLight = (item: FifthEditionInventoryItem) => ({ ...base, inventory: [item] });
+
+  it('offers both hands for a torch, and equips it by a tap', () => {
+    render(<InventoryPanel {...withLight({ id: 'torch', name: 'Tocha', quantity: 1, weight: 1, compendiumRef: { bookId: 'phb', slug: 'tocha' } })} />);
+    fireEvent.click(screen.getByRole('button', { name: /Tocha/ }));
+    expect(screen.getByRole('button', { name: 'In the off hand' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'In the main hand' }));
+    expect(socket.equipItem).toHaveBeenCalledWith({ characterId: 'char-1', itemId: 'torch', slot: 'main' });
+  });
+
+  it('offers no hand for a bullseye lantern, which the server refuses', () => {
+    render(<InventoryPanel {...withLight({ id: 'bull', name: 'Lanterna de furta-fogo', quantity: 1, weight: 2, compendiumRef: { bookId: 'phb', slug: 'lanterna-furta-fogo' } })} />);
+    fireEvent.click(screen.getByRole('button', { name: /furta-fogo/ }));
+    expect(screen.queryByRole('button', { name: 'In the main hand' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'In the off hand' })).toBeNull();
+  });
+
+  it('offers no hand for a bullseye lantern known only by its name', () => {
+    render(<InventoryPanel {...withLight({ id: 'bull2', name: 'Lanterna Furta Fogo', quantity: 1, weight: 2 })} />);
+    fireEvent.click(screen.getByRole('button', { name: /Furta Fogo/ }));
+    expect(screen.queryByRole('button', { name: 'In the main hand' })).toBeNull();
+  });
+});
