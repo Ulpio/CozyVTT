@@ -39,7 +39,7 @@ interface GmFogControlsProps {
  * A Confirm? state's pulse: a ring round the button, so its label keeps its
  * contrast through the pulse (GmFogControls.test.tsx). Its colour is the fill's.
  */
-function ConfirmPulse({ ring }: { ring: 'ring-lime-300' | 'ring-warning' }) {
+function ConfirmPulse({ ring }: { ring: 'ring-brand' | 'ring-accent' }) {
   return <span aria-hidden="true" className={`absolute inset-0 rounded ring-2 ${ring} animate-pulse pointer-events-none`} />;
 }
 
@@ -80,31 +80,31 @@ export default function GmFogControls({
   };
 
   return (
-    <div className="flex flex-col gap-0 bg-stone-800/90 rounded-lg border border-warm-amber/20 min-w-[160px] overflow-hidden">
+    <div className="flex flex-col gap-0 bg-surface/95 rounded-lg border border-moss-green/25 min-w-[160px] overflow-hidden">
       {/* Header with collapse toggle */}
       <button
         type="button"
         aria-expanded={!collapsed}
         aria-controls={bodyId}
-        className="touch-target w-full flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-stone-700/50 select-none"
+        className="touch-target w-full flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-moss-green/10 select-none"
         onClick={() => {
           const next = !collapsed;
           setCollapsed(next);
           if (next) onCollapse?.();
         }}
       >
-        <span className="text-xs text-amber-300 font-medium uppercase tracking-wide">Fog of War</span>
-        <span className="text-stone-400 text-xs" aria-hidden="true">{collapsed ? '▶' : '▼'}</span>
+        <span className="text-xs text-brand-ink font-medium uppercase tracking-wide">Fog of War</span>
+        <span className="text-ink-muted text-xs" aria-hidden="true">{collapsed ? '▶' : '▼'}</span>
       </button>
     {!collapsed && (
       <div id={bodyId} className="flex flex-col gap-2 p-2 pt-1">
 
       {/* The per-map switch. Off puts an armed tool down first: a reveal box
           dragged with fog off would change nothing players can see. */}
-      <label className="touch-target flex items-center gap-2 px-1 py-0.5 text-xs text-stone-300 cursor-pointer select-none">
+      <label className="touch-target flex items-center gap-2 px-1 py-0.5 text-xs text-ink cursor-pointer select-none">
         <input
           type="checkbox"
-          className="w-3.5 h-3.5 accent-lime-500"
+          className="w-3.5 h-3.5 accent-success"
           checked={fogEnabled}
           onChange={(e) => {
             const next = e.target.checked;
@@ -117,7 +117,7 @@ export default function GmFogControls({
       </label>
 
       {!fogEnabled && (
-        <p className="px-1 text-[11px] leading-snug text-stone-400">
+        <p className="px-1 text-[11px] leading-snug text-ink-muted">
           Fog is off. Players see the whole map (dynamic lighting still applies).
           What you had revealed is kept for when you turn it back on.
         </p>
@@ -130,8 +130,8 @@ export default function GmFogControls({
           onClick={() => onFogModeChange(fogMode === 'fog-reveal' ? null : 'fog-reveal')}
           className={`touch-target flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs font-medium transition-colors ${
             fogMode === 'fog-reveal'
-              ? 'bg-lime-600/30 text-lime-400 border border-lime-500/50'
-              : 'bg-stone-700/50 text-stone-300 border border-stone-600/50 hover:bg-stone-700'
+              ? 'bg-success/25 text-success-ink border border-success/50'
+              : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-moss-green/10'
           }`}
           title="Reveal — drag a box over the map to reveal it to players"
           aria-label="Fog reveal box"
@@ -143,8 +143,8 @@ export default function GmFogControls({
           onClick={() => onFogModeChange(fogMode === 'fog-hide' ? null : 'fog-hide')}
           className={`touch-target flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs font-medium transition-colors ${
             fogMode === 'fog-hide'
-              ? 'bg-warning/30 text-warning-ink border border-warning/50'
-              : 'bg-stone-700/50 text-stone-300 border border-stone-600/50 hover:bg-stone-700'
+              ? 'bg-accent text-accent-text'
+              : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-moss-green/10'
           }`}
           title="Hide — drag a box over the map to hide it from players"
           aria-label="Fog hide box"
@@ -156,43 +156,43 @@ export default function GmFogControls({
 
       {/* How-to hint — only while a mode is armed */}
       {fogMode && (
-        <p className="px-1 text-[11px] leading-snug text-stone-400">
+        <p className="px-1 text-[11px] leading-snug text-ink-muted">
           Drag a box over the map. The selection snaps to whole squares —
           click a single square to {fogMode === 'fog-reveal' ? 'reveal' : 'hide'} just that one.
-          <span className="block mt-0.5 text-stone-500">Esc or right-drag cancels.</span>
+          <span className="block mt-0.5 text-ink-muted">Esc or right-drag cancels.</span>
         </p>
       )}
 
       {/* Bulk actions */}
-      <div className="flex gap-1 pt-1 border-t border-stone-700/50">
+      <div className="flex gap-1 pt-1 border-t border-moss-green/20">
         {/* Each Confirm? state takes dark text on its light fill, readable
             in every theme, and pulses a ring round it, never its label. */}
         <button
           onClick={handleRevealAll}
           className={`touch-target relative flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
             confirmRevealAll
-              ? 'bg-lime-500 text-stone-900'
-              : 'bg-stone-700/50 text-stone-300 border border-stone-600/50 hover:bg-lime-700/30 hover:text-lime-400'
+              ? 'bg-brand text-brand-text'
+              : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-success/20 hover:text-success-ink'
           }`}
           title={confirmRevealAll ? 'Click again to confirm: reveal entire map' : 'Reveal all — show entire map to players'}
           aria-label="Reveal entire map"
           onBlur={() => setConfirmRevealAll(false)}
         >
-          {confirmRevealAll && <ConfirmPulse ring="ring-lime-300" />}
+          {confirmRevealAll && <ConfirmPulse ring="ring-brand" />}
           {confirmRevealAll ? 'Confirm?' : 'Reveal all'}
         </button>
         <button
           onClick={handleHideAll}
           className={`touch-target relative flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
             confirmHideAll
-              ? 'bg-warning text-stone-900'
-              : 'bg-stone-700/50 text-stone-300 border border-stone-600/50 hover:bg-warning/30 hover:text-warning-ink'
+              ? 'bg-accent text-accent-text'
+              : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-accent/20 hover:text-accent-ink'
           }`}
           title={confirmHideAll ? 'Click again to confirm: hide entire map' : 'Hide all — cover entire map with fog'}
           aria-label="Hide entire map"
           onBlur={() => setConfirmHideAll(false)}
         >
-          {confirmHideAll && <ConfirmPulse ring="ring-warning" />}
+          {confirmHideAll && <ConfirmPulse ring="ring-accent" />}
           {confirmHideAll ? 'Confirm?' : 'Hide all'}
         </button>
       </div>
@@ -201,22 +201,22 @@ export default function GmFogControls({
       {/* Explored memory is separate from fog: it is what players' own
           vision has uncovered on a lit map, and only the GM can forget it. */}
       {onResetExploration && (
-        <div className="pt-1 border-t border-stone-700/50">
+        <div className="pt-1 border-t border-moss-green/20">
           <button
             onClick={handleResetExploration}
             className={`touch-target relative w-full px-2 py-1 rounded text-xs font-medium transition-colors ${
               confirmReset
-                ? 'bg-warning text-stone-900'
-                : 'bg-stone-700/50 text-stone-300 border border-stone-600/50 hover:bg-warning/30 hover:text-warning-ink'
+                ? 'bg-accent text-accent-text'
+                : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-accent/20 hover:text-accent-ink'
             }`}
             title={confirmReset ? 'Click again to confirm: forget what every player has seen' : 'Reset explored areas: players forget what they have seen of this map'}
             aria-label="Reset explored areas"
             onBlur={() => setConfirmReset(false)}
           >
-            {confirmReset && <ConfirmPulse ring="ring-warning" />}
+            {confirmReset && <ConfirmPulse ring="ring-accent" />}
             {confirmReset ? 'Confirm?' : 'Reset explored areas'}
           </button>
-          <p className="px-1 mt-1 text-[10px] leading-snug text-stone-500">
+          <p className="px-1 mt-1 text-[10px] leading-snug text-ink-muted">
             Forgets what every player has seen of this map. Their view now is unchanged.
           </p>
         </div>

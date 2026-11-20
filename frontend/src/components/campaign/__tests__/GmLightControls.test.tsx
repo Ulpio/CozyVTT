@@ -58,6 +58,17 @@ describe('GmLightControls', () => {
     expect(darkSwitch()).toBeDisabled();
   });
 
+  it('says why the Dark switch is disabled while dynamic lighting is off', () => {
+    renderPanel({ lightingEnabled: false });
+    expect(screen.getByText(/Turn on the map/)).toBeTruthy();
+    expect(darkSwitch().closest('[title]')).toHaveAttribute('title', expect.stringMatching(/Turn on the map/));
+  });
+
+  it('shows no such hint while lighting is on', () => {
+    renderPanel();
+    expect(screen.queryByText(/Turn on the map/)).toBeNull();
+  });
+
   it('shows the Dark switch on, when Global Illumination is off', () => {
     renderPanel({ globalIllumination: false });
     expect(darkSwitch()).toHaveAttribute('aria-checked', 'true');

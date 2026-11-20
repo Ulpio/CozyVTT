@@ -61,11 +61,11 @@ export interface GmWallControlsProps {
 }
 
 const WALL_TYPE_COLORS: Record<WallType, string> = {
-  'wall':        'bg-orange-500/20 text-orange-400 border-orange-500/50',
-  'door-closed': 'bg-violet-500/20 text-violet-400 border-violet-500/50',
-  'door-open':   'bg-green-500/20 text-green-400 border-green-500/50',
-  'door-locked': 'bg-red-500/20 text-red-400 border-red-500/50',
-  'window':      'bg-blue-400/20 text-blue-300 border-blue-400/50',
+  'wall':        'bg-warning/25 text-warning-ink border-warning/50',
+  'door-closed': 'bg-spirit/25 text-spirit-ink border-spirit/50',
+  'door-open':   'bg-success/25 text-success-ink border-success/50',
+  'door-locked': 'bg-danger/25 text-danger-ink border-danger/50',
+  'window':      'bg-info/25 text-info-ink border-info/50',
 };
 
 const WALL_TYPE_LABELS: Record<WallType, string> = {
@@ -79,7 +79,7 @@ const WALL_TYPE_LABELS: Record<WallType, string> = {
 const ALL_WALL_TYPES: WallType[] = ['wall', 'door-closed', 'door-open', 'door-locked', 'window'];
 
 /** Done, which ends a line or closes a polygon. */
-const FINISH_BUTTON = 'touch-target px-2 py-1.5 rounded text-xs font-medium transition-colors border bg-emerald-600/30 text-emerald-300 border-emerald-500/50 hover:bg-emerald-600/40 disabled:opacity-40 disabled:cursor-not-allowed';
+const FINISH_BUTTON = 'touch-target px-2 py-1.5 rounded text-xs font-medium transition-colors border bg-success/25 text-success-ink border-success/50 hover:bg-success/35 disabled:opacity-40 disabled:cursor-not-allowed';
 
 export default function GmWallControls({
   wallMode,
@@ -141,26 +141,26 @@ export default function GmWallControls({
   };
 
   return (
-    <div className="flex flex-col gap-0 bg-stone-800/90 rounded-lg border border-warm-amber/20 min-w-[200px] overflow-hidden">
+    <div className="flex flex-col gap-0 bg-surface/95 rounded-lg border border-moss-green/25 min-w-[200px] overflow-hidden">
       {/* Header with collapse toggle */}
       <button
         type="button"
         aria-expanded={!collapsed}
         aria-controls={bodyId}
-        className="w-full flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-stone-700/50 select-none"
+        className="w-full flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-moss-green/10 select-none"
         onClick={() => {
           const next = !collapsed;
           setCollapsed(next);
           if (next) onCollapse?.();
         }}
       >
-        <span className="text-xs text-amber-300 font-medium uppercase tracking-wide">
+        <span className="text-xs text-brand-ink font-medium uppercase tracking-wide">
           Walls
           {wallCount > 0 && (
-            <>{' '}<span className="text-stone-400 normal-case">({wallCount})</span></>
+            <>{' '}<span className="text-ink-muted normal-case">({wallCount})</span></>
           )}
         </span>
-        <span className="text-stone-400 text-xs" aria-hidden="true">{collapsed ? '▶' : '▼'}</span>
+        <span className="text-ink-muted text-xs" aria-hidden="true">{collapsed ? '▶' : '▼'}</span>
       </button>
 
       {!collapsed && (
@@ -171,8 +171,8 @@ export default function GmWallControls({
               onClick={() => toggleMode('wall-draw')}
               className={`px-2 py-1.5 rounded text-xs font-medium transition-colors border ${
                 wallMode === 'wall-draw'
-                  ? 'bg-orange-600/30 text-orange-400 border-orange-500/50'
-                  : 'bg-stone-700/50 text-stone-300 border-stone-600/50 hover:bg-stone-700'
+                  ? 'bg-warning/25 text-warning-ink border-warning/50'
+                  : 'bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10'
               }`}
               title="Draw walls — click to place points, double-click to finish"
               aria-label="Wall draw mode"
@@ -183,8 +183,8 @@ export default function GmWallControls({
               onClick={() => toggleMode('wall-select')}
               className={`px-2 py-1.5 rounded text-xs font-medium transition-colors border ${
                 wallMode === 'wall-select'
-                  ? 'bg-sky-600/30 text-sky-400 border-sky-500/50'
-                  : 'bg-stone-700/50 text-stone-300 border-stone-600/50 hover:bg-stone-700'
+                  ? 'bg-info/25 text-info-ink border-info/50'
+                  : 'bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10'
               }`}
               title="Select a wall segment to change its type or delete it"
               aria-label="Wall select mode"
@@ -195,8 +195,8 @@ export default function GmWallControls({
               onClick={() => toggleMode('wall-split')}
               className={`px-2 py-1.5 rounded text-xs font-medium transition-colors border ${
                 wallMode === 'wall-split'
-                  ? 'bg-yellow-600/30 text-yellow-400 border-yellow-500/50'
-                  : 'bg-stone-700/50 text-stone-300 border-stone-600/50 hover:bg-stone-700'
+                  ? 'bg-warning/25 text-warning-ink border-warning/50'
+                  : 'bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10'
               }`}
               title="Split a wall segment — hover over a wall to preview the split point, click to split"
               aria-label="Wall split mode"
@@ -207,8 +207,8 @@ export default function GmWallControls({
               onClick={() => toggleMode('wall-erase')}
               className={`px-2 py-1.5 rounded text-xs font-medium transition-colors border ${
                 wallMode === 'wall-erase'
-                  ? 'bg-red-600/30 text-red-400 border-red-500/50'
-                  : 'bg-stone-700/50 text-stone-300 border-stone-600/50 hover:bg-stone-700'
+                  ? 'bg-danger/25 text-danger-ink border-danger/50'
+                  : 'bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10'
               }`}
               title="Erase walls — drag to brush-erase multiple segments"
               aria-label="Wall erase mode"
@@ -222,8 +222,8 @@ export default function GmWallControls({
               onClick={() => toggleMode('wall-polygon')}
               className={`px-2 py-1.5 rounded text-xs font-medium transition-colors border ${
                 wallMode === 'wall-polygon'
-                  ? 'bg-emerald-600/30 text-emerald-400 border-emerald-500/50'
-                  : 'bg-stone-700/50 text-stone-300 border-stone-600/50 hover:bg-stone-700'
+                  ? 'bg-success/25 text-success-ink border-success/50'
+                  : 'bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10'
               }`}
               title="Polygon mode — click corners to draw a closed room perimeter"
               aria-label="Polygon wall mode"
@@ -234,8 +234,8 @@ export default function GmWallControls({
               onClick={() => toggleMode('wall-brush')}
               className={`px-2 py-1.5 rounded text-xs font-medium transition-colors border ${
                 wallMode === 'wall-brush'
-                  ? 'bg-teal-600/30 text-teal-400 border-teal-500/50'
-                  : 'bg-stone-700/50 text-stone-300 border-stone-600/50 hover:bg-stone-700'
+                  ? 'bg-success/25 text-success-ink border-success/50'
+                  : 'bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10'
               }`}
               title="Brush mode — paint over walls to trace them. Use snap-to-grid for straight walls."
               aria-label="Brush wall mode"
@@ -276,7 +276,7 @@ export default function GmWallControls({
               <button
                 type="button"
                 onClick={onDropPolygon}
-                className="touch-target px-2 py-1.5 rounded text-xs font-medium transition-colors border bg-stone-700/50 text-stone-300 border-stone-600/50 hover:bg-stone-700"
+                className="touch-target px-2 py-1.5 rounded text-xs font-medium transition-colors border bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10"
                 title="Drop the corners, as Esc does"
               >
                 Cancel
@@ -287,7 +287,7 @@ export default function GmWallControls({
           {/* Brush size slider (brush mode) */}
           {wallMode === 'wall-brush' && onBrushSizeChange && (
             <div className="flex flex-col gap-0.5">
-              <div className="flex justify-between text-xs text-stone-400 px-1">
+              <div className="flex justify-between text-xs text-ink-muted px-1">
                 <span>Brush size</span>
                 <span>{brushSize}px</span>
               </div>
@@ -298,7 +298,7 @@ export default function GmWallControls({
                 step={2}
                 value={brushSize}
                 onChange={(e) => onBrushSizeChange(Number(e.target.value))}
-                className="w-full accent-teal-500"
+                className="w-full accent-success"
                 aria-label="Brush size for wall painting"
               />
             </div>
@@ -307,10 +307,10 @@ export default function GmWallControls({
           {/* The selection: its type, when it is all one, and Delete, for
               any selection, as the Delete key. */}
           {wallMode === 'wall-select' && selectedCount > 0 && (
-            <div className="flex flex-col gap-1 pt-1 border-t border-sky-500/30">
+            <div className="flex flex-col gap-1 pt-1 border-t border-info/30">
               {selectedSegmentType != null && (
                 <>
-                  <span className="text-xs text-sky-300 px-1">Change type</span>
+                  <span className="text-xs text-info-ink px-1">Change type</span>
                   <div className="grid grid-cols-2 gap-1">
                     {ALL_WALL_TYPES.map((t) => (
                       <button
@@ -319,7 +319,7 @@ export default function GmWallControls({
                         className={`px-2 py-1 rounded text-xs font-medium transition-colors border ${
                           selectedSegmentType === t
                             ? WALL_TYPE_COLORS[t]
-                            : 'bg-stone-700/50 text-stone-400 border-stone-600/50 hover:bg-stone-700'
+                            : 'bg-surface-light/60 text-ink-muted border-moss-green/30 hover:bg-moss-green/10'
                         }`}
                         aria-label={`Set type: ${WALL_TYPE_LABELS[t]}`}
                       >
@@ -331,7 +331,7 @@ export default function GmWallControls({
               )}
               <button
                 onClick={onDeleteSelected}
-                className="w-full touch-target px-2 py-1 mt-0.5 rounded-sm text-xs font-medium bg-red-700/30 text-red-400 border border-red-500/40 hover:bg-red-700/50 transition-colors"
+                className="w-full touch-target px-2 py-1 mt-0.5 rounded-sm text-xs font-medium bg-danger/25 text-danger-ink border border-danger/40 hover:bg-danger/35 transition-colors"
                 title={selectedCount === 1 ? 'Delete the selected wall segment' : `Delete the ${selectedCount} selected wall segments`}
               >
                 {selectedCount === 1 ? 'Delete segment' : `Delete ${selectedCount} segments`}
@@ -346,31 +346,31 @@ export default function GmWallControls({
                 type="checkbox"
                 checked={addToSelection}
                 onChange={(e) => onAddToSelectionChange(e.target.checked)}
-                className="accent-sky-500"
+                className="accent-info"
               />
-              <span className="text-xs text-stone-300">Add to selection</span>
+              <span className="text-xs text-ink">Add to selection</span>
             </label>
           )}
 
           {/* Selected endpoint — merge option (wall-select mode, endpoint clicked) */}
           {wallMode === 'wall-select' && selectedEndpoint != null && selectedSegmentType == null && (
-            <div className="flex flex-col gap-1 pt-1 border-t border-sky-500/30">
-              <span className="text-xs text-sky-300 px-1">Selected point</span>
+            <div className="flex flex-col gap-1 pt-1 border-t border-info/30">
+              <span className="text-xs text-info-ink px-1">Selected point</span>
               <button
                 onClick={onMergeEndpoint}
-                className="w-full px-2 py-1 rounded-sm text-xs font-medium bg-sky-700/30 text-sky-300 border border-sky-500/40 hover:bg-sky-700/50 transition-colors"
+                className="w-full px-2 py-1 rounded-sm text-xs font-medium bg-info/25 text-info-ink border border-info/40 hover:bg-info/35 transition-colors"
                 aria-label="Merge wall segments at this point"
               >
                 Merge point
               </button>
-              <span className="text-[10px] text-stone-300 px-1">Remove this point and join the two segments into one straight wall</span>
+              <span className="text-[10px] text-ink px-1">Remove this point and join the two segments into one straight wall</span>
             </div>
           )}
 
           {/* Wall type selector (draw, polygon, brush modes) */}
           {(wallMode === 'wall-draw' || wallMode === 'wall-polygon' || wallMode === 'wall-brush') && (
             <div className="flex flex-col gap-1">
-              <span className="text-xs text-stone-400 px-1">Draw type</span>
+              <span className="text-xs text-ink-muted px-1">Draw type</span>
               <div className="grid grid-cols-2 gap-1">
                 {ALL_WALL_TYPES.map((t) => (
                   <button
@@ -379,7 +379,7 @@ export default function GmWallControls({
                     className={`px-2 py-1 rounded text-xs font-medium transition-colors border ${
                       wallType === t
                         ? WALL_TYPE_COLORS[t]
-                        : 'bg-stone-700/50 text-stone-400 border-stone-600/50 hover:bg-stone-700'
+                        : 'bg-surface-light/60 text-ink-muted border-moss-green/30 hover:bg-moss-green/10'
                     }`}
                     aria-label={`Wall type: ${WALL_TYPE_LABELS[t]}`}
                   >
@@ -396,7 +396,7 @@ export default function GmWallControls({
               <button
                 onClick={onUndo}
                 disabled={!canUndo}
-                className="flex-1 px-2 py-1 rounded-sm text-xs font-medium bg-stone-700/50 text-stone-300 border border-stone-600/50 hover:bg-stone-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 px-2 py-1 rounded-sm text-xs font-medium bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-moss-green/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Undo the last corner, the line being drawn or the last wall change (Ctrl+Z)"
                 aria-label="Undo wall edit"
               >
@@ -405,7 +405,7 @@ export default function GmWallControls({
               <button
                 onClick={onRedo}
                 disabled={!canRedo}
-                className="flex-1 px-2 py-1 rounded-sm text-xs font-medium bg-stone-700/50 text-stone-300 border border-stone-600/50 hover:bg-stone-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 px-2 py-1 rounded-sm text-xs font-medium bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-moss-green/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Redo wall change (Ctrl+Y)"
                 aria-label="Redo wall edit"
               >
@@ -416,7 +416,7 @@ export default function GmWallControls({
 
           {/* Wall color picker */}
           <div className="flex flex-col gap-1">
-            <span className="text-xs text-stone-400 px-1">Wall color</span>
+            <span className="text-xs text-ink-muted px-1">Wall color</span>
             <div className="flex gap-1 flex-wrap px-1">
               {WALL_PRESET_COLORS.map((c) => (
                 <button
@@ -454,7 +454,7 @@ export default function GmWallControls({
               className="accent-warm-amber"
               aria-label="Snap wall points to grid"
             />
-            <span className="text-xs text-stone-300">Snap to grid</span>
+            <span className="text-xs text-ink">Snap to grid</span>
           </label>
 
           {/* Snap to nearest endpoint — only available when grid snap is off */}
@@ -467,18 +467,18 @@ export default function GmWallControls({
               className="accent-warm-amber"
               aria-label="Snap wall points to nearest existing endpoint"
             />
-            <span className="text-xs text-stone-300">Snap to endpoint</span>
+            <span className="text-xs text-ink">Snap to endpoint</span>
           </label>
 
           {/* Clear all */}
           {wallCount > 0 && (
-            <div className="pt-1 border-t border-stone-700/50">
+            <div className="pt-1 border-t border-moss-green/20">
               <button
                 onClick={handleClearAll}
                 className={`w-full px-2 py-1 rounded text-xs font-medium transition-colors ${
                   confirmClear
-                    ? 'bg-red-500 text-white animate-pulse'
-                    : 'bg-stone-700/50 text-stone-300 border border-stone-600/50 hover:bg-red-700/30 hover:text-red-400'
+                    ? 'bg-danger-fill text-white animate-pulse'
+                    : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-danger/20 hover:text-danger-ink'
                 }`}
                 title={confirmClear ? 'Click again to confirm: delete all walls' : 'Delete all wall segments'}
                 aria-label="Clear all wall segments"
