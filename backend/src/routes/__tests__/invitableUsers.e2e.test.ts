@@ -170,7 +170,7 @@ describe('GET /api/campaigns/:campaignId/invitable-users', () => {
     expect(twice.status).toBe(400);
     const long = await search('x'.repeat(51));
     expect(long.status).toBe(400);
-    expect(long.body.message).toMatch(/50 characters/);
+    expect(long.body.message).toMatch(/50 caracteres/);
   });
 });
 
@@ -178,7 +178,7 @@ describe('POST /api/campaigns/:campaignId/invite', () => {
   it('will not invite an account still waiting for approval, answering as for no account', async () => {
     const res = await gm.post(`/api/campaigns/${campaignId}/invite`).send({ userId: pendingApprovalId });
     expect(res.status).toBe(404);
-    expect(res.body.message).toBe('User not found');
+    expect(res.body.message).toBe('Usuário não encontrado.');
     expect(await prisma.campaignInvitation.count({ where: { campaignId, userId: pendingApprovalId } })).toBe(0);
   });
 });

@@ -32,7 +32,7 @@ export const TOKEN_DISPLAY_MODES = ['pog', 'top-down', 'full-art'] as const;
  * an asset uploaded as a token picture: a token's, a token template's, a
  * creature's, a character's or a character template's.
  */
-export const TOKEN_IMAGE_NOT_A_TOKEN_PICTURE_MESSAGE = 'The token image must be a token picture from the asset library.';
+export const TOKEN_IMAGE_NOT_A_TOKEN_PICTURE_MESSAGE = 'A imagem do token deve ser uma imagem de token da biblioteca.';
 
 export const TokenSizeSchema = z.object({
   width: z.number().int().min(1).max(10),
@@ -74,7 +74,7 @@ export const TokenSightRadiusSchema = z.number().min(0).max(200);
 /** Arbitrary per-token data. Bounded, since nothing reads it structurally. */
 export const TokenMetadataSchema = z.record(z.string(), z.unknown()).refine(
   (value) => JSON.stringify(value).length <= 8000,
-  { message: 'Token metadata is too large (8KB maximum)' }
+  { message: 'Os metadados do token são grandes demais (máximo de 8 KB).' }
 );
 
 /**
@@ -87,8 +87,8 @@ export const TokenMetadataSchema = z.record(z.string(), z.unknown()).refine(
  * the map with clampTokenPosition.
  */
 export const TokenPositionSchema = z.object({
-  x: z.number().int('must be a whole number of squares'),
-  y: z.number().int('must be a whole number of squares'),
+  x: z.number().int('deve ser um número inteiro de quadrados'),
+  y: z.number().int('deve ser um número inteiro de quadrados'),
 });
 
 /** Which way a token faces, in degrees. */
@@ -151,13 +151,13 @@ export function validateTokenShapes(
     if (raw === undefined) return { parsed: undefined };
     if (raw === null) {
       if (nullable) return { parsed: null };
-      return { failed: `Token ${field} must not be null` };
+      return { failed: `O campo ${field} do token não pode ser nulo.` };
     }
     const result = schema.safeParse(raw);
     if (!result.success) {
       const issue = result.error.issues[0];
       const path = issue?.path.length ? ` (${issue.path.join('.')})` : '';
-      return { failed: `Invalid token ${field}${path}: ${issue?.message ?? 'invalid'}` };
+      return { failed: `Campo ${field}${path} do token inválido: ${issue?.message ?? 'inválido'}.` };
     }
     return { parsed: result.data };
   };

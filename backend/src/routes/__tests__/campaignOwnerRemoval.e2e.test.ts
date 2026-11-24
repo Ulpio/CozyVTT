@@ -81,7 +81,7 @@ describe('a GM who does not own the campaign', () => {
   it('cannot remove the owner', async () => {
     const res = await coHost.delete(`/api/campaigns/${campaignId}/members/${ownerId}`);
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Bad Request', message: 'Cannot remove the campaign owner from their own campaign' });
+    expect(res.body).toEqual({ error: 'Bad Request', message: 'Não é possível remover o dono da própria campanha.' });
 
     const still = await prisma.campaignMembership.findUnique({
       where: { userId_campaignId: { userId: ownerId, campaignId } },
@@ -101,7 +101,7 @@ describe('a GM who does not own the campaign', () => {
     // An owner in the GM seat is refused for the seat, which is checked first.
     const self = await owner.delete(`/api/campaigns/${campaignId}/members/${ownerId}`);
     expect(self.status).toBe(400);
-    expect(self.body).toEqual({ error: 'Bad Request', message: 'Cannot remove the GM from the campaign' });
+    expect(self.body).toEqual({ error: 'Bad Request', message: 'Não é possível remover o mestre da campanha.' });
 
     // Put the co-host back in the seat for the test that follows.
     await owner.put(`/api/campaigns/${campaignId}/gm`).send({ userId: coHostId });
@@ -110,13 +110,13 @@ describe('a GM who does not own the campaign', () => {
   it('cannot remove themselves, the GM', async () => {
     const res = await coHost.delete(`/api/campaigns/${campaignId}/members/${coHostId}`);
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Bad Request', message: 'Cannot remove the GM from the campaign' });
+    expect(res.body).toEqual({ error: 'Bad Request', message: 'Não é possível remover o mestre da campanha.' });
   });
 
   it('answers 404 for someone who is not a member', async () => {
     const res = await coHost.delete(`/api/campaigns/${campaignId}/members/${randomUUID()}`);
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Not Found', message: 'User is not a member of this campaign' });
+    expect(res.body).toEqual({ error: 'Not Found', message: 'Esse usuário não é membro desta campanha.' });
   });
 
   it('can still remove an ordinary player', async () => {

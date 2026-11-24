@@ -176,7 +176,7 @@ describe('a Horror d100 sheet in the shape before 1.7.0', () => {
     const before = await prisma.character.count({ where: { userId: ownerId } });
     const res = await owner.post('/api/characters').send({ name: 'Broken', gameSystem: 'HORROR_D100', data: fixture('malformed') });
     expect(res.status).toBe(400);
-    expect(res.body.message).toBe('Character data does not match game system schema');
+    expect(res.body.message).toBe('Os dados do personagem não seguem o esquema do sistema de jogo.');
     expect(await prisma.character.count({ where: { userId: ownerId } })).toBe(before);
 
     const id = await storedCharacter(getBlankTemplate('HORROR_D100').data);

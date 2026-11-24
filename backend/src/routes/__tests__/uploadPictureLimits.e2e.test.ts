@@ -71,32 +71,32 @@ async function expectRefused(type: string, bytes: Buffer, filename: string, mess
 describe('an uploaded picture over the limits', () => {
   it('is refused when a GIF token has more than 1,000 frames', async () => {
     await expectRefused('TOKEN', craftedGif({ width: 10, height: 10, frames: 1_001 }), 'spinner.gif',
-      'This animation has 1,001 frames. An animated picture can have at most 1,000.');
+      'Esta animação tem 1.001 quadros. Uma imagem animada pode ter no máximo 1.000 quadros.');
   });
 
   it('is refused when a GIF token is more than 50 million pixels across its frames', async () => {
     await expectRefused('TOKEN', craftedGif({ width: 5_001, height: 10, frames: 1_000 }), 'banner.gif',
-      'This animation is 50.1 million pixels across its frames. An animated token picture can be at most 50 million.');
+      'Esta animação tem 50,1 milhões de pixels somando todos os quadros. Uma imagem de token animada pode ter no máximo 50 milhões.');
   });
 
   it('is refused when an animated WebP map is more than 200 million pixels across its frames', async () => {
     await expectRefused('MAP', await craftedAnimatedWebp({ width: 16_000, height: 125, frames: 101 }), 'river.webp',
-      'This animation is 202 million pixels across its frames. An animated map can be at most 200 million.');
+      'Esta animação tem 202 milhões de pixels somando todos os quadros. Um mapa animado pode ter no máximo 200 milhões.');
   });
 
   it('is refused when an animated WebP avatar is more than 50 million pixels across its frames', async () => {
     await expectRefused('AVATAR', await craftedAnimatedWebp({ width: 5_001, height: 10, frames: 1_000 }), 'me.webp',
-      'This animation is 50.1 million pixels across its frames. An animated avatar can be at most 50 million.');
+      'Esta animação tem 50,1 milhões de pixels somando todos os quadros. Um avatar animado pode ter no máximo 50 milhões.');
   });
 
   it('is refused when a still map is more than 16,384 pixels wide', async () => {
     await expectRefused('MAP', await plainPng(16_385, 1), 'strip.png',
-      'This picture is 16,385 pixels wide. A picture can be at most 16,384 pixels on each side.');
+      'Esta imagem tem 16.385 pixels de largura. Uma imagem pode ter no máximo 16.384 pixels de cada lado.');
   });
 
   it('is refused when a GIF\'s screen is wider than 16,384 pixels, however small its frames', async () => {
     await expectRefused('TOKEN', craftedGif({ width: 20_000, height: 10, frames: 2 }), 'wide.gif',
-      'This picture is 20,000 pixels wide. A picture can be at most 16,384 pixels on each side.');
+      'Esta imagem tem 20.000 pixels de largura. Uma imagem pode ter no máximo 16.384 pixels de cada lado.');
   });
 });
 

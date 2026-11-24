@@ -17,20 +17,20 @@ import { z } from 'zod';
 import { MAX_CHAT_MESSAGE_LENGTH } from './chatLimits';
 import { normaliseMessageType } from '../legacy/gameSystemAliases';
 
-export const CHAT_CONTENT_REFUSAL = 'Message content required';
-export const CHAT_TOO_LONG_REFUSAL = `Message too long. Maximum ${MAX_CHAT_MESSAGE_LENGTH} characters.`;
-export const CHAT_TYPE_REFUSAL = 'Invalid message type. Must be PLAYER or GM.';
-export const CHAT_CLIENT_ID_REFUSAL = 'clientId must be 1 to 64 letters, digits, hyphens or underscores';
+export const CHAT_CONTENT_REFUSAL = 'Escreva uma mensagem.';
+export const CHAT_TOO_LONG_REFUSAL = `Mensagem longa demais. O máximo é ${MAX_CHAT_MESSAGE_LENGTH} caracteres.`;
+export const CHAT_TYPE_REFUSAL = 'Tipo de mensagem inválido. Deve ser PLAYER ou GM.';
+export const CHAT_CLIENT_ID_REFUSAL = 'clientId deve ter de 1 a 64 letras, dígitos, hífens ou sublinhados';
 
 /** What a whisper to its own sender is answered. */
-export const WHISPER_SELF_REFUSAL = 'You cannot whisper to yourself';
+export const WHISPER_SELF_REFUSAL = 'Você não pode sussurrar para si mesmo.';
 /**
  * What a whisper to anyone but a current member is answered: someone outside
  * the campaign, someone removed from it, an id that names nobody or is not
  * an id at all. One answer for all of them, so it tells a script nothing
  * about who has an account.
  */
-export const WHISPER_RECIPIENT_REFUSAL = 'That person is not in this campaign';
+export const WHISPER_RECIPIENT_REFUSAL = 'Essa pessoa não está nesta campanha.';
 
 /**
  * The types a client may ask for: a player's message, or the GM's. The GM's

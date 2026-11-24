@@ -1019,7 +1019,7 @@ describe('chat', () => {
     const player = await server.connectAndAuth(player1Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('chat.message', { content: 'hi', type: 'SYSTEM' });
-    expect((await denial).message).toBe('Invalid message type. Must be PLAYER or GM.');
+    expect((await denial).message).toBe('Tipo de mensagem inválido. Deve ser PLAYER ou GM.');
     player.disconnect();
   });
 

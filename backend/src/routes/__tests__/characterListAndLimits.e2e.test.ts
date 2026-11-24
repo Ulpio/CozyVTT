@@ -33,7 +33,7 @@ afterAll(async () => {
 });
 
 const LIMIT_MESSAGE =
-  'You already have 1000 characters, the most one account can. Delete one you no longer need to make room.';
+  'Você já tem 1000 personagens, o máximo que uma conta pode ter. Exclua um de que não precise mais para abrir espaço.';
 
 describe('GET /api/characters', () => {
   it('lists characters without their sheets, and serves the sheet by id', async () => {

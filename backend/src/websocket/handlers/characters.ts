@@ -37,7 +37,7 @@ import { CharacterTemporaryHpSchema, TEMPORARY_HP_PAYLOAD_REFUSAL } from '../../
 const MAX_HP_DELTA = 100_000;
 
 const CharacterRestSchema = z.object({
-  characterIds: z.array(z.string().min(1).max(100)).min(1, 'characterIds is required').max(50),
+  characterIds: z.array(z.string().min(1).max(100)).min(1, 'Informe ao menos um personagem.').max(50),
   kind: z.enum(['short', 'long']),
 });
 

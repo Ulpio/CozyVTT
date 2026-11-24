@@ -90,13 +90,13 @@ async function importOne(type: 'MAP' | 'TOKEN', originalName: string, mimeType: 
 describe('a picture in a campaign archive over the limits', () => {
   it.each([
     ['a GIF token of 1,001 frames', 'TOKEN', 'spinner.gif', 'image/gif', () => craftedGif({ width: 10, height: 10, frames: 1_001 }),
-      'This animation has 1,001 frames. An animated picture can have at most 1,000.'],
+      'Esta animação tem 1.001 quadros. Uma imagem animada pode ter no máximo 1.000 quadros.'],
     ['a GIF token of over 50 million pixels across its frames', 'TOKEN', 'banner.gif', 'image/gif', () => craftedGif({ width: 5_001, height: 10, frames: 1_000 }),
-      'This animation is 50.1 million pixels across its frames. An animated token picture can be at most 50 million.'],
+      'Esta animação tem 50,1 milhões de pixels somando todos os quadros. Uma imagem de token animada pode ter no máximo 50 milhões.'],
     ['an animated WebP map of over 200 million pixels', 'MAP', 'river.webp', 'image/webp', () => craftedAnimatedWebp({ width: 16_000, height: 125, frames: 101 }),
-      'This animation is 202 million pixels across its frames. An animated map can be at most 200 million.'],
+      'Esta animação tem 202 milhões de pixels somando todos os quadros. Um mapa animado pode ter no máximo 200 milhões.'],
     ['a still map 16,385 pixels wide', 'MAP', 'strip.png', 'image/png', () => plainPng(16_385, 1),
-      'This picture is 16,385 pixels wide. A picture can be at most 16,384 pixels on each side.'],
+      'Esta imagem tem 16.385 pixels de largura. Uma imagem pode ter no máximo 16.384 pixels de cada lado.'],
   ] as const)('is left out and listed with the reason: %s', async (_label, type, name, mime, make, reason) => {
     const files = filesOnDisk();
     const { skipped, stored } = await importOne(type, name, mime, await make());

@@ -59,16 +59,16 @@ export const MAX_MACROS_PER_CAMPAIGN = 50;
  */
 function explainRefusal(message: string, expression: string): string {
   if (/^Failed to (evaluate|parse) expression/i.test(message)) {
-    return `CozyVTT could not read "${expression}" as a roll. Check for a stray + or -, or a missing number — try something like 2d6+3.`;
+    return `Não foi possível ler "${expression}" como uma rolagem. Procure um + ou - sobrando, ou um número faltando — tente algo como 2d6+3.`;
   }
 
   const token = message.match(/^Invalid token:\s*(.+)$/i);
   if (token) {
-    return `CozyVTT could not read "${token[1]}" as dice. Expressions look like 1d20+5, 2d6+3 or 4d6kh3.`;
+    return `Não foi possível ler "${token[1]}" como dados. Expressões se parecem com 1d20+5, 2d6+3 ou 4d6kh3.`;
   }
 
   if (/^Invalid dice notation/i.test(message)) {
-    return `CozyVTT could not read "${expression}" as dice. Expressions look like 1d20+5, 2d6+3 or 4d6kh3.`;
+    return `Não foi possível ler "${expression}" como dados. Expressões se parecem com 1d20+5, 2d6+3 ou 4d6kh3.`;
   }
 
   return message;
@@ -84,9 +84,9 @@ function explainRefusal(message: string, expression: string): string {
 const rollableExpression = z
   .string()
   .trim()
-  .min(1, 'A macro needs a dice expression')
+  .min(1, 'A rolagem salva precisa de uma expressão de dados.')
   .max(MAX_MACRO_EXPRESSION_LENGTH, {
-    error: `Expression too long. Maximum ${MAX_MACRO_EXPRESSION_LENGTH} characters.`,
+    error: `Expressão longa demais. O máximo é ${MAX_MACRO_EXPRESSION_LENGTH} caracteres.`,
     // Zod runs every check in a chain whether or not an earlier one failed,
     // so without this the parser below would read an over-long expression.
     abort: true,
@@ -100,7 +100,7 @@ const rollableExpression = z
         message:
           error instanceof DiceParserError
             ? explainRefusal(error.message, expression)
-            : `CozyVTT could not read "${expression}" as a roll.`,
+            : `Não foi possível ler "${expression}" como uma rolagem.`,
       });
     }
   });
@@ -108,8 +108,8 @@ const rollableExpression = z
 const macroName = z
   .string()
   .trim()
-  .min(1, 'A macro needs a name')
-  .max(MAX_MACRO_NAME_LENGTH, `Name must be ${MAX_MACRO_NAME_LENGTH} characters or fewer`);
+  .min(1, 'A rolagem salva precisa de um nome.')
+  .max(MAX_MACRO_NAME_LENGTH, `O nome deve ter no máximo ${MAX_MACRO_NAME_LENGTH} caracteres.`);
 
 /**
  * Free text a saved roll keeps of its own: the character it is made as when
@@ -119,15 +119,15 @@ const macroName = z
  */
 const optionalLabel = (label: string, max: number) =>
   z
-    .string({ error: `${label} must be text` })
+    .string({ error: `${label} deve ser texto.` })
     .trim()
-    .max(max, { error: `${label} must be ${max} characters or fewer` })
+    .max(max, { error: `${label} deve ter no máximo ${max} caracteres.` })
     .nullable()
     .transform((text) => text || null)
     .optional();
 
-const characterName = optionalLabel('Character name', MAX_MACRO_CHARACTER_NAME_LENGTH);
-const purpose = optionalLabel('Purpose', MAX_MACRO_PURPOSE_LENGTH);
+const characterName = optionalLabel('Nome do personagem', MAX_MACRO_CHARACTER_NAME_LENGTH);
+const purpose = optionalLabel('Finalidade', MAX_MACRO_PURPOSE_LENGTH);
 
 export const CreateDiceMacroSchema = z.object({
   name: macroName,
@@ -155,7 +155,7 @@ export const UpdateDiceMacroSchema = z
       body.expression !== undefined ||
       body.characterName !== undefined ||
       body.purpose !== undefined,
-    { message: 'Nothing to update: send a name, an expression, a character name or a purpose' }
+    { message: 'Nada para atualizar: envie um nome, uma expressão, um nome de personagem ou uma finalidade.' }
   );
 
 export type CreateDiceMacroInput = z.infer<typeof CreateDiceMacroSchema>;

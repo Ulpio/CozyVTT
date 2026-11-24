@@ -139,13 +139,13 @@ describe('POST /api/characters into a campaign', () => {
     expect(intoFifthEdition.status).toBe(400);
     expect(intoFifthEdition.body).toEqual({
       error: 'Game System Mismatch',
-      message: 'Cannot assign a FANTASY_D20 character to a FIFTH_EDITION campaign. Character and campaign game systems must match.',
+      message: 'Não é possível vincular um personagem FANTASY_D20 a uma campanha FIFTH_EDITION. Os sistemas de jogo do personagem e da campanha devem ser o mesmo.',
     });
 
     const intoFlexible = await owner.post('/api/characters').send({ name: 'Tobin', gameSystem: 'FIFTH_EDITION', campaignId: flexible, data: {} });
     expect(intoFlexible.status).toBe(400);
     expect(intoFlexible.body.message).toBe(
-      'Cannot assign a FIFTH_EDITION character to a flexible campaign. Character and campaign game systems must match.',
+      'Não é possível vincular um personagem FIFTH_EDITION a uma campanha flexível. Os sistemas de jogo do personagem e da campanha devem ser o mesmo.',
     );
 
     expect(await prisma.character.count({ where: { userId: ownerId, name: 'Tobin' } })).toBe(0);
@@ -157,7 +157,7 @@ describe('POST /api/characters with a game system that does not exist', () => {
     const res = await owner.post('/api/characters').send({ name: 'Nobody', gameSystem: 'NOT_A_SYSTEM', data: {} });
 
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Validation Error', message: 'CozyVTT does not support that game system.' });
+    expect(res.body).toEqual({ error: 'Validation Error', message: 'Esse sistema de jogo não é suportado.' });
     expect(await prisma.character.count({ where: { userId: ownerId, name: 'Nobody' } })).toBe(0);
   });
 });

@@ -33,4 +33,4 @@ export function isSupportedGameSystem(value: unknown): value is SupportedGameSys
  * so no system's identifier, the unreleased one's included, reaches a
  * screen from a refusal.
  */
-export const GAME_SYSTEM_NOT_SUPPORTED = 'CozyVTT does not support that game system.';
+export const GAME_SYSTEM_NOT_SUPPORTED = 'Esse sistema de jogo não é suportado.';

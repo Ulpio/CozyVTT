@@ -42,7 +42,7 @@ async function campaignAccess(userId: string, campaignId: string): Promise<{ may
 }
 
 function notFound(res: Response) {
-  return res.status(404).json({ error: 'Not Found', message: 'Campaign not found' });
+  return res.status(404).json({ error: 'Not Found', message: 'Campanha não encontrada.' });
 }
 
 /**
@@ -62,7 +62,7 @@ router.get('/', authenticated, async (req: AuthenticatedRequest, res: Response) 
     return res.status(200).json({ roll: row ? toDto(row) : null });
   } catch (error) {
     logger.error('Error reading ability roll', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to read ability roll' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível ler a rolagem de atributos.' });
   }
 });
 
@@ -76,7 +76,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
     const userId = req.session.userId!;
     const parsed = RollBodySchema.safeParse(req.body ?? {});
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Validation Error', message: 'campaignId must be a campaign id' });
+      return res.status(400).json({ error: 'Validation Error', message: 'campaignId deve ser o ID de uma campanha.' });
     }
     const campaignId = parsed.data.campaignId ?? null;
     const scope = campaignId ?? NO_CAMPAIGN;
@@ -92,7 +92,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
     if (existing) return res.status(200).json({ roll: toDto(existing) });
 
     if (!mayRoll) {
-      return res.status(403).json({ error: 'Forbidden', message: 'This campaign does not allow rolling ability scores' });
+      return res.status(403).json({ error: 'Forbidden', message: 'Esta campanha não permite rolar atributos.' });
     }
 
     const results = Array.from({ length: SCORES }, () => rollDice(EXPRESSION));
@@ -118,7 +118,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
     return res.status(200).json({ roll: toDto(row) });
   } catch (error) {
     logger.error('Error rolling ability scores', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to roll ability scores' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível rolar os atributos.' });
   }
 });
 

@@ -168,7 +168,7 @@ describe('POST /api/campaigns/import', () => {
     const before = await prisma.campaign.count({ where: { ownerId: playerId } });
     const res = await player.post('/api/campaigns/import').field('campaignName', 'x'.repeat(201)).attach('file', exported);
     expect(res.status).toBe(400);
-    expect(res.body.message).toBe('Campaign name must be between 1 and 200 characters.');
+    expect(res.body.message).toBe('O nome da campanha deve ter entre 1 e 200 caracteres.');
     expect(await prisma.campaign.count({ where: { ownerId: playerId } })).toBe(before);
     expect(tempFiles()).toEqual([]);
   });
@@ -267,7 +267,7 @@ describe('POST /api/campaigns/import', () => {
       expect(res.status).toBe(413);
       expect(JSON.parse(res.body)).toEqual({
         error: 'File Too Large',
-        message: 'The archive is larger than 500 MB, the most a campaign archive may be.',
+        message: 'O arquivo é maior que 500 MB, o máximo para um arquivo de campanha.',
       });
       expect(tempFiles()).toEqual([]);
     } finally {

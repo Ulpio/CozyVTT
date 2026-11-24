@@ -64,7 +64,7 @@ function announceCharacter(
 }
 
 /** What a refused Flexible sheet answers, beside the list of its problems. */
-const FLEXIBLE_SHEET_REFUSED = 'Character data does not match the Flexible sheet layout';
+const FLEXIBLE_SHEET_REFUSED = 'Os dados do personagem não seguem o formato da ficha flexível.';
 
 /**
  * The most characters one account may own, copies included. Each one can be
@@ -73,8 +73,8 @@ const FLEXIBLE_SHEET_REFUSED = 'Character data does not match the Flexible sheet
  */
 export const MAX_CHARACTERS_PER_USER = 1000;
 const CHARACTER_LIMIT_REACHED =
-  `You already have ${MAX_CHARACTERS_PER_USER} characters, the most one account can. ` +
-  'Delete one you no longer need to make room.';
+  `Você já tem ${MAX_CHARACTERS_PER_USER} personagens, o máximo que uma conta pode ter. ` +
+  'Exclua um de que não precise mais para abrir espaço.';
 
 /** Refused inside a create's transaction when the owner is at the ceiling. */
 class CharacterLimitReached extends Error {}
@@ -100,8 +100,8 @@ export function copyName(original: string): string {
 function gameSystemMismatch(characterSystem: string | null | undefined, campaignSystem: string | null | undefined) {
   return {
     error: 'Game System Mismatch',
-    message: `Cannot assign a ${characterSystem ?? 'flexible'} character to a ${campaignSystem ?? 'flexible'} campaign. ` +
-      'Character and campaign game systems must match.',
+    message: `Não é possível vincular um personagem ${characterSystem ?? 'flexível'} a uma campanha ${campaignSystem ?? 'flexível'}. ` +
+      'Os sistemas de jogo do personagem e da campanha devem ser o mesmo.',
   };
 }
 
@@ -142,7 +142,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid character data',
+        message: parsed.error.issues[0]?.message ?? 'Dados do personagem inválidos.',
       });
     }
     const { name, data, tokenImageUrl, gameSystem, campaignId, abilityRollId } = parsed.data;
@@ -169,7 +169,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
       if (!campaign) {
         return res.status(404).json({
           error: 'Not Found',
-          message: 'Campaign not found',
+          message: 'Campanha não encontrada.',
         });
       }
 
@@ -182,7 +182,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
       if (!membershipToJoin) {
         return res.status(404).json({
           error: 'Not Found',
-          message: 'Campaign not found',
+          message: 'Campanha não encontrada.',
         });
       }
 
@@ -230,7 +230,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
       if (!validationResult.success) {
         return res.status(400).json({
           error: 'Validation Error',
-          message: 'Character data does not match game system schema',
+          message: 'Os dados do personagem não seguem o esquema do sistema de jogo.',
           validationErrors: validationResult.errors.issues.map((issue) => ({
             path: issue.path.join('.'),
             message: issue.message,
@@ -266,7 +266,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
     // reference is what let a member read a fellow member's private asset:
     // a character pointing at it counted as the campaign using it.
     if (!(await canReferenceAsset(normalizedTokenImageUrl, req.session.userId!))) {
-      return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to that image' });
+      return res.status(403).json({ error: 'Forbidden', message: 'Você não tem acesso a essa imagem.' });
     }
     // And only a token picture, which is what the sheet editors upload (isTokenPicture).
     if (!(await isTokenPicture(normalizedTokenImageUrl))) {
@@ -309,7 +309,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
     if (campaignId) announceCharacter(campaignId, 'character.assigned', character.id, userId);
 
     return res.status(201).json({
-      message: 'Character created successfully',
+      message: 'Personagem criado.',
       character: characterForReader(character, isGm),
     });
   } catch (error) {
@@ -319,7 +319,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
     logger.error('Error creating character', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to create character',
+      message: 'Não foi possível criar o personagem.',
     });
   }
 });
@@ -347,7 +347,7 @@ router.get('/', authenticated, async (req: AuthenticatedRequest, res: Response) 
     logger.error('Error fetching characters', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to fetch characters',
+      message: 'Não foi possível carregar os personagens.',
     });
   }
 });
@@ -378,12 +378,12 @@ router.get(
         if (!template) {
           return res.status(404).json({
             error: 'Template Not Found',
-            message: `Template '${templateName}' not found for flexible characters`,
+            message: `Modelo '${templateName}' não encontrado para personagens flexíveis.`,
           });
         }
 
         return res.status(200).json({
-          message: 'Template retrieved successfully',
+          message: 'Modelo carregado.',
           ...template,
         });
       }
@@ -397,14 +397,14 @@ router.get(
       const template = getCharacterTemplate(gameSystem, templateName);
 
       return res.status(200).json({
-        message: 'Template retrieved successfully',
+        message: 'Modelo carregado.',
         ...template,
       });
     } catch (error) {
       logger.error('Error fetching character template', { err: error });
       return res.status(500).json({
         error: 'Internal Server Error',
-        message: 'Failed to fetch character template',
+        message: 'Não foi possível carregar o modelo de personagem.',
       });
     }
   }
@@ -445,7 +445,7 @@ router.get('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
     if (!character) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Character not found',
+        message: 'Personagem não encontrado.',
       });
     }
 
@@ -480,13 +480,13 @@ router.get('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
     // Anyone else is answered as if it were not there.
     return res.status(404).json({
       error: 'Not Found',
-      message: 'Character not found',
+      message: 'Personagem não encontrado.',
     });
   } catch (error) {
     logger.error('Error fetching character', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to fetch character',
+      message: 'Não foi possível carregar o personagem.',
     });
   }
 });
@@ -516,14 +516,14 @@ router.get('/:id/validate', authenticated, async (req: AuthenticatedRequest, res
     if (!character) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Character not found',
+        message: 'Personagem não encontrado.',
       });
     }
 
     if (!(await mayReadCharacter(character, userId))) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Character not found',
+        message: 'Personagem não encontrado.',
       });
     }
 
@@ -531,7 +531,7 @@ router.get('/:id/validate', authenticated, async (req: AuthenticatedRequest, res
     if (character.userId !== userId) {
       return res.status(403).json({
         error: 'Forbidden',
-        message: 'You do not have permission to validate this character',
+        message: 'Você não tem permissão para validar este personagem.',
       });
     }
 
@@ -564,7 +564,7 @@ router.get('/:id/validate', authenticated, async (req: AuthenticatedRequest, res
     logger.error('Error validating character', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to validate character',
+      message: 'Não foi possível validar o personagem.',
     });
   }
 });
@@ -584,7 +584,7 @@ router.put('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid character data',
+        message: parsed.error.issues[0]?.message ?? 'Dados do personagem inválidos.',
       });
     }
     const { name, data, tokenImageUrl, gameSystem, updatedAt: loadedAt } = parsed.data;
@@ -597,14 +597,14 @@ router.put('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
     if (!character) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Character not found',
+        message: 'Personagem não encontrado.',
       });
     }
 
     if (!(await mayReadCharacter(character, userId))) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Character not found',
+        message: 'Personagem não encontrado.',
       });
     }
 
@@ -620,7 +620,7 @@ router.put('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
     if (membership?.role === 'SPECTATOR') {
       return res.status(403).json({
         error: 'Forbidden',
-        message: 'Spectators cannot edit a character in this campaign',
+        message: 'Espectadores não podem editar um personagem desta campanha.',
       });
     }
     const isAuthorized =
@@ -633,7 +633,7 @@ router.put('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
     if (!isAuthorized) {
       return res.status(403).json({
         error: 'Forbidden',
-        message: 'You do not have permission to edit this character',
+        message: 'Você não tem permissão para editar este personagem.',
       });
     }
 
@@ -642,7 +642,7 @@ router.put('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
     if (gameSystem !== undefined && gameSystem !== character.gameSystem) {
       return res.status(400).json({
         error: 'Bad Request',
-        message: 'Cannot change game system after character creation. Create a new character instead.',
+        message: 'Não é possível mudar o sistema de jogo depois de criar o personagem. Crie um novo personagem.',
       });
     }
 
@@ -666,7 +666,7 @@ router.put('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
       if (!validationResult.success) {
         return res.status(400).json({
           error: 'Validation Error',
-          message: 'Character data does not match game system schema',
+          message: 'Os dados do personagem não seguem o esquema do sistema de jogo.',
           validationErrors: validationResult.errors.issues.map((issue) => ({
             path: issue.path.join('.'),
             message: issue.message,
@@ -729,7 +729,7 @@ router.put('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
       const normalizedTokenImageUrl = tokenImageUrl ? normalizeAssetUrl(tokenImageUrl, 'tokens') : null;
       // The picture already on the sheet may be sent back as it is.
       if (!(await canReferenceAsset(normalizedTokenImageUrl, req.session.userId!, character.tokenImageUrl))) {
-        return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to that image' });
+        return res.status(403).json({ error: 'Forbidden', message: 'Você não tem acesso a essa imagem.' });
       }
       if (!(await isTokenPicture(normalizedTokenImageUrl, character.tokenImageUrl))) {
         return res.status(400).json({ error: 'Validation Error', message: TOKEN_IMAGE_NOT_A_TOKEN_PICTURE_MESSAGE });
@@ -752,7 +752,7 @@ router.put('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
         return res.status(409).json({
           error: 'Conflict',
           code: 'CHARACTER_CHANGED',
-          message: 'This character was changed after you loaded it. Load it again and make your change on the new version.',
+          message: 'Este personagem foi alterado depois que você o abriu. Abra-o de novo e faça a mudança na versão nova.',
         });
       }
       updatedCharacter = await prisma.character.findUniqueOrThrow({ where: { id }, include: withCampaign });
@@ -963,14 +963,14 @@ router.put('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
     }
 
     return res.status(200).json({
-      message: 'Character updated successfully',
+      message: 'Personagem atualizado.',
       character: characterForReader(updatedCharacter, isGm),
     });
   } catch (error) {
     logger.error('Error updating character', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to update character',
+      message: 'Não foi possível atualizar o personagem.',
     });
   }
 });
@@ -993,14 +993,14 @@ router.delete('/:id', authenticated, async (req: AuthenticatedRequest, res: Resp
     if (!character) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Character not found',
+        message: 'Personagem não encontrado.',
       });
     }
 
     if (!(await mayReadCharacter(character, userId))) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Character not found',
+        message: 'Personagem não encontrado.',
       });
     }
 
@@ -1008,7 +1008,7 @@ router.delete('/:id', authenticated, async (req: AuthenticatedRequest, res: Resp
     if (character.userId !== userId) {
       return res.status(403).json({
         error: 'Forbidden',
-        message: 'Only the character owner can delete this character',
+        message: 'Só o dono do personagem pode excluí-lo.',
       });
     }
 
@@ -1023,13 +1023,13 @@ router.delete('/:id', authenticated, async (req: AuthenticatedRequest, res: Resp
     if (deletedFrom) announceCharacter(deletedFrom, 'character.deleted', id, userId);
 
     return res.status(200).json({
-      message: 'Character deleted successfully',
+      message: 'Personagem excluído.',
     });
   } catch (error) {
     logger.error('Error deleting character', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to delete character',
+      message: 'Não foi possível excluir o personagem.',
     });
   }
 });
@@ -1051,7 +1051,7 @@ router.post('/:id/assign', authenticated, async (req: AuthenticatedRequest, res:
     if (campaignId !== undefined && campaignId !== null && typeof campaignId !== 'string') {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'campaignId must be a campaign id, or null to unassign',
+        message: 'campaignId deve ser o ID de uma campanha, ou null para desvincular.',
       });
     }
 
@@ -1062,14 +1062,14 @@ router.post('/:id/assign', authenticated, async (req: AuthenticatedRequest, res:
     if (!character) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Character not found',
+        message: 'Personagem não encontrado.',
       });
     }
 
     if (!(await mayReadCharacter(character, userId))) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Character not found',
+        message: 'Personagem não encontrado.',
       });
     }
 
@@ -1091,8 +1091,8 @@ router.post('/:id/assign', authenticated, async (req: AuthenticatedRequest, res:
         return res.status(403).json({
           error: 'Forbidden',
           message: unassigning
-            ? 'Only the character owner, or the GM of its campaign, can take it out of a campaign'
-            : 'Only the character owner can assign this character to a campaign',
+            ? 'Só o dono do personagem, ou o mestre da campanha dele, pode tirá-lo de uma campanha.'
+            : 'Só o dono do personagem pode vinculá-lo a uma campanha.',
         });
       }
     }
@@ -1125,7 +1125,7 @@ router.post('/:id/assign', authenticated, async (req: AuthenticatedRequest, res:
       if (leftCampaignId) announceCharacter(leftCampaignId, 'character.unassigned', id, ownerId);
 
       return res.status(200).json({
-        message: 'Character unassigned from campaign successfully',
+        message: 'Personagem desvinculado da campanha.',
         character: characterForReader(updatedCharacter, false),
       });
     }
@@ -1143,7 +1143,7 @@ router.post('/:id/assign', authenticated, async (req: AuthenticatedRequest, res:
     if (!campaign) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Campaign not found',
+        message: 'Campanha não encontrada.',
       });
     }
 
@@ -1161,7 +1161,7 @@ router.post('/:id/assign', authenticated, async (req: AuthenticatedRequest, res:
     if (!membership) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Campaign not found',
+        message: 'Campanha não encontrada.',
       });
     }
 
@@ -1208,14 +1208,14 @@ router.post('/:id/assign', authenticated, async (req: AuthenticatedRequest, res:
     announceCharacter(campaignId, 'character.assigned', id, userId);
 
     return res.status(200).json({
-      message: 'Character assigned to campaign successfully',
+      message: 'Personagem vinculado à campanha.',
       character: characterForReader(updatedCharacter, membership.role === 'GM'),
     });
   } catch (error) {
     logger.error('Error assigning character to campaign', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to assign character to campaign',
+      message: 'Não foi possível vincular o personagem à campanha.',
     });
   }
 });
@@ -1239,14 +1239,14 @@ router.post('/:id/copy', authenticated, async (req: AuthenticatedRequest, res: R
     if (!originalCharacter) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Character not found',
+        message: 'Personagem não encontrado.',
       });
     }
 
     if (!(await mayReadCharacter(originalCharacter, userId))) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Character not found',
+        message: 'Personagem não encontrado.',
       });
     }
 
@@ -1254,7 +1254,7 @@ router.post('/:id/copy', authenticated, async (req: AuthenticatedRequest, res: R
     if (originalCharacter.userId !== userId) {
       return res.status(403).json({
         error: 'Forbidden',
-        message: 'You do not have permission to copy this character',
+        message: 'Você não tem permissão para copiar este personagem.',
       });
     }
 
@@ -1283,7 +1283,7 @@ router.post('/:id/copy', authenticated, async (req: AuthenticatedRequest, res: R
     });
 
     return res.status(201).json({
-      message: 'Character copied successfully',
+      message: 'Personagem copiado.',
       character: copiedCharacter,
     });
   } catch (error) {
@@ -1293,7 +1293,7 @@ router.post('/:id/copy', authenticated, async (req: AuthenticatedRequest, res: R
     logger.error('Error copying character', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to copy character',
+      message: 'Não foi possível copiar o personagem.',
     });
   }
 });

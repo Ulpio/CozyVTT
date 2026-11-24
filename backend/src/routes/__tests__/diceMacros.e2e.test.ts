@@ -166,7 +166,7 @@ describe('/api/campaigns/:campaignId/macros', () => {
       });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toBe(`Character name must be ${MAX_MACRO_CHARACTER_NAME_LENGTH} characters or fewer`);
+      expect(res.body.message).toBe(`Nome do personagem deve ter no máximo ${MAX_MACRO_CHARACTER_NAME_LENGTH} caracteres.`);
       expect(await prisma.diceMacro.count({ where: { campaignId } })).toBe(0);
     });
 
@@ -183,7 +183,7 @@ describe('/api/campaigns/:campaignId/macros', () => {
       const agent = await login(emails.player);
       const res = await create(agent, { name: 'One too many', expression: '1d20' });
       expect(res.status).toBe(400);
-      expect(res.body.message).toMatch(/delete one/i);
+      expect(res.body.message).toMatch(/Exclua uma/i);
     });
 
     it('counts the cap per campaign, not across all of them', async () => {

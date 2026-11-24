@@ -151,7 +151,7 @@ describe('the GM\'s old value', () => {
   it('is read as GM by the role route, which then refuses a second GM', async () => {
     const res = await gm.put(`/api/campaigns/${campaignId}/members/${playerId}/role`).send({ role: LEGACY_GM });
     expect(res.status).toBe(400);
-    expect(res.body.message).toBe('Campaign already has a GM. Only one GM per campaign is allowed.');
+    expect(res.body.message).toBe('A campanha já tem um mestre. Só é permitido um mestre por campanha.');
   });
 
   it('hands the seat over at the route\'s old path, answering every role with the new value', async () => {

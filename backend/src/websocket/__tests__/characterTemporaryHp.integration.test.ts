@@ -153,7 +153,7 @@ describe('the character\'s owner', () => {
       const error = waitForEvent<{ message: string }>(owner, 'error');
       const silence = expectNoEvent(owner, 'character.hp.updated', 500);
       owner.emit('character.hp.temporary', sent);
-      expect((await error).message).toBe('characterId (string) and temporary (number) are required');
+      expect((await error).message).toBe('characterId (texto) e temporary (número) são obrigatórios.');
       await silence;
     });
     expect((await storedHp(fighterId)).temporary).toBe(10);
@@ -163,7 +163,7 @@ describe('the character\'s owner', () => {
     ['none', 0], ['a negative number', -5], ['part of a hit point', 2.5], ['more than 99,999', 100_000], ['text', 'ten'], ['nothing', undefined],
   ])('is refused %s, and the character keeps what it had', async (_what, temporary) => {
     await as('owner', async (owner) => {
-      expect(await refused(owner, { characterId: fighterId, temporary })).toBe('temporary must be a whole number of hit points from 1 to 99,999');
+      expect(await refused(owner, { characterId: fighterId, temporary })).toBe('temporary deve ser um número inteiro de pontos de vida, de 1 a 99.999.');
     });
     expect((await storedHp(fighterId)).temporary).toBe(10);
   });

@@ -47,7 +47,7 @@ it('says the vibe settings are missing when a PUT has no body', async () => {
   const res = await gm.put(`/api/campaigns/${campaignId}/vibe`);
 
   expect(res.status).toBe(400);
-  expect(res.body.message).toBe('vibeSettings is required');
+  expect(res.body.message).toBe('As configurações de ambiente são obrigatórias.');
 });
 
 it('treats a body sent as something other than JSON as empty', async () => {

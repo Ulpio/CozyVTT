@@ -12,7 +12,7 @@ export const MAX_CHARACTERS_PER_ACCEPT = 50;
 
 export const acceptInvitationSchema = z.object({
   characterIds: z
-    .array(z.string().min(1, 'Each character id must be a non-empty string'), { error: 'characterIds must be a list of character ids' })
-    .max(MAX_CHARACTERS_PER_ACCEPT, `At most ${MAX_CHARACTERS_PER_ACCEPT} characters can be brought at once`)
+    .array(z.string().min(1, 'Cada ID de personagem deve ser um texto não vazio.'), { error: 'characterIds deve ser uma lista de IDs de personagens.' })
+    .max(MAX_CHARACTERS_PER_ACCEPT, `No máximo ${MAX_CHARACTERS_PER_ACCEPT} personagens podem ser levados de uma vez.`)
     .default([]),
 });

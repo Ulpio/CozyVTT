@@ -175,7 +175,7 @@ describe('who may not leave', () => {
     expect(res.status).toBe(409);
     expect(res.body).toEqual({
       error: 'Conflict',
-      message: "You run this campaign. Hand the GM seat to someone else in the campaign's settings, then leave it.",
+      message: "Você é o mestre desta campanha. Passe o posto de mestre a outra pessoa nas configurações da campanha e só então saia.",
     });
     expect(await membership(runner.id, campaignId)).toEqual({ role: 'GM' });
   });
@@ -190,7 +190,7 @@ describe('who may not leave', () => {
     expect(res.status).toBe(409);
     expect(res.body).toEqual({
       error: 'Conflict',
-      message: "You own this campaign, so you cannot leave it. If you no longer want it, delete it in the campaign's settings.",
+      message: "Você é o dono desta campanha, então não pode sair dela. Se não a quer mais, exclua-a nas configurações da campanha.",
     });
     expect(await membership(owner.id, campaignId)).toEqual({ role: 'PLAYER' });
   });
@@ -202,7 +202,7 @@ describe('who may not leave', () => {
     const res = await leave(gm, campaignId);
 
     expect(res.status).toBe(409);
-    expect(res.body.message).toMatch(/^You own this campaign/);
+    expect(res.body.message).toMatch(/^Você é o dono desta campanha/);
     expect(await membership(gm.id, campaignId)).toEqual({ role: 'GM' });
   });
 
@@ -217,7 +217,7 @@ describe('who may not leave', () => {
     const res = await leave(stranger, campaignId);
 
     expect(res.status).toBe(403);
-    expect(res.body.message).toBe('You are not a member of this campaign');
+    expect(res.body.message).toBe('Você não é membro desta campanha.');
   });
 
   it('answers 403 to a member who has just been removed', async () => {
@@ -228,7 +228,7 @@ describe('who may not leave', () => {
     const res = await leave(player, campaignId);
 
     expect(res.status).toBe(403);
-    expect(res.body.message).toBe('You are not a member of this campaign');
+    expect(res.body.message).toBe('Você não é membro desta campanha.');
   });
 });
 

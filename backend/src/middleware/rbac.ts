@@ -33,7 +33,7 @@ export interface AuthenticatedRequest<P = Record<string, string>> extends Reques
  * race with the leave (routes/campaigns.ts), and the live table's refusal to
  * join (websocket/auth.ts).
  */
-export const NOT_A_MEMBER_MESSAGE = 'You are not a member of this campaign';
+export const NOT_A_MEMBER_MESSAGE = 'Você não é membro desta campanha.';
 
 /**
  * Load campaign membership for authenticated user

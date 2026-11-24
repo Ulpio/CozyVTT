@@ -214,7 +214,7 @@ describe('DELETE /api/campaigns/:campaignId, the owner\'s or an admin\'s alone,'
     for (const agent of [player, spectator, stranger]) {
       const res = await agent.delete(`/api/campaigns/${campaignId}`);
       expect(res.status).toBe(403);
-      expect(res.body.message).toBe('Only the campaign owner or admin can delete this campaign');
+      expect(res.body.message).toBe('Só o dono da campanha ou um administrador pode excluí-la.');
     }
     expect((await request(app).delete(`/api/campaigns/${campaignId}`)).status).toBe(401);
     expect(await prisma.campaign.findUnique({ where: { id: campaignId } })).not.toBeNull();
@@ -233,7 +233,7 @@ describe.each(gmOnly.map((r) => [routeKey(r), r] as const))('%s, the GM\'s alone
   it('refuses a member of another campaign and a caller who is not signed in', async () => {
     const outsider = await send(stranger, route);
     expect(outsider.status).toBe(403);
-    expect(outsider.body.message).toBe('You are not a member of this campaign');
+    expect(outsider.body.message).toBe('Você não é membro desta campanha.');
     expect((await send(null, route)).status).toBe(401);
   });
 });
@@ -242,7 +242,7 @@ describe.each(anyMember.map((r) => [routeKey(r), r] as const))('%s, for members,
   it('refuses a member of another campaign and a caller who is not signed in', async () => {
     const outsider = await send(stranger, route);
     expect(outsider.status).toBe(403);
-    expect(outsider.body.message).toBe('You are not a member of this campaign');
+    expect(outsider.body.message).toBe('Você não é membro desta campanha.');
     expect((await send(null, route)).status).toBe(401);
   });
 });

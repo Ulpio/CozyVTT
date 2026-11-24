@@ -103,7 +103,7 @@ describe('CreateDiceMacroSchema', () => {
     it('refuses an empty name', () => {
       const result = CreateDiceMacroSchema.safeParse({ name: '   ', expression: '1d20' });
       expect(result.success).toBe(false);
-      expect(refusal(result)).toMatch(/needs a name/i);
+      expect(refusal(result)).toMatch(/precisa de um nome/i);
     });
 
     it(`refuses a name over ${MAX_MACRO_NAME_LENGTH} characters`, () => {
@@ -126,7 +126,7 @@ describe('CreateDiceMacroSchema', () => {
   it('refuses an empty expression', () => {
     const result = CreateDiceMacroSchema.safeParse({ name: 'Blank', expression: '   ' });
     expect(result.success).toBe(false);
-    expect(refusal(result)).toMatch(/needs a dice expression/i);
+    expect(refusal(result)).toMatch(/precisa de uma expressão de dados/i);
   });
 
   it(`refuses an expression over ${MAX_MACRO_EXPRESSION_LENGTH} characters`, () => {
@@ -166,13 +166,13 @@ describe('what the person typing is told', () => {
     const message = messageFor('2d6+');
     expect(message).not.toMatch(/failed to evaluate/i);
     expect(message).toMatch(/2d6\+/);
-    expect(message).toMatch(/stray \+ or -|missing number/i);
+    expect(message).toMatch(/sobrando|número faltando/i);
   });
 
   it('rewrites "Invalid token" without repeating the jargon', () => {
     const message = messageFor('helloworld');
     expect(message).not.toMatch(/invalid token/i);
-    expect(message).toMatch(/could not read/i);
+    expect(message).toMatch(/Não foi possível ler/i);
     // Shows an example of the thing being asked for.
     expect(message).toMatch(/1d20\+5|2d6\+3|4d6kh3/);
   });
@@ -202,7 +202,7 @@ describe('UpdateDiceMacroSchema', () => {
   it('refuses a body that changes nothing', () => {
     const result = UpdateDiceMacroSchema.safeParse({});
     expect(result.success).toBe(false);
-    expect(refusal(result)).toMatch(/nothing to update/i);
+    expect(refusal(result)).toMatch(/nada para atualizar/i);
   });
 });
 
@@ -240,19 +240,19 @@ describe('a saved roll\'s character and purpose', () => {
 
   it(`refuse a character over ${MAX_MACRO_CHARACTER_NAME_LENGTH} characters`, () => {
     const result = create({ characterName: 'x'.repeat(MAX_MACRO_CHARACTER_NAME_LENGTH + 1) });
-    expect(refusal(result)).toBe(`Character name must be ${MAX_MACRO_CHARACTER_NAME_LENGTH} characters or fewer`);
+    expect(refusal(result)).toBe(`Nome do personagem deve ter no máximo ${MAX_MACRO_CHARACTER_NAME_LENGTH} caracteres.`);
   });
 
   it(`take a purpose of exactly ${MAX_MACRO_PURPOSE_LENGTH} characters, and refuse one longer`, () => {
     expect(create({ purpose: 'x'.repeat(MAX_MACRO_PURPOSE_LENGTH) }).success).toBe(true);
     expect(refusal(create({ purpose: 'x'.repeat(MAX_MACRO_PURPOSE_LENGTH + 1) }))).toBe(
-      `Purpose must be ${MAX_MACRO_PURPOSE_LENGTH} characters or fewer`
+      `Finalidade deve ter no máximo ${MAX_MACRO_PURPOSE_LENGTH} caracteres.`
     );
   });
 
   it('refuse anything but text', () => {
-    expect(refusal(create({ characterName: 7 }))).toBe('Character name must be text');
-    expect(refusal(create({ purpose: ['Attack'] }))).toBe('Purpose must be text');
+    expect(refusal(create({ characterName: 7 }))).toBe('Nome do personagem deve ser texto.');
+    expect(refusal(create({ purpose: ['Attack'] }))).toBe('Finalidade deve ser texto.');
   });
 
   it('are at most 200 characters each, and always fit in a roll made from them', () => {
@@ -279,8 +279,8 @@ describe('a saved roll\'s character and purpose', () => {
     });
 
     it('are held to the same limits', () => {
-      expect(refusal(UpdateDiceMacroSchema.safeParse({ characterName: 'x'.repeat(MAX_MACRO_CHARACTER_NAME_LENGTH + 1) }))).toMatch(/200 characters or fewer/);
-      expect(refusal(UpdateDiceMacroSchema.safeParse({ purpose: 'x'.repeat(MAX_MACRO_PURPOSE_LENGTH + 1) }))).toMatch(/200 characters or fewer/);
+      expect(refusal(UpdateDiceMacroSchema.safeParse({ characterName: 'x'.repeat(MAX_MACRO_CHARACTER_NAME_LENGTH + 1) }))).toMatch(/no máximo 200 caracteres/);
+      expect(refusal(UpdateDiceMacroSchema.safeParse({ purpose: 'x'.repeat(MAX_MACRO_PURPOSE_LENGTH + 1) }))).toMatch(/no máximo 200 caracteres/);
     });
   });
 });

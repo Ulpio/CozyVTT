@@ -118,7 +118,7 @@ const importUpload = multer({
     if (allowed.includes(file.mimetype) || file.originalname.endsWith('.cozyvtt')) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only .cozyvtt archives are accepted.'));
+      cb(new Error('Tipo de arquivo inválido. Só são aceitos arquivos .cozyvtt.'));
     }
   },
 });
@@ -206,7 +206,7 @@ router.get('/', authenticated, async (req: AuthenticatedRequest, res: Response) 
     logger.error('Error fetching campaigns', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to fetch campaigns',
+      message: 'Não foi possível carregar as campanhas.',
     });
   }
 });
@@ -225,7 +225,7 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid campaign data',
+        message: parsed.error.issues[0]?.message ?? 'Dados da campanha inválidos.',
       });
     }
     const { name, description, gameSystem, bookIds, abilityScoreMethods, detailLevel } = parsed.data;
@@ -274,14 +274,14 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
     });
 
     return res.status(201).json({
-      message: 'Campaign created successfully',
+      message: 'Campanha criada.',
       campaign: campaignWithMemberships,
     });
   } catch (error) {
     logger.error('Error creating campaign', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to create campaign',
+      message: 'Não foi possível criar a campanha.',
     });
   }
 });
@@ -346,7 +346,7 @@ router.get('/:campaignId', campaignMember, async (req: AuthenticatedRequest, res
     if (!campaign) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Campaign not found',
+        message: 'Campanha não encontrada.',
       });
     }
 
@@ -382,7 +382,7 @@ router.get('/:campaignId', campaignMember, async (req: AuthenticatedRequest, res
     logger.error('Error fetching campaign', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to fetch campaign',
+      message: 'Não foi possível carregar a campanha.',
     });
   }
 });
@@ -454,7 +454,7 @@ router.get('/:campaignId/characters', campaignMember, async (req: AuthenticatedR
     logger.error('Error fetching campaign characters', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to fetch campaign characters',
+      message: 'Não foi possível carregar os personagens da campanha.',
     });
   }
 });
@@ -491,7 +491,7 @@ router.put('/:campaignId', campaignGM, async (req: AuthenticatedRequest, res: Re
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid campaign data',
+        message: parsed.error.issues[0]?.message ?? 'Dados da campanha inválidos.',
       });
     }
     const { name, description, status, vibeSettings, spiritLayerEnabled, spiritLayerStyle, gameSystem, chatCooldownEnabled, chatCooldownSeconds, playersMayDraw, abilityScoreMethods, detailLevel } = parsed.data;
@@ -537,7 +537,7 @@ router.put('/:campaignId', campaignGM, async (req: AuthenticatedRequest, res: Re
     const outcome = status === undefined
       ? { campaign: await prisma.campaign.update({ where: { id: campaignId }, data: updateData }) }
       : await withSessionsHeld(campaignId, async (tx) => (await openSession(tx, campaignId))
-        ? sessionRefusal(400, 'End the session before changing the campaign status')
+        ? sessionRefusal(400, 'Encerre a sessão antes de mudar o status da campanha.')
         : { campaign: await tx.campaign.update({ where: { id: campaignId }, data: updateData }) });
     if ('refused' in outcome) return sendSessionRefusal(res, outcome);
     const campaign = vibeSettings === undefined
@@ -574,14 +574,14 @@ router.put('/:campaignId', campaignGM, async (req: AuthenticatedRequest, res: Re
     }
 
     return res.status(200).json({
-      message: 'Campaign updated successfully',
+      message: 'Campanha atualizada.',
       campaign,
     });
   } catch (error) {
     logger.error('Error updating campaign', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to update campaign',
+      message: 'Não foi possível atualizar a campanha.',
     });
   }
 });
@@ -608,7 +608,7 @@ router.get('/:campaignId/books', campaignMember, async (req: AuthenticatedReques
     return res.json({ books: await campaignBookList(req.params.campaignId) });
   } catch (error) {
     logger.error('Error listing campaign books', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to list the campaign books' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível listar os livros da campanha.' });
   }
 });
 
@@ -633,7 +633,7 @@ router.put('/:campaignId/books', campaignGM, async (req: AuthenticatedRequest, r
       return res.status(400).json({ error: 'Validation Error', message: error.message });
     }
     logger.error('Error setting campaign books', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to set the campaign books' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível definir os livros da campanha.' });
   }
 });
 
@@ -647,7 +647,7 @@ router.put('/:campaignId/vibe', campaignGM, async (req: AuthenticatedRequest, re
   try {
     const { campaignId } = req.params;
     if (!req.body?.vibeSettings) {
-      return res.status(400).json({ error: 'Validation Error', message: 'vibeSettings is required' });
+      return res.status(400).json({ error: 'Validation Error', message: 'As configurações de ambiente são obrigatórias.' });
     }
     const parsed = VibeSettingsSchema.safeParse(req.body.vibeSettings);
     if (!parsed.success) {
@@ -657,12 +657,12 @@ router.put('/:campaignId/vibe', campaignGM, async (req: AuthenticatedRequest, re
     if (refusal) return res.status(400).json({ error: 'Validation Error', message: refusal });
 
     const saved = await saveVibeSettings(campaignId, req.session.userId!, parsed.data);
-    return res.status(200).json({ message: 'Vibe settings updated successfully', ...saved });
+    return res.status(200).json({ message: 'Ambiente atualizado.', ...saved });
   } catch (error) {
     logger.error('Error updating vibe settings', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to update vibe settings',
+      message: 'Não foi possível atualizar o ambiente.',
     });
   }
 });
@@ -684,7 +684,7 @@ router.delete('/:campaignId', authenticated, async (req: AuthenticatedRequest, r
     if (!hasPermission) {
       return res.status(403).json({
         error: 'Forbidden',
-        message: 'Only the campaign owner or admin can delete this campaign',
+        message: 'Só o dono da campanha ou um administrador pode excluí-la.',
       });
     }
 
@@ -719,13 +719,13 @@ router.delete('/:campaignId', authenticated, async (req: AuthenticatedRequest, r
     clearCombatState(campaignId);
 
     return res.status(200).json({
-      message: 'Campaign deleted successfully',
+      message: 'Campanha excluída.',
     });
   } catch (error) {
     logger.error('Error deleting campaign', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to delete campaign',
+      message: 'Não foi possível excluir a campanha.',
     });
   }
 });
@@ -750,7 +750,7 @@ router.get('/:campaignId/invitable-users', campaignGM, async (req: Authenticated
     const { campaignId } = req.params;
     const raw: unknown = req.query.search;
     if (raw !== undefined && typeof raw !== 'string') {
-      return res.status(400).json({ error: 'Validation Error', message: 'Send the search once, as text.' });
+      return res.status(400).json({ error: 'Validation Error', message: 'Envie a busca uma só vez, como texto.' });
     }
     // Display names are stored in NFC, so an accent typed as its own mark
     // still finds the name.
@@ -758,7 +758,7 @@ router.get('/:campaignId/invitable-users', campaignGM, async (req: Authenticated
     if (search.length > MAX_DISPLAY_NAME_LENGTH) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: `A display name is at most ${MAX_DISPLAY_NAME_LENGTH} characters, so search for that many or fewer.`,
+        message: `Um nome de exibição tem no máximo ${MAX_DISPLAY_NAME_LENGTH} caracteres. Busque com esse tanto ou menos.`,
       });
     }
     if (search.length === 0) {
@@ -812,7 +812,7 @@ router.get('/:campaignId/invitable-users', campaignGM, async (req: Authenticated
     logger.error('Error fetching invitable users', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to fetch invitable users',
+      message: 'Não foi possível carregar os usuários que podem ser convidados.',
     });
   }
 });
@@ -832,7 +832,7 @@ router.post('/:campaignId/invite', campaignGM, invitationEmailLimiter, async (re
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid invitation',
+        message: parsed.error.issues[0]?.message ?? 'Convite inválido.',
       });
     }
     const { userId, expiresInDays } = parsed.data;
@@ -855,7 +855,7 @@ router.post('/:campaignId/invite', campaignGM, invitationEmailLimiter, async (re
     if (!user || !user.isApproved) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'User not found',
+        message: 'Usuário não encontrado.',
       });
     }
 
@@ -872,7 +872,7 @@ router.post('/:campaignId/invite', campaignGM, invitationEmailLimiter, async (re
     if (existingMembership) {
       return res.status(400).json({
         error: 'Bad Request',
-        message: 'User is already a member of this campaign',
+        message: 'Esse usuário já é membro desta campanha.',
       });
     }
 
@@ -889,7 +889,7 @@ router.post('/:campaignId/invite', campaignGM, invitationEmailLimiter, async (re
     if (existingInvitation && isStanding(existingInvitation)) {
       return res.status(400).json({
         error: 'Bad Request',
-        message: 'User already has a pending invitation to this campaign',
+        message: 'Esse usuário já tem um convite pendente para esta campanha.',
       });
     }
 
@@ -996,8 +996,8 @@ router.post('/:campaignId/invite', campaignGM, invitationEmailLimiter, async (re
 
     return res.status(201).json({
       message: emailSent
-        ? `Invitation sent, and emailed to ${user.displayName}.`
-        : 'Invitation sent successfully',
+        ? `Convite enviado, e também por e-mail para ${user.displayName}.`
+        : 'Convite enviado.',
       invitation,
       emailSent,
     });
@@ -1005,7 +1005,7 @@ router.post('/:campaignId/invite', campaignGM, invitationEmailLimiter, async (re
     logger.error('Error inviting user to campaign', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to invite user',
+      message: 'Não foi possível convidar o usuário.',
     });
   }
 });
@@ -1027,7 +1027,7 @@ router.get('/:campaignId/invitations', campaignGM, async (req: AuthenticatedRequ
     return res.json({ invitations });
   } catch (error) {
     logger.error('Error listing campaign invitations', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to list invitations' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível listar os convites.' });
   }
 });
 
@@ -1045,20 +1045,20 @@ router.delete('/:campaignId/invitations/:invitationId', campaignGM, async (req: 
       where: { id: invitationId, campaignId, status: 'PENDING' },
     });
     if (count === 0) {
-      return res.status(404).json({ error: 'Not Found', message: 'Invitation not found' });
+      return res.status(404).json({ error: 'Not Found', message: 'Convite não encontrado.' });
     }
-    return res.json({ message: 'Invitation withdrawn' });
+    return res.json({ message: 'Convite cancelado.' });
   } catch (error) {
     logger.error('Error withdrawing invitation', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to withdraw invitation' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível cancelar o convite.' });
   }
 });
 
 /** What the GM is told when a removal is refused (services/campaignMembers.ts). */
 const REMOVAL_REFUSED: Record<TakeOutRefusal, { status: number; error: string; message: string }> = {
-  'not-member': { status: 404, error: 'Not Found', message: 'User is not a member of this campaign' },
-  gm: { status: 400, error: 'Bad Request', message: 'Cannot remove the GM from the campaign' },
-  owner: { status: 400, error: 'Bad Request', message: 'Cannot remove the campaign owner from their own campaign' },
+  'not-member': { status: 404, error: 'Not Found', message: 'Esse usuário não é membro desta campanha.' },
+  gm: { status: 400, error: 'Bad Request', message: 'Não é possível remover o mestre da campanha.' },
+  owner: { status: 400, error: 'Bad Request', message: 'Não é possível remover o dono da própria campanha.' },
 };
 
 /**
@@ -1079,13 +1079,13 @@ router.delete('/:campaignId/members/:userId', campaignGM, async (req: Authentica
     await tellTableMemberLeft(userId, campaignId, 'removed');
 
     return res.status(200).json({
-      message: 'Member removed successfully',
+      message: 'Membro removido.',
     });
   } catch (error) {
     logger.error('Error removing member from campaign', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to remove member',
+      message: 'Não foi possível remover o membro.',
     });
   }
 });
@@ -1101,12 +1101,12 @@ const LEAVE_REFUSED: Record<TakeOutRefusal, { status: number; error: string; mes
   owner: {
     status: 409,
     error: 'Conflict',
-    message: "You own this campaign, so you cannot leave it. If you no longer want it, delete it in the campaign's settings.",
+    message: "Você é o dono desta campanha, então não pode sair dela. Se não a quer mais, exclua-a nas configurações da campanha.",
   },
   gm: {
     status: 409,
     error: 'Conflict',
-    message: "You run this campaign. Hand the GM seat to someone else in the campaign's settings, then leave it.",
+    message: "Você é o mestre desta campanha. Passe o posto de mestre a outra pessoa nas configurações da campanha e só então saia.",
   },
 };
 
@@ -1135,7 +1135,7 @@ router.post('/:campaignId/leave', campaignMember, async (req: AuthenticatedReque
     logger.error('Error leaving campaign', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to leave the campaign',
+      message: 'Não foi possível sair da campanha.',
     });
   }
 });
@@ -1177,7 +1177,7 @@ router.put('/:campaignId/members/:userId/role', campaignGM, async (req: Authenti
     if (!role) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'Role must be GM, PLAYER, or SPECTATOR',
+        message: 'O papel deve ser GM, PLAYER ou SPECTATOR.',
       });
     }
 
@@ -1191,12 +1191,12 @@ router.put('/:campaignId/members/:userId/role', campaignGM, async (req: Authenti
         select: { role: true },
       });
       if (!membership) {
-        return { ok: false, refused: { status: 404, error: 'Not Found', message: 'User is not a member of this campaign' } } as const;
+        return { ok: false, refused: { status: 404, error: 'Not Found', message: 'Esse usuário não é membro desta campanha.' } } as const;
       }
 
       // CRITICAL: Cannot change the GM's role
       if (membership.role === 'GM') {
-        return { ok: false, refused: { status: 400, error: 'Bad Request', message: 'Cannot change the GM\'s role' } } as const;
+        return { ok: false, refused: { status: 400, error: 'Bad Request', message: 'Não é possível mudar o papel do mestre.' } } as const;
       }
 
       // CRITICAL: Cannot promote to GM while the campaign has one (only one GM per campaign)
@@ -1206,7 +1206,7 @@ router.put('/:campaignId/members/:userId/role', campaignGM, async (req: Authenti
           refused: {
             status: 400,
             error: 'Bad Request',
-            message: 'Campaign already has a GM. Only one GM per campaign is allowed.',
+            message: 'A campanha já tem um mestre. Só é permitido um mestre por campanha.',
           },
         } as const;
       }
@@ -1239,14 +1239,14 @@ router.put('/:campaignId/members/:userId/role', campaignGM, async (req: Authenti
     }
 
     return res.status(200).json({
-      message: 'Member role updated successfully',
+      message: 'Papel do membro atualizado.',
       membership: updatedMembership,
     });
   } catch (error) {
     logger.error('Error updating member role', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to update member role',
+      message: 'Não foi possível atualizar o papel do membro.',
     });
   }
 });
@@ -1280,7 +1280,7 @@ async function transferGMSeat(req: AuthenticatedRequest, res: Response) {
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid transfer request',
+        message: parsed.error.issues[0]?.message ?? 'Pedido de transferência inválido.',
       });
     }
     const { userId: incomingId } = parsed.data;
@@ -1296,7 +1296,7 @@ async function transferGMSeat(req: AuthenticatedRequest, res: Response) {
     if (!campaign || (platformRole !== 'ADMIN' && campaign.ownerId !== callerId && campaign.memberships.length === 0)) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Campaign not found',
+        message: 'Campanha não encontrada.',
       });
     }
 
@@ -1309,7 +1309,7 @@ async function transferGMSeat(req: AuthenticatedRequest, res: Response) {
       if (!(await canTransferGM(callerId, campaignId, platformRole, tx))) {
         return {
           ok: false,
-          refused: { status: 403, error: 'Forbidden', message: 'Only the GM, the campaign owner, or an admin can transfer the GM role' },
+          refused: { status: 403, error: 'Forbidden', message: 'Só o mestre, o dono da campanha ou um administrador pode passar o posto de mestre.' },
         } as const;
       }
 
@@ -1318,10 +1318,10 @@ async function transferGMSeat(req: AuthenticatedRequest, res: Response) {
         select: { role: true },
       });
       if (!incoming) {
-        return { ok: false, refused: { status: 404, error: 'Not Found', message: 'That user is not a member of this campaign' } } as const;
+        return { ok: false, refused: { status: 404, error: 'Not Found', message: 'Essa pessoa não é membro desta campanha.' } } as const;
       }
       if (incoming.role === 'GM') {
-        return { ok: false, refused: { status: 400, error: 'Bad Request', message: 'That member is already the GM' } } as const;
+        return { ok: false, refused: { status: 400, error: 'Bad Request', message: 'Esse membro já é o mestre.' } } as const;
       }
 
       // Every GM row is stepped down, so a campaign an older version left with
@@ -1393,14 +1393,14 @@ async function transferGMSeat(req: AuthenticatedRequest, res: Response) {
     });
 
     return res.status(200).json({
-      message: 'GM role transferred successfully',
+      message: 'Posto de mestre transferido.',
       memberships,
     });
   } catch (error) {
     logger.error('Error transferring GM role', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to transfer the GM role',
+      message: 'Não foi possível passar o posto de mestre.',
     });
   }
 }
@@ -1439,7 +1439,7 @@ router.get('/admin/all', adminOnly, async (_req: AuthenticatedRequest, res: Resp
     logger.error('Error fetching all campaigns', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to fetch campaigns',
+      message: 'Não foi possível carregar as campanhas.',
     });
   }
 });
@@ -1467,7 +1467,7 @@ router.get('/:campaignId/messages', campaignMember, async (req: AuthenticatedReq
     if (isNaN(limitNum) || limitNum < 1 || limitNum > MAX_CHAT_HISTORY_PAGE) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: `Limit must be between 1 and ${MAX_CHAT_HISTORY_PAGE}`,
+        message: `O limite deve estar entre 1 e ${MAX_CHAT_HISTORY_PAGE}.`,
       });
     }
 
@@ -1480,7 +1480,7 @@ router.get('/:campaignId/messages', campaignMember, async (req: AuthenticatedReq
       if (!cursor) {
         return res.status(400).json({
           error: 'Validation Error',
-          message: 'Invalid cursor',
+          message: 'Cursor inválido.',
         });
       }
     }
@@ -1568,7 +1568,7 @@ router.get('/:campaignId/messages', campaignMember, async (req: AuthenticatedReq
     logger.error('Error fetching messages', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to fetch messages',
+      message: 'Não foi possível carregar as mensagens.',
     });
   }
 });
@@ -1608,15 +1608,15 @@ router.delete('/:campaignId/messages/join-leave', campaignGM, async (req: Authen
     return res.status(200).json({
       message:
         result.count === 0
-          ? 'No join or leave messages to clear'
-          : `Cleared ${result.count} join and leave ${result.count === 1 ? 'message' : 'messages'}`,
+          ? 'Não há mensagens de entrada ou saída para limpar.'
+          : `${result.count} ${result.count === 1 ? 'mensagem de entrada ou saída removida' : 'mensagens de entrada ou saída removidas'}.`,
       deleted: result.count,
     });
   } catch (error) {
     logger.error('Error clearing join/leave messages', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to clear join and leave messages',
+      message: 'Não foi possível limpar as mensagens de entrada e saída.',
     });
   }
 });
@@ -1648,14 +1648,14 @@ router.get('/:campaignId/dice-rolls', campaignMember, async (req: AuthenticatedR
     if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'Limit must be between 1 and 100',
+        message: 'O limite deve estar entre 1 e 100.',
       });
     }
 
     if (isNaN(offsetNum) || offsetNum < 0) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'Offset must be a non-negative number',
+        message: 'O deslocamento deve ser um número maior ou igual a zero.',
       });
     }
 
@@ -1667,7 +1667,7 @@ router.get('/:campaignId/dice-rolls', campaignMember, async (req: AuthenticatedR
     if (!campaign) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Campaign not found',
+        message: 'Campanha não encontrada.',
       });
     }
 
@@ -1730,7 +1730,7 @@ router.get('/:campaignId/dice-rolls', campaignMember, async (req: AuthenticatedR
     logger.error('Error fetching dice rolls', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to fetch dice rolls',
+      message: 'Não foi possível carregar as rolagens.',
     });
   }
 });
@@ -1766,7 +1766,7 @@ router.get('/:campaignId/notes', campaignMember, async (req: AuthenticatedReques
     return res.status(200).json({ notes });
   } catch (error) {
     logger.error('Error fetching personal notes', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch notes' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível carregar as notas.' });
   }
 });
 
@@ -1780,7 +1780,7 @@ router.post('/:campaignId/notes', campaignMember, async (req: AuthenticatedReque
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid note',
+        message: parsed.error.issues[0]?.message ?? 'Nota inválida.',
       });
     }
 
@@ -1791,7 +1791,7 @@ router.post('/:campaignId/notes', campaignMember, async (req: AuthenticatedReque
     if (existing >= MAX_NOTES_PER_CAMPAIGN) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: `You already have ${MAX_NOTES_PER_CAMPAIGN} notes in this campaign. Delete one to make room.`,
+        message: `Você já tem ${MAX_NOTES_PER_CAMPAIGN} notas nesta campanha. Exclua uma para abrir espaço.`,
       });
     }
 
@@ -1807,7 +1807,7 @@ router.post('/:campaignId/notes', campaignMember, async (req: AuthenticatedReque
     return res.status(201).json({ note });
   } catch (error) {
     logger.error('Error creating personal note', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to create note' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível criar a nota.' });
   }
 });
 
@@ -1826,13 +1826,13 @@ router.get('/:campaignId/notes/:noteId', campaignMember, async (req: Authenticat
     });
 
     if (!note) {
-      return res.status(404).json({ error: 'Not Found', message: 'Note not found' });
+      return res.status(404).json({ error: 'Not Found', message: 'Nota não encontrada.' });
     }
 
     return res.status(200).json({ note });
   } catch (error) {
     logger.error('Error fetching personal note', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch note' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível carregar a nota.' });
   }
 });
 
@@ -1847,7 +1847,7 @@ router.put('/:campaignId/notes/:noteId', campaignMember, async (req: Authenticat
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid note',
+        message: parsed.error.issues[0]?.message ?? 'Nota inválida.',
       });
     }
 
@@ -1863,7 +1863,7 @@ router.put('/:campaignId/notes/:noteId', campaignMember, async (req: Authenticat
     });
 
     if (!owned) {
-      return res.status(404).json({ error: 'Not Found', message: 'Note not found' });
+      return res.status(404).json({ error: 'Not Found', message: 'Nota não encontrada.' });
     }
 
     const note = await prisma.personalNote.update({
@@ -1877,7 +1877,7 @@ router.put('/:campaignId/notes/:noteId', campaignMember, async (req: Authenticat
     return res.status(200).json({ note });
   } catch (error) {
     logger.error('Error updating personal note', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update note' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível atualizar a nota.' });
   }
 });
 
@@ -1898,13 +1898,13 @@ router.delete('/:campaignId/notes/:noteId', campaignMember, async (req: Authenti
     });
 
     if (count === 0) {
-      return res.status(404).json({ error: 'Not Found', message: 'Note not found' });
+      return res.status(404).json({ error: 'Not Found', message: 'Nota não encontrada.' });
     }
 
-    return res.status(200).json({ message: 'Note deleted' });
+    return res.status(200).json({ message: 'Nota excluída.' });
   } catch (error) {
     logger.error('Error deleting personal note', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to delete note' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível excluir a nota.' });
   }
 });
 
@@ -1958,7 +1958,7 @@ router.get('/:campaignId/sessions', campaignMember, async (req: AuthenticatedReq
     logger.error('Error fetching sessions', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to fetch sessions',
+      message: 'Não foi possível carregar as sessões.',
     });
   }
 });
@@ -1981,7 +1981,7 @@ router.put('/:campaignId/sessions/:sessionId/notes', campaignGM, async (req: Aut
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid session notes',
+        message: parsed.error.issues[0]?.message ?? 'Notas de sessão inválidas.',
       });
     }
 
@@ -1998,7 +1998,7 @@ router.put('/:campaignId/sessions/:sessionId/notes', campaignGM, async (req: Aut
     });
 
     if (updated.count === 0) {
-      return res.status(404).json({ error: 'Not Found', message: 'Session not found' });
+      return res.status(404).json({ error: 'Not Found', message: 'Sessão não encontrada.' });
     }
 
     const session = await prisma.session.findUnique({
@@ -2011,7 +2011,7 @@ router.put('/:campaignId/sessions/:sessionId/notes', campaignGM, async (req: Aut
     logger.error('Error updating session notes', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to update session notes',
+      message: 'Não foi possível atualizar as notas da sessão.',
     });
   }
 });
@@ -2031,9 +2031,9 @@ router.post('/:campaignId/sessions', campaignGM, async (req: AuthenticatedReques
     // The campaign's status is not consulted, so a campaign an older version
     // left marked ACTIVE or PAUSED with no session open can start again.
     const outcome = await withSessionsHeld(campaignId, async (tx, campaign) => {
-      if (!campaign) return sessionRefusal(404, 'Campaign not found');
+      if (!campaign) return sessionRefusal(404, 'Campanha não encontrada.');
       if (await openSession(tx, campaignId)) {
-        return sessionRefusal(400, 'A session is already active or paused. Resume or end it first.');
+        return sessionRefusal(400, 'Já existe uma sessão ativa ou pausada. Retome ou encerre essa primeiro.');
       }
       const sessionNumber = await getNextSessionNumber(campaignId, tx);
       const session = await tx.session.create({ data: { campaignId, sessionNumber } });
@@ -2050,7 +2050,7 @@ router.post('/:campaignId/sessions', campaignGM, async (req: AuthenticatedReques
     // Send system message
     await sendSystemMessage(
       campaignId,
-      `Session ${sessionNumber} has started!`,
+      `A sessão ${sessionNumber} começou!`,
       { sessionId: session.id, sessionNumber, action: 'session.started' }
     );
 
@@ -2062,7 +2062,7 @@ router.post('/:campaignId/sessions', campaignGM, async (req: AuthenticatedReques
     });
 
     return res.status(201).json({
-      message: 'Session started successfully',
+      message: 'Sessão iniciada.',
       session: {
         id: session.id,
         sessionNumber: session.sessionNumber,
@@ -2073,7 +2073,7 @@ router.post('/:campaignId/sessions', campaignGM, async (req: AuthenticatedReques
     logger.error('Error starting session', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to start session',
+      message: 'Não foi possível iniciar a sessão.',
     });
   }
 });
@@ -2092,9 +2092,9 @@ router.put('/:campaignId/sessions/:sessionId/pause', campaignGM, async (req: Aut
     // waits, and then ends the session this left paused.
     const outcome = await withSessionsHeld(campaignId, async (tx, campaign) => {
       const session = await tx.session.findFirst({ where: { id: sessionId, campaignId } });
-      if (!campaign || !session) return sessionRefusal(404, 'Session not found');
-      if (session.endedAt) return sessionRefusal(400, 'Session has already ended');
-      if (campaign.status === 'PAUSED') return sessionRefusal(400, 'Session is already paused');
+      if (!campaign || !session) return sessionRefusal(404, 'Sessão não encontrada.');
+      if (session.endedAt) return sessionRefusal(400, 'A sessão já foi encerrada.');
+      if (campaign.status === 'PAUSED') return sessionRefusal(400, 'A sessão já está pausada.');
 
       const gameState = await captureGameState(campaignId, sessionId, tx);
       await tx.session.update({ where: { id: sessionId }, data: { savedState: toJson(gameState) } });
@@ -2107,7 +2107,7 @@ router.put('/:campaignId/sessions/:sessionId/pause', campaignGM, async (req: Aut
     // Send system message
     await sendSystemMessage(
       campaignId,
-      `Session ${session.sessionNumber} has been paused. See you next time!`,
+      `A sessão ${session.sessionNumber} foi pausada. Até a próxima!`,
       { sessionId: session.id, sessionNumber: session.sessionNumber, action: 'session.paused' }
     );
 
@@ -2118,14 +2118,14 @@ router.put('/:campaignId/sessions/:sessionId/pause', campaignGM, async (req: Aut
     });
 
     return res.status(200).json({
-      message: 'Session paused successfully',
+      message: 'Sessão pausada.',
       stateSaved: true,
     });
   } catch (error) {
     logger.error('Error pausing session', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to pause session',
+      message: 'Não foi possível pausar a sessão.',
     });
   }
 });
@@ -2143,7 +2143,7 @@ router.put('/:campaignId/sessions/:sessionId/end', campaignGM, async (req: Authe
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid request',
+        message: parsed.error.issues[0]?.message ?? 'Pedido inválido.',
       });
     }
     const saveState = parsed.data.saveState ?? true;
@@ -2151,8 +2151,8 @@ router.put('/:campaignId/sessions/:sessionId/end', campaignGM, async (req: Authe
 
     const outcome = await withSessionsHeld(campaignId, async (tx, campaign) => {
       const session = await tx.session.findFirst({ where: { id: sessionId, campaignId } });
-      if (!campaign || !session) return sessionRefusal(404, 'Session not found');
-      if (session.endedAt) return sessionRefusal(400, 'Session has already ended');
+      if (!campaign || !session) return sessionRefusal(404, 'Sessão não encontrada.');
+      if (session.endedAt) return sessionRefusal(400, 'A sessão já foi encerrada.');
 
       // Unticked, the snapshot taken at pause (if any) is kept as it was.
       const savedState = saveState ? toJson(await captureGameState(campaignId, sessionId, tx)) : undefined;
@@ -2174,7 +2174,7 @@ router.put('/:campaignId/sessions/:sessionId/end', campaignGM, async (req: Authe
     // Send system message
     await sendSystemMessage(
       campaignId,
-      `Session ${session.sessionNumber} has ended.${saveState ? ' Game state saved!' : ''}`,
+      `A sessão ${session.sessionNumber} foi encerrada.${saveState ? ' Estado do jogo salvo!' : ''}`,
       {
         sessionId: session.id,
         sessionNumber: session.sessionNumber,
@@ -2190,14 +2190,14 @@ router.put('/:campaignId/sessions/:sessionId/end', campaignGM, async (req: Authe
     });
 
     return res.status(200).json({
-      message: 'Session ended successfully',
+      message: 'Sessão encerrada.',
       stateSaved: saveState,
     });
   } catch (error) {
     logger.error('Error ending session', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to end session',
+      message: 'Não foi possível encerrar a sessão.',
     });
   }
 });
@@ -2219,8 +2219,8 @@ router.put('/:campaignId/resume', campaignGM, async (req: AuthenticatedRequest, 
     // moved one jumped back, an added one vanished, a map switch reverted.
     const outcome = await withSessionsHeld(campaignId, async (tx, campaign) => {
       const session = await openSession(tx, campaignId);
-      if (!campaign || !session) return sessionRefusal(400, 'There is no paused session to resume');
-      if (campaign.status !== 'PAUSED') return sessionRefusal(400, 'The session is not paused');
+      if (!campaign || !session) return sessionRefusal(400, 'Não há sessão pausada para retomar.');
+      if (campaign.status !== 'PAUSED') return sessionRefusal(400, 'A sessão não está pausada.');
       await tx.campaign.update({
         where: { id: campaignId },
         data: { status: 'ACTIVE', lastPlayedAt: new Date() },
@@ -2233,7 +2233,7 @@ router.put('/:campaignId/resume', campaignGM, async (req: AuthenticatedRequest, 
     // Send system message
     await sendSystemMessage(
       campaignId,
-      `Session ${lastSession.sessionNumber} has been resumed!`,
+      `A sessão ${lastSession.sessionNumber} foi retomada!`,
       {
         sessionId: lastSession.id,
         sessionNumber: lastSession.sessionNumber,
@@ -2249,7 +2249,7 @@ router.put('/:campaignId/resume', campaignGM, async (req: AuthenticatedRequest, 
     });
 
     return res.status(200).json({
-      message: 'Session resumed successfully',
+      message: 'Sessão retomada.',
       session: {
         id: lastSession.id,
         sessionNumber: lastSession.sessionNumber,
@@ -2260,7 +2260,7 @@ router.put('/:campaignId/resume', campaignGM, async (req: AuthenticatedRequest, 
     logger.error('Error resuming session', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to resume session',
+      message: 'Não foi possível retomar a sessão.',
     });
   }
 });
@@ -2299,11 +2299,11 @@ router.get('/:campaignId/export', campaignGM, downloadOnly, oneCampaignArchiveAt
       }
       logger.error('Campaign export failed', { campaignId, error: errorMessage(error) });
       if (errorMessage(error) === 'Campaign not found') {
-        return res.status(404).json({ error: 'Not Found', message: 'Campaign not found' });
+        return res.status(404).json({ error: 'Not Found', message: 'Campanha não encontrada.' });
       }
       return res.status(500).json({
         error: 'Export Failed',
-        message: 'Failed to export campaign. Please try again.',
+        message: 'Não foi possível exportar a campanha. Tente de novo.',
       });
     }
 
@@ -2332,7 +2332,7 @@ function takeImportUpload(req: Request, res: Response, next: NextFunction): void
       if (err.code === 'LIMIT_FILE_SIZE') {
         res.status(413).json({
           error: 'File Too Large',
-          message: `The archive is larger than ${megabytes(CAMPAIGN_ARCHIVE_MAX_BYTES)}, the most a campaign archive may be.`,
+          message: `O arquivo é maior que ${megabytes(CAMPAIGN_ARCHIVE_MAX_BYTES)}, o máximo para um arquivo de campanha.`,
         });
         return;
       }
@@ -2366,7 +2366,7 @@ async function answerAfterRemovingArchive(
     const file = req.file;
     reply = file
       ? await whileHoldingArchiveSlot(res, () => work(file.path))
-      : { status: 400, body: { error: 'Validation Error', message: 'No file uploaded.' } };
+      : { status: 400, body: { error: 'Validation Error', message: 'Nenhum arquivo enviado.' } };
   } finally {
     await removeUploadedArchive(req.file);
   }
@@ -2393,7 +2393,7 @@ router.post('/import/preview', authenticated, oneCampaignArchiveAtATime, campaig
       }
       // The server's own failure: its detail is for the log, not the caller.
       logger.error('Campaign import preview failed', { error: errorMessage(error) });
-      return { status: 500, body: { error: 'Preview Failed', message: 'The archive could not be read. The server log has the details.' } };
+      return { status: 500, body: { error: 'Preview Failed', message: 'Não foi possível ler o arquivo. O registro do servidor tem os detalhes.' } };
     }
   });
 });
@@ -2417,7 +2417,7 @@ router.post('/import', authenticated, oneCampaignArchiveAtATime, campaignImportL
       if (campaignName !== undefined && (campaignName.length === 0 || campaignName.length > CAMPAIGN_LIMITS.maxNameLength)) {
         return {
           status: 400,
-          body: { error: 'Validation Error', message: `Campaign name must be between 1 and ${CAMPAIGN_LIMITS.maxNameLength} characters.` },
+          body: { error: 'Validation Error', message: `O nome da campanha deve ter entre 1 e ${CAMPAIGN_LIMITS.maxNameLength} caracteres.` },
         };
       }
 
@@ -2428,7 +2428,7 @@ router.post('/import', authenticated, oneCampaignArchiveAtATime, campaignImportL
         campaignName: campaignName || undefined,
       });
 
-      return { status: 201, body: { message: 'Campaign imported successfully', ...result } };
+      return { status: 201, body: { message: 'Campanha importada.', ...result } };
     } catch (error: unknown) {
       if (error instanceof ArchiveRefusedError) {
         logger.warn('Campaign import refused', { error: error.message, userId: req.session?.userId });

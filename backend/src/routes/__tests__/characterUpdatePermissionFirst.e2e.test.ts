@@ -58,5 +58,5 @@ it('still tells the owner the game system cannot change', async () => {
   const res = await owner.put(`/api/characters/${characterId}`).send({ gameSystem: 'FANTASY_D20' });
 
   expect(res.status).toBe(400);
-  expect(res.body.message).toMatch(/Cannot change game system/);
+  expect(res.body.message).toMatch(/Não é possível mudar o sistema de jogo/);
 });
