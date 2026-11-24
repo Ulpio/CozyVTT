@@ -497,6 +497,21 @@ describe('what sits under the band', () => {
     expect(screen.getByRole('button', { name: 'Put back' }).parentElement!.style.top).toBe('62px');
   });
 
+  // The initiative column is one of the panels under the band: it follows
+  // the band's bottom edge, and Put back's while that shows.
+  it('starts the initiative column under the band', () => {
+    act(() => {
+      useGameStore.getState().setCombatState({
+        active: true, round: 1, currentTokenId: 'g', spend: {},
+        combatants: [{ tokenId: 'g', mapId: 'm1', name: 'Goblin', imageUrl: '', initiative: 12, hp: { current: 5, max: 5, temp: 0 }, type: 'npc', disposition: null, characterId: null }],
+      });
+    });
+    render(<MapCanvas />);
+    layOut();
+
+    expect(screen.getByRole('region', { name: 'Initiative order' }).style.top).toBe('62px');
+  });
+
   it('starts the GM’s tool stack under the band, which spans the map', () => {
     render(<MapCanvas />);
     layOut();

@@ -171,6 +171,7 @@ import '@/styles/spirit-effects.css';
 import { mapImageState, pictureFor, PICTURE_DECODE_WAIT_MS, type LoadedPicture } from './map/mapImageState';
 import { useTokenImages } from './map/useTokenImages';
 import { useTopBand, underBand, belowBand, useMeasuredBottom, useMeasuredHeight, BAND_GAP } from './map/toolbarLayout';
+import InitiativeColumn from './initiativeColumn/InitiativeColumn';
 import { playedGameSystem } from '@/constants/game-systems';
 
 /** Returns the accent color for the spirit layer style string. Used for spirit token ring. */
@@ -1193,6 +1194,31 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     mapControls.fitToScreen(canvasSize.width, canvasSize.height);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mapControls is a new object each render; lastFittedMapIdRef keeps the fit to once per map
   }, [mapShown, currentMap?.id, canvasSize.width, canvasSize.height]);
+
+  // ============================================
+  // Centre on a token: a row tapped in the initiative column
+  // ============================================
+
+  // Answers each request once: one made before this canvas mounted is old.
+  const centreRequest = useGameStore((s) => s.centreRequest);
+  const answeredCentreRef = useRef(useGameStore.getState().centreRequest?.nonce ?? 0);
+  useEffect(() => {
+    if (!centreRequest || centreRequest.nonce === answeredCentreRef.current) return;
+    if (!currentMap || canvasSize.width === 0 || canvasSize.height === 0) return;
+    answeredCentreRef.current = centreRequest.nonce;
+    const store = useGameStore.getState();
+    // Only a token this viewer holds, of the map on screen; the server has
+    // already left out what they may not see.
+    if (store.tokensMapId !== currentMap.id) return;
+    const token = store.tokens[centreRequest.tokenId];
+    if (!token) return;
+    const centre = tokenCentre(token, currentMap.gridSize, currentMap.height);
+    mapControls.panBy(
+      canvasSize.width / 2 - (centre.x * mapControls.zoom + mapControls.panOffset.x),
+      canvasSize.height / 2 - (centre.y * mapControls.zoom + mapControls.panOffset.y),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- answered once per request, by its nonce
+  }, [centreRequest, currentMap, canvasSize.width, canvasSize.height]);
 
   // ============================================
   // WebSocket Event Listeners
@@ -5092,11 +5118,14 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         </div>
       )}
 
+      {/* The initiative order, under the band like the AoE panel, which lies over it. */}
+      <InitiativeColumn compact={compact} top={aoeTop} onRowClick={(row) => useGameStore.getState().requestCentreOn(row.tokenId)} />
+
       {/* AoE panel, under the toolbar's band (top-12 until the band is
           measured), and under Put back while that shows. */}
       {showAoE && currentMap && (
         <div
-          className="absolute top-12 left-2 z-10 p-3 space-y-3 w-52 shadow-xl rounded-xl border border-moss-green/30 bg-parchment/95 backdrop-blur-xs"
+          className="absolute top-12 left-2 z-30 p-3 space-y-3 w-52 shadow-xl rounded-xl border border-moss-green/30 bg-parchment/95 backdrop-blur-xs"
           // Moved down, it keeps to the map, scrolling inside where it is
           // taller than the room below it.
           style={aoeTop !== null

@@ -2713,6 +2713,14 @@ const en = {
       paintRedo: 'Redo a change to the picture, while Mapmaker is on',
     },
   },
+  initiativeColumn: {
+    label: 'Initiative order',
+    round: 'Round {{round}}',
+    collapse: 'Collapse',
+    expand: 'Expand',
+    hp: '{{name}}: {{current}} of {{max}} hit points',
+    collapsedRow: '{{name}}, {{value}}',
+  },
 };
 
 export default en;
