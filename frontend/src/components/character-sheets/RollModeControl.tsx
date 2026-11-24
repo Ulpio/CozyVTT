@@ -8,6 +8,7 @@
  */
 
 import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getModeLabels, ROLL_MODES, type RollMode } from '@/utils/rollModes';
 
 interface RollModeControlProps {
@@ -18,12 +19,13 @@ interface RollModeControlProps {
 }
 
 export function RollModeControl({ mode, onChange, gameSystem, className = '' }: RollModeControlProps) {
+  const { t } = useTranslation();
   const labelId = useId();
   const labels = getModeLabels(gameSystem);
 
   return (
     <div role="group" aria-labelledby={labelId} className={`flex flex-wrap items-center gap-x-2 gap-y-1 ${className}`}>
-      <span id={labelId} className="text-xs text-warm-gray">Roll mode</span>
+      <span id={labelId} className="text-xs text-warm-gray">{t('rollPicker.rollMode')}</span>
       <div className="inline-flex rounded-lg border border-moss-green/30 bg-paper/60 overflow-hidden">
         {ROLL_MODES.map((option) => {
           const pressed = option === mode;

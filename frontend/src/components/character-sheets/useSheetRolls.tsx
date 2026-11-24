@@ -18,6 +18,7 @@
  */
 
 import { useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import i18n from '@/i18n';
 import { useLongPress } from '@/hooks/useLongPress';
 import { applyRollMode, getModeLabels, type RollMode } from '@/utils/rollModes';
 import { SheetRollPopup, type RollPoint } from './SheetRollPopup';
@@ -39,7 +40,7 @@ export function rollTarget(expression: string, purpose: string, gameSystem: stri
   return {
     'data-roll': expression,
     'data-roll-purpose': purpose,
-    title: `Click: roll  |  Right-click or press and hold: ${labels.advantage} / ${labels.disadvantage}`,
+    title: i18n.t('sheetRolls.rollTitle', { advantage: labels.advantage, disadvantage: labels.disadvantage }),
   };
 }
 

@@ -24,6 +24,7 @@
 
 import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react';
 import FloatingLayer from '@/components/ui/FloatingLayer';
 import type { MenuItem, MenuSubmenu } from '@/components/ui/menu';
@@ -80,6 +81,7 @@ export function headedMenu(items: MenuItem[], fallback: string): { title: string
 }
 
 export default function ActionSheet({ open, title, items, onClose, subtitle, leading, onPlaced }: ActionSheetProps) {
+  const { t } = useTranslation();
   const rootRef = useSheet(open, true, onClose);
   // Its root is laid out where the sheet ends up; only the card inside slides.
   const sideways = useMediaQuery(SIDEWAYS_QUERY);
@@ -148,7 +150,7 @@ export default function ActionSheet({ open, title, items, onClose, subtitle, lea
                 <>
                   <button type="button" onClick={() => turnTo(null)} className={cn(SHEET_ROW, 'font-medium text-ink-secondary hover:bg-ink/5')}>
                     <ChevronLeft className="h-5 w-5 shrink-0" aria-hidden="true" />
-                    <span className="min-w-0 flex-1 truncate">Back to {title}</span>
+                    <span className="min-w-0 flex-1 truncate">{t('compact.backTo', { title })}</span>
                   </button>
                   <p className="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted select-none">{submenu.label}</p>
                   {submenu.busy?.active ? (
@@ -178,7 +180,7 @@ export default function ActionSheet({ open, title, items, onClose, subtitle, lea
             onClick={onClose}
             className={cn('min-h-13 shrink-0 rounded-cozy-lg border border-brand/20 bg-surface-light text-base font-semibold text-ink shadow-2xl transition-colors hover:bg-ink/5 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand', open && 'pointer-events-auto')}
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </motion.div>
       </div>

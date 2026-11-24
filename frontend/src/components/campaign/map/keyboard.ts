@@ -18,6 +18,7 @@
 import { isTypingInto } from './typingTarget';
 import { isAnyTrapOpen } from '@/hooks/useFocusTrap';
 import { isArrowKey, type ArrowKey, type StepDirection } from './selection';
+import type { Messages } from '@/i18n/locales/en';
 
 /**
  * Focused elements that take keys of their own: an arrow on a radio button,
@@ -131,11 +132,16 @@ export function createRepeatPacer(intervalMs: number): RepeatPacer {
  */
 export type ShortcutAudience = 'everyone' | 'actors' | 'gm';
 
+/** A row of MAP_SHORTCUTS, which the window writes in the app's language. */
+export type ShortcutId = keyof Messages['shortcuts']['does'];
+
 export interface MapShortcut {
   /** Each key or chord, spelled as the guides spell it; any one of them does it. */
   keys: readonly string[];
   does: string;
   who: ShortcutAudience;
+  /** Names the row's text in the app's language (shortcuts.does), whatever its English `does` says. */
+  id: ShortcutId;
 }
 
 /**
@@ -146,47 +152,47 @@ export interface MapShortcut {
  * shortcut per line, and fails when a table disagrees.
  */
 export const MAP_SHORTCUTS: readonly MapShortcut[] = [
-  { keys: [',', '.', '<', '>'], does: 'Select the previous or next token you can act on', who: 'actors' },
-  { keys: ['Arrow keys'], does: 'Move the selected token one square', who: 'actors' },
-  { keys: ['Shift + arrow keys'], does: 'Move the selected token five squares', who: 'actors' },
-  { keys: ['[', ']'], does: 'Turn the selected token 45 degrees anticlockwise or clockwise', who: 'actors' },
-  { keys: ['Enter'], does: "Open the selected token's menu", who: 'everyone' },
-  { keys: ['Esc'], does: 'Let go of one thing: the menu, the armed Ping, a held token, the tool, then the selection', who: 'everyone' },
-  { keys: ['Tab'], does: 'Ping the map where the pointer is', who: 'everyone' },
-  { keys: ['Double tap'], does: 'Ping the map, on a touch screen, where there is no token or door and no tool is up', who: 'everyone' },
-  { keys: ['Alt + click'], does: 'Place a spell area off the grid, with the AoE tool', who: 'everyone' },
-  { keys: ['?'], does: 'Show these shortcuts', who: 'everyone' },
-  { keys: ['Arrow keys'], does: 'Nudge the selected walls one pixel', who: 'gm' },
-  { keys: ['Shift + arrow keys'], does: 'Nudge the selected walls one square', who: 'gm' },
-  { keys: ['Ctrl + A'], does: 'Select every wall, in Select mode', who: 'gm' },
-  { keys: ['Shift + click'], does: 'Add a wall to the selection, or take it out', who: 'gm' },
-  { keys: ['Delete', 'Backspace'], does: 'Delete the selected walls', who: 'gm' },
-  { keys: ['Double-click'], does: 'Finish a wall line', who: 'gm' },
-  { keys: ['Ctrl + Z'], does: 'Undo the last wall change', who: 'gm' },
-  { keys: ['Ctrl + Y', 'Ctrl + Shift + Z'], does: 'Redo a wall change', who: 'gm' },
-  { keys: ['S'], does: 'Select part of the picture, while Mapmaker is on', who: 'gm' },
-  { keys: ['B'], does: 'Paint with the brush, while Mapmaker is on', who: 'gm' },
-  { keys: ['E'], does: 'Erase to the map\'s own colour, while Mapmaker is on', who: 'gm' },
-  { keys: ['L'], does: 'Paint a line, while Mapmaker is on', who: 'gm' },
-  { keys: ['R'], does: 'Paint a rectangle, while Mapmaker is on', who: 'gm' },
-  { keys: ['O'], does: 'Paint an ellipse, while Mapmaker is on', who: 'gm' },
-  { keys: ['G'], does: 'Paint a polygon, corner by corner, while Mapmaker is on', who: 'gm' },
-  { keys: ['C'], does: 'Paint a curve, bent by a second drag, while Mapmaker is on', who: 'gm' },
-  { keys: ['Enter'], does: 'Close a polygon or paint a curve as it is, while Mapmaker is on', who: 'gm' },
-  { keys: ['Backspace'], does: 'Take a polygon\'s last corner back, while Mapmaker is on', who: 'gm' },
-  { keys: ['M'], does: 'Paint a room, whose walls are added when it is saved, while Mapmaker is on', who: 'gm' },
-  { keys: ['P'], does: 'Paint a stamp into a square, while Mapmaker is on', who: 'gm' },
-  { keys: ['F'], does: 'Fill an area, while Mapmaker is on', who: 'gm' },
-  { keys: ['T'], does: 'Paint a line of text, while Mapmaker is on', who: 'gm' },
-  { keys: ['I'], does: 'Take a colour from the picture, while Mapmaker is on', who: 'gm' },
-  { keys: ['Ctrl + C', 'Ctrl + X', 'Ctrl + V'], does: 'Copy, cut or paste the selection, while Mapmaker is on', who: 'gm' },
-  { keys: ['Ctrl + A'], does: 'Select the whole picture, while Mapmaker is on', who: 'gm' },
-  { keys: ['Delete', 'Backspace'], does: 'Erase the selection to the map\'s own colour, while Mapmaker is on', who: 'gm' },
-  { keys: ['Enter'], does: 'Put the selection down, while Mapmaker is on', who: 'gm' },
-  { keys: ['Shift + drag'], does: 'Keep a painted line to 15 degree steps', who: 'gm' },
-  { keys: ['[', ']'], does: 'Make the brush narrower or wider, while Mapmaker is on', who: 'gm' },
-  { keys: ['Ctrl + Z'], does: 'Undo the last change to the picture, while Mapmaker is on', who: 'gm' },
-  { keys: ['Ctrl + Y', 'Ctrl + Shift + Z'], does: 'Redo a change to the picture, while Mapmaker is on', who: 'gm' },
+  { keys: [',', '.', '<', '>'], does: 'Select the previous or next token you can act on', who: 'actors', id: 'cycle' },
+  { keys: ['Arrow keys'], does: 'Move the selected token one square', who: 'actors', id: 'moveOne' },
+  { keys: ['Shift + arrow keys'], does: 'Move the selected token five squares', who: 'actors', id: 'moveFive' },
+  { keys: ['[', ']'], does: 'Turn the selected token 45 degrees anticlockwise or clockwise', who: 'actors', id: 'turn' },
+  { keys: ['Enter'], does: "Open the selected token's menu", who: 'everyone', id: 'menu' },
+  { keys: ['Esc'], does: 'Let go of one thing: the menu, the armed Ping, a held token, the tool, then the selection', who: 'everyone', id: 'escape' },
+  { keys: ['Tab'], does: 'Ping the map where the pointer is', who: 'everyone', id: 'ping' },
+  { keys: ['Double tap'], does: 'Ping the map, on a touch screen, where there is no token or door and no tool is up', who: 'everyone', id: 'doubleTap' },
+  { keys: ['Alt + click'], does: 'Place a spell area off the grid, with the AoE tool', who: 'everyone', id: 'aoe' },
+  { keys: ['?'], does: 'Show these shortcuts', who: 'everyone', id: 'shortcuts' },
+  { keys: ['Arrow keys'], does: 'Nudge the selected walls one pixel', who: 'gm', id: 'nudgePixel' },
+  { keys: ['Shift + arrow keys'], does: 'Nudge the selected walls one square', who: 'gm', id: 'nudgeSquare' },
+  { keys: ['Ctrl + A'], does: 'Select every wall, in Select mode', who: 'gm', id: 'selectWalls' },
+  { keys: ['Shift + click'], does: 'Add a wall to the selection, or take it out', who: 'gm', id: 'toggleWall' },
+  { keys: ['Delete', 'Backspace'], does: 'Delete the selected walls', who: 'gm', id: 'deleteWalls' },
+  { keys: ['Double-click'], does: 'Finish a wall line', who: 'gm', id: 'finishLine' },
+  { keys: ['Ctrl + Z'], does: 'Undo the last wall change', who: 'gm', id: 'undoWall' },
+  { keys: ['Ctrl + Y', 'Ctrl + Shift + Z'], does: 'Redo a wall change', who: 'gm', id: 'redoWall' },
+  { keys: ['S'], does: 'Select part of the picture, while Mapmaker is on', who: 'gm', id: 'paintSelect' },
+  { keys: ['B'], does: 'Paint with the brush, while Mapmaker is on', who: 'gm', id: 'paintBrush' },
+  { keys: ['E'], does: 'Erase to the map\'s own colour, while Mapmaker is on', who: 'gm', id: 'paintErase' },
+  { keys: ['L'], does: 'Paint a line, while Mapmaker is on', who: 'gm', id: 'paintLine' },
+  { keys: ['R'], does: 'Paint a rectangle, while Mapmaker is on', who: 'gm', id: 'paintRect' },
+  { keys: ['O'], does: 'Paint an ellipse, while Mapmaker is on', who: 'gm', id: 'paintEllipse' },
+  { keys: ['G'], does: 'Paint a polygon, corner by corner, while Mapmaker is on', who: 'gm', id: 'paintPolygon' },
+  { keys: ['C'], does: 'Paint a curve, bent by a second drag, while Mapmaker is on', who: 'gm', id: 'paintCurve' },
+  { keys: ['Enter'], does: 'Close a polygon or paint a curve as it is, while Mapmaker is on', who: 'gm', id: 'paintClose' },
+  { keys: ['Backspace'], does: 'Take a polygon\'s last corner back, while Mapmaker is on', who: 'gm', id: 'paintCornerBack' },
+  { keys: ['M'], does: 'Paint a room, whose walls are added when it is saved, while Mapmaker is on', who: 'gm', id: 'paintRoom' },
+  { keys: ['P'], does: 'Paint a stamp into a square, while Mapmaker is on', who: 'gm', id: 'paintStamp' },
+  { keys: ['F'], does: 'Fill an area, while Mapmaker is on', who: 'gm', id: 'paintFill' },
+  { keys: ['T'], does: 'Paint a line of text, while Mapmaker is on', who: 'gm', id: 'paintText' },
+  { keys: ['I'], does: 'Take a colour from the picture, while Mapmaker is on', who: 'gm', id: 'paintPick' },
+  { keys: ['Ctrl + C', 'Ctrl + X', 'Ctrl + V'], does: 'Copy, cut or paste the selection, while Mapmaker is on', who: 'gm', id: 'paintClipboard' },
+  { keys: ['Ctrl + A'], does: 'Select the whole picture, while Mapmaker is on', who: 'gm', id: 'paintSelectAll' },
+  { keys: ['Delete', 'Backspace'], does: 'Erase the selection to the map\'s own colour, while Mapmaker is on', who: 'gm', id: 'paintEraseSelection' },
+  { keys: ['Enter'], does: 'Put the selection down, while Mapmaker is on', who: 'gm', id: 'paintPutDown' },
+  { keys: ['Shift + drag'], does: 'Keep a painted line to 15 degree steps', who: 'gm', id: 'paintSnap' },
+  { keys: ['[', ']'], does: 'Make the brush narrower or wider, while Mapmaker is on', who: 'gm', id: 'paintBrushSize' },
+  { keys: ['Ctrl + Z'], does: 'Undo the last change to the picture, while Mapmaker is on', who: 'gm', id: 'paintUndo' },
+  { keys: ['Ctrl + Y', 'Ctrl + Shift + Z'], does: 'Redo a change to the picture, while Mapmaker is on', who: 'gm', id: 'paintRedo' },
 ];
 
 /**

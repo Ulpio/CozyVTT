@@ -8,6 +8,7 @@ import { X } from 'lucide-react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useUnsavedWorkGuard } from '@/hooks/useUnsavedWorkGuard';
 import { useToast } from '@/contexts/ToastContext';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/services/api';
 import type { Character } from '@/types';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -45,6 +46,7 @@ export default function CharacterSheetEditorModal({
   const [confirmClose, setConfirmClose] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const signedOut = useUnsavedWorkGuard(hasUnsavedChanges);
+  const { t } = useTranslation();
   const { showToast } = useToast();
   // The version the editor's form was made from: the one it opened, then the
   // one each save stored while the editor stays open. The character handed in
@@ -123,7 +125,7 @@ export default function CharacterSheetEditorModal({
         refusedSaveMessage(
           validationErrors ?? [],
           apiErrorMessage(error),
-          'Failed to save character. Please try again.'
+          t('sheetModal.saveFailed')
         ),
         'error'
       );
@@ -221,7 +223,7 @@ export default function CharacterSheetEditorModal({
         <div className="flex justify-end px-3 py-2 border-b border-moss-green/20 shrink-0">
           <button
             onClick={handleCancel}
-            aria-label="Close dialog"
+            aria-label={t('common.closeDialog')}
             className="touch-target inline-flex items-center justify-center p-2 rounded-lg hover:bg-stone-gray/10 transition-colors"
             disabled={saving}
           >
@@ -237,7 +239,7 @@ export default function CharacterSheetEditorModal({
 
         {/* Visually hidden title for accessibility */}
         <h2 id="character-sheet-editor-title" className="sr-only">
-          Edit Character Sheet: {character.name}
+          {t('sheetModal.editTitle', { name: character.name })}
         </h2>
 
         {/* Editor Content. A sheet the editor cannot draw fails here, inside
@@ -254,10 +256,10 @@ export default function CharacterSheetEditorModal({
         body after this dialog, so it is drawn over it. */}
     <ConfirmDialog
       isOpen={confirmClose}
-      title="Discard Changes?"
-      message="Are you sure you want to cancel? Any unsaved changes will be lost."
-      confirmLabel="Discard"
-      cancelLabel="Keep Editing"
+      title={t('sheetModal.discardTitle')}
+      message={t('sheetModal.discardMessage')}
+      confirmLabel={t('sheetModal.discard')}
+      cancelLabel={t('sheetModal.keepEditing')}
       variant="warning"
       onConfirm={onClose}
       onCancel={() => setConfirmClose(false)}

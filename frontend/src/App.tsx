@@ -14,6 +14,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import ToastContainer from '@/components/common/ToastContainer';
 import Button from '@/components/ui/Button';
+import { useTranslation } from 'react-i18next';
 
 // Lazy-loaded pages — each becomes its own JS chunk so the browser only downloads
 // code for the page the user actually visits.
@@ -42,11 +43,12 @@ function MascotImage({ className = '' }: { className?: string }) {
 
 /** Minimal full-screen spinner shown while a lazy page chunk loads. */
 function PageLoader() {
+  const { t } = useTranslation();
   return (
     <div
       className="min-h-page flex items-center justify-center bg-linear-to-br/srgb from-soft-cream via-parchment to-warm-amber/20"
       aria-live="polite"
-      aria-label="Loading page"
+      aria-label={t('app.loadingPage')}
     >
       <Loader2 className="w-8 h-8 text-brand-ink animate-spin" aria-hidden="true" />
     </div>
@@ -54,6 +56,7 @@ function PageLoader() {
 }
 
 function App() {
+  const { t } = useTranslation();
   return (
     <ErrorBoundary>
       {/* reducedMotion="user" makes every framer-motion animation (toasts, dice
@@ -73,7 +76,7 @@ function App() {
                        focus:px-4 focus:py-2 focus:bg-moss-green focus:text-brand-text focus:rounded-lg
                        focus:shadow-lg focus:outline-hidden focus:ring-2 focus:ring-warm-amber"
           >
-            Skip to main content
+            {t('app.skipToMain')}
           </a>
           {/* Global toast notifications */}
           <ToastContainer />

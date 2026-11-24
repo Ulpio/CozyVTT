@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Play, Pause, Square, RotateCcw, Clock, Hash } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import Toast, { useToast } from '@/components/Toast';
@@ -58,6 +59,7 @@ function useSessionTimer(startedAt: string | null): string {
 // ============================================
 
 export default function SessionControls() {
+  const { t } = useTranslation();
   const { campaign, userRole, activeSession, setActiveSession, updateCampaignStatus } = useCampaign();
   const { toast, showToast, hideToast } = useToast();
 
@@ -88,13 +90,13 @@ export default function SessionControls() {
         sessionNumber: result.session.sessionNumber,
         startedAt: result.session.startedAt,
       });
-      showToast(`Session ${result.session.sessionNumber} started!`, 'success');
+      showToast(t('sessionControls.started', { number: result.session.sessionNumber }), 'success');
     } catch (err) {
-      showToast(apiErrorMessage(err) || 'Failed to start session', 'error');
+      showToast(apiErrorMessage(err) || t('sessionControls.startFailed'), 'error');
     } finally {
       setIsLoading(false);
     }
-  }, [campaign, isLoading, updateCampaignStatus, setActiveSession, showToast]);
+  }, [campaign, isLoading, updateCampaignStatus, setActiveSession, showToast, t]);
 
   const handlePause = useCallback(async () => {
     if (!campaign || !activeSession || isLoading) return;
@@ -102,13 +104,13 @@ export default function SessionControls() {
     try {
       await api.pauseSession(campaign.id, activeSession.id);
       updateCampaignStatus(CampaignStatus.PAUSED);
-      showToast('Session paused. Game state saved.', 'success');
+      showToast(t('sessionControls.paused'), 'success');
     } catch (err) {
-      showToast(apiErrorMessage(err) || 'Failed to pause session', 'error');
+      showToast(apiErrorMessage(err) || t('sessionControls.pauseFailed'), 'error');
     } finally {
       setIsLoading(false);
     }
-  }, [campaign, activeSession, isLoading, updateCampaignStatus, showToast]);
+  }, [campaign, activeSession, isLoading, updateCampaignStatus, showToast, t]);
 
   const handleResume = useCallback(async () => {
     if (!campaign || isLoading) return;
@@ -123,13 +125,13 @@ export default function SessionControls() {
         sessionNumber: result.session.sessionNumber,
         startedAt: result.session.startedAt,
       });
-      showToast(`Session ${result.session.sessionNumber} resumed!`, 'success');
+      showToast(t('sessionControls.resumed', { number: result.session.sessionNumber }), 'success');
     } catch (err) {
-      showToast(apiErrorMessage(err) || 'Failed to resume session', 'error');
+      showToast(apiErrorMessage(err) || t('sessionControls.resumeFailed'), 'error');
     } finally {
       setIsLoading(false);
     }
-  }, [campaign, isLoading, updateCampaignStatus, setActiveSession, showToast]);
+  }, [campaign, isLoading, updateCampaignStatus, setActiveSession, showToast, t]);
 
   // End session goes through the modal
   const handleEndConfirm = useCallback(async (saveState: boolean, notes: string) => {
@@ -140,13 +142,13 @@ export default function SessionControls() {
       updateCampaignStatus(CampaignStatus.INACTIVE);
       setActiveSession(null);
       setIsEndModalOpen(false);
-      showToast(`Session ${activeSession.sessionNumber} ended.${saveState ? ' State saved.' : ''}`, 'success');
+      showToast(t(saveState ? 'sessionControls.endedSaved' : 'sessionControls.ended', { number: activeSession.sessionNumber }), 'success');
     } catch (err) {
-      showToast(apiErrorMessage(err) || 'Failed to end session', 'error');
+      showToast(apiErrorMessage(err) || t('sessionControls.endFailed'), 'error');
     } finally {
       setIsLoading(false);
     }
-  }, [campaign, activeSession, isLoading, updateCampaignStatus, setActiveSession, showToast]);
+  }, [campaign, activeSession, isLoading, updateCampaignStatus, setActiveSession, showToast, t]);
 
   // ============================================
   // Render
@@ -164,7 +166,7 @@ export default function SessionControls() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-accent-ink" />
-            <h3 className="text-sm font-semibold text-brand-ink">Session Controls</h3>
+            <h3 className="text-sm font-semibold text-brand-ink">{t('sessionControls.title')}</h3>
           </div>
 
           {/* Session number + timer */}
@@ -194,7 +196,7 @@ export default function SessionControls() {
             }`}
           />
           <span className="text-sm font-medium text-stone-gray capitalize">
-            {isRunning ? 'Active' : isPaused ? 'Paused' : isPrep ? 'Preparation' : 'Inactive'}
+            {t(isRunning ? 'campaignCard.status.ACTIVE' : isPaused ? 'campaignCard.status.PAUSED' : isPrep ? 'campaignCard.status.PREPARATION' : 'campaignCard.status.INACTIVE')}
           </span>
         </div>
 
@@ -208,7 +210,7 @@ export default function SessionControls() {
               className="w-full flex items-center justify-center gap-2"
             >
               <Play className="w-4 h-4" />
-              {isLoading ? 'Starting...' : 'Start Session'}
+              {isLoading ? t('sessionControls.starting') : t('sessionControls.start')}
             </Button>
           )}
 
@@ -220,7 +222,7 @@ export default function SessionControls() {
               className="w-full flex items-center justify-center gap-2"
             >
               <RotateCcw className="w-4 h-4" />
-              {isLoading ? 'Resuming...' : 'Resume Session'}
+              {isLoading ? t('sessionControls.resuming') : t('sessionControls.resume')}
             </Button>
           )}
 
@@ -232,7 +234,7 @@ export default function SessionControls() {
               variant="secondary" className="w-full flex items-center justify-center gap-2"
             >
               <Pause className="w-4 h-4" />
-              {isLoading ? 'Pausing...' : 'Pause Session'}
+              {isLoading ? t('sessionControls.pausing') : t('sessionControls.pause')}
             </Button>
           )}
 
@@ -244,7 +246,7 @@ export default function SessionControls() {
               className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-danger/30 text-danger-ink hover:bg-danger/10 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Square className="w-4 h-4" />
-              End Session
+              {t('sessionControls.end')}
             </button>
           )}
         </div>
@@ -252,14 +254,14 @@ export default function SessionControls() {
         {/* Paused hint */}
         {isPaused && (
           <p className="text-xs text-warm-gray text-center italic">
-            Players can't move tokens. Their rolls from the Dice tab stay on their own screens; rolls from a sheet or a Roll menu still reach the table.
+            {t('sessionControls.pausedHint')}
           </p>
         )}
 
         {/* Inactive hint */}
         {isInactive && (
           <p className="text-xs text-warm-gray text-center italic">
-            Session ended. Start a new session when ready.
+            {t('sessionControls.endedHint')}
           </p>
         )}
       </div>

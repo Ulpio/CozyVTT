@@ -6,12 +6,14 @@
 import { AlertCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useCompactLayout } from '@/contexts/LayoutContext';
+import { useTranslation } from 'react-i18next';
 
 // ============================================
 // Component
 // ============================================
 
 export default function ConnectionStatus() {
+  const { t } = useTranslation();
   const { status, error, reconnect } = useWebSocket();
   // Retry is what a phone player needs when the connection drops.
   const compact = useCompactLayout();
@@ -24,7 +26,7 @@ export default function ConnectionStatus() {
           <Wifi className="w-4 h-4" />
           <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-moss-green" />
         </div>
-        <span className="sr-only sm:not-sr-only">Connected</span>
+        <span className="sr-only sm:not-sr-only">{t('connection.connected')}</span>
       </div>
     );
   }
@@ -37,7 +39,7 @@ export default function ConnectionStatus() {
           <Loader2 className="w-4 h-4 animate-spin" />
           <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-warm-amber animate-pulse" />
         </div>
-        <span className="sr-only sm:not-sr-only">Connecting...</span>
+        <span className="sr-only sm:not-sr-only">{t('connection.connecting')}</span>
       </div>
     );
   }
@@ -55,7 +57,7 @@ export default function ConnectionStatus() {
           <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-danger" />
         </div>
         <span className="sr-only sm:not-sr-only">
-          {status === 'error' ? 'Connection Error' : 'Disconnected'}
+          {status === 'error' ? t('connection.error') : t('connection.disconnected')}
         </span>
       </div>
 
@@ -63,9 +65,9 @@ export default function ConnectionStatus() {
       <button
         onClick={reconnect}
         className={`text-xs px-2 py-1 rounded-sm bg-danger/10 text-danger-ink hover:bg-danger/15 transition-colors${compact ? ' min-h-11 min-w-11' : ''}`}
-        title={error || 'Reconnect to server'}
+        title={error || t('connection.reconnect')}
       >
-        Retry
+        {t('connection.retry')}
       </button>
     </div>
   );

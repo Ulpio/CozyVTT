@@ -6,6 +6,7 @@
 // ============================================
 
 import { useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -29,6 +30,7 @@ interface LeaveCampaignProps {
 const hint = 'text-xs text-warm-gray';
 
 export default function LeaveCampaign({ campaign, userRole, onLeft }: LeaveCampaignProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { showToast } = useToast();
   const [asking, setAsking] = useState(false);
@@ -40,17 +42,17 @@ export default function LeaveCampaign({ campaign, userRole, onLeft }: LeaveCampa
   if (isCampaignOwner(campaign, user?.id)) {
     return (
       <p className={hint}>
-        You own this campaign, so you cannot leave it. If you no longer want it, delete it from{' '}
-        <strong>{userRole === CampaignRole.GM ? 'Campaign Settings' : 'Owner Settings'}</strong>, on the{' '}
-        <strong>Danger Zone</strong> tab.
+        <Trans
+          i18nKey={userRole === CampaignRole.GM ? 'leaveCampaign.ownerHintGm' : 'leaveCampaign.ownerHintOwner'}
+          components={{ b: <strong /> }}
+        />
       </p>
     );
   }
   if (userRole === CampaignRole.GM) {
     return (
       <p className={hint}>
-        To leave, hand the GM seat to another member first: in <strong>Campaign Settings</strong>, on the{' '}
-        <strong>Members</strong> tab, click the crown beside them.
+        <Trans i18nKey="leaveCampaign.gmHint" components={{ b: <strong /> }} />
       </p>
     );
   }
@@ -65,7 +67,7 @@ export default function LeaveCampaign({ campaign, userRole, onLeft }: LeaveCampa
       onLeft({ campaignId: campaign.id, reason: 'left', message });
     } catch (err) {
       setAsking(false);
-      showToast(apiErrorMessage(err) ?? 'Failed to leave the campaign', 'error');
+      showToast(apiErrorMessage(err) ?? t('leaveCampaign.failed'), 'error');
     } finally {
       setLeaving(false);
     }
@@ -79,18 +81,14 @@ export default function LeaveCampaign({ campaign, userRole, onLeft }: LeaveCampa
         className="touch-target flex items-center gap-2 px-3 py-2 w-full rounded-lg border border-danger/20 text-danger-ink hover:bg-danger/10 transition-colors text-sm font-medium"
       >
         <LogOut className="w-4 h-4" aria-hidden="true" />
-        Leave Campaign
+        {t('leaveCampaign.button')}
       </button>
       <ConfirmDialog
         isOpen={asking}
-        title={`Leave ${campaign.name}?`}
-        message={
-          'You stop seeing and playing in this campaign straight away. Your characters in it go back to My Characters, '
-          + 'and your personal notes and saved rolls stay on your dashboard, under Notes From Campaigns You Have Left. '
-          + 'Your tokens stay on the map for the GM. To come back, the GM has to invite you again.'
-        }
-        confirmLabel="Leave Campaign"
-        cancelLabel="Cancel"
+        title={t('leaveCampaign.dialogTitle', { name: campaign.name })}
+        message={t('leaveCampaign.message')}
+        confirmLabel={t('leaveCampaign.button')}
+        cancelLabel={t('common.cancel')}
         variant="danger"
         isLoading={leaving}
         onConfirm={() => void handleLeave()}
