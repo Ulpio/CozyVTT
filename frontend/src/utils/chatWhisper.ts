@@ -81,7 +81,7 @@ export function whisperTargets(memberships: readonly CampaignMembership[], chara
     }
   }
   for (const group of equalGroups(all, labelOf)) {
-    for (const l of group) l.parts.push(`joined ${joinedDay(l.membership.joinedAt)}`);
+    for (const l of group) l.parts.push(i18n.t('chat.joinedDay', { day: joinedDay(l.membership.joinedAt) }));
   }
   // Each round leaves the members of every equal group unequal to each
   // other; only a name copied from one of the new ones can make another.

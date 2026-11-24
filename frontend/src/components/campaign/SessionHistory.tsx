@@ -16,11 +16,13 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollText, ChevronDown, ChevronRight, RefreshCw, Pencil, Check, X } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import api from '@/services/api';
 import { apiErrorMessage } from '@/utils/errors';
 import { formatDuration } from '@/utils/format';
+import i18n from '@/i18n';
 import type { SessionSummary } from '@/types';
 
 /** Matches the server's cap on a session recap. */
@@ -28,7 +30,7 @@ const MAX_SESSION_NOTES = 2000;
 
 /** "8 Jan 2026" — short enough for a side panel, unambiguous about the month. */
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
+  return new Date(iso).toLocaleDateString(i18n.language, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -50,6 +52,7 @@ function sessionLength(startedAt: string, endedAt: string | null): string | null
 
 export default function SessionHistory() {
   const { campaign, activeSession, userRole } = useCampaign();
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,11 +74,11 @@ export default function SessionHistory() {
       const { sessions: fetched } = await api.listSessions(campaignId);
       setSessions(fetched);
     } catch (err) {
-      setError(apiErrorMessage(err) ?? 'Could not load past sessions.');
+      setError(apiErrorMessage(err) ?? t('sessionHistory.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [campaignId]);
+  }, [campaignId, t]);
 
   // Reload when the campaign changes, and whenever a session starts or ends —
   // ending one is what adds the notes this panel exists to show.
@@ -94,7 +97,7 @@ export default function SessionHistory() {
       setEditingId(null);
       setDraft('');
     } catch (err) {
-      setError(apiErrorMessage(err) ?? 'Could not save those notes.');
+      setError(apiErrorMessage(err) ?? t('sessionHistory.saveFailed'));
     } finally {
       setSavingNotes(false);
     }
@@ -120,7 +123,7 @@ export default function SessionHistory() {
             <ChevronRight className="w-3.5 h-3.5 text-stone-gray" />
           )}
           <ScrollText className="w-4 h-4 text-accent-ink" />
-          <h3 className="text-sm font-semibold text-brand-ink">Past Sessions</h3>
+          <h3 className="text-sm font-semibold text-brand-ink">{t('sessionHistory.title')}</h3>
           {past.length > 0 && (
             <span className="text-xs text-stone-gray">({past.length})</span>
           )}
@@ -130,8 +133,8 @@ export default function SessionHistory() {
           onClick={() => void load()}
           disabled={loading}
           className="p-1.5 rounded-lg hover:bg-moss-green/10 transition-colors text-stone-gray hover:text-brand-ink disabled:opacity-50"
-          title="Refresh"
-          aria-label="Refresh past sessions"
+          title={t('sessionHistory.refresh')}
+          aria-label={t('sessionHistory.refreshLabel')}
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
         </button>
@@ -143,8 +146,7 @@ export default function SessionHistory() {
 
           {!error && past.length === 0 && !loading && (
             <p className="text-xs text-warm-gray">
-              No finished sessions yet. When the GM ends a session, whatever they write
-              about it appears here.
+              {t('sessionHistory.empty')}
             </p>
           )}
 
@@ -157,7 +159,7 @@ export default function SessionHistory() {
               >
                 <header className="flex items-baseline justify-between gap-2 mb-1">
                   <h4 className="text-xs font-semibold text-brand-ink">
-                    Session {session.sessionNumber}
+                    {t('sessionHistory.session', { number: session.sessionNumber })}
                   </h4>
                   <div className="flex items-baseline gap-2 shrink-0">
                     <span className="text-[11px] text-stone-gray">
@@ -171,8 +173,8 @@ export default function SessionHistory() {
                           setDraft(session.notes ?? '');
                         }}
                         className="p-1 rounded-sm hover:bg-moss-green/10 text-stone-gray hover:text-brand-ink"
-                        title="Edit these notes"
-                        aria-label={`Edit notes for session ${session.sessionNumber}`}
+                        title={t('sessionHistory.editTitle')}
+                        aria-label={t('sessionHistory.editLabel', { number: session.sessionNumber })}
                       >
                         <Pencil className="w-3 h-3" />
                       </button>
@@ -187,23 +189,23 @@ export default function SessionHistory() {
                       onChange={(e) => setDraft(e.target.value)}
                       maxLength={MAX_SESSION_NOTES}
                       rows={5}
-                      aria-label={`Notes for session ${session.sessionNumber}`}
-                      placeholder="What happened this session? Leave empty to clear these notes."
+                      aria-label={t('sessionHistory.notesLabel', { number: session.sessionNumber })}
+                      placeholder={t('sessionHistory.placeholder')}
                       className="w-full px-2 py-1.5 text-xs border border-warm-amber/30 rounded-cozy bg-parchment/60 resize-y focus:outline-hidden focus:ring-2 focus:ring-warm-amber"
                     />
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[11px] text-warm-gray">
                         {draft.trim()
                           ? `${draft.length.toLocaleString()} / ${MAX_SESSION_NOTES.toLocaleString()}`
-                          : 'Saving empty will clear these notes.'}
+                          : t('sessionHistory.clearHint')}
                       </span>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => { setEditingId(null); setDraft(''); }}
                           disabled={savingNotes}
                           className="p-1 rounded-sm border border-warm-amber/30 text-stone-gray hover:text-brand-ink disabled:opacity-50"
-                          title="Cancel"
-                          aria-label="Cancel editing"
+                          title={t('sessionHistory.cancel')}
+                          aria-label={t('sessionHistory.cancelLabel')}
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -211,8 +213,8 @@ export default function SessionHistory() {
                           onClick={() => void saveNotes(session.id)}
                           disabled={savingNotes}
                           className="p-1 rounded-sm border border-moss-green/40 bg-moss-green/10 text-brand-ink hover:bg-moss-green/15 disabled:opacity-50"
-                          title="Save"
-                          aria-label="Save notes"
+                          title={t('sessionHistory.save')}
+                          aria-label={t('sessionHistory.saveLabel')}
                         >
                           <Check className="w-3.5 h-3.5" />
                         </button>
@@ -226,7 +228,7 @@ export default function SessionHistory() {
                     {session.notes}
                   </p>
                 ) : (
-                  <p className="text-xs text-warm-gray italic">No notes were written.</p>
+                  <p className="text-xs text-warm-gray italic">{t('sessionHistory.noNotes')}</p>
                 )}
               </article>
             );

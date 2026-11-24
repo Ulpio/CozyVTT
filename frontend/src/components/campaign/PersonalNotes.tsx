@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Markdown from '@/components/common/Markdown';
 import { NotebookPen, Plus, Trash2, Eye, Pencil, Loader2 } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
@@ -56,6 +57,7 @@ export default function PersonalNotes() {
   const fingerSized = useCompactLayout() ? ' touch-target inline-flex items-center justify-center' : '';
   const { campaign } = useCampaign();
   const campaignId = campaign?.id;
+  const { t } = useTranslation();
 
   const [notes, setNotes] = useState<PersonalNoteSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -89,10 +91,10 @@ export default function PersonalNotes() {
       setNotes(fetched);
       return fetched;
     } catch (err) {
-      setError(apiErrorMessage(err) ?? 'Could not load your notes.');
+      setError(apiErrorMessage(err) ?? t('personalNotes.loadFailed'));
       return [];
     }
-  }, [campaignId]);
+  }, [campaignId, t]);
 
   useEffect(() => {
     void loadList();
@@ -133,12 +135,12 @@ export default function PersonalNotes() {
           )
         );
       } catch (err) {
-        setError(apiErrorMessage(err) ?? 'Could not save. Your text is still here — try again.');
+        setError(apiErrorMessage(err) ?? t('personalNotes.saveFailed'));
       } finally {
         setSaving(false);
       }
     },
-    [campaignId]
+    [campaignId, t]
   );
 
   /** Save now, if there is anything the server has not been told about. */
@@ -174,7 +176,7 @@ export default function PersonalNotes() {
         draftRef.current = { noteId: note.id, title: note.title, content: note.content };
         setSavedSnapshot({ noteId: note.id, title: note.title, content: note.content });
       } catch (err) {
-        setError(apiErrorMessage(err) ?? 'Could not open that note.');
+        setError(apiErrorMessage(err) ?? t('personalNotes.openFailed'));
       } finally {
         setLoading(false);
         // Cleared after the state above has been applied, so the effect that
@@ -182,7 +184,7 @@ export default function PersonalNotes() {
         setTimeout(() => { loadingBodyRef.current = false; }, 0);
       }
     },
-    [campaignId, flush]
+    [campaignId, flush, t]
   );
 
   // Autosave after a pause in typing. A note is long-form writing; making
@@ -225,7 +227,7 @@ export default function PersonalNotes() {
     flush();
     setError(null);
     try {
-      const { note } = await api.createNote(campaignId, 'Untitled note', '');
+      const { note } = await api.createNote(campaignId, t('personalNotes.untitled'), '');
       await loadList();
       setSelectedId(note.id);
       setTitle(note.title);
@@ -234,7 +236,7 @@ export default function PersonalNotes() {
       setSavedSnapshot({ noteId: note.id, title: note.title, content: '' });
       setEditing(true);
     } catch (err) {
-      setError(apiErrorMessage(err) ?? 'Could not create a note.');
+      setError(apiErrorMessage(err) ?? t('personalNotes.createFailed'));
     }
   };
 
@@ -269,7 +271,7 @@ export default function PersonalNotes() {
       setContent('');
       await loadList();
     } catch (err) {
-      setError(apiErrorMessage(err) ?? 'Could not delete that note.');
+      setError(apiErrorMessage(err) ?? t('personalNotes.deleteFailed'));
     }
   };
 
@@ -284,9 +286,9 @@ export default function PersonalNotes() {
     <>
       <ConfirmDialog
         isOpen={confirmDelete}
-        title="Delete note"
-        message={`Delete "${title}"? This cannot be undone.`}
-        confirmLabel="Delete"
+        title={t('personalNotes.deleteTitle')}
+        message={t('personalNotes.deleteMessage', { title })}
+        confirmLabel={t('personalNotes.delete')}
         variant="danger"
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(false)}
@@ -299,11 +301,11 @@ export default function PersonalNotes() {
           <select
             value={selectedId ?? ''}
             onChange={(e) => { void openNote(e.target.value); }}
-            aria-label="Choose a note"
+            aria-label={t('personalNotes.choose')}
             className="flex-1 min-w-0 px-2 py-1.5 text-sm border border-warm-amber/30 rounded-cozy bg-parchment/60 focus:outline-hidden focus:ring-2 focus:ring-warm-amber"
           >
             <option value="" disabled>
-              {notes.length ? 'Choose a note…' : 'No notes yet'}
+              {notes.length ? t('personalNotes.chooseOption') : t('personalNotes.none')}
             </option>
             {notes.map((note) => (
               <option key={note.id} value={note.id}>
@@ -313,8 +315,8 @@ export default function PersonalNotes() {
           </select>
           <button
             onClick={handleCreate}
-            title="New note"
-            aria-label="New note"
+            title={t('personalNotes.newNote')}
+            aria-label={t('personalNotes.newNote')}
             className={`p-1.5 rounded-cozy border border-warm-amber/40 bg-warm-amber/10 text-accent-ink hover:bg-warm-amber/15 shrink-0${fingerSized}`}
           >
             <Plus className="w-4 h-4" />
@@ -327,8 +329,7 @@ export default function PersonalNotes() {
           <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
             <NotebookPen className="w-9 h-9 text-warm-gray/40 mb-2" />
             <p className="text-xs text-warm-gray">
-              Notes only you can read. Write in Markdown — headings, lists, links — and
-              switch to the preview to see it laid out.
+              {t('personalNotes.intro')}
             </p>
           </div>
         ) : (
@@ -339,21 +340,21 @@ export default function PersonalNotes() {
                 value={title}
                 onChange={(e) => handleRename(e.target.value)}
                 maxLength={120}
-                aria-label="Note title"
+                aria-label={t('personalNotes.titleLabel')}
                 className="flex-1 min-w-0 px-2 py-1 text-sm font-semibold border border-warm-amber/30 rounded-cozy bg-parchment/60 focus:outline-hidden focus:ring-2 focus:ring-warm-amber"
               />
               <button
                 onClick={() => setEditing((on) => !on)}
-                title={editing ? 'Preview' : 'Edit'}
-                aria-label={editing ? 'Preview' : 'Edit'}
+                title={editing ? t('personalNotes.preview') : t('personalNotes.edit')}
+                aria-label={editing ? t('personalNotes.preview') : t('personalNotes.edit')}
                 className={`p-1.5 rounded-cozy border border-warm-amber/30 bg-parchment/60 text-stone-gray hover:text-brand-ink shrink-0${fingerSized}`}
               >
                 {editing ? <Eye className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
               </button>
               <button
                 onClick={() => setConfirmDelete(true)}
-                title="Delete note"
-                aria-label="Delete note"
+                title={t('personalNotes.deleteTitle')}
+                aria-label={t('personalNotes.deleteTitle')}
                 className={`p-1.5 rounded-cozy border border-danger/30 bg-danger/10 text-danger-ink hover:bg-danger/15 shrink-0${fingerSized}`}
               >
                 <Trash2 className="w-4 h-4" />
@@ -369,7 +370,7 @@ export default function PersonalNotes() {
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder={'# Heading\n\n- a list\n- of things\n\n[a link](https://example.com)'}
-                aria-label="Note content"
+                aria-label={t('personalNotes.contentLabel')}
                 // Matches the server's cap, so the editor cannot get into a
                 // state where every autosave is refused.
                 maxLength={MAX_CONTENT}
@@ -383,14 +384,14 @@ export default function PersonalNotes() {
                 {content.trim() ? (
                   <Markdown>{content}</Markdown>
                 ) : (
-                  <p className="text-xs text-warm-gray italic">Nothing written yet.</p>
+                  <p className="text-xs text-warm-gray italic">{t('personalNotes.blank')}</p>
                 )}
               </div>
             )}
 
             <div className="flex items-center justify-between text-[11px] text-warm-gray">
               <span aria-live="polite">
-                {saving ? 'Saving…' : unsaved ? 'Unsaved changes…' : 'Saved'}
+                {saving ? t('personalNotes.saving') : unsaved ? t('personalNotes.unsaved') : t('personalNotes.saved')}
               </span>
               <span className={nearLimit ? 'text-danger-ink font-semibold' : ''}>
                 {content.length.toLocaleString()} / {MAX_CONTENT.toLocaleString()}

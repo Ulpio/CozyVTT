@@ -8,9 +8,9 @@
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Square, Save, Clock, Hash } from 'lucide-react';
 import { Button, Modal } from '@/components/ui';
-import { formatDuration } from '@/utils/format';
 
 /** How long ago, in milliseconds, the session started. */
 function timeSince(startedAt: string): number {
@@ -44,8 +44,13 @@ export default function EndSessionModal({
 }: EndSessionModalProps) {
   const [saveState, setSaveState] = useState(true);
   const [notes, setNotes] = useState('');
+  const { t } = useTranslation();
 
-  const duration = formatDuration(timeSince(session.startedAt), 'words');
+  // Whole minutes, as "1 hour 0 minutes"; nothing below zero.
+  const totalMinutes = Math.floor(Math.max(0, timeSince(session.startedAt)) / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutesText = t('endSession.minutes', { count: totalMinutes % 60 });
+  const duration = hours === 0 ? minutesText : `${t('endSession.hours', { count: hours })} ${minutesText}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,26 +58,26 @@ export default function EndSessionModal({
   };
 
   return (
-    <Modal open onClose={onClose} title="End Session" icon={Square} size="sm" closeDisabled={isSubmitting}>
+    <Modal open onClose={onClose} title={t('endSession.title')} icon={Square} size="sm" closeDisabled={isSubmitting}>
       <div className="space-y-5">
-        <p className="text-xs text-ink-muted -mt-4">Campaign will become inactive until the next session.</p>
+        <p className="text-xs text-ink-muted -mt-4">{t('endSession.subtitle')}</p>
 
         {/* Session Summary */}
         <div className="rounded-lg bg-parchment border border-moss-green/20 p-4 space-y-3">
-          <p className="text-xs font-semibold text-stone-gray uppercase tracking-wide">Session Summary</p>
+          <p className="text-xs font-semibold text-stone-gray uppercase tracking-wide">{t('endSession.summary')}</p>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center gap-2">
               <Hash className="w-3.5 h-3.5 text-accent-ink shrink-0" />
               <div>
-                <p className="text-xs text-warm-gray">Session</p>
+                <p className="text-xs text-warm-gray">{t('endSession.session')}</p>
                 <p className="text-sm font-semibold text-stone-gray">#{session.sessionNumber}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-3.5 h-3.5 text-accent-ink shrink-0" />
               <div>
-                <p className="text-xs text-warm-gray">Duration</p>
+                <p className="text-xs text-warm-gray">{t('endSession.duration')}</p>
                 <p className="text-sm font-semibold text-stone-gray">{duration}</p>
               </div>
             </div>
@@ -94,10 +99,10 @@ export default function EndSessionModal({
             <div>
               <div className="flex items-center gap-2">
                 <Save className="w-3.5 h-3.5 text-brand-ink" />
-                <span className="text-sm font-medium text-stone-gray">Save game state</span>
+                <span className="text-sm font-medium text-stone-gray">{t('endSession.saveState')}</span>
               </div>
               <p className="text-xs text-warm-gray mt-0.5">
-                Keeps a snapshot of the current map's tokens, the vibe and the spirit layer with this session's record. Play always continues from the live table.
+                {t('endSession.saveStateHint')}
               </p>
             </div>
           </label>
@@ -105,8 +110,8 @@ export default function EndSessionModal({
           {/* Session Notes */}
           <div>
             <label className="block text-xs font-medium text-stone-gray mb-1.5">
-              Session Notes
-              <span className="ml-1 font-normal text-warm-gray">(optional)</span>
+              {t('endSession.notes')}
+              <span className="ml-1 font-normal text-warm-gray">{t('endSession.optional')}</span>
             </label>
             <textarea
               value={notes}
@@ -114,14 +119,13 @@ export default function EndSessionModal({
               disabled={isSubmitting}
               rows={3}
               maxLength={2000}
-              placeholder="What happened this session? Any notes for next time..."
+              placeholder={t('endSession.placeholder')}
               className="input-cozy w-full resize-none text-sm"
             />
             <p className="text-xs text-warm-gray mt-1 text-right">{notes.length}/2000</p>
             <p className="text-xs text-warm-gray/70 mt-1">
-              Saved with this session and shown to everyone in the campaign under
-              <span className="font-medium"> Session → Past Sessions</span>, so your players
-              can read back what happened.
+              {t('endSession.shownBefore')}
+              <span className="font-medium"> {t('session.tabs.session')} → {t('sessionHistory.title')}</span>{t('endSession.shownAfter')}
             </p>
           </div>
 
@@ -133,7 +137,7 @@ export default function EndSessionModal({
               disabled={isSubmitting}
               variant="secondary"
             >
-              Cancel
+              {t('endSession.cancel')}
             </Button>
             <Button
               type="submit"
@@ -142,7 +146,7 @@ export default function EndSessionModal({
               icon={Square}
               className="text-sm"
             >
-              {isSubmitting ? 'Ending...' : 'End Session'}
+              {isSubmitting ? t('endSession.ending') : t('endSession.title')}
             </Button>
           </div>
         </form>
