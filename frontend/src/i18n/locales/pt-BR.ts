@@ -387,6 +387,7 @@ const ptBR: Messages = {
     backpack: 'Mochila',
     emptyBackpack: 'A mochila está vazia.',
     currency: 'Moedas',
+    coinShort: { pp: 'PL', gp: 'PO', ep: 'PE', sp: 'PP', cp: 'PC' },
     load: 'Carga: {{total}} de {{capacity}} kg',
     quantity: '{{count}} × {{name}}',
     weight: 'Peso: {{kg}} kg',
@@ -936,7 +937,8 @@ const ptBR: Messages = {
     deleteOneHint: 'Excluir o trecho de parede selecionado',
     deleteManyHint: 'Excluir os {{count}} trechos de parede selecionados',
     deleteOne: 'Excluir trecho',
-    deleteMany: 'Excluir {{count}} trechos',
+    deleteMany_one: 'Excluir {{count}} trecho',
+    deleteMany_other: 'Excluir {{count}} trechos',
     addToSelection: 'Somar à seleção',
     addToSelectionHint: 'Somar à seleção, como o Shift',
     selectedPoint: 'Ponto selecionado',
@@ -1445,7 +1447,9 @@ const ptBR: Messages = {
     waitBeforeSending: 'Aguarde {{seconds}}s antes de enviar outra mensagem',
     charactersCount: '{{count}} de {{max}} caracteres',
     hint: 'Enter envia, Shift+Enter quebra a linha',
-    shown: '{{count}} exibidas',
+    shown_zero: '{{count}} exibidas',
+    shown_one: '{{count}} exibida',
+    shown_other: '{{count}} exibidas',
     clearJoinsLabel: 'Apagar avisos antigos de entrada e saída',
     clearJoinsTitle: 'Apagar avisos de entrada e saída?',
     clearJoinsMessage: 'Remove, para todos, os avisos antigos de “entrou” e “saiu” do chat desta campanha. O resto da conversa não muda, e nenhum aviso novo é criado.',
@@ -1489,6 +1493,7 @@ const ptBR: Messages = {
 
   dice: {
     title: 'Rolador de dados',
+    rateLimited: 'Muitas rolagens de uma vez. Espere alguns segundos e role de novo.',
     log: 'Rolagens de dados',
     group: 'Dados',
     adv: 'Vant',
@@ -1617,7 +1622,9 @@ const ptBR: Messages = {
     alternate: 'Alternativo',
     hitDie: 'Gastar um dado de vida',
     hitDieClass: 'Gastar um dado de vida ({{class}})',
-    left: '{{count}} restantes',
+    left_zero: '{{count}} restantes',
+    left_one: '{{count}} restante',
+    left_other: '{{count}} restantes',
     customRoll: 'Rolagem livre',
     npcDamage: 'Dano{{suffix}} {{expr}}',
     npcBonusActionDamage: 'Dano de ação bônus{{suffix}} {{expr}}',
@@ -2006,6 +2013,10 @@ const ptBR: Messages = {
     huntersMark: 'Marca do Caçador',
     raging: 'Em fúria',
     slowed: 'Lento',
+  },
+
+  tokenName: {
+    unknownCreature: 'criatura desconhecida',
   },
 
   tokenDetails: {
@@ -2547,6 +2558,8 @@ const ptBR: Messages = {
     title: 'Sobre o CozyVTT',
     licence: 'O CozyVTT é software livre: você pode redistribuí-lo e modificá-lo nos termos da <licence>GNU Affero General Public License v3.0</licence>, publicada pela Free Software Foundation.',
     warranty: 'O CozyVTT é distribuído na esperança de que seja útil, mas SEM QUALQUER GARANTIA; sem sequer a garantia implícita de COMERCIALIZAÇÃO ou ADEQUAÇÃO A UMA FINALIDADE ESPECÍFICA. Veja a GNU Affero General Public License para mais detalhes.',
+    unofficialNote: 'Esta é uma tradução não oficial. Prevalece o original em inglês.',
+    originalText: 'Original em inglês',
     sourceCode: 'Código-fonte',
     gameRules: 'As regras de jogo abertas em que as fichas do CozyVTT se baseiam não estão sob a licença dele. Cada uma é creditada aqui como a própria licença pede.',
     ownMaterial: 'Material próprio do CozyVTT',

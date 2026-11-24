@@ -47,7 +47,10 @@ interface AboutDialogProps {
 }
 
 export default function AboutDialog({ open, onClose }: AboutDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Only a translation needs to say it is one, and to keep the original at hand.
+  const translated = !i18n.language.startsWith('en');
+  const inEnglish = i18n.getFixedT('en');
   return (
     <Modal
       open={open}
@@ -71,6 +74,24 @@ export default function AboutDialog({ open, onClose }: AboutDialogProps) {
             />
           </p>
           <p>{t('about.warranty')}</p>
+          {translated && (
+            <>
+              <p>{t('about.unofficialNote')}</p>
+              <details>
+                <summary className="cursor-pointer">{t('about.originalText')}</summary>
+                <div className="mt-2 space-y-2" lang="en">
+                  <p>
+                    <Trans
+                      i18nKey="about.licence"
+                      t={inEnglish}
+                      components={{ licence: <a href={LICENCE_URL} target="_blank" rel="noopener noreferrer" className={LINK_CLASS} /> }}
+                    />
+                  </p>
+                  <p>{inEnglish('about.warranty')}</p>
+                </div>
+              </details>
+            </>
+          )}
           <p>
             <a href={SOURCE_CODE_URL} target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>
               {t('about.sourceCode')}

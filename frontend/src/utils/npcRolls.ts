@@ -139,6 +139,7 @@ function buildFifthEditionRolls(statBlock: NpcStatBlock): CharacterRolls {
       label:             `${abilityMark(ability)} ${formatModifier(mod)}`,
       expression:        `1d20${formatModifier(mod)}`,
       purpose:           checkPurpose(abilityName(ABILITY_LABELS[ability])),
+      testName:          ABILITY_LABELS[ability],
       supportsAdvantage: true,
     });
   }
@@ -158,6 +159,7 @@ function buildFifthEditionRolls(statBlock: NpcStatBlock): CharacterRolls {
       label:             `${saveLabel(abilityName(ABILITY_LABELS[ability]), formatModifier(bonus))}${marker}`,
       expression:        `1d20${formatModifier(bonus)}`,
       purpose:           savePurpose(abilityName(ABILITY_LABELS[ability])),
+      testName:          ABILITY_LABELS[ability],
       supportsAdvantage: true,
     });
   }
@@ -177,6 +179,7 @@ function buildFifthEditionRolls(statBlock: NpcStatBlock): CharacterRolls {
       label:             `${skillName(display)} ${formatModifier(bonus)}${abilitySuffix}${marker}`,
       expression:        `1d20${formatModifier(bonus)}`,
       purpose:           checkPurpose(skillName(display)),
+      testName:          display,
       supportsAdvantage: true,
     });
   }

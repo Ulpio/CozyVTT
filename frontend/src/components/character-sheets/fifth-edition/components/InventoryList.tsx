@@ -30,11 +30,11 @@ interface InventoryListProps {
 const CurrencyDisplay: React.FC<{ currency: Currency }> = ({ currency }) => {
   const { t } = useTranslation();
   const coins = [
-    { label: 'PP', value: currency.pp },
-    { label: 'GP', value: currency.gp },
-    { label: 'EP', value: currency.ep },
-    { label: 'SP', value: currency.sp },
-    { label: 'CP', value: currency.cp },
+    { label: t('inventoryPanel.coinShort.pp'), value: currency.pp },
+    { label: t('inventoryPanel.coinShort.gp'), value: currency.gp },
+    { label: t('inventoryPanel.coinShort.ep'), value: currency.ep },
+    { label: t('inventoryPanel.coinShort.sp'), value: currency.sp },
+    { label: t('inventoryPanel.coinShort.cp'), value: currency.cp },
   ];
 
   return (

@@ -98,3 +98,15 @@ it('lists a roll that arrives twice once', async () => {
 
   expect(screen.getAllByText('Twice told')).toHaveLength(1);
 });
+
+it('shows the flood ceiling in Portuguese, not the server text', async () => {
+  const { inPortuguese } = await import('@/test/inPortuguese');
+  rollDice.mockResolvedValueOnce({ ok: false, error: 'Rate limit exceeded: too many dice rolls at once. Wait a few seconds, then roll again.' });
+  await inPortuguese(async () => {
+    render(<DiceRoller />);
+    fireEvent.change(screen.getByPlaceholderText(/2d6\+3/), { target: { value: '1d20' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Rolar$/ }));
+    expect(await screen.findByText(/Muitas rolagens de uma vez/)).toBeTruthy();
+    expect(screen.queryByText(/Rate limit exceeded/)).toBeNull();
+  });
+});

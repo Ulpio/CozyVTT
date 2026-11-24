@@ -139,7 +139,7 @@ import NpcRollPicker from '@/components/campaign/NpcRollPicker';
 import RemoveTokenDialog from '@/components/campaign/RemoveTokenDialog';
 import TemporaryHpDialog from '@/components/campaign/TemporaryHpDialog';
 import TokenLightDialog from '@/components/campaign/TokenLightDialog';
-import { tokenDisplayName, tokenPublicName, characterRollPublicName, UNKNOWN_CREATURE } from '@/utils/tokenDisplayName';
+import { tokenDisplayName, tokenPublicName, characterRollPublicName, unknownCreature } from '@/utils/tokenDisplayName';
 import { setTokenFlag } from '@/utils/tokenFlags';
 import AtmosphereOverlay from '@/components/campaign/AtmosphereOverlay';
 import GmFogControls, { type FogToolMode } from '@/components/campaign/GmFogControls';
@@ -4822,7 +4822,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           player is sent it; a token the preview leaves out goes unnamed. */}
       {draggedToken && putBackShown && (() => {
         const shown = drawnTokens.find((t) => t.id === draggedToken.id);
-        const name = previewing ? (shown ? tokenDisplayName(shown) : UNKNOWN_CREATURE) : tokenDisplayName(draggedToken);
+        const name = previewing ? (shown ? tokenDisplayName(shown) : unknownCreature()) : tokenDisplayName(draggedToken);
         return (
           <HeldTokenBar
             name={name}

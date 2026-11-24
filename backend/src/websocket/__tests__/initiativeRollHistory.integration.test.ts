@@ -160,8 +160,8 @@ describe('the dice history', () => {
     player.emit('initiative.roll', { tokenId: 'Maren', mapId });
 
     expect(await toPlayer).toMatchObject({ characterName: 'Maren', purpose: 'Iniciativa de Maren' });
-    expect(await toGm).toMatchObject({ characterName: 'Unknown creature', purpose: 'Iniciativa de Unknown creature' });
-    expect(await prisma.diceRoll.findFirstOrThrow({ where: { campaignId } })).toMatchObject({ characterName: 'Unknown creature' });
+    expect(await toGm).toMatchObject({ characterName: 'criatura desconhecida', purpose: 'Iniciativa de criatura desconhecida' });
+    expect(await prisma.diceRoll.findFirstOrThrow({ where: { campaignId } })).toMatchObject({ characterName: 'criatura desconhecida' });
   });
 });
 

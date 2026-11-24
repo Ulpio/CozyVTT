@@ -439,7 +439,7 @@ export default function DiceRoller() {
       .then((answer) => {
         clearPendingRoll();
         if (answer.ok) return;
-        setError(answer.error);
+        setError(answer.error.startsWith('Rate limit exceeded') ? t('dice.rateLimited') : answer.error);
         // The server's flood ceiling: wait it out before rolling again.
         if (answer.error.startsWith('Rate limit exceeded') && !isInCooldown.current) {
           isInCooldown.current = true;

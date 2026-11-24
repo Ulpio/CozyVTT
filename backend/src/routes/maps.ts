@@ -20,6 +20,7 @@ import { normalizeAssetUrl, extractAssetId } from '../utils/asset-urls';
 import { storedFilePath } from '../utils/storedPath';
 import { canReadAssetById, canReferenceAsset, isMapPicture, isTokenPicture, canControlToken, canHoldTokens, canMoveTokensNow, canReadMap, PAUSED_MOVE_REFUSAL } from '../services/permissions';
 import { WallSegmentSchema, WallSegmentsArraySchema, FogOperationSchema, LightSourceSchema, LightSourcesArraySchema, LightSourceUpdateSchema, DUPLICATE_WALL_ID_MESSAGE, DUPLICATE_LIGHT_ID_MESSAGE, MAX_WALL_SEGMENTS, MAX_LIGHT_SOURCES, TOO_MANY_WALLS_MESSAGE, TOO_MANY_LIGHTS_MESSAGE } from '../validators/walls';
+import { withFinalPeriod } from '../utils/withFinalPeriod';
 import { validateTokenShapes, TokenMetadataSchema, MoveTokensSchema, TOKEN_TYPES, TOKEN_DISPOSITIONS, TOKEN_DISPLAY_MODES, TOKEN_IMAGE_NOT_A_TOKEN_PICTURE_MESSAGE } from '../validators/tokens';
 import { withMapsLocked, clampTokenPosition } from '../utils/mapTokens';
 import type { WallSegment, FogState, LightSource, SkippedWall, WallsAdded } from '../types/walls';
@@ -1840,7 +1841,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
       if (metadata) {
         const merged = TokenMetadataSchema.safeParse(metadata);
         if (!merged.success) {
-          return { status: 400, error: 'Validation Error', message: `Metadados do token inválidos: ${merged.error.issues[0]?.message ?? 'sem detalhes'}.` };
+          return { status: 400, error: 'Validation Error', message: `Metadados do token inválidos: ${withFinalPeriod(merged.error.issues[0]?.message ?? 'sem detalhes')}` };
         }
       }
 

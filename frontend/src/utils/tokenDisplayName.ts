@@ -11,6 +11,8 @@
  * spirit layer, which players on the material plane are not sent.
  */
 
+import i18n from '@/i18n';
+
 export interface NamedToken {
   name: string;
   obscured?: boolean;
@@ -21,9 +23,14 @@ export interface NamedToken {
 
 export const UNKNOWN_CREATURE = 'Unknown creature';
 
+/** The placeholder in the app's language. */
+export function unknownCreature(): string {
+  return i18n.t('tokenName.unknownCreature');
+}
+
 /** The name this viewer may use. */
 export function tokenDisplayName(token: NamedToken): string {
-  return token.name.trim() === '' ? UNKNOWN_CREATURE : token.name;
+  return token.name.trim() === '' ? unknownCreature() : token.name;
 }
 
 /** Whether a token may not be named in front of everyone. */
@@ -33,7 +40,7 @@ function unnamedInPublic(token: NamedToken): boolean {
 
 /** The name to use in front of everyone. */
 export function tokenPublicName(token: NamedToken): string {
-  return unnamedInPublic(token) ? UNKNOWN_CREATURE : tokenDisplayName(token);
+  return unnamedInPublic(token) ? unknownCreature() : tokenDisplayName(token);
 }
 
 /**
@@ -46,5 +53,5 @@ export function tokenPublicName(token: NamedToken): string {
  */
 export function characterRollPublicName(token: NamedToken | undefined, rollerId: string | undefined): string | undefined {
   if (!token || (rollerId !== undefined && token.controlledBy === rollerId)) return undefined;
-  return unnamedInPublic(token) ? UNKNOWN_CREATURE : undefined;
+  return unnamedInPublic(token) ? unknownCreature() : undefined;
 }

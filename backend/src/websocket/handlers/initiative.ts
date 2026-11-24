@@ -592,7 +592,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
         // The server names the token; a name the client sends is not used.
         // An obscured token is stored and sent under the placeholder, except
         // to the player who rolled for it, who knows it.
-        const publicName = token.obscured === true ? 'Unknown creature' : token.name;
+        const publicName = token.obscured === true ? 'criatura desconhecida' : token.name;
         // A token some player is not sent makes a secret roll: the roller
         // and the GM see it, in the history too.
         const secret = !(await sentToEveryPlayer(campaignId, token, mapId));

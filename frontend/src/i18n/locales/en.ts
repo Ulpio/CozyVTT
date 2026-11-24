@@ -384,6 +384,7 @@ const en = {
     backpack: 'Backpack',
     emptyBackpack: 'The backpack is empty.',
     currency: 'Currency',
+    coinShort: { pp: 'PP', gp: 'GP', ep: 'EP', sp: 'SP', cp: 'CP' },
     load: 'Load: {{total}} of {{capacity}} kg',
     quantity: '{{count}} × {{name}}',
     weight: 'Weight: {{kg}} kg',
@@ -934,7 +935,8 @@ const en = {
     deleteOneHint: 'Delete the selected wall segment',
     deleteManyHint: 'Delete the {{count}} selected wall segments',
     deleteOne: 'Delete segment',
-    deleteMany: 'Delete {{count}} segments',
+    deleteMany_one: 'Delete {{count}} segments',
+    deleteMany_other: 'Delete {{count}} segments',
     addToSelection: 'Add to selection',
     addToSelectionHint: 'Add to the selection, as Shift does',
     selectedPoint: 'Selected point',
@@ -1443,7 +1445,9 @@ const en = {
     waitBeforeSending: 'Wait {{seconds}}s before sending another message',
     charactersCount: '{{count}} of {{max}} characters',
     hint: 'Press Enter to send, Shift+Enter for new line',
-    shown: '{{count}} shown',
+    shown_zero: '{{count}} shown',
+    shown_one: '{{count}} shown',
+    shown_other: '{{count}} shown',
     clearJoinsLabel: 'Clear old join and leave messages',
     clearJoinsTitle: 'Clear join and leave messages?',
     clearJoinsMessage: 'Removes the old “has joined” and “has left” notices from this campaign\'s chat for everyone. The rest of the conversation is untouched, and no new ones are created.',
@@ -1487,6 +1491,7 @@ const en = {
 
   dice: {
     title: 'Dice Roller',
+    rateLimited: 'Rate limit exceeded: too many dice rolls at once. Wait a few seconds, then roll again.',
     log: 'Dice rolls',
     group: 'Dice',
     adv: 'Adv',
@@ -1615,7 +1620,9 @@ const en = {
     alternate: 'Alternate',
     hitDie: 'Spend a Hit Die',
     hitDieClass: 'Spend a Hit Die ({{class}})',
-    left: '{{count}} left',
+    left_zero: '{{count}} left',
+    left_one: '{{count}} left',
+    left_other: '{{count}} left',
     customRoll: 'Custom Roll',
     npcDamage: 'Damage{{suffix}} {{expr}}',
     npcBonusActionDamage: 'Bonus Action Damage{{suffix}} {{expr}}',
@@ -2004,6 +2011,10 @@ const en = {
     huntersMark: "Hunter's Mark",
     raging: 'Raging',
     slowed: 'Slowed',
+  },
+
+  tokenName: {
+    unknownCreature: 'Unknown creature',
   },
 
   tokenDetails: {
@@ -2545,6 +2556,8 @@ const en = {
     title: 'About CozyVTT',
     licence: 'CozyVTT is free software: you can redistribute it and modify it under the terms of the <licence>GNU Affero General Public License v3.0</licence>, as published by the Free Software Foundation.',
     warranty: 'CozyVTT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.',
+    unofficialNote: 'This is an unofficial translation. The English original prevails.',
+    originalText: 'English original',
     sourceCode: 'Source code',
     gameRules: "The open game rules CozyVTT's sheets draw on are not under its licence. Each is credited here as its own licence asks.",
     ownMaterial: "CozyVTT's own material",

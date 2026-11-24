@@ -7,7 +7,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { AboutButton, SOURCE_CODE_URL } from '../AboutDialog';
+import AboutDialog, { AboutButton, SOURCE_CODE_URL } from '../AboutDialog';
 import { COZYVTT_ORC_STATEMENTS, GAME_CONTENT_NOTICES, INDEPENDENT_PRODUCT } from '@/constants/gameContentNotices';
 import { waitForDialogFocus } from '@/test/dialogFocus';
 import { version } from '../../../../package.json';
@@ -198,5 +198,22 @@ describe('the About CozyVTT window', () => {
   it('is a button a finger can hit', () => {
     render(<AboutButton />);
     expect(screen.getByRole('button', { name: 'About CozyVTT' })).toHaveClass('touch-target');
+  });
+});
+
+describe('AboutDialog in Portuguese', () => {
+  it('says the translation is unofficial and keeps the English original at hand', async () => {
+    const { inPortuguese } = await import('@/test/inPortuguese');
+    await inPortuguese(() => {
+      render(<AboutDialog open onClose={() => undefined} />);
+      expect(screen.getByText('Esta é uma tradução não oficial. Prevalece o original em inglês.')).toBeInTheDocument();
+      expect(screen.getByText(/CozyVTT is distributed in the hope that it will be useful/)).toBeInTheDocument();
+      expect(screen.getByText(/CozyVTT is free software/)).toBeInTheDocument();
+    });
+  });
+
+  it('adds nothing in English', () => {
+    render(<AboutDialog open onClose={() => undefined} />);
+    expect(screen.queryByText(/unofficial translation/)).toBeNull();
   });
 });
