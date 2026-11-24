@@ -38,7 +38,7 @@ afterAll(async () => {
 const named = (body: { validationErrors: Array<{ path: string; message: string }> }) =>
   body.validationErrors.map((issue) => `${issue.path}: ${issue.message}`);
 
-const refusal = (path: string) => [`${path}: Can hold at most ${SHEET_LIST_MAX} entries`];
+const refusal = (path: string) => [`${path}: Pode ter no máximo ${SHEET_LIST_MAX} itens.`];
 
 describe('a 5E sheet', () => {
   const gameSystem = GameSystem.FIFTH_EDITION;
@@ -126,7 +126,7 @@ describe('a Fantasy d20 sheet', () => {
     expect(res.status).toBe(400);
     expect(named(res.body).sort()).toEqual(
       [
-        `languages: Can hold at most ${SHEET_LIST_MAX} entries`,
+        `languages: Pode ter no máximo ${SHEET_LIST_MAX} itens.`,
         `savingThrows.will.itemBonus: Must be from -30 to 30`,
         `spellcasting.slots.2.total: Must be from 0 to ${SPELL_SLOTS_MAX}`,
       ].sort()

@@ -122,6 +122,6 @@ it('is not a player\'s to change', async () => {
 it.each([['a string', 'no'], ['a number', 0], ['null', null]])('refuses %s with a 400 that names the field', async (_what, value) => {
   const res = await gmRest.put(`/api/campaigns/${campaignId}`).send({ playersMayDraw: value });
   expect(res.status).toBe(400);
-  expect(res.body).toEqual({ error: 'Validation Error', message: 'playersMayDraw must be true or false' });
+  expect(res.body).toEqual({ error: 'Validation Error', message: 'playersMayDraw deve ser true ou false.' });
   expect(await stored()).toBe(true);
 });

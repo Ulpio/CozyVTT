@@ -80,7 +80,7 @@ export function validateCharacterData(
         const error = new z.ZodError([
           {
             code: 'custom',
-            message: `Unknown game system: ${gameSystem}`,
+            message: `Sistema de jogo desconhecido: ${gameSystem}`,
             path: ['gameSystem'],
           },
         ]);

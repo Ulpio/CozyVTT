@@ -503,7 +503,7 @@ describe('lights', () => {
     const gm = await server.connectAndAuth(gmCookie, campaignId);
     const denial = waitForEvent<{ message: string }>(gm, 'error');
     gm.emit('light:add', { mapId, light: { ...validLight(), brightRadius: 10, dimRadius: 5 } });
-    expect((await denial).message).toContain('dimRadius');
+    expect((await denial).message).toContain('raio de penumbra');
     gm.disconnect();
   });
 

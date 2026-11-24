@@ -39,7 +39,7 @@ import { HORROR_D100_FIREARM_LIST_MAX, HORROR_D100_OWN_SKILL_LIST_MAX, HORROR_D1
 const rating = z.number().int().min(0).max(HORROR_D100_VALUE_MAX);
 
 /** A heading the player can rename: a story note's title. */
-const heading = z.string().max(SHEET_NAME_MAX, `Can be at most ${SHEET_NAME_MAX} characters`);
+const heading = z.string().max(SHEET_NAME_MAX, `Pode ter no máximo ${SHEET_NAME_MAX} caracteres.`);
 
 /** The seven characteristics, and EDU where the sheet uses it. */
 const characteristicsSchema = z.object({
