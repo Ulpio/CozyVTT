@@ -53,7 +53,7 @@ export default function InitiativeColumn({ compact, onRowClick }: InitiativeColu
     <section
       role="region"
       aria-label={t('initiativeColumn.label')}
-      className={`absolute top-14 left-2 z-20 flex max-h-[calc(100%-4rem)] flex-col rounded-xl border border-moss-green/30 bg-parchment/95 shadow-lg backdrop-blur-xs ${collapsed ? 'w-14' : 'w-44'}`}
+      className={`absolute top-14 left-2 z-20 flex max-h-[calc(100%-8rem)] flex-col rounded-xl border border-moss-green/30 bg-parchment/95 shadow-lg backdrop-blur-xs ${collapsed ? 'w-14' : 'w-44'}`}
     >
       <div className={`flex items-center gap-1 px-2 py-1 ${collapsed ? 'justify-center' : 'justify-between'}`}>
         {!collapsed && <span className="text-xs font-semibold text-brand-ink">{t('initiativeColumn.round', { round: combat.round })}</span>}

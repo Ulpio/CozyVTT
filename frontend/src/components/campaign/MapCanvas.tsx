@@ -5096,7 +5096,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           measured), and under Put back while that shows. */}
       {showAoE && currentMap && (
         <div
-          className="absolute top-12 left-2 z-10 p-3 space-y-3 w-52 shadow-xl rounded-xl border border-moss-green/30 bg-parchment/95 backdrop-blur-xs"
+          className="absolute top-12 left-2 z-30 p-3 space-y-3 w-52 shadow-xl rounded-xl border border-moss-green/30 bg-parchment/95 backdrop-blur-xs"
           // Moved down, it keeps to the map, scrolling inside where it is
           // taller than the room below it.
           style={aoeTop !== null

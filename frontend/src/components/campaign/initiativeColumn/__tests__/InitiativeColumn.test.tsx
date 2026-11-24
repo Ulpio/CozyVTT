@@ -105,3 +105,10 @@ it('reads in Portuguese', async () => {
     expect(screen.getByRole('button', { name: 'Recolher' })).toBeTruthy();
   });
 });
+
+it('keeps clear of the map foot and sits under the AoE panel', () => {
+  render(<InitiativeColumn compact={false} />);
+  const region = screen.getByRole('region', { name: 'Initiative order' });
+  expect(region.className).toContain('max-h-[calc(100%-8rem)]');
+  expect(region.className).toContain('z-20');
+});
