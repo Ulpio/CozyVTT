@@ -97,7 +97,7 @@ it('refuses to change fog while fog is off for the map, and broadcasts nothing',
 
   const res = await operation({ op: 'reveal_all' });
   expect(res.status).toBe(409);
-  expect(res.body.message).toMatch(/off/);
+  expect(res.body.message).toMatch(/desligada/);
   await nothing;
 
   const map = await prisma.map.findUniqueOrThrow({ where: { id: mapId }, select: { fogData: true } });

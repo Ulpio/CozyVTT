@@ -37,11 +37,11 @@ import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampai
 
 const app = createTestApp();
 
-const NOT_A_MAP_IMAGE = 'The map image must be a map picture from the asset library.';
-const NOT_A_MAP_SPIRIT_LAYER = 'The spirit layer image must be a map picture from the asset library.';
+const NOT_A_MAP_IMAGE = 'A imagem do mapa deve ser uma imagem de mapa da biblioteca de recursos.';
+const NOT_A_MAP_SPIRIT_LAYER = 'A imagem da camada espiritual deve ser uma imagem de mapa da biblioteca de recursos.';
 const EXPORT_NOT_A_PICTURE =
-  "This map's picture is not a PNG, JPEG, WebP or GIF image, so it cannot be exported as a Universal VTT file. " +
-  'Choose a map picture for it in Edit Map, then export it again.';
+  "A imagem deste mapa não é PNG, JPEG, WebP nem GIF, então o mapa não pode ser exportado como arquivo Universal VTT. " +
+  'Escolha uma imagem para ele em Editar mapa e exporte de novo.';
 
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="30"><rect width="40" height="30" fill="red"/></svg>';
 

@@ -142,7 +142,7 @@ describe('a token added while the GM narrows the map from 20 squares to 5', () =
       { width: 5 }
     );
     expect(res.status).toBe(400);
-    expect(res.body.message).toBe('Token position must be within map bounds (0-4, 0-19)');
+    expect(res.body.message).toBe('A posição do token deve ficar dentro do mapa (0-4, 0-19)');
     expect(readTokens((await stored(mapId)).tokens)).toEqual([]);
   });
 

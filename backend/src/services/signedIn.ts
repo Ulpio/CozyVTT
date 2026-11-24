@@ -26,7 +26,7 @@ export function sessionHasAgedOut(session: Partial<SessionData> | undefined | nu
 /** The 401 for a sign-in that has aged out. */
 export function agedOutMessage(): string {
   const days = Math.max(1, Math.round(rememberMeMaxAge / (24 * 60 * 60 * 1000)));
-  return `Your sign-in has reached its ${days}-day limit. Sign in again.`;
+  return `Seu login chegou ao limite de ${days} ${days === 1 ? 'dia' : 'dias'}. Entre de novo.`;
 }
 
 /** A session that is signed in: a user, and no two-factor step left to finish. */

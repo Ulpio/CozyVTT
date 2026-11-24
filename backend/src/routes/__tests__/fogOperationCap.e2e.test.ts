@@ -121,6 +121,6 @@ describe('fog:operation', () => {
 
 describe('the message', () => {
   it('states the cap', () => {
-    expect(TOO_MANY_FOG_CELLS_MESSAGE).toBe('A fog operation can name at most 250,000 cells. Use reveal_all or hide_all for the whole map.');
+    expect(TOO_MANY_FOG_CELLS_MESSAGE).toBe('Uma operação de névoa pode citar no máximo 250.000 quadrados. Use reveal_all ou hide_all para o mapa inteiro.');
   });
 });

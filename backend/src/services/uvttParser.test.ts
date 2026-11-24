@@ -256,7 +256,7 @@ describe('parseUVTT', () => {
       ['no resolution', Buffer.from(JSON.stringify({ image: PNG_BASE64 }))],
       ['no image', Buffer.from(JSON.stringify({ resolution: { map_size: { x: 1, y: 1 } }, line_of_sight: [] }))],
     ])('%s', (_label, buffer) => {
-      expect(() => parseUVTT(buffer)).toThrow(/Invalid UVTT file/);
+      expect(() => parseUVTT(buffer)).toThrow(/Arquivo UVTT inválido/);
     });
   });
   describe('files too big to build, refused before anything is built', () => {
@@ -274,7 +274,7 @@ describe('parseUVTT', () => {
 
     it('refuses a million tiny polyline points without making a segment of any', () => {
       const started = Date.now();
-      expect(() => parseUVTT(manyPoints(1_000_000))).toThrow(/more than a map can hold/i);
+      expect(() => parseUVTT(manyPoints(1_000_000))).toThrow(/mais do que um mapa comporta/i);
       expect(uuidMock).not.toHaveBeenCalled();
       expect(Date.now() - started).toBeLessThan(5000);
     }, 30000);
@@ -283,7 +283,7 @@ describe('parseUVTT', () => {
       // Reading 2.7 million points as JSON took the backend past its memory
       // limit, so the count has to come before the parse.
       const parse = jest.spyOn(JSON, 'parse');
-      expect(() => parseUVTT(manyPoints(400_000))).toThrow(/more than a map can hold/i);
+      expect(() => parseUVTT(manyPoints(400_000))).toThrow(/mais do que um mapa comporta/i);
       expect(parse).not.toHaveBeenCalled();
     }, 30000);
 
@@ -311,19 +311,19 @@ describe('parseUVTT', () => {
     it('suggests leaving the furniture out when that would bring it under', () => {
       const big = [Array.from({ length: 3001 }, (_, i) => ({ x: i % 10, y: 0 }))];
       const buffer = uvtt({ lineOfSight: big, objectsLineOfSight: big });
-      expect(() => parseUVTT(buffer, 70, { includeObjectWalls: true })).toThrow(/furniture/i);
+      expect(() => parseUVTT(buffer, 70, { includeObjectWalls: true })).toThrow(/móveis/i);
       expect(parseUVTT(buffer).wallSegments).toHaveLength(3000);
     });
 
     it('refuses more than 200 lights without making any', () => {
       const lights = Array.from({ length: 201 }, () => ({ position: { x: 1, y: 1 }, range: 2 }));
-      expect(() => parseUVTT(uvtt({ lights }))).toThrow(/200 lights/);
+      expect(() => parseUVTT(uvtt({ lights }))).toThrow(/200 luzes/);
       expect(uuidMock).not.toHaveBeenCalled();
     });
 
     it('refuses a picture over the size limit before decoding it', () => {
       const decode = jest.spyOn(Buffer, 'from');
-      expect(() => parseUVTT(uvtt({}), 70, { maxImageBytes: 10 })).toThrow(/picture.*too large/i);
+      expect(() => parseUVTT(uvtt({}), 70, { maxImageBytes: 10 })).toThrow(/imagem.*grande demais/i);
       expect(decode.mock.calls.some((args) => (args as unknown[])[1] === 'base64')).toBe(false);
     });
 
@@ -337,7 +337,7 @@ describe('parseUVTT', () => {
       );
       const exact = Buffer.from(PNG_BASE64, 'base64').length;
       expect(parseUVTT(prefixed, 70, { maxImageBytes: exact }).imageBuffer).toHaveLength(exact);
-      expect(() => parseUVTT(prefixed, 70, { maxImageBytes: exact - 1 })).toThrow(/too large/i);
+      expect(() => parseUVTT(prefixed, 70, { maxImageBytes: exact - 1 })).toThrow(/grande demais/i);
     });
   });
 

@@ -393,7 +393,7 @@ describe('a map deleted while the request waits for its lock', () => {
       await holder;
       const res = await answer;
       expect(res.status).toBe(404);
-      expect(res.body).toEqual({ error: 'Not Found', message: 'Map not found' });
+      expect(res.body).toEqual({ error: 'Not Found', message: 'Mapa não encontrado.' });
       await quiet;
       expect(resend).not.toHaveBeenCalled();
     } finally {

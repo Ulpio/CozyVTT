@@ -5,6 +5,7 @@ import path from 'path';
 import multer from 'multer';
 import { AuthenticatedRequest, NOT_A_MEMBER_MESSAGE } from '../middleware/rbac';
 import { campaignMember, campaignGM } from '../middleware/compose';
+import { GM_ONLY } from '../services/gmNotice';
 import { downloadOnly } from '../middleware/downloadOnly';
 import { refuseNulCharacters } from '../middleware/nulCharacter';
 import { oneCampaignArchiveAtATime, whileHoldingArchiveSlot } from '../middleware/campaignArchiveLimits';
@@ -67,8 +68,8 @@ const UVTT_MAX_FILE_BYTES = Math.ceil((getFileSizeLimit('MAP') * 4) / 3) + UVTT_
 
 /** What the UVTT export answers for a map whose picture is not one the image library may read. */
 const UVTT_EXPORT_NOT_A_PICTURE_MESSAGE =
-  "This map's picture is not a PNG, JPEG, WebP or GIF image, so it cannot be exported as a Universal VTT file. " +
-  'Choose a map picture for it in Edit Map, then export it again.';
+  "A imagem deste mapa não é PNG, JPEG, WebP nem GIF, então o mapa não pode ser exportado como arquivo Universal VTT. " +
+  'Escolha uma imagem para ele em Editar mapa e exporte de novo.';
 
 /** What a map picture inside a UVTT may be. A PDF cannot be drawn as a map. */
 const UVTT_IMAGE_TYPES: readonly string[] = ['image/png', 'image/jpeg', 'image/webp'];
@@ -125,7 +126,7 @@ const uvttUpload = multer({
     if (['.uvtt', '.dd2vtt', '.df2vtt'].includes(ext) || file.mimetype === 'application/json') {
       cb(null, true);
     } else {
-      cb(new Error('Only .uvtt, .dd2vtt, and .df2vtt files are supported'));
+      cb(new Error('Só são aceitos arquivos .uvtt, .dd2vtt e .df2vtt.'));
     }
   },
 });
@@ -142,21 +143,21 @@ function receiveUvtt(req: AuthenticatedRequest, res: Response, next: NextFunctio
       res.status(413).json({
         error: 'File Too Large',
         message:
-          `This file is larger than the ${limitMB}MB a Universal VTT import accepts. ` +
-          `The picture inside it can be at most ${Math.round(getFileSizeLimit('MAP') / (1024 * 1024))}MB.`,
+          `Este arquivo é maior que os ${limitMB}MB que uma importação Universal VTT aceita. ` +
+          `A imagem dentro dele pode ter no máximo ${Math.round(getFileSizeLimit('MAP') / (1024 * 1024))}MB.`,
       });
       return;
     }
     if (err instanceof multer.MulterError && err.code === 'LIMIT_UNEXPECTED_FILE') {
       res.status(400).json({
         error: 'Validation Error',
-        message: 'Send one file, in a form field called "file".',
+        message: 'Envie um só arquivo, no campo "file" do formulário.',
       });
       return;
     }
     res.status(400).json({
       error: 'Upload Error',
-      message: errorMessage(err) || 'The upload could not be read.',
+      message: errorMessage(err) || 'Não foi possível ler o envio.',
     });
   });
 }
@@ -164,16 +165,16 @@ function receiveUvtt(req: AuthenticatedRequest, res: Response, next: NextFunctio
 /** One import per user at a time, so one person cannot queue up many files. */
 const oneUvttImportAtATime = oneAtATime(
   (req) => (req as AuthenticatedRequest).session?.userId,
-  'Another import is still running. Wait for it to finish, then import this file.'
+  'Outra importação ainda está em andamento. Espere terminar e importe este arquivo.'
 );
 
 /** An import that could not start soon enough, because others were ahead of it. */
 const UVTT_IMPORT_BUSY_MESSAGE =
-  'Another map import is running on the server. Try again in a minute.';
+  'Outra importação de mapa está em andamento no servidor. Tente de novo em um minuto.';
 /** An import stopped at its time limit, having saved nothing. */
 const UVTT_IMPORT_TOO_SLOW_MESSAGE =
-  `This map import took longer than ${UVTT_IMPORT_TIME_LIMIT_MS / 1000} seconds and was stopped, ` +
-  'so nothing was saved. Try again in a minute.';
+  `A importação deste mapa levou mais de ${UVTT_IMPORT_TIME_LIMIT_MS / 1000} segundos e foi interrompida, ` +
+  'então nada foi salvo. Tente de novo em um minuto.';
 
 const router = Router({ mergeParams: true }); // Important: Merge params from parent router
 
@@ -278,7 +279,7 @@ router.post('/', campaignGM, async (req: AuthenticatedRequest, res: Response) =>
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'Map name is required',
+        message: 'O nome do mapa é obrigatório.',
       });
     }
     // The limit every path that names a map applies (validators/mapLimits.ts).
@@ -289,7 +290,7 @@ router.post('/', campaignGM, async (req: AuthenticatedRequest, res: Response) =>
     if (!imageUrl || typeof imageUrl !== 'string') {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'Map imageUrl (asset ID) is required',
+        message: 'A imagem do mapa (ID do recurso) é obrigatória.',
       });
     }
 
@@ -319,7 +320,7 @@ router.post('/', campaignGM, async (req: AuthenticatedRequest, res: Response) =>
     if (!normalizedImageUrl) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'Invalid map imageUrl',
+        message: 'Imagem do mapa inválida.',
       });
     }
 
@@ -335,7 +336,7 @@ router.post('/', campaignGM, async (req: AuthenticatedRequest, res: Response) =>
       if (!(await canReferenceAsset(url, req.session.userId!, undefined, campaignId))) {
         return res.status(403).json({
           error: 'Forbidden',
-          message: 'You do not have access to that image',
+          message: 'Você não tem acesso a essa imagem.',
         });
       }
     }
@@ -381,7 +382,7 @@ router.post('/', campaignGM, async (req: AuthenticatedRequest, res: Response) =>
     logger.error('Error creating map', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to create map',
+      message: 'Não foi possível criar o mapa.',
     });
   }
 });
@@ -418,7 +419,7 @@ router.get('/', campaignMember, async (req: AuthenticatedRequest, res: Response)
     logger.error('Error fetching maps', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to fetch maps',
+      message: 'Não foi possível carregar os mapas.',
     });
   }
 });
@@ -457,7 +458,7 @@ router.post(
         res.status(503).json({ error: 'Service Unavailable', message: UVTT_IMPORT_TOO_SLOW_MESSAGE });
       } else if (!(err instanceof QueueCallerLeft)) {
         logger.error('Error importing UVTT file:', err);
-        if (!res.headersSent) res.status(500).json({ error: 'Internal Server Error', message: 'Failed to import UVTT file' });
+        if (!res.headersSent) res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível importar o arquivo UVTT.' });
       }
     } finally {
       if (uploaded) {
@@ -487,7 +488,7 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
       if (!userId) return answer(401, { error: 'Unauthorized' });
 
       if (!req.file?.path) {
-        return answer(400, { error: 'Validation Error', message: 'No UVTT file uploaded' });
+        return answer(400, { error: 'Validation Error', message: 'Nenhum arquivo UVTT foi enviado.' });
       }
       // Read in its turn, and removed from disk at once: from here on only
       // this copy is used, and it is let go of once parsed.
@@ -498,7 +499,7 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
       // A field sent twice arrives as a list, which is not a name.
       const rawName: unknown = req.body.name;
       if (rawName !== undefined && typeof rawName !== 'string') {
-        return answer(400, { error: 'Validation Error', message: 'Send the map name once, as text.' });
+        return answer(400, { error: 'Validation Error', message: 'Envie o nome do mapa uma só vez, como texto.' });
       }
       const mapName =
         rawName?.trim() ||
@@ -519,7 +520,7 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
       try {
         parsed = parseUVTT(fileBuffer, gridSizePx, { includeObjectWalls, maxImageBytes: getFileSizeLimit('MAP') });
       } catch (parseErr) {
-        const msg = parseErr instanceof Error ? parseErr.message : 'Failed to parse UVTT file';
+        const msg = parseErr instanceof Error ? parseErr.message : 'Não foi possível ler o arquivo UVTT.';
         return answer(400, { error: 'Parse Error', message: msg });
       } finally {
         fileBuffer = null;
@@ -529,12 +530,12 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
       // The same limits as Create Map, checked before anything is asked or
       // saved, so a file that cannot become a map leaves nothing behind.
       if (dimensionProblem(MapSideSchema('Map width'), parsed.mapWidth) || dimensionProblem(MapSideSchema('Map height'), parsed.mapHeight)) {
-        const limit = `A map can be from ${MAP_LIMITS.minSide} to ${MAP_LIMITS.maxSide} squares on each side.`;
+        const limit = `Um mapa pode ter de ${MAP_LIMITS.minSide} to ${MAP_LIMITS.maxSide} quadrados de cada lado.`;
         return answer(400, {
           error: 'Validation Error',
           message: Number.isFinite(parsed.mapWidth) && Number.isFinite(parsed.mapHeight)
-            ? `This file's map is ${parsed.mapWidth} by ${parsed.mapHeight} squares. ${limit}`
-            : `This file does not say how many squares its map is (resolution.map_size). ${limit}`,
+            ? `O mapa deste arquivo tem ${parsed.mapWidth} por ${parsed.mapHeight} quadrados. ${limit}`
+            : `Este arquivo não informa quantos quadrados o mapa tem (resolution.map_size). ${limit}`,
         });
       }
       // Geometry outside the picture is kept, once the GM agrees below, but
@@ -545,8 +546,8 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
         return answer(400, {
           error: 'Validation Error',
           message:
-            `This file has walls or lights more than ${GEOMETRY_MARGIN_SQUARES} squares outside its map, ` +
-            'which a map cannot hold. Export it again from the tool that made it, covering the whole map.',
+            `Este arquivo tem paredes ou luzes a mais de ${GEOMETRY_MARGIN_SQUARES} quadrados fora do mapa, ` +
+            'o que um mapa não comporta. Exporte-o de novo pela ferramenta que o criou, cobrindo o mapa inteiro.',
         });
       }
 
@@ -566,7 +567,7 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
           error: 'Confirmation Required',
           // Clients branch on the code, never the wording.
           code: 'UVTT_IMPORT_NEEDS_CONFIRMATION',
-          message: 'This file needs a decision before it can be imported.',
+          message: 'Este arquivo precisa de uma decisão antes de ser importado.',
           outOfBounds: { walls, doors, lights },
           objectWalls: parsed.objectWallCount,
         });
@@ -581,17 +582,17 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
         return answer(400, {
           error: 'Validation Error',
           message:
-            `This file has ${parsed.wallSegments.length} wall segments, more than a map can hold. ` +
+            `Este arquivo tem ${parsed.wallSegments.length} segmentos de parede, mais do que um mapa comporta. ` +
             (includeObjectWalls && parsed.objectWallCount > 0
-              ? 'Importing without its furniture walls may bring it under the limit.'
-              : 'Split it into smaller maps in the tool that made it.'),
+              ? 'Importar sem as paredes dos móveis pode deixá-lo dentro do limite.'
+              : 'Divida-o em mapas menores na ferramenta que o criou.'),
         });
       }
       const lightCheck = LightSourcesArraySchema.safeParse(parsed.lightSources);
       if (!lightCheck.success) {
         return answer(400, {
           error: 'Validation Error',
-          message: `This file's lights cannot be imported: ${lightCheck.error.issues[0]?.message ?? 'they are outside the limits a map allows'}.`,
+          message: `As luzes deste arquivo não podem ser importadas: ${lightCheck.error.issues[0]?.message ?? 'estão fora dos limites que um mapa permite'}.`,
         });
       }
 
@@ -605,8 +606,8 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
         return answer(400, {
           error: 'Validation Error',
           message:
-            'The picture inside this file is not an image CozyVTT can use. ' +
-            `Maps must be one of: ${UVTT_IMAGE_EXTENSIONS}.`,
+            'A imagem dentro deste arquivo não é de um tipo que o app possa usar. ' +
+            `O mapa deve ser de um destes tipos: ${UVTT_IMAGE_EXTENSIONS}.`,
         });
       }
 
@@ -615,7 +616,7 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
         const limitMB = Math.round(mapSizeLimit / (1024 * 1024));
         return answer(400, {
           error: 'Validation Error',
-          message: `The picture inside this file is too large. Maps must be smaller than ${limitMB}MB.`,
+          message: `A imagem dentro deste arquivo é grande demais. O mapa deve ter menos de ${limitMB}MB.`,
         });
       }
       // The limits on its pixels and frames that an uploaded map has.
@@ -623,7 +624,7 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
       if (pictureProblem) {
         return answer(400, {
           error: 'Validation Error',
-          message: `The picture inside this file cannot be used as a map. ${pictureProblem}`,
+          message: `A imagem dentro deste arquivo não pode ser usada como mapa. ${pictureProblem}`,
         });
       }
 
@@ -734,7 +735,7 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
         return undefined;
       }
       logger.error('Error importing UVTT file:', error);
-      return answer(500, { error: 'Internal Server Error', message: 'Failed to import UVTT file' });
+      return answer(500, { error: 'Internal Server Error', message: 'Não foi possível importar o arquivo UVTT.' });
     }
 }
 
@@ -772,10 +773,10 @@ router.get(
           },
         });
         if (!map) {
-          return res.status(404).json({ error: 'Not Found', message: 'Map not found' });
+          return res.status(404).json({ error: 'Not Found', message: 'Mapa não encontrado.' });
         }
         if (!map.imageUrl) {
-          return res.status(422).json({ error: 'Unprocessable Entity', message: 'Map has no image' });
+          return res.status(422).json({ error: 'Unprocessable Entity', message: 'O mapa não tem imagem.' });
         }
 
         // Resolve asset file path. The file goes into the download, so the
@@ -787,7 +788,7 @@ router.get(
           ? await prisma.asset.findUnique({ where: { id: assetId }, select: { filePath: true } })
           : null;
         if (!asset || !assetId || !(await canReadAssetById(assetId, req.session.userId!, req.session.platformRole === 'ADMIN'))) {
-          return res.status(422).json({ error: 'Unprocessable Entity', message: 'Map image asset not found' });
+          return res.status(422).json({ error: 'Unprocessable Entity', message: 'Imagem do mapa não encontrada.' });
         }
 
         const imagePath = storedFilePath(asset.filePath);
@@ -795,7 +796,7 @@ router.get(
         try {
           imageBuffer = await fs.readFile(imagePath);
         } catch {
-          return res.status(422).json({ error: 'Unprocessable Entity', message: 'Map image file not found on disk' });
+          return res.status(422).json({ error: 'Unprocessable Entity', message: 'O arquivo da imagem do mapa não foi encontrado.' });
         }
 
         // Get image dimensions for pixels_per_grid calculation. A map stored
@@ -832,7 +833,7 @@ router.get(
         return res.send(uvttBuffer);
       } catch (error) {
         logger.error('Error exporting UVTT file:', error);
-        return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to export UVTT file' });
+        return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível exportar o arquivo UVTT.' });
       }
     });
   }
@@ -862,7 +863,7 @@ router.get('/:id', campaignMember, async (req: AuthenticatedRequest, res: Respon
     if (!map) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
@@ -870,7 +871,7 @@ router.get('/:id', campaignMember, async (req: AuthenticatedRequest, res: Respon
     if (map.campaignId !== campaignId) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
@@ -897,7 +898,7 @@ router.get('/:id', campaignMember, async (req: AuthenticatedRequest, res: Respon
     if (membership.role !== 'GM') {
       const campaign = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { currentMapId: true } });
       if (!canReadMap(membership.role, map.id, campaign?.currentMapId)) {
-        return res.status(404).json({ error: 'Not Found', message: 'Map not found' });
+        return res.status(404).json({ error: 'Not Found', message: 'Mapa não encontrado.' });
       }
     }
 
@@ -917,7 +918,7 @@ router.get('/:id', campaignMember, async (req: AuthenticatedRequest, res: Respon
     logger.error('Error fetching map', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to fetch map',
+      message: 'Não foi possível carregar o mapa.',
     });
   }
 });
@@ -975,14 +976,14 @@ router.put('/:id', campaignGM, async (req: AuthenticatedRequest, res: Response) 
     if (!existingMap) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
     if (existingMap.campaignId !== campaignId) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
@@ -997,7 +998,7 @@ router.put('/:id', campaignGM, async (req: AuthenticatedRequest, res: Response) 
       if (typeof name !== 'string' || name.trim().length === 0) {
         return res.status(400).json({
           error: 'Validation Error',
-          message: 'Map name must be a non-empty string',
+          message: 'O nome do mapa não pode ficar vazio.',
         });
       }
       // A name stored longer before the limit existed is taken back as it
@@ -1032,7 +1033,7 @@ router.put('/:id', campaignGM, async (req: AuthenticatedRequest, res: Response) 
       if (diagonalRule !== 'flat' && diagonalRule !== 'alternating') {
         return res.status(400).json({
           error: 'Validation Error',
-          message: 'diagonalRule must be "flat" or "alternating"',
+          message: 'A regra de diagonal deve ser "flat" ou "alternating".',
         });
       }
       updateData.diagonalRule = diagonalRule;
@@ -1042,7 +1043,7 @@ router.put('/:id', campaignGM, async (req: AuthenticatedRequest, res: Response) 
       if (typeof imageUrl !== 'string') {
         return res.status(400).json({
           error: 'Validation Error',
-          message: 'Image URL must be a string',
+          message: 'A imagem do mapa deve ser um texto.',
         });
       }
       // Normalize to full path
@@ -1050,12 +1051,12 @@ router.put('/:id', campaignGM, async (req: AuthenticatedRequest, res: Response) 
       if (!normalizedImageUrl) {
         return res.status(400).json({
           error: 'Validation Error',
-          message: 'Invalid map imageUrl',
+          message: 'Imagem do mapa inválida.',
         });
       }
       // A picture the GM may read, as on create (canReferenceAsset)
       if (!(await canReferenceAsset(normalizedImageUrl, req.session.userId!, existingMap.imageUrl, campaignId))) {
-        return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to that image' });
+        return res.status(403).json({ error: 'Forbidden', message: 'Você não tem acesso a essa imagem.' });
       }
       if (!(await isMapPicture(normalizedImageUrl, existingMap.imageUrl))) {
         return res.status(400).json({ error: 'Validation Error', message: MAP_IMAGE_NOT_A_MAP_PICTURE_MESSAGE });
@@ -1069,13 +1070,13 @@ router.put('/:id', campaignGM, async (req: AuthenticatedRequest, res: Response) 
       if (spiritLayerUrl !== null && typeof spiritLayerUrl !== 'string') {
         return res.status(400).json({
           error: 'Validation Error',
-          message: 'Spirit layer URL must be a string or null',
+          message: 'A imagem da camada espiritual deve ser um texto ou nulo.',
         });
       }
       // Normalize to full path (or null)
       const normalizedSpiritLayerUrl = spiritLayerUrl ? normalizeAssetUrl(spiritLayerUrl, 'maps') : null;
       if (!(await canReferenceAsset(normalizedSpiritLayerUrl, req.session.userId!, existingMap.spiritLayerUrl, campaignId))) {
-        return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to that image' });
+        return res.status(403).json({ error: 'Forbidden', message: 'Você não tem acesso a essa imagem.' });
       }
       if (!(await isMapPicture(normalizedSpiritLayerUrl, existingMap.spiritLayerUrl))) {
         return res.status(400).json({ error: 'Validation Error', message: SPIRIT_LAYER_NOT_A_MAP_PICTURE_MESSAGE });
@@ -1085,28 +1086,28 @@ router.put('/:id', campaignGM, async (req: AuthenticatedRequest, res: Response) 
 
     if (lightingEnabled !== undefined) {
       if (typeof lightingEnabled !== 'boolean') {
-        return res.status(400).json({ error: 'Validation Error', message: 'lightingEnabled must be a boolean' });
+        return res.status(400).json({ error: 'Validation Error', message: 'O valor de lightingEnabled deve ser verdadeiro ou falso.' });
       }
       updateData.lightingEnabled = lightingEnabled;
     }
 
     if (fogEnabled !== undefined) {
       if (typeof fogEnabled !== 'boolean') {
-        return res.status(400).json({ error: 'Validation Error', message: 'fogEnabled must be a boolean' });
+        return res.status(400).json({ error: 'Validation Error', message: 'O valor de fogEnabled deve ser verdadeiro ou falso.' });
       }
       updateData.fogEnabled = fogEnabled;
     }
 
     if (globalIllumination !== undefined) {
       if (typeof globalIllumination !== 'boolean') {
-        return res.status(400).json({ error: 'Validation Error', message: 'globalIllumination must be a boolean' });
+        return res.status(400).json({ error: 'Validation Error', message: 'O valor de globalIllumination deve ser verdadeiro ou falso.' });
       }
       updateData.globalIllumination = globalIllumination;
     }
 
     if (explorationEnabled !== undefined) {
       if (typeof explorationEnabled !== 'boolean') {
-        return res.status(400).json({ error: 'Validation Error', message: 'explorationEnabled must be a boolean' });
+        return res.status(400).json({ error: 'Validation Error', message: 'O valor de explorationEnabled deve ser verdadeiro ou falso.' });
       }
       updateData.explorationEnabled = explorationEnabled;
     }
@@ -1205,7 +1206,7 @@ router.put('/:id', campaignGM, async (req: AuthenticatedRequest, res: Response) 
     logger.error('Error updating map', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to update map',
+      message: 'Não foi possível atualizar o mapa.',
     });
   }
 });
@@ -1228,14 +1229,14 @@ router.delete('/:id', campaignGM, async (req: AuthenticatedRequest, res: Respons
     if (!map) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
     if (map.campaignId !== campaignId) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
@@ -1253,7 +1254,7 @@ router.delete('/:id', campaignGM, async (req: AuthenticatedRequest, res: Respons
     if (!deleted) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'Cannot delete the current map. Set a different map as current first.',
+        message: 'Não é possível excluir o mapa atual. Defina outro mapa como atual antes.',
       });
     }
 
@@ -1267,13 +1268,13 @@ router.delete('/:id', campaignGM, async (req: AuthenticatedRequest, res: Respons
     await tellMapReaders(campaignId, id, 'map.deleted', { mapId: id });
 
     return res.status(200).json({
-      message: 'Map deleted successfully',
+      message: 'Mapa excluído.',
     });
   } catch (error) {
     logger.error('Error deleting map', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to delete map',
+      message: 'Não foi possível excluir o mapa.',
     });
   }
 });
@@ -1295,14 +1296,14 @@ router.put('/:id/set-current', campaignGM, async (req: AuthenticatedRequest, res
     if (!map) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
     if (map.campaignId !== campaignId) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
@@ -1327,7 +1328,7 @@ router.put('/:id/set-current', campaignGM, async (req: AuthenticatedRequest, res
       });
     });
     if (!updatedCampaign) {
-      return res.status(404).json({ error: 'Not Found', message: 'Map not found' });
+      return res.status(404).json({ error: 'Not Found', message: 'Mapa não encontrado.' });
     }
     // Strokes under way on the map the table has left are decided again.
     currentMapChanged(campaignId);
@@ -1344,14 +1345,14 @@ router.put('/:id/set-current', campaignGM, async (req: AuthenticatedRequest, res
     await resendInitiative(campaignId);
 
     return res.status(200).json({
-      message: 'Current map updated successfully',
+      message: 'Mapa atual atualizado.',
       campaign: updatedCampaign,
     });
   } catch (error) {
     logger.error('Error setting current map', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to set current map',
+      message: 'Não foi possível definir o mapa atual.',
     });
   }
 });
@@ -1401,14 +1402,14 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
     if (!map) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
     if (map.campaignId !== campaignId) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
@@ -1416,7 +1417,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
     if (!tokenData.name || typeof tokenData.name !== 'string') {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'Token name is required',
+        message: 'O nome do token é obrigatório.',
       });
     }
 
@@ -1432,7 +1433,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
     if (!requested) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'Token position {x, y} is required',
+        message: 'A posição do token {x, y} é obrigatória.',
       });
     }
 
@@ -1445,24 +1446,24 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
     if (layer !== 'token' && layer !== 'spirit') {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'Token layer must be "token" or "spirit"',
+        message: 'A camada do token deve ser "token" ou "spirit".',
       });
     }
 
     // Validate type and disposition
     const tokenType = tokenData.type || 'npc';
     if (!VALID_TOKEN_TYPES.includes(tokenType)) {
-      return res.status(400).json({ error: 'Validation Error', message: 'Invalid token type' });
+      return res.status(400).json({ error: 'Validation Error', message: 'Tipo de token inválido.' });
     }
     const disposition = tokenData.disposition !== undefined ? tokenData.disposition : null;
     if (disposition !== null && !VALID_TOKEN_DISPOSITIONS.includes(disposition)) {
-      return res.status(400).json({ error: 'Validation Error', message: 'Invalid token disposition' });
+      return res.status(400).json({ error: 'Validation Error', message: 'Disposição do token inválida.' });
     }
 
     // Validate display mode
     const displayMode = tokenData.displayMode || 'pog';
     if (!VALID_DISPLAY_MODES.includes(displayMode)) {
-      return res.status(400).json({ error: 'Validation Error', message: 'Invalid display mode' });
+      return res.status(400).json({ error: 'Validation Error', message: 'Modo de exibição inválido.' });
     }
 
     // Normalize token imageUrl to full path (optional for placeholder tokens)
@@ -1471,7 +1472,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
       : null;
     // Art the GM may read: a token's art counts as the campaign using it.
     if (!(await canReferenceAsset(normalizedTokenImageUrl, req.session.userId!, undefined, campaignId))) {
-      return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to that image' });
+      return res.status(403).json({ error: 'Forbidden', message: 'Você não tem acesso a essa imagem.' });
     }
     // And only a token picture, whatever folder the address gives (isTokenPicture).
     if (!(await isTokenPicture(normalizedTokenImageUrl))) {
@@ -1498,7 +1499,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
     if (controlledBy && !(await canHoldTokens(campaignId, controlledBy))) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'Token controlledBy must name a player of this campaign',
+        message: 'O controlador do token deve ser um jogador desta campanha.',
       });
     }
     if (characterId) {
@@ -1509,7 +1510,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
       if (!character || character.campaignId !== campaignId) {
         return res.status(400).json({
           error: 'Validation Error',
-          message: 'Token characterId must name a character of this campaign',
+          message: 'O personagem do token deve ser um personagem desta campanha.',
         });
       }
       if (!controllerGiven && (await canHoldTokens(campaignId, character.userId))) {
@@ -1568,7 +1569,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
         return {
           status: 400,
           error: 'Validation Error',
-          message: `Token position must be within map bounds (0-${fresh.width-1}, 0-${fresh.height-1})`,
+          message: `A posição do token deve ficar dentro do mapa (0-${fresh.width-1}, 0-${fresh.height-1})`,
         };
       }
       const tokens = readTokens(fresh.tokens);
@@ -1588,7 +1589,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
     await resendInitiative(campaignId);
 
     return res.status(201).json({
-      message: 'Token added successfully',
+      message: 'Token adicionado.',
       token: addedToken,
       map: updatedMap,
     });
@@ -1596,7 +1597,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
     logger.error('Error adding token', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to add token',
+      message: 'Não foi possível adicionar o token.',
     });
   }
 });
@@ -1625,14 +1626,14 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
     if (!map) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
     if (map.campaignId !== campaignId) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
@@ -1657,7 +1658,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
     // they may only fetch that one: a prepared map answers as if it were not
     // here, even where it holds a token they control.
     if (!canReadMap(membership.role, mapId, map.campaign.currentMapId)) {
-      return res.status(404).json({ error: 'Not Found', message: 'Map not found' });
+      return res.status(404).json({ error: 'Not Found', message: 'Mapa não encontrado.' });
     }
 
     // Get existing tokens array
@@ -1669,7 +1670,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
     if (tokenIndex === -1) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Token not found on this map',
+        message: 'Token não encontrado neste mapa.',
       });
     }
 
@@ -1681,7 +1682,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
     if (!canControlToken(membership.role, existingToken.controlledBy, userId)) {
       return res.status(403).json({
         error: 'Forbidden',
-        message: 'You can only update tokens you control',
+        message: 'Você só pode alterar tokens que controla.',
       });
     }
     // And the same plane rule: a player touches a spirit-plane token only
@@ -1689,7 +1690,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
     if (!(await canActOnTokenPlane(membership.role, existingToken, campaignId, userId))) {
       return res.status(403).json({
         error: 'Forbidden',
-        message: 'You cannot interact with spirit layer tokens',
+        message: 'Você não pode interagir com tokens da camada espiritual.',
       });
     }
     // And the same session rule the socket move events apply: a player's
@@ -1704,27 +1705,27 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
       if (!isGM) {
         return res.status(403).json({
           error: 'Forbidden',
-          message: 'Only the GM can change token layer',
+          message: GM_ONLY,
         });
       }
 
       if (updates.layer !== 'token' && updates.layer !== 'spirit') {
         return res.status(400).json({
           error: 'Validation Error',
-          message: 'Layer must be "token" or "spirit"',
+          message: 'A camada deve ser "token" ou "spirit".',
         });
       }
     }
 
     // Validate type/disposition/displayMode updates
     if (updates.type !== undefined && !VALID_TOKEN_TYPES.includes(updates.type)) {
-      return res.status(400).json({ error: 'Validation Error', message: 'Invalid token type' });
+      return res.status(400).json({ error: 'Validation Error', message: 'Tipo de token inválido.' });
     }
     if (updates.disposition !== undefined && updates.disposition !== null && !VALID_TOKEN_DISPOSITIONS.includes(updates.disposition)) {
-      return res.status(400).json({ error: 'Validation Error', message: 'Invalid token disposition' });
+      return res.status(400).json({ error: 'Validation Error', message: 'Disposição do token inválida.' });
     }
     if (updates.displayMode !== undefined && !VALID_DISPLAY_MODES.includes(updates.displayMode)) {
-      return res.status(400).json({ error: 'Validation Error', message: 'Invalid display mode' });
+      return res.status(400).json({ error: 'Validation Error', message: 'Modo de exibição inválido.' });
     }
 
     // Players may only update position, rotation, and conditions on tokens they control
@@ -1741,7 +1742,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
       const restrictedFields = ['hp', 'notes', 'showHpBar', 'type', 'disposition', 'initiative', 'visible', 'name', 'imageUrl', 'layer', 'controlledBy', 'displayMode', 'statBlock', 'creatureTemplateId', 'metadata', 'sightRadius', 'size', 'obscured', 'rechargeSpent'];
       for (const field of restrictedFields) {
         if (updates[field] !== undefined) {
-          return res.status(403).json({ error: 'Forbidden', message: `Only the GM can update token field: ${field}` });
+          return res.status(403).json({ error: 'Forbidden', message: GM_ONLY });
         }
       }
     }
@@ -1759,7 +1760,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
     if (shapes.value.controlledBy && !(await canHoldTokens(campaignId, shapes.value.controlledBy))) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: 'Token controlledBy must name a player of this campaign',
+        message: 'O controlador do token deve ser um jogador desta campanha.',
       });
     }
 
@@ -1768,7 +1769,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
       ? undefined
       : shapes.value.imageUrl ? (normalizeAssetUrl(shapes.value.imageUrl, 'tokens') || existingToken.imageUrl) : '';
     if (nextImageUrl !== undefined && !(await canReferenceAsset(nextImageUrl, userId, existingToken.imageUrl, campaignId))) {
-      return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to that image' });
+      return res.status(403).json({ error: 'Forbidden', message: 'Você não tem acesso a essa imagem.' });
     }
     if (nextImageUrl !== undefined && !(await isTokenPicture(nextImageUrl, existingToken.imageUrl))) {
       return res.status(400).json({ error: 'Validation Error', message: TOKEN_IMAGE_NOT_A_TOKEN_PICTURE_MESSAGE });
@@ -1815,14 +1816,14 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
       const fresh = await tx.map.findUniqueOrThrow({ where: { id: mapId }, select: { tokens: true, width: true, height: true } });
       const tokens = readTokens(fresh.tokens);
       const index = tokens.findIndex((t) => t.id === tokenId);
-      if (index === -1) return { status: 404, error: 'Not Found', message: 'Token not found on this map' };
+      if (index === -1) return { status: 404, error: 'Not Found', message: 'Token não encontrado neste mapa.' };
       const current = tokens[index];
 
       if (requested && (requested.x < 0 || requested.x >= fresh.width || requested.y < 0 || requested.y >= fresh.height)) {
         return {
           status: 400,
           error: 'Validation Error',
-          message: `Position must be within map bounds (0-${fresh.width-1}, 0-${fresh.height-1})`,
+          message: `A posição deve ficar dentro do mapa (0-${fresh.width-1}, 0-${fresh.height-1})`,
         };
       }
       // The whole footprint on the map, at the size the token will have.
@@ -1839,7 +1840,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
       if (metadata) {
         const merged = TokenMetadataSchema.safeParse(metadata);
         if (!merged.success) {
-          return { status: 400, error: 'Validation Error', message: `Invalid token metadata: ${merged.error.issues[0]?.message ?? 'invalid'}` };
+          return { status: 400, error: 'Validation Error', message: `Metadados do token inválidos: ${merged.error.issues[0]?.message ?? 'sem detalhes'}` };
         }
       }
 
@@ -1877,7 +1878,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
     // otherwise null, so the reply never holds what the map beside it leaves out.
     const spiritVisible = await getSpiritVisibility(campaignId, userId);
     return res.status(200).json({
-      message: 'Token updated successfully',
+      message: 'Token atualizado.',
       token: isGM ? updatedToken : (filterTokensByRole([updatedToken], membership.role, spiritVisible, userId)[0] ?? null),
       map: filterMapData(updatedMap, membership.role, spiritVisible, userId),
     });
@@ -1885,7 +1886,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
     logger.error('Error updating token', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to update token',
+      message: 'Não foi possível atualizar o token.',
     });
   }
 });
@@ -1905,27 +1906,27 @@ router.post('/:id/tokens/move', campaignGM, async (req: AuthenticatedRequest, re
     const { campaignId, id: sourceId } = req.params;
     const parsed = MoveTokensSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Invalid request' });
+      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Pedido inválido.' });
     }
     const { tokenIds, targetMapId } = parsed.data;
     if (targetMapId === sourceId) {
-      return res.status(400).json({ error: 'Validation Error', message: 'The target must be another map' });
+      return res.status(400).json({ error: 'Validation Error', message: 'O destino deve ser outro mapa.' });
     }
     const wanted = new Set(tokenIds);
 
     const outcome = await withMapsLocked([sourceId, targetMapId], async (tx) => {
       const source = await tx.map.findUnique({ where: { id: sourceId } });
       if (!source || source.campaignId !== campaignId) {
-        return { refused: 'Map not found in this campaign' };
+        return { refused: 'Mapa não encontrado nesta campanha.' };
       }
       const target = await tx.map.findUnique({ where: { id: targetMapId } });
       if (!target || target.campaignId !== campaignId) {
-        return { refused: 'Target map not found in this campaign' };
+        return { refused: 'Mapa de destino não encontrado nesta campanha.' };
       }
       const sourceTokens = readTokens(source.tokens);
       const missing = tokenIds.filter((id) => !sourceTokens.some((t) => t.id === id));
       if (missing.length > 0) {
-        return { refused: `Token not found on this map: ${missing.join(', ')}` };
+        return { refused: `Token não encontrado neste mapa: ${missing.join(', ')}` };
       }
       const moved = sourceTokens
         .filter((t) => wanted.has(t.id))
@@ -1979,10 +1980,10 @@ router.post('/:id/tokens/move', campaignGM, async (req: AuthenticatedRequest, re
       logger.warn('Table not told of a token move', { err: error });
     }
 
-    return res.status(200).json({ message: `${moved.length} token(s) moved`, moved });
+    return res.status(200).json({ message: `${moved.length} token(s) movido(s).`, moved });
   } catch (error) {
     logger.error('Error moving tokens', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to move tokens' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível mover os tokens.' });
   }
 });
 
@@ -2003,14 +2004,14 @@ router.delete('/:id/tokens/:tokenId', campaignGM, async (req: AuthenticatedReque
     if (!map) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
     if (map.campaignId !== campaignId) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Map not found',
+        message: 'Mapa não encontrado.',
       });
     }
 
@@ -2023,7 +2024,7 @@ router.delete('/:id/tokens/:tokenId', campaignGM, async (req: AuthenticatedReque
     if (tokenIndex === -1) {
       return res.status(404).json({
         error: 'Not Found',
-        message: 'Token not found on this map',
+        message: 'Token não encontrado neste mapa.',
       });
     }
 
@@ -2045,13 +2046,13 @@ router.delete('/:id/tokens/:tokenId', campaignGM, async (req: AuthenticatedReque
     }
 
     return res.status(200).json({
-      message: 'Token removed successfully',
+      message: 'Token removido.',
     });
   } catch (error) {
     logger.error('Error removing token', { err: error });
     return res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to remove token',
+      message: 'Não foi possível remover o token.',
     });
   }
 });
@@ -2074,18 +2075,18 @@ async function findMapInCampaign(
 ) {
   const map = await prisma.map.findUnique({ where: { id: mapId } });
   if (!map) {
-    res.status(404).json({ error: 'Not Found', message: 'Map not found' });
+    res.status(404).json({ error: 'Not Found', message: 'Mapa não encontrado.' });
     return null;
   }
   if (map.campaignId !== campaignId) {
-    res.status(404).json({ error: 'Not Found', message: 'Map not found' });
+    res.status(404).json({ error: 'Not Found', message: 'Mapa não encontrado.' });
     return null;
   }
   // A prepared map is the GM's alone; to anyone else it is not here.
   if (role !== 'GM') {
     const campaign = await prisma.campaign.findUnique({ where: { id: campaignId }, select: { currentMapId: true } });
     if (!canReadMap(role, map.id, campaign?.currentMapId)) {
-      res.status(404).json({ error: 'Not Found', message: 'Map not found' });
+      res.status(404).json({ error: 'Not Found', message: 'Mapa não encontrado.' });
       return null;
     }
   }
@@ -2102,7 +2103,7 @@ async function findMapInCampaign(
  */
 type LockedEdit<T> = { status: number; error: string; message: string } | { done: T };
 
-const MAP_GONE = { status: 404, error: 'Not Found', message: 'Map not found' } as const;
+const MAP_GONE = { status: 404, error: 'Not Found', message: 'Mapa não encontrado.' } as const;
 const GEOMETRY = { width: true, height: true, gridSize: true } as const;
 
 function sendRefusal(res: Response, refusal: { status: number; error: string; message: string }) {
@@ -2122,7 +2123,7 @@ router.get('/:id/walls', campaignMember, async (req: AuthenticatedRequest, res: 
     return res.status(200).json({ segments: wallsSentTo(req.campaignMembership!.role, map.wallSegments) });
   } catch (error) {
     logger.error('Error fetching wall segments', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch wall segments' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível carregar as paredes.' });
   }
 });
 
@@ -2141,7 +2142,7 @@ router.get('/:id/drawings', campaignMember, async (req: AuthenticatedRequest, re
     return res.status(200).json({ drawings: await drawingsFor(id, role) });
   } catch (error) {
     logger.error('Error fetching drawings', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch drawings' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível carregar os desenhos.' });
   }
 });
 
@@ -2158,7 +2159,7 @@ router.put('/:id/walls', campaignGM, async (req: AuthenticatedRequest, res: Resp
 
     const parsed = WallSegmentsArraySchema.safeParse(req.body.segments);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Invalid segments' });
+      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Paredes inválidas.' });
     }
     const next = parsed.data;
     const outcome = await withMapsLocked([id], async (tx): Promise<LockedEdit<unknown>> => {
@@ -2180,7 +2181,7 @@ router.put('/:id/walls', campaignGM, async (req: AuthenticatedRequest, res: Resp
     return res.status(200).json({ segments: next });
   } catch (error) {
     logger.error('Error replacing wall segments', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update wall segments' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível atualizar as paredes.' });
   }
 });
 
@@ -2198,7 +2199,7 @@ router.post('/:id/walls', campaignGM, async (req: AuthenticatedRequest, res: Res
     const segmentData = { ...req.body, id: req.body.id || randomUUID() };
     const parsed = WallSegmentSchema.safeParse(segmentData);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Invalid segment' });
+      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Parede inválida.' });
     }
 
     const segment = parsed.data;
@@ -2229,7 +2230,7 @@ router.post('/:id/walls', campaignGM, async (req: AuthenticatedRequest, res: Res
     return res.status(201).json({ segment, total: outcome.done });
   } catch (error) {
     logger.error('Error adding wall segment', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to add wall segment' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível adicionar a parede.' });
   }
 });
 
@@ -2255,7 +2256,7 @@ router.post('/:id/walls/batch', campaignGM, async (req: AuthenticatedRequest, re
 
     const body: unknown = req.body.segments;
     if (!Array.isArray(body)) {
-      return res.status(400).json({ error: 'Validation Error', message: 'segments must be a list of wall segments' });
+      return res.status(400).json({ error: 'Validation Error', message: 'Os segmentos devem ser uma lista de paredes.' });
     }
     const list: unknown[] = body;
     if (list.length > MAX_WALL_SEGMENTS) {
@@ -2268,7 +2269,7 @@ router.post('/:id/walls/batch', campaignGM, async (req: AuthenticatedRequest, re
         : item;
       const parsed = WallSegmentSchema.safeParse(withId);
       if (!parsed.success) {
-        return res.status(400).json({ error: 'Validation Error', message: `Wall ${index}: ${parsed.error.issues[0]?.message ?? 'Invalid segment'}` });
+        return res.status(400).json({ error: 'Validation Error', message: `Parede ${index}: ${parsed.error.issues[0]?.message ?? 'Parede inválida.'}` });
       }
       segments.push(parsed.data);
     }
@@ -2314,7 +2315,7 @@ router.post('/:id/walls/batch', campaignGM, async (req: AuthenticatedRequest, re
     return res.status(200).json(answer);
   } catch (error) {
     logger.error('Error adding wall segments', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to add wall segments' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível adicionar as paredes.' });
   }
 });
 
@@ -2334,7 +2335,7 @@ router.delete('/:id/walls/:sid', campaignGM, async (req: AuthenticatedRequest, r
       const existing = (Array.isArray(fresh.wallSegments) ? fresh.wallSegments : []) as unknown as WallSegment[];
       const filtered = existing.filter((s) => s.id !== sid);
       if (filtered.length === existing.length) {
-        return { status: 404, error: 'Not Found', message: 'Wall segment not found' };
+        return { status: 404, error: 'Not Found', message: 'Parede não encontrada.' };
       }
       await tx.map.update({ where: { id }, data: { wallSegments: toJson(filtered) } });
       return { done: null };
@@ -2343,10 +2344,10 @@ router.delete('/:id/walls/:sid', campaignGM, async (req: AuthenticatedRequest, r
 
     await tellMapReaders(campaignId, id, 'wall:removed', { mapId: id, segmentId: sid });
     resendSightAfterChange(getSocketInstance(), campaignId, id);
-    return res.status(200).json({ message: 'Wall segment deleted' });
+    return res.status(200).json({ message: 'Parede excluída.' });
   } catch (error) {
     logger.error('Error deleting wall segment', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to delete wall segment' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível excluir a parede.' });
   }
 });
 
@@ -2365,7 +2366,7 @@ router.patch('/:id/walls/:sid', campaignGM, async (req: AuthenticatedRequest, re
     const validTypes = WallSegmentSchema.shape.type.options;
     const type = WallSegmentSchema.shape.type.safeParse(req.body.type);
     if (!type.success) {
-      return res.status(400).json({ error: 'Validation Error', message: `type must be one of: ${validTypes.join(', ')}` });
+      return res.status(400).json({ error: 'Validation Error', message: `O tipo deve ser um destes: ${validTypes.join(', ')}` });
     }
 
     const outcome = await withMapsLocked([id], async (tx): Promise<LockedEdit<{ before: WallSegment; after: WallSegment }>> => {
@@ -2374,7 +2375,7 @@ router.patch('/:id/walls/:sid', campaignGM, async (req: AuthenticatedRequest, re
       const existing = (Array.isArray(fresh.wallSegments) ? fresh.wallSegments : []) as unknown as WallSegment[];
       const segIndex = existing.findIndex((s) => s.id === sid);
       if (segIndex === -1) {
-        return { status: 404, error: 'Not Found', message: 'Wall segment not found' };
+        return { status: 404, error: 'Not Found', message: 'Parede não encontrada.' };
       }
       const before = existing[segIndex];
       existing[segIndex] = { ...before, type: type.data };
@@ -2391,7 +2392,7 @@ router.patch('/:id/walls/:sid', campaignGM, async (req: AuthenticatedRequest, re
     return res.status(200).json({ segment: after });
   } catch (error) {
     logger.error('Error updating wall segment', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update wall segment' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível atualizar a parede.' });
   }
 });
 
@@ -2412,7 +2413,7 @@ router.get('/:id/lights', campaignMember, async (req: AuthenticatedRequest, res:
     return res.status(200).json({ lights: lightsSentTo(req.campaignMembership!.role, map.lights) });
   } catch (error) {
     logger.error('Error fetching light sources:', error);
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch light sources' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível carregar as luzes.' });
   }
 });
 
@@ -2429,7 +2430,7 @@ router.put('/:id/lights', campaignGM, async (req: AuthenticatedRequest, res: Res
 
     const parsed = LightSourcesArraySchema.safeParse(req.body.lights);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Invalid lights array' });
+      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Lista de luzes inválida.' });
     }
     const next = parsed.data;
     const outcome = await withMapsLocked([id], async (tx): Promise<LockedEdit<unknown>> => {
@@ -2450,7 +2451,7 @@ router.put('/:id/lights', campaignGM, async (req: AuthenticatedRequest, res: Res
     return res.status(200).json({ lights: next });
   } catch (error) {
     logger.error('Error replacing light sources:', error);
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update light sources' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível atualizar as luzes.' });
   }
 });
 
@@ -2468,7 +2469,7 @@ router.post('/:id/lights', campaignGM, async (req: AuthenticatedRequest, res: Re
     const lightData = { ...req.body, id: req.body.id || randomUUID() };
     const parsed = LightSourceSchema.safeParse(lightData);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Invalid light source' });
+      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Luz inválida.' });
     }
 
     const added = parsed.data;
@@ -2500,7 +2501,7 @@ router.post('/:id/lights', campaignGM, async (req: AuthenticatedRequest, res: Re
     return res.status(201).json({ light: added, total: outcome.done });
   } catch (error) {
     logger.error('Error adding light source:', error);
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to add light source' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível adicionar a luz.' });
   }
 });
 
@@ -2517,7 +2518,7 @@ router.patch('/:id/lights/:lightId', campaignGM, async (req: AuthenticatedReques
 
     const parsed = LightSourceUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Invalid update data' });
+      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Dados de atualização inválidos.' });
     }
 
     const patch = parsed.data;
@@ -2529,7 +2530,7 @@ router.patch('/:id/lights/:lightId', campaignGM, async (req: AuthenticatedReques
       const idx = existing.findIndex((l) => l.id === lightId);
       before = existing[idx];
       if (idx === -1) {
-        return { status: 404, error: 'Not Found', message: 'Light source not found' };
+        return { status: 404, error: 'Not Found', message: 'Luz não encontrada.' };
       }
 
       const merged = { ...existing[idx], ...patch };
@@ -2540,7 +2541,7 @@ router.patch('/:id/lights/:lightId', campaignGM, async (req: AuthenticatedReques
       // check can still be switched on and off.
       const radiusChanged = patch.brightRadius !== undefined || patch.dimRadius !== undefined;
       if (radiusChanged && !(merged.dimRadius >= merged.brightRadius)) {
-        return { status: 400, error: 'Validation Error', message: 'dimRadius must be >= brightRadius' };
+        return { status: 400, error: 'Validation Error', message: 'O raio de penumbra não pode ser menor que o raio de luz forte.' };
       }
       if (lightOutsideMap([merged], fresh, [existing[idx]])) {
         return { status: 400, error: 'Validation Error', message: LIGHT_OUTSIDE_MAP_MESSAGE };
@@ -2560,7 +2561,7 @@ router.patch('/:id/lights/:lightId', campaignGM, async (req: AuthenticatedReques
     return res.status(200).json({ light: outcome.done });
   } catch (error) {
     logger.error('Error updating light source:', error);
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update light source' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível atualizar a luz.' });
   }
 });
 
@@ -2580,7 +2581,7 @@ router.delete('/:id/lights/:lightId', campaignGM, async (req: AuthenticatedReque
       const existing = (Array.isArray(fresh.lights) ? fresh.lights : []) as unknown as LightSource[];
       const removed = existing.find((l) => l.id === lightId);
       if (!removed) {
-        return { status: 404, error: 'Not Found', message: 'Light source not found' };
+        return { status: 404, error: 'Not Found', message: 'Luz não encontrada.' };
       }
       await tx.map.update({ where: { id }, data: { lights: toJson(existing.filter((l) => l.id !== lightId)) } });
       return { done: removed };
@@ -2591,10 +2592,10 @@ router.delete('/:id/lights/:lightId', campaignGM, async (req: AuthenticatedReque
     const removed = outcome.done;
     await tellMapReadersAs(campaignId, id, 'light:removed', (role) => lightRemovalSentTo(role, id, lightId, removed));
     if (lightReachesPlayers(removed)) resendSightAfterChange(getSocketInstance(), campaignId, id);
-    return res.status(200).json({ message: 'Light source deleted' });
+    return res.status(200).json({ message: 'Luz excluída.' });
   } catch (error) {
     logger.error('Error deleting light source:', error);
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to delete light source' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível excluir a luz.' });
   }
 });
 
@@ -2618,7 +2619,7 @@ router.get('/:id/fog', campaignGM, async (req: AuthenticatedRequest, res: Respon
       return res.status(409).json({ error: 'Conflict', message: error.message });
     }
     logger.error('Error fetching fog state', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch fog state' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível carregar a névoa.' });
   }
 });
 
@@ -2636,7 +2637,7 @@ router.post('/:id/fog/operation', campaignGM, async (req: AuthenticatedRequest, 
 
     const parsed = FogOperationSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Invalid fog operation' });
+      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Operação de névoa inválida.' });
     }
 
     const op = parsed.data;
@@ -2645,7 +2646,7 @@ router.post('/:id/fog/operation', campaignGM, async (req: AuthenticatedRequest, 
       if (!fresh) return MAP_GONE;
       // The map's flag is the single source of truth, here as on the socket.
       if (!fresh.fogEnabled) {
-        return { status: 409, error: 'Conflict', message: 'Fog of war is off for this map' };
+        return { status: 409, error: 'Conflict', message: 'A névoa está desligada neste mapa.' };
       }
       const fog: FogState = loadFogState(fresh, fresh.fogData as FogState | null);
       applyWsFogOperation(fog, op);
@@ -2667,7 +2668,7 @@ router.post('/:id/fog/operation', campaignGM, async (req: AuthenticatedRequest, 
       return res.status(409).json({ error: 'Conflict', message: error.message });
     }
     logger.error('Error applying fog operation', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to apply fog operation' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível aplicar a operação de névoa.' });
   }
 });
 
@@ -2683,7 +2684,7 @@ router.put('/:id/lighting', campaignGM, async (req: AuthenticatedRequest, res: R
     if (!map) return;
 
     if (typeof req.body.enabled !== 'boolean') {
-      return res.status(400).json({ error: 'Validation Error', message: 'enabled must be a boolean' });
+      return res.status(400).json({ error: 'Validation Error', message: 'O valor de enabled deve ser verdadeiro ou falso.' });
     }
 
     const updated = await prisma.map.update({
@@ -2713,7 +2714,7 @@ router.put('/:id/lighting', campaignGM, async (req: AuthenticatedRequest, res: R
     return res.status(200).json({ lightingEnabled: updated.lightingEnabled });
   } catch (error) {
     logger.error('Error updating lighting setting', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update lighting setting' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível atualizar a iluminação.' });
   }
 });
 

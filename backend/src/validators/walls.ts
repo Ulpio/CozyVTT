@@ -3,8 +3,8 @@ import { CoordinateSchema } from './maps';
 import { MAP_LIMITS, MAX_EXPLORATION_REPORT_CELLS, MAX_FOG_CELLS, TOO_MANY_WALLS_MESSAGE, TOO_MANY_LIGHTS_MESSAGE } from './mapLimits';
 
 /** What an add answers when the id it names is already on the map. */
-export const DUPLICATE_WALL_ID_MESSAGE = 'A wall segment with that id is already on this map';
-export const DUPLICATE_LIGHT_ID_MESSAGE = 'A light source with that id is already on this map';
+export const DUPLICATE_WALL_ID_MESSAGE = 'Já existe uma parede com esse id neste mapa.';
+export const DUPLICATE_LIGHT_ID_MESSAGE = 'Já existe uma luz com esse id neste mapa.';
 
 export const WallSegmentSchema = z.object({
   id: z.string().uuid(),
@@ -20,12 +20,12 @@ export const WallSegmentSchema = z.object({
  * Ids are unique within a map's list: an edit, a delete and sight all find a
  * wall or light by id, and two sharing one were each handled as the other.
  */
-function refuseRepeatedIds(what: 'wall segments' | 'light sources') {
+function refuseRepeatedIds(what: 'paredes' | 'luzes') {
   return (items: Array<{ id: string }>, ctx: z.RefinementCtx) => {
     const seen = new Set<string>();
     items.forEach((item, i) => {
       if (seen.has(item.id)) {
-        ctx.addIssue({ code: 'custom', message: `Two ${what} have the same id (${item.id})`, path: [i, 'id'] });
+        ctx.addIssue({ code: 'custom', message: `Duas ${what} têm o mesmo id (${item.id}).`, path: [i, 'id'] });
       }
       seen.add(item.id);
     });
@@ -43,7 +43,7 @@ export { TOO_MANY_WALLS_MESSAGE, TOO_MANY_LIGHTS_MESSAGE };
 export const WallSegmentsArraySchema = z
   .array(WallSegmentSchema)
   .max(MAX_WALL_SEGMENTS, TOO_MANY_WALLS_MESSAGE)
-  .superRefine(refuseRepeatedIds('wall segments'));
+  .superRefine(refuseRepeatedIds('paredes'));
 
 // ── Light Sources ────────────────────────────────────────────────────────────
 
@@ -60,7 +60,7 @@ const LightSourceBaseShape = z.object({
 
 export const LightSourceSchema = LightSourceBaseShape.refine(
   (obj) => obj.dimRadius >= obj.brightRadius,
-  { message: 'dimRadius must be >= brightRadius' }
+  { message: 'O raio de penumbra não pode ser menor que o raio de luz forte.' }
 );
 
 export const LightSourcesArraySchema = z
@@ -71,13 +71,13 @@ export const LightSourcesArraySchema = z
       if (lights[i].dimRadius < lights[i].brightRadius) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `Light at index ${i}: dimRadius must be >= brightRadius`,
+          message: `Luz ${i}: o raio de penumbra não pode ser menor que o raio de luz forte.`,
           path: [i, 'dimRadius'],
         });
       }
     }
   })
-  .superRefine(refuseRepeatedIds('light sources'));
+  .superRefine(refuseRepeatedIds('luzes'));
 
 /** Partial schema for PATCH updates — all fields optional except id. */
 export const LightSourceUpdateSchema = z.object({
@@ -87,7 +87,7 @@ export const LightSourceUpdateSchema = z.object({
   dimRadius: z.number().min(0.5).max(100).optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   enabled: z.boolean().optional(),
-}).refine(obj => Object.keys(obj).length > 0, { message: 'At least one field must be provided' });
+}).refine(obj => Object.keys(obj).length > 0, { message: 'Informe pelo menos um campo.' });
 
 // ── Fog Operations ───────────────────────────────────────────────────────────
 
@@ -96,7 +96,7 @@ export const LightSourceUpdateSchema = z.object({
  * A cell is a grid square, so no box on any map names more.
  */
 export const TOO_MANY_FOG_CELLS_MESSAGE =
-  `A fog operation can name at most ${MAX_FOG_CELLS.toLocaleString('en-US')} cells. Use reveal_all or hide_all for the whole map.`;
+  `Uma operação de névoa pode citar no máximo ${MAX_FOG_CELLS.toLocaleString('pt-BR')} quadrados. Use reveal_all ou hide_all para o mapa inteiro.`;
 
 const FogCellsSchema = z.array(z.number().int().nonnegative()).max(MAX_FOG_CELLS, TOO_MANY_FOG_CELLS_MESSAGE);
 

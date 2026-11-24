@@ -91,7 +91,7 @@ describe('POST /maps', () => {
     const res = await create({ [field]: value });
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/1 to 500/);
+    expect(res.body.message).toMatch(/1 a 500/);
   });
 
   it('accepts the largest map the dialogs offer', async () => {
@@ -224,7 +224,7 @@ describe('POST /maps/import-uvtt', () => {
     const res = await importUvtt(uvtt({ x: 10 }));
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/does not say how many squares/);
+    expect(res.body.message).toMatch(/não informa quantos quadrados/);
     expect(await prisma.asset.count({ where: { campaignId } })).toBe(assetsBefore);
   });
 

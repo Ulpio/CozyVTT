@@ -132,7 +132,7 @@ describe('walls', () => {
     const res = await gm.put(`${base(mapId)}/walls`).send({ segments: [{ ...legacy, y2: PAST_MARGIN }] });
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/too far outside the map/);
+    expect(res.body.message).toMatch(/longe demais do mapa/);
   });
 });
 
@@ -194,7 +194,7 @@ describe('Universal VTT import', () => {
       .field('confirm', 'true');
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/outside its map/);
+    expect(res.body.message).toMatch(/fora do mapa/);
     expect(await prisma.asset.count({ where: { campaignId } })).toBe(before);
   });
 

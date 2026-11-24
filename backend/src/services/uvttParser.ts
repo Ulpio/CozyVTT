@@ -296,7 +296,7 @@ function decodePicture(bytes: Buffer, range: ByteRange, maxImageBytes: number | 
   const size = Math.floor(((digits - start) * 3) / 4);
   if (maxImageBytes !== undefined && size > maxImageBytes) {
     const limitMB = Math.round(maxImageBytes / (1024 * 1024));
-    throw new Error(`The picture inside this file is too large. Maps must be smaller than ${limitMB}MB.`);
+    throw new Error(`A imagem dentro deste arquivo é grande demais. O mapa deve ter menos de ${limitMB}MB.`);
   }
   const picture = Buffer.allocUnsafe(size);
   let written = 0;
@@ -324,8 +324,8 @@ export function parseUVTT(
   const scan = scanUvtt(fileBuffer, MAX_UVTT_JSON_VALUES);
   if (scan.tooMany) {
     throw new Error(
-      `This file holds more than ${MAX_UVTT_JSON_VALUES.toLocaleString('en-US')} points, doors, lights and settings, ` +
-        'far more than a map can hold. Split it into smaller maps in the tool that made it.'
+      `Este arquivo tem mais de ${MAX_UVTT_JSON_VALUES.toLocaleString('pt-BR')} pontos, portas, luzes e ajustes, ` +
+        'muito mais do que um mapa comporta. Divida-o em mapas menores na ferramenta que o criou.'
     );
   }
 
@@ -351,21 +351,21 @@ export function parseUVTT(
   try {
     data = JSON.parse(json.toString('utf-8'));
   } catch {
-    throw new Error('Invalid UVTT file: not valid JSON');
+    throw new Error('Arquivo UVTT inválido: não é um JSON válido.');
   }
 
   // Validate required fields
   if (!data.resolution) {
-    throw new Error('Invalid UVTT file: missing "resolution" field');
+    throw new Error('Arquivo UVTT inválido: falta o campo "resolution".');
   }
   if (!data.resolution.map_size || typeof data.resolution.map_size.x !== 'number') {
-    throw new Error('Invalid UVTT file: missing or invalid "resolution.map_size"');
+    throw new Error('Arquivo UVTT inválido: falta "resolution.map_size" ou ele é inválido.');
   }
   if (!picture && (!data.image || typeof data.image !== 'string')) {
-    throw new Error('Invalid UVTT file: missing "image" field');
+    throw new Error('Arquivo UVTT inválido: falta o campo "image".');
   }
   if (!Array.isArray(data.line_of_sight)) {
-    throw new Error('Invalid UVTT file: missing "line_of_sight" array');
+    throw new Error('Arquivo UVTT inválido: falta a lista "line_of_sight".');
   }
 
   // ── Refuse what cannot become a map, before building anything ──────────────
@@ -384,17 +384,17 @@ export function parseUVTT(
   const wallTotal = lineWallTotal + doorTotal + (options.includeObjectWalls ? objectWallTotal : 0);
   if (wallTotal > MAX_WALL_SEGMENTS) {
     throw new Error(
-      `This file has ${wallTotal} wall segments, more than a map can hold (${MAX_WALL_SEGMENTS}). ` +
+      `Este arquivo tem ${wallTotal} segmentos de parede, mais do que um mapa comporta (${MAX_WALL_SEGMENTS}). ` +
         (options.includeObjectWalls && objectWallTotal > 0 && lineWallTotal + doorTotal <= MAX_WALL_SEGMENTS
-          ? 'Importing without its furniture walls may bring it under the limit.'
-          : 'Split it into smaller maps in the tool that made it.')
+          ? 'Importar sem as paredes dos móveis pode deixá-lo dentro do limite.'
+          : 'Divida-o em mapas menores na ferramenta que o criou.')
     );
   }
   const lightTotal = Array.isArray(data.lights) ? data.lights.length : 0;
   if (lightTotal > MAX_LIGHT_SOURCES) {
     throw new Error(
-      `This file has ${lightTotal} lights, more than a map can hold (${MAX_LIGHT_SOURCES} lights). ` +
-        'Split it into smaller maps in the tool that made it.'
+      `Este arquivo tem ${lightTotal} luzes, mais do que um mapa comporta (${MAX_LIGHT_SOURCES} luzes). ` +
+        'Divida-o em mapas menores na ferramenta que o criou.'
     );
   }
 
@@ -447,7 +447,7 @@ export function parseUVTT(
       while (digits > 0 && imageBase64.charCodeAt(digits - 1) === 61) digits--;
       if (Math.floor((digits * 3) / 4) > options.maxImageBytes) {
         const limitMB = Math.round(options.maxImageBytes / (1024 * 1024));
-        throw new Error(`The picture inside this file is too large. Maps must be smaller than ${limitMB}MB.`);
+        throw new Error(`A imagem dentro deste arquivo é grande demais. O mapa deve ter menos de ${limitMB}MB.`);
       }
     }
     imageBuffer = Buffer.from(imageBase64, 'base64');

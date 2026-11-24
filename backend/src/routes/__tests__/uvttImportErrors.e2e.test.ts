@@ -97,7 +97,7 @@ describe('a refused UVTT upload answers with a reason', () => {
   it('answers 413 for a file over the size limit, and says the limit', async () => {
     const res = await gm.post(url()).attach('file', Buffer.alloc(10 * 1024 * 1024, 0x20), 'big.uvtt');
     expect(res.status).toBe(413);
-    expect(res.body.message).toMatch(/larger than the 9MB.*at most 1MB/);
+    expect(res.body.message).toMatch(/maior que os 9MB.*no máximo 1MB/);
   });
 
   it('answers 400 for a body that is not valid multipart', async () => {
@@ -119,7 +119,7 @@ describe('the name field', () => {
   it('answers 400, not 500, when the name is sent twice', async () => {
     const res = await gm.post(url()).field('name', 'one').field('name', 'two').attach('file', uvttWithImage(PNG), 'a.uvtt');
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/name/i);
+    expect(res.body.message).toMatch(/nome/i);
     expect(await mapCount()).toBe(0);
   });
 
@@ -146,7 +146,7 @@ describe('the picture inside', () => {
   it('is refused over the map limit before it is decoded', async () => {
     const res = await gm.post(url()).attach('file', uvttWithImage(Buffer.concat([PNG, Buffer.alloc(2 * 1024 * 1024)])), 'big.uvtt');
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/too large/i);
+    expect(res.body.message).toMatch(/grande demais/i);
   });
 });
 

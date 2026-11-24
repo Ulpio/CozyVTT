@@ -65,7 +65,7 @@ it('PUT /walls refuses a list that repeats an id, and stores nothing', async () 
   const res = await gm.put(`${base(mapId)}/walls`).send({ segments: [wall(id), wall(id, 400)] });
 
   expect(res.status).toBe(400);
-  expect(res.body.message).toMatch(/same id/);
+  expect(res.body.message).toMatch(/mesmo id/);
   expect((await stored(mapId)).wallSegments).toEqual([]);
 });
 
@@ -86,7 +86,7 @@ it('PUT /lights refuses a list that repeats an id', async () => {
   const res = await gm.put(`${base(mapId)}/lights`).send({ lights: [light(id), light(id, 700)] });
 
   expect(res.status).toBe(400);
-  expect(res.body.message).toMatch(/same id/);
+  expect(res.body.message).toMatch(/mesmo id/);
 });
 
 it('POST /lights refuses an id already on the map', async () => {

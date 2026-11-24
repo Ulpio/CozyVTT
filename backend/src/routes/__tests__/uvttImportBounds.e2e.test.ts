@@ -201,7 +201,7 @@ describe('a UVTT with more walls than a map can hold', () => {
     const long: Point[] = Array.from({ length: 5002 }, (_, i) => ({ x: i % 10, y: 1 }));
     const res = await importUvtt(uvttFile([long]), 'huge', { confirm: true });
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/more than a map can hold/i);
+    expect(res.body.message).toMatch(/mais do que um mapa comporta/i);
     expect(await mapCount()).toBe(0);
   });
 });

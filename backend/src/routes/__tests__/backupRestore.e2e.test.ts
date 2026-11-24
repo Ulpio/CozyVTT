@@ -847,14 +847,14 @@ describe('while a restore runs', () => {
         const late = ioc(ws.url, { extraHeaders: { cookie }, transports: ['websocket'], reconnection: false });
         try {
           const told = await waitForEvent<{ message: string }>(late, 'error');
-          expect(told.message).toMatch(/being restored/);
+          expect(told.message).toMatch(/sendo restaurada/);
         } finally {
           late.close();
         }
 
         const api = await user.get('/api/auth/me');
         expect(api.status).toBe(503);
-        expect(api.body.message).toMatch(/being restored/);
+        expect(api.body.message).toMatch(/sendo restaurada/);
         // A second restore asked for now is refused the same way.
         expect((await restore(admin, await backupZip({ 'database.sql': DUMP_FROM_NEWER_CLIENT }))).status).toBe(503);
       } finally {

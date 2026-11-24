@@ -166,7 +166,7 @@ describe('POST /api/campaigns/:campaignId/maps/import-uvtt from several GMs at o
     gate.release();
 
     expect(second.status).toBe(503);
-    expect(second.body.message).toBe('Another map import is running on the server. Try again in a minute.');
+    expect(second.body.message).toBe('Outra importação de mapa está em andamento no servidor. Tente de novo em um minuto.');
     expect(second.headers['retry-after']).toBe('60');
     expect((await first).status).toBe(201);
     expect(await prisma.map.count({ where: { campaignId: waiting.campaignId } })).toBe(0);
@@ -179,7 +179,7 @@ describe('POST /api/campaigns/:campaignId/maps/import-uvtt from several GMs at o
 
     const first = await importUvtt(hung);
     expect(first.status).toBe(503);
-    expect(first.body.message).toMatch(/^This map import took longer than \d+ seconds and was stopped, so nothing was saved\./);
+    expect(first.body.message).toMatch(/^A importação deste mapa levou mais de \d+ segundos e foi interrompida, então nada foi salvo./);
 
     // The first is still stuck in its thumbnail, and the queue has moved on.
     thumbs.hold = null;

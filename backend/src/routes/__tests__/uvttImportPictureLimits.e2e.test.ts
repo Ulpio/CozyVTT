@@ -101,7 +101,7 @@ describe('a UVTT whose picture is over the limits', () => {
     const files = filesOnDisk();
     const res = await importUvtt(uvttWithImage(await make()), 'too-large');
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Validation Error', message: `The picture inside this file cannot be used as a map. ${problem}` });
+    expect(res.body).toEqual({ error: 'Validation Error', message: `A imagem dentro deste arquivo não pode ser usada como mapa. ${problem}` });
     expect(await prisma.map.count({ where: { campaignId } })).toBe(0);
     expect(await prisma.asset.count({ where: { uploadedById: gmId } })).toBe(0);
     expect(filesOnDisk()).toEqual(files);

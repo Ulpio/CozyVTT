@@ -172,7 +172,7 @@ describe('a UVTT whose picture is too big for a map', () => {
     const huge = Buffer.concat([PNG, Buffer.alloc(51 * 1024 * 1024)]);
     const res = await importUvtt(uvttWithImage(huge), 'huge');
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/too large|size/i);
+    expect(res.body.message).toMatch(/grande demais/i);
     expect(await mapCount()).toBe(0);
   }, 30000);
 });

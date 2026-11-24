@@ -62,7 +62,7 @@ it('refuses and ends a sign-in older than the remember-me window, however recent
   expect(answer.nexted).toBe(false);
   expect(answer.status).toBe(401);
   expect(answer.destroyed).toBe(true);
-  expect(answer.body?.message).toBe('Your sign-in has reached its 30-day limit. Sign in again.');
+  expect(answer.body?.message).toBe('Seu login chegou ao limite de 30 dias. Entre de novo.');
 });
 
 // The pages carry the sentence to the sign-in page, so the person knows why
@@ -72,7 +72,7 @@ it('marks that refusal with a code the pages can tell apart', () => {
   expect(answer.body).toEqual({
     error: 'Unauthorized',
     code: 'SIGN_IN_EXPIRED',
-    message: 'Your sign-in has reached its 30-day limit. Sign in again.',
+    message: 'Seu login chegou ao limite de 30 dias. Entre de novo.',
   });
 });
 
@@ -81,7 +81,7 @@ it('marks that refusal with a code the pages can tell apart', () => {
 it('ends the live connections of the sign-in it refuses, and only those', () => {
   jest.mocked(endLiveSockets).mockClear();
   run(requireAuth, { userId: 'u1', signedInAt: Date.now() - rememberMeMaxAge - 60_000 });
-  expect(endLiveSockets).toHaveBeenCalledWith('u1', 'Your sign-in has reached its 30-day limit. Sign in again.', { onlySessionId: 'sid-1' });
+  expect(endLiveSockets).toHaveBeenCalledWith('u1', 'Seu login chegou ao limite de 30 dias. Entre de novo.', { onlySessionId: 'sid-1' });
 });
 
 it('ends no connection for a sign-in within the window', () => {
