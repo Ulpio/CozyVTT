@@ -6,6 +6,7 @@
 // asks through this one dialog so the wording cannot drift.
 // ============================================
 
+import { useTranslation } from 'react-i18next';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 interface RemoveTokenDialogProps {
@@ -17,12 +18,14 @@ interface RemoveTokenDialogProps {
 }
 
 export default function RemoveTokenDialog({ token, isLoading = false, onConfirm, onCancel }: RemoveTokenDialogProps) {
+  const { t } = useTranslation();
   return (
     <ConfirmDialog
       isOpen={token !== null}
-      title="Remove token"
-      message={`Remove "${token?.name ?? ''}" from this map? The token is deleted along with its hit points, conditions and notes, and this cannot be undone.`}
-      confirmLabel="Remove"
+      title={t('removeToken.title')}
+      message={t('removeToken.message', { name: token?.name ?? '' })}
+      confirmLabel={t('removeToken.confirm')}
+      cancelLabel={t('removeToken.cancel')}
       variant="danger"
       isLoading={isLoading}
       onConfirm={onConfirm}

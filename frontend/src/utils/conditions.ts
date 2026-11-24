@@ -19,6 +19,8 @@
 
 import { GameSystem } from '@/types/gameSystem';
 import type { HorrorD100SheetConditions } from '@/types/game-systems/horrorD100Sheet';
+import i18n from '@/i18n';
+import { sheetWord } from '@/components/character-sheets/fifth-edition/sheetWords';
 
 /**
  * The fifteen conditions of 5E, in the order the rules list them.
@@ -182,6 +184,40 @@ export function conditionAbbreviation(condition: string): string {
   const known = CONDITION_ABBREVIATIONS.get(conditionKey(condition));
   if (known) return known;
   return condition.trim().slice(0, 2).toUpperCase();
+}
+
+/**
+ * The locale key (under `tokenConditions`) of each listed condition and effect
+ * the 5E sheet's own table (`sheet5e.conditionNames`) does not name, by
+ * conditionKey. A name in neither is shown as it was typed.
+ */
+const OTHER_NAME_KEYS: ReadonlyMap<string, string> = new Map([
+  ['major wound', 'majorWound'],
+  ['dying', 'dying'],
+  ['temporary insanity', 'temporaryInsanity'],
+  ['baned', 'baned'],
+  ['blessed', 'blessed'],
+  ['concentrating', 'concentrating'],
+  ['dodging', 'dodging'],
+  ['hasted', 'hasted'],
+  ["hunter's mark", 'huntersMark'],
+  ['raging', 'raging'],
+  ['slowed', 'slowed'],
+]);
+
+/**
+ * A condition or effect as the app's language names it. The stored name stays
+ * the English one (the server, the badge table and the token editor compare
+ * it); this is for showing it. The fifteen 5E conditions are named by the
+ * character sheet's table; the Horror d100 conditions and the effects by
+ * `tokenConditions`; a name in neither, homebrew, is shown as typed.
+ */
+export function conditionLabel(name: string): string {
+  // A stored name is English already, and is shown as stored.
+  if (i18n.language.startsWith('en')) return name;
+  const key = OTHER_NAME_KEYS.get(conditionKey(name));
+  if (key) return i18n.t(`tokenConditions.${key}` as 'tokenConditions.dying');
+  return sheetWord(i18n, 'conditionNames', name);
 }
 
 /**

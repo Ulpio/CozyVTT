@@ -13,10 +13,12 @@
 
 import type { ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { Position, Token } from '@/types';
 import type { CharacterHpInfo } from '@/utils/characterHp';
 import { useTokenInitiative } from '@/stores/gameStore';
 import { tokenDisplayName } from '@/utils/tokenDisplayName';
+import { conditionLabel } from '@/utils/conditions';
 import { placeholderColor } from './map/layers/drawTokens';
 
 interface TokenDetailsCardProps {
@@ -70,6 +72,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export default function TokenDetailsCard({ token, square, hp, imageSrc, mayMove, onClose, docked = false, above }: TokenDetailsCardProps) {
+  const { t } = useTranslation();
   // `undefined` means "not in the turn order": the row is left out rather
   // than shown blank. `null` means it is, but nothing has rolled.
   const initiative = useTokenInitiative(token.id);
@@ -113,7 +116,7 @@ export default function TokenDetailsCard({ token, square, hp, imageSrc, mayMove,
 
             <div className="space-y-1">
               {hp && (
-                <Row label="HP">
+                <Row label={t('tokenDetails.hp')}>
                   <span className="font-mono">
                     {hp.current}/{hp.max}
                     {hp.temp > 0 && <span className="text-info-ink"> +{hp.temp}</span>}
@@ -122,14 +125,14 @@ export default function TokenDetailsCard({ token, square, hp, imageSrc, mayMove,
               )}
 
               {conditions.length > 0 && (
-                <Row label="Conditions">
+                <Row label={t('tokenDetails.conditions')}>
                   <span className="flex flex-wrap gap-1">
                     {conditions.map((condition) => (
                       <span
                         key={condition}
                         className="px-1.5 py-0.5 rounded-cozy bg-warm-amber/20 border border-warm-amber/40 text-[11px] font-medium text-brand-ink capitalize"
                       >
-                        {condition}
+                        {conditionLabel(condition)}
                       </span>
                     ))}
                   </span>
@@ -137,7 +140,7 @@ export default function TokenDetailsCard({ token, square, hp, imageSrc, mayMove,
               )}
 
               {inTurnOrder && (
-                <Row label="Initiative">
+                <Row label={t('tokenDetails.initiative')}>
                   <span className="font-mono">
                     {initiative === null ? '—' : initiative}
                   </span>
@@ -147,7 +150,7 @@ export default function TokenDetailsCard({ token, square, hp, imageSrc, mayMove,
 
             {!mayMove && (
               <div className="mt-1.5 text-[11px] text-warm-gray italic">
-                Not yours to move
+                {t('tokenDetails.notYours')}
               </div>
             )}
           </div>
@@ -156,8 +159,8 @@ export default function TokenDetailsCard({ token, square, hp, imageSrc, mayMove,
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close details"
-              title="Close details"
+              aria-label={t('tokenDetails.closeDetails')}
+              title={t('tokenDetails.closeDetails')}
               className="pointer-events-auto -mr-2 -mt-1 p-2 shrink-0 touch-target inline-flex items-center justify-center rounded-cozy text-stone-gray hover:text-brand-ink hover:bg-moss-green/10 transition-colors"
             >
               <X className="w-4 h-4" aria-hidden="true" />
