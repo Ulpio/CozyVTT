@@ -8,6 +8,7 @@ import { api } from '@/services/api';
 import mapService from '@/services/map.service';
 import type { CampaignMap, Token } from '@/types';
 import { apiErrorMessage } from '@/utils/errors';
+import i18n from '@/i18n';
 
 /**
  * The one way this page moves the table to a map: the Map Library's Set
@@ -48,7 +49,7 @@ export function useTableSwitch() {
       showTableMap(fullMap);
       setTableTokens([]);
     } catch (err: unknown) {
-      setError(apiErrorMessage(err) || 'Failed to switch map. Please try again.');
+      setError(apiErrorMessage(err) || i18n.t('session.preparing.switchFailed'));
     } finally {
       setSwitching(false);
     }
@@ -77,7 +78,7 @@ export function useTableSwitch() {
       // switching anyway could leave the party behind unasked.
       setSwitching(false);
       setTableTokens([]);
-      setError(apiErrorMessage(err) || 'Could not read the tokens on this map, so the switch was stopped. Try again.');
+      setError(apiErrorMessage(err) || i18n.t('session.preparing.tokensFailed'));
     }
   }, [campaignId, campaign?.currentMapId, tableMapId, perform]);
 

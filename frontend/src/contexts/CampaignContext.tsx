@@ -73,7 +73,7 @@ export interface PreparingEnded {
 /** Back to the table gave up: the table moved each time its map was read. */
 export class TableKeptMovingError extends Error {
   constructor() {
-    super("The table moved to another map while its map was loading. Press Back to the table again.");
+    super(i18n.t('session.preparing.keptMoving'));
     this.name = 'TableKeptMovingError';
   }
 }

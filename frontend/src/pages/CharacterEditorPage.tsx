@@ -28,7 +28,7 @@ import { apiErrorMessage, apiValidationIssues, errorMessage, errorSummary } from
 import { refusedSaveMessage } from '@/utils/sheetSaveRefusal';
 import { isStaleCharacterSave } from '@/utils/staleCharacter';
 import { useStaleSaveReapply } from '@/components/character/StaleSaveDialog';
-import { isSignedOutSave, SIGNED_OUT_NOT_SAVED } from '@/utils/signedOut';
+import { isSignedOutSave, signedOutNotSaved } from '@/utils/signedOut';
 import type { CharacterData } from '@/types';
 
 export default function CharacterEditorPage() {
@@ -213,7 +213,7 @@ export default function CharacterEditorPage() {
         // the notice says how to save them.
         if (isSignedOutSave(err)) {
           reportSignedOut();
-          showToast(SIGNED_OUT_NOT_SAVED, 'error');
+          showToast(signedOutNotSaved(), 'error');
           throw err;
         }
 

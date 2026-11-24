@@ -23,6 +23,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { Eye, Info } from 'lucide-react';
 import { useCampaign, TableKeptMovingError, type PreparingEnded } from '@/contexts/CampaignContext';
 import { useCompactLayout } from '@/contexts/LayoutContext';
@@ -39,8 +40,8 @@ import TokenTransferConfirmation from './TokenTransferConfirmation';
 /** Why preparing ended, as the GM is told. */
 export function preparingEndedMessage(ended: PreparingEnded): string {
   return ended.reason === 'deleted'
-    ? `${ended.mapName} was deleted, so you are back on the table's map.`
-    : "You are no longer the GM, so you are back on the table's map.";
+    ? i18n.t('session.preparing.endedDeleted', { name: ended.mapName })
+    : i18n.t('session.preparing.endedNotGm');
 }
 
 /**
@@ -74,7 +75,7 @@ export default function PreparingBanner() {
       await backToTable();
     } catch (err: unknown) {
       showToast(
-        err instanceof TableKeptMovingError ? err.message : apiErrorMessage(err) || "Could not load the table's map. Try again.",
+        err instanceof TableKeptMovingError ? err.message : apiErrorMessage(err) || i18n.t('session.preparing.loadFailed'),
         'error',
       );
     } finally {
@@ -103,14 +104,14 @@ export default function PreparingBanner() {
   // page going back to the table.
   const viewedName = viewedMap?.name ?? '';
   const tableName = currentMap?.name ?? null;
-  const tableWords = tableName ? `The table is on ${tableName}.` : 'The table is on no map.';
+  const tableWords = tableName ? i18n.t('session.preparing.tableOnName', { name: tableName }) : i18n.t('session.preparing.tableOnNone');
   const [announcement, setAnnouncement] = useState('');
   const wasPreparing = useRef(false);
   useEffect(() => {
     if (isPreparing) {
-      setAnnouncement(`Preparing ${viewedName}. ${tableWords}`);
+      setAnnouncement(i18n.t('session.preparing.announce', { name: viewedName, table: tableWords }));
     } else if (wasPreparing.current) {
-      setAnnouncement(tableName ? `Back on the table's map, ${tableName}.` : "Back on the table's map.");
+      setAnnouncement(tableName ? i18n.t('session.preparing.backOnNamed', { name: tableName }) : i18n.t('session.preparing.backOn'));
       // The banner held the keyboard, and has gone: it goes to the map.
       const focused = document.activeElement;
       if (!focused || focused === document.body || !focused.isConnected) focusTheMap();

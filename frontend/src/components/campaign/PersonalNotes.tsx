@@ -369,7 +369,7 @@ export default function PersonalNotes() {
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder={'# Heading\n\n- a list\n- of things\n\n[a link](https://example.com)'}
+                placeholder={t('personalNotes.contentPlaceholder')}
                 aria-label={t('personalNotes.contentLabel')}
                 // Matches the server's cap, so the editor cannot get into a
                 // state where every autosave is refused.

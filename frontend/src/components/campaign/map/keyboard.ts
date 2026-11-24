@@ -193,6 +193,8 @@ export const MAP_SHORTCUTS: readonly MapShortcut[] = [
  * What a screen reader hears on reaching the map, after its name: the token
  * keys in words, which read better than the symbols. A backend check holds
  * it to MAP_SHORTCUTS, so a token key added there must be named here too.
+ * The page says it in the app's language (mapView.keysHint, which spells the
+ * same keys); this English text is what that check reads.
  */
 export const MAP_KEYS_HINT = 'Click a token, or press full stop or comma, to select one. Arrow keys move it, five squares with Shift, square brackets turn it, and Enter opens its menu. Escape lets go. Question mark lists every key. Shift+Tab leaves the map.';
 

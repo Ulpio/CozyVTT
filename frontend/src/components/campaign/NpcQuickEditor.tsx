@@ -11,6 +11,8 @@
 import { DISPOSITION_PICKED, HP_HUES, TEMP_HP_FILL, hpTier, hueColour } from '@/utils/tokenColours';
 import { applyHitPointChange } from '@/utils/rules/hitPoints';
 import { useState, useEffect, useCallback, useRef, useId } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import {
   X,
   Eye,
@@ -26,7 +28,7 @@ import {
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useToast } from '@/contexts/ToastContext';
 import { apiErrorMessage, errorSummary } from '@/utils/errors';
-import { conditionKey, conditionsOffered, effectsOffered } from '@/utils/conditions';
+import { conditionKey, conditionLabel, conditionsOffered, effectsOffered } from '@/utils/conditions';
 import { TOKEN_LIMITS } from '@/constants/tokenLimits';
 import { playedGameSystem } from '@/constants/game-systems';
 import { tokenControllerStanding } from '@/utils/tokenCopy';
@@ -94,9 +96,6 @@ interface NpcQuickEditorProps {
 // Helpers
 // ============================================
 
-/** What the editor says while a token carries as many conditions as it may. */
-const CONDITIONS_FULL_NOTE = `A token carries at most ${TOKEN_LIMITS.maxConditions} conditions and effects. Take one off to add another.`;
-
 /** A condition or an effect the game system lists, lit while the token has it. */
 function OfferedCondition({ name, active, onToggle, full }: {
   name: string;
@@ -118,7 +117,7 @@ function OfferedCondition({ name, active, onToggle, full }: {
           : 'border-moss-green/20 hover:border-moss-green/40 text-stone-gray'
       }`}
     >
-      {name}
+      {conditionLabel(name)}
     </button>
   );
 }
@@ -140,6 +139,7 @@ function getEffectiveType(token: Token): TokenType {
 export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTokenUpdate }: NpcQuickEditorProps) {
   const { campaign, viewedMap } = useCampaign();
   const { showToast } = useToast();
+  const { t } = useTranslation();
 
   // The token as the table holds it (the game store), which a change made
   // anywhere else reaches: another tab, a script, a player on a token they
@@ -225,7 +225,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
       // an earlier release can hold more than the server now accepts (notes
       // past 5,000 characters, a name past 200), and the reason names the field.
       console.error('NpcQuickEditor: failed to update token', errorSummary(err));
-      showToast(apiErrorMessage(err) || 'Could not save that change to the token', 'error');
+      showToast(apiErrorMessage(err) || i18n.t('npcEditor.saveChangeFailed'), 'error');
       return false;
     }
   }, [campaignId, mapId, token.id, onTokenUpdate, showToast]);
@@ -352,7 +352,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
   }, []);
 
   const handlePictureLoadError = useCallback((err: unknown) => {
-    showToast(apiErrorMessage(err) || 'Could not load your token pictures', 'error');
+    showToast(apiErrorMessage(err) || i18n.t('npcEditor.loadPicturesFailed'), 'error');
   }, [showToast]);
 
   const handleSelectImage = useCallback(async (assetId: string) => {
@@ -385,7 +385,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
       await saveUpdate({ imageUrl: asset.id });
       setShowImagePicker(false);
     } catch (err) {
-      showToast(apiErrorMessage(err) || 'Could not upload that picture', 'error');
+      showToast(apiErrorMessage(err) || i18n.t('npcEditor.uploadFailed'), 'error');
     } finally {
       setIsUploadingImage(false);
     }
@@ -404,7 +404,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status !== 403) {
-        showToast(apiErrorMessage(err) || 'Could not save the picture to the creature', 'error');
+        showToast(apiErrorMessage(err) || i18n.t('npcEditor.saveToCreatureFailed'), 'error');
         setIsSavingToCreature(false);
         return;
       }
@@ -424,9 +424,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
           (c) => c.name.startsWith(original.name) && c.source === 'custom'
         );
         if (existingDupe) {
-          setDuplicateWarning(
-            `A custom copy of "${original.name}" already exists in this campaign.`
-          );
+          setDuplicateWarning(i18n.t('npcEditor.duplicateExists', { name: original.name }));
         }
       } catch {
         setDuplicateName(current.name);
@@ -456,7 +454,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
       setDuplicateWarning(null);
       setShowImagePicker(false);
     } catch (err) {
-      showToast(apiErrorMessage(err) || 'Could not make a custom copy of the creature', 'error');
+      showToast(apiErrorMessage(err) || i18n.t('npcEditor.copyFailed'), 'error');
     } finally {
       setIsSavingToCreature(false);
     }
@@ -561,7 +559,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
       await api.deleteToken(campaignId, mapId, token.id);
       onClose();
     } catch (err) {
-      showToast(apiErrorMessage(err) || 'Failed to remove the token', 'error');
+      showToast(apiErrorMessage(err) || i18n.t('tokenRoster.removeFailed'), 'error');
       setIsRemoving(false);
     }
   }, [campaignId, mapId, token.id, onClose, isRemoving, showToast]);
@@ -612,7 +610,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
         <button
           onClick={handleOpenImagePicker}
           className="relative group shrink-0"
-          title={current.imageUrl ? 'Change token image' : 'Add a token image'}
+          title={current.imageUrl ? t('npcEditor.changeImage') : t('npcEditor.addImage')}
         >
           {current.imageUrl ? (
             <img
@@ -641,7 +639,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
         <input
           type="text"
           value={name}
-          aria-label="Token name"
+          aria-label={t('npcEditor.tokenName')}
           onChange={(e) => setNameDraft(e.target.value)}
           onBlur={handleNameBlur}
           // min-w-0 is load-bearing: a flex child defaults to min-width:auto,
@@ -656,11 +654,11 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
             ? 'bg-stone-gray/10 text-stone-gray'
             : 'bg-moss-green/10 text-brand-ink'
         }`}>
-          {tokenType === TokenType.OBJECT ? 'Object' : tokenType === TokenType.PLAYER ? 'Player' : 'NPC'}
+          {tokenType === TokenType.OBJECT ? t('tokenManager.types.object') : tokenType === TokenType.PLAYER ? t('tokenManager.types.player') : t('npcEditor.npc')}
         </span>
 
         {/* Close */}
-        <SlideOverClose className="btn-secondary p-1.5 shrink-0" iconClassName="w-4 h-4" title="Close" />
+        <SlideOverClose className="btn-secondary p-1.5 shrink-0" iconClassName="w-4 h-4" title={t('tokenManager.close')} />
       </div>
 
       {/* ── Body ── */}
@@ -671,7 +669,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
           <section className="glass-panel p-3">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide">
-                Token Image
+                {t('npcEditor.tokenImage')}
               </h3>
               <div className="flex gap-1">
                 <button
@@ -684,14 +682,14 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                   ) : (
                     <Upload className="w-3 h-3" />
                   )}
-                  {isUploadingImage ? 'Uploading...' : 'Upload'}
+                  {isUploadingImage ? t('npcEditor.uploading') : t('tokenManager.upload')}
                 </button>
                 <span className="text-ink-muted">·</span>
                 <button
                   onClick={() => setShowImagePicker(false)}
                   className="text-[10px] text-stone-gray hover:text-stone-gray/80 transition-colors"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>
@@ -700,8 +698,8 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
               type="search"
               value={pictureSearch}
               onChange={(e) => setPictureSearch(e.target.value)}
-              aria-label="Search token pictures"
-              placeholder="Search by name or tag"
+              aria-label={t('tokenManager.searchLabel')}
+              placeholder={t('tokenManager.searchPlaceholder')}
               className="input-cozy w-full text-xs mb-2"
             />
             <AssetGrid
@@ -719,7 +717,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                 <button
                   type="button"
                   onClick={handleClearImage}
-                  title="Use colored-letter placeholder"
+                  title={t('tokenManager.placeholderTitle')}
                   className={`relative rounded-cozy overflow-hidden border-2 aspect-square transition-all flex items-center justify-center ${
                     !current.imageUrl
                       ? 'border-moss-green ring-1 ring-moss-green/30 bg-ink-muted/25'
@@ -727,7 +725,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                   }`}
                 >
                   <span className="text-sm font-bold text-ink-secondary">?</span>
-                  <span className="absolute bottom-0 text-[7px] text-ink-muted">None</span>
+                  <span className="absolute bottom-0 text-[7px] text-ink-muted">{t('tokenManager.none')}</span>
                 </button>
               }
             />
@@ -738,7 +736,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                 {showDuplicateNamePrompt ? (
                   <div className="rounded-cozy border border-moss-green/30 bg-parchment/40 p-2.5 space-y-2">
                     <p className="text-[11px] text-stone-gray">
-                      This is an SRD creature. A custom copy will be created in your campaign library.
+                      {t('npcEditor.srdCopy')}
                     </p>
                     {duplicateWarning && (
                       <p className="text-[11px] text-warning-ink bg-warning/10 rounded-sm px-2 py-1">
@@ -747,13 +745,13 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                     )}
                     <div>
                       <label className="text-[10px] text-stone-gray block mb-0.5">
-                        Name for the custom creature:
+                        {t('npcEditor.customName')}
                       </label>
                       <input
                         type="text"
                         value={duplicateName}
                         onChange={(e) => setDuplicateName(e.target.value)}
-                        placeholder="e.g. Goblin (Forest Variant)"
+                        placeholder={t('npcEditor.customNamePlaceholder')}
                         className="input-cozy w-full text-xs"
                         autoFocus
                       />
@@ -766,17 +764,17 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                       >
                         {isSavingToCreature ? (
                           <span className="flex items-center justify-center gap-1">
-                            <Loader2 className="w-3 h-3 animate-spin" /> Saving...
+                            <Loader2 className="w-3 h-3 animate-spin" /> {t('npcEditor.saving')}
                           </span>
                         ) : (
-                          'Create & Save Image'
+                          t('npcEditor.createSave')
                         )}
                       </button>
                       <button
                         onClick={() => { setShowDuplicateNamePrompt(false); setDuplicateWarning(null); }}
                         className="px-3 py-1.5 text-[10px] rounded-cozy border border-moss-green/20 hover:bg-moss-green/5 text-stone-gray transition-colors"
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </button>
                     </div>
                   </div>
@@ -791,7 +789,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                     ) : (
                       <Save className="w-3 h-3" />
                     )}
-                    {isSavingToCreature ? 'Saving...' : 'Save image to creature template'}
+                    {isSavingToCreature ? t('npcEditor.saving') : t('npcEditor.saveToCreature')}
                   </button>
                 )}
               </div>
@@ -803,7 +801,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
         {isNpc && (
           <section>
             <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide mb-2">
-              Hit Points
+              {t('npcEditor.hitPoints')}
             </h3>
             {hp && hp.max > 0 ? (
               <>
@@ -827,7 +825,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                   <div className="text-center text-sm font-semibold mt-1 text-ink">
                     {hp.current} / {hp.max}
                     {hp.temp > 0 && (
-                      <span className="text-info-ink ml-1 text-xs">+{hp.temp} temp</span>
+                      <span className="text-info-ink ml-1 text-xs">{t('npcEditor.tempBadge', { count: hp.temp })}</span>
                     )}
                   </div>
                 </div>
@@ -856,7 +854,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
 
                 {/* Temp HP */}
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs text-stone-gray w-16 shrink-0">Temp HP:</span>
+                  <span className="text-xs text-stone-gray w-16 shrink-0">{t('npcEditor.tempHp')}</span>
                   <input
                     type="number"
                     min={0}
@@ -874,12 +872,12 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                     onChange={toggleShowHpBar}
                     className="rounded-sm"
                   />
-                  <span className="text-xs text-stone-gray">Show HP bar to players</span>
+                  <span className="text-xs text-stone-gray">{t('tokenManager.showHpBar')}</span>
                 </label>
               </>
             ) : (
               <div className="glass-panel p-3">
-                <p className="text-sm text-stone-gray/70 italic mb-2">No HP tracking</p>
+                <p className="text-sm text-stone-gray/70 italic mb-2">{t('npcEditor.noHp')}</p>
                 {enableHpPrompt ? (
                   <div className="flex gap-2 items-center">
                     <input
@@ -887,20 +885,20 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                       min={1}
                       value={newHpMax}
                       onChange={(e) => setNewHpMax(e.target.value)}
-                      placeholder="Max HP"
+                      placeholder={t('npcEditor.maxHp')}
                       className="input-cozy input-cozy-number text-sm w-24"
                     />
                     <Button
                       onClick={enableHpTracking}
                       className="text-xs py-1 px-3"
                     >
-                      Enable
+                      {t('npcEditor.enable')}
                     </Button>
                     <Button
                       onClick={() => { setEnableHpPrompt(false); setNewHpMax(''); }}
                       variant="secondary" className="text-xs py-1 px-2"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </Button>
                   </div>
                 ) : (
@@ -908,7 +906,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                     onClick={() => setEnableHpPrompt(true)}
                     variant="secondary" className="text-xs"
                   >
-                    Enable HP tracking
+                    {t('npcEditor.enableHp')}
                   </Button>
                 )}
               </div>
@@ -921,7 +919,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
           <section>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide">
-                Stat Block
+                {t('npcEditor.statBlock')}
               </h3>
               {statBlock && (
                 <div className="flex gap-1">
@@ -932,14 +930,14 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                     }}
                     className="text-[10px] text-brand-ink hover:text-brand-ink/80 transition-colors"
                   >
-                    {editingStatBlock ? 'View' : 'Edit'}
+                    {editingStatBlock ? t('npcEditor.view') : t('npcEditor.edit')}
                   </button>
                   <span className="text-ink-muted">·</span>
                   <button
                     onClick={handleRemoveStatBlock}
                     className="text-[10px] text-danger-ink hover:text-danger-ink transition-colors"
                   >
-                    Remove
+                    {t('removeToken.confirm')}
                   </button>
                 </div>
               )}
@@ -977,23 +975,23 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                       onClick={handleCreateStatBlock}
                       className="text-xs py-1 px-3"
                     >
-                      Create Blank
+                      {t('npcEditor.createBlank')}
                     </Button>
                     <Button
                       onClick={() => setShowCreateStatBlock(false)}
                       variant="secondary" className="text-xs py-1 px-2"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </Button>
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm text-stone-gray/70 italic mb-2">No stat block</p>
+                    <p className="text-sm text-stone-gray/70 italic mb-2">{t('npcEditor.noStatBlock')}</p>
                     <Button
                       onClick={() => setShowCreateStatBlock(true)}
                       variant="secondary" className="text-xs"
                     >
-                      Add Stat Block
+                      {t('npcEditor.addStatBlock')}
                     </Button>
                   </>
                 )}
@@ -1006,13 +1004,13 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
         {isNpc && (
           <section>
             <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide mb-2">
-              Disposition
+              {t('tokenManager.disposition')}
             </h3>
             <div className="flex gap-2">
               {([
-                { d: TokenDisposition.FRIENDLY, label: 'Friendly', activeClass: DISPOSITION_PICKED.friendly },
-                { d: TokenDisposition.NEUTRAL,  label: 'Neutral',  activeClass: DISPOSITION_PICKED.neutral },
-                { d: TokenDisposition.HOSTILE,  label: 'Hostile',  activeClass: DISPOSITION_PICKED.hostile },
+                { d: TokenDisposition.FRIENDLY, label: t('tokenManager.dispositions.friendly'), activeClass: DISPOSITION_PICKED.friendly },
+                { d: TokenDisposition.NEUTRAL,  label: t('tokenManager.dispositions.neutral'), activeClass: DISPOSITION_PICKED.neutral },
+                { d: TokenDisposition.HOSTILE,  label: t('tokenManager.dispositions.hostile'), activeClass: DISPOSITION_PICKED.hostile },
               ] as const).map(({ d, label, activeClass }) => (
                 <button
                   key={d}
@@ -1034,14 +1032,14 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
         {/* ── Initiative ── */}
         <section>
           <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide mb-2">
-            Initiative <span className="font-normal normal-case opacity-60">(optional)</span>
+            {t('tokenManager.initiative')} <span className="font-normal normal-case opacity-60">{t('tokenManager.optional')}</span>
           </h3>
           <input
             type="number"
             value={initiative}
             onChange={(e) => setInitiativeDraft(e.target.value)}
             onBlur={handleInitiativeBlur}
-            placeholder="e.g. 14"
+            placeholder={t('tokenManager.initiativePlaceholder')}
             className="input-cozy input-cozy-number w-full text-sm"
           />
         </section>
@@ -1049,7 +1047,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
         {/* ── Darkvision (objects do not see) ── */}
         {tokenType !== TokenType.OBJECT && (
           <section>
-            <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide mb-2">Sight</h3>
+            <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide mb-2">{t('npcEditor.sight')}</h3>
             <TokenVisionField
               value={current.sightRadius ?? 0}
               onCommit={(squares) => { void saveUpdate({ sightRadius: squares }); }}
@@ -1060,7 +1058,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
 
         {/* ── Facing ── */}
         <section>
-          <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide mb-2">Facing</h3>
+          <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide mb-2">{t('npcEditor.facing')}</h3>
           <TokenRotationField
             value={current.rotation}
             onCommit={(degrees) => { void saveUpdate({ rotation: degrees }); }}
@@ -1070,7 +1068,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
         {/* ── Conditions ── */}
         <section>
           <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide mb-2">
-            Conditions
+            {t('tokenDetails.conditions')}
           </h3>
 
           {/* Active conditions */}
@@ -1082,7 +1080,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                   onClick={() => toggleCondition(c)}
                   className="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-warning/15 border border-warning/30 text-warning-ink hover:bg-danger/10 hover:border-danger/30 hover:text-danger-ink transition-colors"
                 >
-                  {c} <X className="w-3 h-3" />
+                  {conditionLabel(c)} <X className="w-3 h-3" />
                 </button>
               ))}
             </div>
@@ -1091,12 +1089,12 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
           {/* Always there, empty until the token is full, so a screen reader
               reads the note out when it appears. */}
           <p id={conditionsFullId} role="status" className={`text-[11px] text-stone-gray italic ${conditionsFull ? 'mb-2' : ''}`}>
-            {conditionsFull ? CONDITIONS_FULL_NOTE : null}
+            {conditionsFull ? t('npcEditor.conditionsFull', { max: TOKEN_LIMITS.maxConditions }) : null}
           </p>
 
           {/* The game system's conditions, then its effects under them */}
           {offeredConditions.length > 0 && (
-            <div role="group" aria-label="Conditions" className="flex flex-wrap gap-1 mb-2">
+            <div role="group" aria-label={t('tokenDetails.conditions')} className="flex flex-wrap gap-1 mb-2">
               {offeredConditions.map((c) => (
                 <OfferedCondition key={c} name={c} active={carries(c)} onToggle={toggleListed} full={conditionsFull ? conditionsFullId : undefined} />
               ))}
@@ -1104,7 +1102,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
           )}
           {offeredEffects.length > 0 && (
             <div role="group" aria-labelledby={effectsHeadingId} className="mb-2">
-              <h4 id={effectsHeadingId} className="text-[11px] font-semibold text-stone-gray mb-1">Effects</h4>
+              <h4 id={effectsHeadingId} className="text-[11px] font-semibold text-stone-gray mb-1">{t('npcEditor.effects')}</h4>
               <div className="flex flex-wrap gap-1">
                 {offeredEffects.map((c) => (
                   <OfferedCondition key={c} name={c} active={carries(c)} onToggle={toggleListed} full={conditionsFull ? conditionsFullId : undefined} />
@@ -1126,14 +1124,14 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
               value={customCondition}
               onChange={(e) => setCustomCondition(e.target.value)}
               maxLength={TOKEN_LIMITS.maxConditionLength}
-              placeholder={offeredConditions.length > 0 ? 'Another condition' : 'A condition, such as Frightened 2'}
-              aria-label="Add a condition"
+              placeholder={offeredConditions.length > 0 ? t('npcEditor.anotherCondition') : t('npcEditor.typeCondition')}
+              aria-label={t('npcEditor.addConditionLabel')}
               className="input-cozy flex-1 min-w-0 text-xs"
             />
             <button
               type="submit"
               disabled={!canAddCondition}
-              aria-label="Add condition"
+              aria-label={t('npcEditor.addCondition')}
               aria-describedby={conditionsFull ? conditionsFullId : undefined}
               className="px-2 py-1 text-xs rounded-cozy border border-moss-green/30 text-brand-ink hover:bg-moss-green/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -1145,13 +1143,13 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
         {/* ── GM Notes ── */}
         <section>
           <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide mb-2">
-            GM Notes <span className="font-normal normal-case opacity-60">(not shown to players)</span>
+            {t('tokenManager.gmNotes')} <span className="font-normal normal-case opacity-60">{t('tokenManager.gmNotesHint')}</span>
           </h3>
           <textarea
             value={notes}
             onChange={(e) => setNotesDraft(e.target.value)}
             onBlur={handleNotesBlur}
-            placeholder="Guard post, special abilities, loot…"
+            placeholder={t('npcEditor.notesPlaceholder')}
             rows={3}
             className="input-cozy w-full text-sm resize-none"
           />
@@ -1160,20 +1158,20 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
         {/* ── Controlled By ── */}
         <section>
           <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide mb-2">
-            Controlled By
+            {t('npcEditor.controlledBy')}
           </h3>
           <select
-            aria-label="Controlled By"
+            aria-label={t('npcEditor.controlledBy')}
             value={controlledBy ?? 'none'}
             onChange={(e) => handleControllerChange(e.target.value === 'none' ? null : e.target.value)}
             className="input-cozy w-full text-sm"
           >
-            <option value="none">Nobody (GM controls)</option>
+            <option value="none">{t('tokenManager.nobody')}</option>
             {/* A controller who is no longer a player is shown, so the
                 box says who the token names, and cannot be picked again. */}
             {controller.kind === 'not a player' && controlledBy && (
               <option value={controlledBy} disabled>
-                {controller.name ?? 'A former member'} (no longer a player)
+                {t('npcEditor.noLongerPlayer', { name: controller.name ?? t('npcEditor.formerMember') })}
               </option>
             )}
             {(campaign?.memberships ?? [])
@@ -1186,12 +1184,12 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
           </select>
           {controller.kind === 'player' && (
             <p className="text-[10px] text-stone-gray/60 mt-1">
-              This player can move the token on the map.
+              {t('npcEditor.controllerCan')}
             </p>
           )}
           {controller.kind === 'not a player' && (
             <p className="text-[10px] text-warning-ink mt-1">
-              {controller.name ?? 'They'} {controller.name ? 'is' : 'are'} no longer a player here, so they cannot move the token. Choose a player, or Nobody.
+              {controller.name ? t('npcEditor.goneNamed', { name: controller.name }) : t('npcEditor.goneUnnamed')}
             </p>
           )}
         </section>
@@ -1199,7 +1197,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
         {/* ── Quick Actions ── */}
         <section>
           <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide mb-2">
-            Quick Actions
+            {t('npcEditor.quickActions')}
           </h3>
 
           <div className="flex gap-2">
@@ -1213,7 +1211,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
               }`}
             >
               {visible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              {visible ? 'Hide from Players' : 'Show to Players'}
+              {visible ? t('tokenMenu.hide') : t('npcEditor.showToPlayers')}
             </button>
 
             <button
@@ -1226,7 +1224,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
               }`}
             >
               <HelpCircle className="w-3.5 h-3.5" />
-              {obscured ? 'Reveal Identity' : 'Obscure Identity'}
+              {obscured ? t('tokenMenu.revealIdentity') : t('tokenMenu.obscureIdentity')}
             </button>
 
             <button
@@ -1235,7 +1233,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
               className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs rounded-cozy border border-danger/30 hover:bg-danger/10 text-danger-ink transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              {isRemoving ? 'Removing…' : 'Remove'}
+              {isRemoving ? t('npcEditor.removing') : t('removeToken.confirm')}
             </button>
           </div>
         </section>

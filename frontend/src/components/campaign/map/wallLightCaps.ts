@@ -6,6 +6,7 @@
 // ============================================
 
 import { MAP_LIMITS } from '@/constants/mapLimits';
+import i18n from '@/i18n';
 
 /**
  * Whether an edit taking a map from `before` walls to `after` goes past the
@@ -28,6 +29,7 @@ export function atLightCap(count: number): boolean {
  * a socket may send drops one unanswered.
  */
 export const WALL_LIGHT_ANSWER_TIMEOUT_MS = 10_000;
+/** The English text, as the tests that wait for it have it; what is sent is mapView.noAnswer, in the app's language. */
 export const NO_ANSWER_MESSAGE = "That change didn't reach the table. Check your connection and try again.";
 
 /**
@@ -39,7 +41,7 @@ export function answeredWithin(ms: number, handle: (reply: unknown) => void): (r
   let done = false;
   const timer = setTimeout(() => {
     done = true;
-    handle({ ok: false, error: NO_ANSWER_MESSAGE });
+    handle({ ok: false, error: i18n.t('mapView.noAnswer') });
   }, ms);
   return (reply) => {
     if (done) return;
@@ -56,7 +58,7 @@ export function answeredWithin(ms: number, handle: (reply: unknown) => void): (r
 export function refusalIn(reply: unknown): string | null {
   if (typeof reply !== 'object' || reply === null) return null;
   if (!('ok' in reply) || reply.ok !== false) return null;
-  return 'error' in reply && typeof reply.error === 'string' ? reply.error : 'The server refused the change.';
+  return 'error' in reply && typeof reply.error === 'string' ? reply.error : i18n.t('mapView.serverRefused');
 }
 
 /**

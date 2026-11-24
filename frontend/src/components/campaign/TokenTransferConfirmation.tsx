@@ -7,6 +7,7 @@
 // ============================================
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ChevronRight, Loader2 } from 'lucide-react';
 import type { CampaignMap, Token } from '@/types';
 import Button from '@/components/ui/Button';
@@ -29,6 +30,7 @@ export default function TokenTransferConfirmation({
   onCancel,
   isSwitching,
 }: TokenTransferProps) {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const toggleToken = (id: string) => {
@@ -49,21 +51,21 @@ export default function TokenTransferConfirmation({
         <AlertTriangle className="w-4 h-4 text-accent-ink shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-medium text-stone-gray">
-            {fromMap ? <>{fromMap.name}, the table&apos;s map,</> : <>The table&apos;s map</>} has {tokens.length} token{tokens.length !== 1 ? 's' : ''}
+            {fromMap ? t('tokenTransfer.hasNamed', { name: fromMap.name, count: tokens.length }) : t('tokenTransfer.has', { count: tokens.length })}
           </p>
           <p className="text-xs text-stone-gray/70">
-            Select which to transfer to <span className="font-medium">{targetMap.name}</span>
+            {t('tokenTransfer.selectWhich')} <span className="font-medium">{targetMap.name}</span>
           </p>
         </div>
       </div>
 
       <div className="flex gap-2 text-xs">
         <button type="button" onClick={selectAll} className="touch-target text-brand-ink hover:underline">
-          Select all
+          {t('tokenTransfer.selectAll')}
         </button>
         <span className="text-stone-gray/40 self-center">·</span>
         <button type="button" onClick={selectNone} className="touch-target text-stone-gray hover:underline">
-          Select none
+          {t('tokenTransfer.selectNone')}
         </button>
       </div>
 
@@ -81,7 +83,7 @@ export default function TokenTransferConfirmation({
             />
             <span className="text-sm text-stone-gray truncate">{token.name}</span>
             {token.layer === 'spirit' && (
-              <span className="text-xs text-spirit-ink bg-spirit-purple/10 px-1 rounded-sm">spirit</span>
+              <span className="text-xs text-spirit-ink bg-spirit-purple/10 px-1 rounded-sm">{t('tokenTransfer.spirit')}</span>
             )}
           </label>
         ))}
@@ -94,7 +96,7 @@ export default function TokenTransferConfirmation({
           disabled={isSwitching}
           variant="secondary" className="touch-target text-xs py-1 px-3"
         >
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button
           type="button"
@@ -105,12 +107,12 @@ export default function TokenTransferConfirmation({
           {isSwitching ? (
             <>
               <Loader2 className="w-3 h-3 animate-spin" />
-              Switching...
+              {t('tokenTransfer.switching')}
             </>
           ) : (
             <>
               <ChevronRight className="w-3 h-3" />
-              Switch Map
+              {t('tokenTransfer.switchMap')}
             </>
           )}
         </Button>

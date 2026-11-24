@@ -108,7 +108,7 @@ import { gridDistanceLabel } from '@/utils/geometry';
 import type { DoorViewer } from './map/doorAccess';
 import { fogCellIndex, gridXToFogCol, gridYToFogRow } from './map/coords';
 import { isTypingInto } from './map/typingTarget';
-import { keyBelongsToMap, mapKeyAction, createRepeatPacer, ARROW_REPEAT_MS, MAP_KEYS_HINT } from './map/keyboard';
+import { keyBelongsToMap, mapKeyAction, createRepeatPacer, ARROW_REPEAT_MS } from './map/keyboard';
 import { selectableTokens, nextSelectedId, squareFromArrow, panToKeepInView, keepInViewMargin, settleArrowEcho, type ArrowKey, type StepDirection } from './map/selection';
 import { tokenCentre } from '@/utils/tokenCentre';
 import { createOwnEdits } from './map/ownEdits';
@@ -4094,7 +4094,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     ? drawnTokens.find((t) => t.id === selectedToken.id) ?? null
     : null;
   const selectionAnnouncement = selectedToken
-    ? `Selected ${tokenDisplayName(selectedToken)}, square ${selectedToken.position.x}, ${selectedToken.position.y}`
+    ? i18n.t('mapView.selected', { name: tokenDisplayName(selectedToken), x: selectedToken.position.x, y: selectedToken.position.y })
     : '';
 
   // The toolbar buttons that say what they show now: the tooltip and the
@@ -4583,7 +4583,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         />
       </div>
 
-      <p id={mapHintId} className="sr-only">{MAP_KEYS_HINT}</p>
+      <p id={mapHintId} className="sr-only">{i18n.t('mapView.keysHint')}</p>
       <p role="status" aria-live="polite" className="sr-only">{selectionAnnouncement}</p>
 
       {/* Vibe hue tint overlay — color tint layered on top of canvas */}

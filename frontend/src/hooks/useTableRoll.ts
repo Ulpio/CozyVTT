@@ -4,6 +4,7 @@
 
 import { useCallback } from 'react';
 import { useToast } from '@/contexts/ToastContext';
+import i18n from '@/i18n';
 import { diceExpressionProblem } from '@/utils/diceExpression';
 import type { DiceRollEvent } from '@/types';
 import type socketClient from '@/services/socket';
@@ -28,8 +29,8 @@ export function useTableRoll(
     const problem = diceExpressionProblem(roll.expression);
     const answer = problem !== null
       ? { ok: false as const, error: problem }
-      : socket ? await socket.rollDice(roll) : { ok: false as const, error: 'Not connected to server' };
-    if (!answer.ok) showToast(`Roll not made: ${answer.error}`, 'error');
+      : socket ? await socket.rollDice(roll) : { ok: false as const, error: i18n.t('mapView.notConnected') };
+    if (!answer.ok) showToast(i18n.t('mapView.rollNotMade', { error: answer.error }), 'error');
     else onMade?.(answer.id);
     return answer.ok;
   }, [socket, showToast]);
