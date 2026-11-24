@@ -2035,6 +2035,7 @@ const en = {
     preview: 'Preview',
     drawnPreviewHint: 'The map opens on your screen only, with Mapmaker on, while your players stay where they are.',
     gridPreview: 'Grid Preview',
+    gridAlignment: 'Grid alignment preview',
     analysing: 'Analysing…',
     zoomLevel: 'Preview zoom level',
     gridDetected: 'Grid detected',

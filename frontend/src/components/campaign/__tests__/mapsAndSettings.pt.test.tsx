@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { inPortuguese } from '@/test/inPortuguese';
 import type { Campaign, CampaignMap } from '@/types';
 
@@ -94,6 +94,28 @@ describe('maps and campaign settings in Portuguese', () => {
       expect(screen.getByText('Jogadores podem desenhar')).toBeInTheDocument();
       expect(screen.queryByText('Campaign Settings')).toBeNull();
       expect(screen.queryByText('Players may draw')).toBeNull();
+    });
+  });
+});
+
+describe('confirm dialogs and the grid preview in Portuguese', () => {
+  it('shows Cancelar on the delete-map confirm', async () => {
+    current = { id: 'c1', name: 'A Cripta', memberships: [], ownerId: 'dm', currentMapId: null } as unknown as Campaign;
+    const maps = await import('@/services/map.service');
+    (maps.default.getMaps as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce([map]);
+    await inPortuguese(async () => {
+      render(<MapManager isOpen onClose={() => undefined} />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Excluir mapa' }));
+      expect(await screen.findByRole('button', { name: 'Cancelar' })).toBeInTheDocument();
+      expect(screen.queryByText('Cancel')).toBeNull();
+    });
+  });
+
+  it('labels the grid preview in Portuguese', async () => {
+    await inPortuguese(async () => {
+      render(<CreateMapModal isOpen campaignId="c1" onClose={() => undefined} onCreated={() => undefined} />);
+      expect(screen.getByLabelText('Prévia do alinhamento da grade')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Grid alignment preview')).toBeNull();
     });
   });
 });

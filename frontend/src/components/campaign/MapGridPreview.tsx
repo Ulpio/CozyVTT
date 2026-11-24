@@ -120,7 +120,7 @@ export default function MapGridPreview({
       height={Math.floor(PREVIEW_PX * dpr)}
       className="w-full rounded-sm border border-moss-green/30 bg-parchment/50"
       style={{ aspectRatio: '1 / 1' }}
-      aria-label="Grid alignment preview"
+      aria-label={t('mapModal.gridAlignment')}
     />
   );
 }

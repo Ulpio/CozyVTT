@@ -2037,6 +2037,7 @@ const ptBR: Messages = {
     preview: 'Prévia',
     drawnPreviewHint: 'O mapa abre só na sua tela, com o Cartógrafo ligado, enquanto seus jogadores ficam onde estão.',
     gridPreview: 'Prévia da grade',
+    gridAlignment: 'Prévia do alinhamento da grade',
     analysing: 'Analisando…',
     zoomLevel: 'Zoom da prévia',
     gridDetected: 'Grade detectada',
