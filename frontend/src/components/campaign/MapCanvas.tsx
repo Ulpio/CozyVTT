@@ -1195,6 +1195,32 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   }, [mapShown, currentMap?.id, canvasSize.width, canvasSize.height]);
 
   // ============================================
+  // Centre on a token: a row tapped in the initiative column
+  // ============================================
+
+  // Answers each request once: one made before this canvas mounted is old.
+  const centreRequest = useGameStore((s) => s.centreRequest);
+  const answeredCentreRef = useRef(useGameStore.getState().centreRequest?.nonce ?? 0);
+  useEffect(() => {
+    if (!centreRequest || centreRequest.nonce === answeredCentreRef.current) return;
+    if (!currentMap || canvasSize.width === 0 || canvasSize.height === 0) return;
+    answeredCentreRef.current = centreRequest.nonce;
+    const store = useGameStore.getState();
+    // Only a token this viewer holds, of the map on screen; the server has
+    // already left out what they may not see.
+    if (store.tokensMapId !== currentMap.id) return;
+    const token = store.tokens[centreRequest.tokenId];
+    if (!token) return;
+    const centre = tokenCentre(token, currentMap.gridSize, currentMap.height);
+    mapControls.panBy(
+      canvasSize.width / 2 - (centre.x * mapControls.zoom + mapControls.panOffset.x),
+      canvasSize.height / 2 - (centre.y * mapControls.zoom + mapControls.panOffset.y),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- answered once per request, by its nonce
+  }, [centreRequest, currentMap, canvasSize.width, canvasSize.height]);
+
+
+  // ============================================
   // WebSocket Event Listeners
   // ============================================
 

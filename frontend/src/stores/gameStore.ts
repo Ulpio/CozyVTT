@@ -202,6 +202,9 @@ interface GameState {
   setPeekToken: (tokenId: string | null, source: 'tracker' | 'map') => void;
   /** Select a token on the map, or nothing. */
   selectToken: (tokenId: string | null) => void;
+  /** The last ask to centre the map on a token (initiative column rows); the nonce moves on every ask so the same token can be asked twice. */
+  centreRequest: { tokenId: string; nonce: number } | null;
+  requestCentreOn: (tokenId: string) => void;
   /** `character.hp.updated`: one character's hit points. */
   setCharacterHp: (characterId: string, hp: CharacterHpInfo) => void;
   /** The roster's answer: every character it lists that has hit points. */
@@ -252,6 +255,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   peekTokenId: null,
   peekSource: null,
   selectedTokenId: null,
+  centreRequest: null,
   characterHp: {},
   onlineUserIds: new Set(),
   drawings: [],
@@ -399,10 +403,13 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   countUnreadChat: () => set((s) => (chatOnScreen(s) ? s : { unreadChat: s.unreadChat + 1 })),
 
+  requestCentreOn: (tokenId) =>
+    set((s) => ({ centreRequest: { tokenId, nonce: (s.centreRequest?.nonce ?? 0) + 1 } })),
+
   clearGameState: () =>
     set({
       tokens: {}, tokensMapId: null, loadingTokensOf: null, heldTokenEvents: [],
-      tokenOrder: [], heldAt: {}, combat: EMPTY_COMBAT, peekTokenId: null, peekSource: null, selectedTokenId: null,
+      tokenOrder: [], heldAt: {}, combat: EMPTY_COMBAT, peekTokenId: null, peekSource: null, selectedTokenId: null, centreRequest: null,
       characterHp: {}, onlineUserIds: new Set(), drawings: [], drawingsMapId: null,
       sessionTab: storedSessionTab(), unreadChat: 0,
     }),

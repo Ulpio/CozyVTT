@@ -263,7 +263,7 @@ function CampaignPageContent() {
           >
             <MapCanvas onEditToken={editToken} onShowShortcuts={() => setIsShortcutsOpen(true)} />
           </Suspense>
-          <InitiativeColumn compact={compact} />
+          <InitiativeColumn compact={compact} onRowClick={(row) => useGameStore.getState().requestCentreOn(row.tokenId)} />
         </div>
       </div>
     ),
