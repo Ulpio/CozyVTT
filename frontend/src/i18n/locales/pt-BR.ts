@@ -2715,6 +2715,13 @@ const ptBR: Messages = {
       paintRedo: 'Refazer uma alteração da imagem, com o Cartógrafo ligado',
     },
   },
+  initiativeColumn: {
+    label: 'Ordem de iniciativa',
+    round: 'Rodada {{round}}',
+    collapse: 'Recolher',
+    expand: 'Abrir',
+    hp: '{{name}}: {{current}} de {{max}} pontos de vida',
+  },
 };
 
 export default ptBR;

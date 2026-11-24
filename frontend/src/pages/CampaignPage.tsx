@@ -48,6 +48,7 @@ import TokenRoster from '@/components/campaign/TokenRoster';
 import CampaignSettingsModal from '@/components/campaign/CampaignSettingsModal';
 import CampaignDocumentsModal from '@/components/documents/CampaignDocumentsModal';
 import ShortcutsPanel from '@/components/campaign/ShortcutsPanel';
+import InitiativeColumn from '@/components/campaign/initiativeColumn/InitiativeColumn';
 import SessionPanels from '@/components/campaign/SessionPanels';
 import DesktopTable from '@/components/campaign/DesktopTable';
 import CompactTable from '@/components/campaign/compact/CompactTable';
@@ -252,7 +253,7 @@ function CampaignPageContent() {
       // The banner over a map the GM is preparing, then the map below it.
       <div className="flex h-full w-full flex-col">
         <PreparingBanner />
-        <div className="min-h-0 flex-1">
+        <div className="relative min-h-0 flex-1">
           <Suspense
             fallback={
               <div className="w-full h-full flex items-center justify-center" aria-live="polite" aria-label={t('campaignPage.loadingMap')}>
@@ -262,6 +263,7 @@ function CampaignPageContent() {
           >
             <MapCanvas onEditToken={editToken} onShowShortcuts={() => setIsShortcutsOpen(true)} />
           </Suspense>
+          <InitiativeColumn compact={compact} />
         </div>
       </div>
     ),
