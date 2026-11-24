@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const MAX_SIGHT_RADIUS = 200;
 
@@ -31,6 +32,7 @@ function squaresFrom(raw: string): number | null {
 }
 
 export default function TokenVisionField({ value, feetPerSquare, onChange, onCommit, disabled }: TokenVisionFieldProps) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState(String(value));
   useEffect(() => { setDraft(String(value)); }, [value]);
 
@@ -44,7 +46,7 @@ export default function TokenVisionField({ value, feetPerSquare, onChange, onCom
   return (
     <div className="mb-3">
       <label className="text-xs text-stone-gray font-medium block mb-1">
-        Darkvision <span className="font-normal opacity-60">(squares)</span>
+        {t('tokenVision.label')} <span className="font-normal opacity-60">{t('tokenVision.unit')}</span>
       </label>
       <input
         type="number"
@@ -60,11 +62,11 @@ export default function TokenVisionField({ value, feetPerSquare, onChange, onCom
         }}
         onBlur={commit}
         onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
-        aria-label="Darkvision in grid squares"
+        aria-label={t('tokenVision.ariaLabel')}
         className="input-cozy input-cozy-number w-full text-sm"
       />
       <p className="text-[10px] text-stone-gray/60 mt-1">
-        How far this token makes things out with no light. 0 = none, 12 = {12 * feetPerSquare} ft on this map. Lit things are seen at any distance.
+        {t('tokenVision.hint', { feet: 12 * feetPerSquare })}
       </p>
     </div>
   );

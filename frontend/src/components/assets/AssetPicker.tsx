@@ -9,6 +9,7 @@
 // ============================================
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { assetDirectory } from '@/utils/assetUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Search, Upload } from 'lucide-react';
@@ -48,10 +49,11 @@ export default function AssetPicker({
   campaignId,
   campaignOption,
   allowUpload = true,
-  searchPlaceholder = 'Search assets...',
+  searchPlaceholder,
   emptyMessage,
   columns = 3,
 }: AssetPickerProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [search, setSearch] = useState('');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -87,7 +89,7 @@ export default function AssetPicker({
               onClick={() => onSelect(null)}
               className="text-xs text-danger-ink hover:text-danger-ink"
             >
-              Clear
+              {t('assetPicker.clear')}
             </button>
           )}
           {allowUpload && (
@@ -97,7 +99,7 @@ export default function AssetPicker({
               variant="secondary" className="text-xs py-1 px-2 flex items-center gap-1"
             >
               <Upload className="w-3 h-3" />
-              Upload New
+              {t('assetPicker.uploadNew')}
             </Button>
           )}
           <Button
@@ -105,7 +107,7 @@ export default function AssetPicker({
             onClick={() => setExpanded((v) => !v)}
             variant="secondary" className="text-xs py-1 px-2"
           >
-            {expanded ? 'Hide' : 'Browse Assets'}
+            {expanded ? t('assetPicker.hide') : t('assetPicker.browse')}
           </Button>
         </div>
       </div>
@@ -131,12 +133,12 @@ export default function AssetPicker({
         <div className="flex items-center gap-3 p-2 bg-moss-green/10 border border-moss-green/30 rounded-lg">
           <img
             src={api.getAssetUrl(selectedAssetId, dir)}
-            alt={selectedAsset?.name ?? 'Selected asset'}
+            alt={selectedAsset?.name ?? t('assetPicker.selectedAsset')}
             className="w-12 h-12 object-cover rounded-sm"
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
           <span className="text-sm text-brand-ink font-medium truncate flex-1">
-            {selectedAsset?.name ?? 'Selected'}
+            {selectedAsset?.name ?? t('assetPicker.selected')}
           </span>
           <Check className="w-4 h-4 text-brand-ink shrink-0" />
         </div>
@@ -156,7 +158,7 @@ export default function AssetPicker({
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-gray/40" />
                 <input
                   type="text"
-                  placeholder={searchPlaceholder}
+                  placeholder={searchPlaceholder ?? t('assetPicker.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-8 pr-3 py-1.5 text-sm bg-paper-white border border-moss-green/20 rounded-sm focus:outline-hidden focus:ring-1 focus:ring-moss-green text-stone-gray"

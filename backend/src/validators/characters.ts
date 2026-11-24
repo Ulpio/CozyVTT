@@ -12,7 +12,7 @@ import { MAX_TEMPORARY_HIT_POINTS } from '../utils/rules/hitPoints';
 
 /** POST /api/characters */
 export const CreateCharacterSchema = z.object({
-  name: z.string().trim().min(1, 'Character name is required').max(200, 'Character name must be 200 characters or fewer'),
+  name: z.string().trim().min(1, 'O nome do personagem é obrigatório.').max(200, 'O nome do personagem deve ter no máximo 200 caracteres.'),
   data: z.any().optional(),
   tokenImageUrl: z.string().nullish(),
   gameSystem: GameSystemSchema.nullish(),
@@ -23,21 +23,21 @@ export const CreateCharacterSchema = z.object({
 
 /** PUT /api/characters/:id */
 export const UpdateCharacterSchema = z.object({
-  name: z.string().trim().min(1, 'Character name is required').max(200, 'Character name must be 200 characters or fewer').optional(),
+  name: z.string().trim().min(1, 'O nome do personagem é obrigatório.').max(200, 'O nome do personagem deve ter no máximo 200 caracteres.').optional(),
   data: z.any().optional(),
   tokenImageUrl: z.string().nullish(),
   gameSystem: GameSystemSchema.nullish(),
   // The character's `updatedAt` as the caller loaded it. When sent, the save
   // is refused with 409 if the character has changed since; left out, the
   // save goes ahead whatever happened in between.
-  updatedAt: z.iso.datetime({ message: 'updatedAt must be the ISO timestamp the character was loaded with' }).optional(),
+  updatedAt: z.iso.datetime({ message: 'updatedAt deve ser o carimbo de data ISO com que o personagem foi carregado.' }).optional(),
 });
 
 /** What `character.hp.temporary` answers a payload that is not a character's id and a number, and nothing else. */
-export const TEMPORARY_HP_PAYLOAD_REFUSAL = 'characterId (string) and temporary (number) are required';
+export const TEMPORARY_HP_PAYLOAD_REFUSAL = 'characterId (texto) e temporary (número) são obrigatórios.';
 /** What it answers a number of temporary hit points a grant may not give. */
 export const TEMPORARY_HP_AMOUNT_REFUSAL =
-  `temporary must be a whole number of hit points from 1 to ${MAX_TEMPORARY_HIT_POINTS.toLocaleString('en-US')}`;
+  `temporary deve ser um número inteiro de pontos de vida, de 1 a ${MAX_TEMPORARY_HIT_POINTS.toLocaleString('pt-BR')}.`;
 
 /** `character.hp.temporary`: the character, and the temporary hit points it takes in place of any it has. */
 export const CharacterTemporaryHpSchema = z.strictObject(

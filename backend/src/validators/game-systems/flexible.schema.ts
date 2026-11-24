@@ -94,7 +94,7 @@ const tableSectionSchema = z.object({
         cells: z
           .record(id, z.string().max(SHEET_SHORT_TEXT_MAX))
           .refine((cells) => Object.keys(cells).length <= FLEXIBLE_MAX_COLUMNS * 2, {
-            message: `A row can have at most ${FLEXIBLE_MAX_COLUMNS * 2} cells`,
+            message: `Uma linha pode ter no máximo ${FLEXIBLE_MAX_COLUMNS * 2} células.`,
           }),
       })
     )

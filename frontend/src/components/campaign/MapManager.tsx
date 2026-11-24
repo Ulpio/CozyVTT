@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useMotionExit } from '@/utils/motion';
 import {
   Plus,
@@ -81,6 +82,7 @@ function MapCard({
   const isSwitchingToThis = switchingToId === map.id;
   const isOpeningThis = openingId === map.id;
   const cardExit = useMotionExit({ opacity: 0, scale: 0.95 });
+  const { t } = useTranslation();
 
   return (
     <motion.div
@@ -115,14 +117,14 @@ function MapCard({
         {isActive && (
           <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 bg-moss-green text-brand-text text-xs font-semibold rounded-full shadow-sm">
             <CheckCircle className="w-3 h-3" />
-            Active
+            {t('mapManager.active')}
           </div>
         )}
         {/* The map open on this page to prepare, which the players are not on */}
         {isPrepared && (
           <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 bg-paper-white text-info-ink border border-info/50 text-xs font-semibold rounded-full shadow-sm">
             <Eye className="w-3 h-3" />
-            Preparing
+            {t('mapManager.preparing')}
           </div>
         )}
       </div>
@@ -131,7 +133,7 @@ function MapCard({
       <div className="p-3">
         <h3 className="font-semibold text-brand-ink truncate text-sm mb-0.5">{map.name}</h3>
         <p className="text-xs text-stone-gray/60">
-          {map.width}×{map.height} grid · {map.gridSize}px/sq
+          {t('mapManager.gridLine', { width: map.width, height: map.height, size: map.gridSize })}
         </p>
 
         {/* Actions: the two that change what is on screen on a row of
@@ -141,7 +143,7 @@ function MapCard({
             type="button"
             onClick={() => onSetActive(map)}
             disabled={isActive || isSwitchingToThis}
-            title={isActive ? 'Already active' : 'Set as active map'}
+            title={isActive ? t('mapManager.alreadyActive') : t('mapManager.setActiveTitle')}
             className={`touch-target flex-1 text-xs py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 ${
               isActive
                 ? 'bg-moss-green/10 text-brand-ink/50 cursor-not-allowed'
@@ -153,7 +155,7 @@ function MapCard({
             ) : (
               <CheckCircle className="w-3 h-3" />
             )}
-            {isActive ? 'Active' : 'Set Active'}
+            {isActive ? t('mapManager.active') : t('mapManager.setActive')}
           </button>
 
           {/* Open it on this page only; the players stay where they are. */}
@@ -162,7 +164,7 @@ function MapCard({
               type="button"
               onClick={() => onOpenToPrepare(map)}
               disabled={isPrepared || isOpeningThis}
-              title={isPrepared ? 'On your screen now, while the players stay on the active map' : 'Open on your screen only, while the players stay on the active map'}
+              title={isPrepared ? t('mapManager.preparingTitle') : t('mapManager.openToPrepareTitle')}
               className={`touch-target flex-1 text-xs py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 ${
                 isPrepared
                   ? 'bg-info/10 text-info-ink/60 cursor-not-allowed'
@@ -170,7 +172,7 @@ function MapCard({
               }`}
             >
               {isOpeningThis ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
-              {isPrepared ? 'Preparing' : 'Open to prepare'}
+              {isPrepared ? t('mapManager.preparing') : t('mapManager.openToPrepare')}
             </button>
           )}
         </div>
@@ -179,8 +181,8 @@ function MapCard({
           <button
             type="button"
             onClick={() => onEdit(map)}
-            title="Edit map"
-            aria-label="Edit map"
+            title={t('mapManager.editMap')}
+            aria-label={t('mapManager.editMap')}
             className="touch-target inline-flex items-center justify-center p-1.5 rounded-lg bg-warm-amber/10 hover:bg-warm-amber/15 text-accent-ink transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" />
@@ -189,8 +191,8 @@ function MapCard({
           <button
             type="button"
             onClick={() => onExport(map)}
-            title="Export as .uvtt file"
-            aria-label="Export as .uvtt file"
+            title={t('mapManager.exportUvtt')}
+            aria-label={t('mapManager.exportUvtt')}
             className="touch-target inline-flex items-center justify-center p-1.5 rounded-lg bg-moss-green/10 hover:bg-moss-green/15 text-brand-ink transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
@@ -200,8 +202,8 @@ function MapCard({
             type="button"
             onClick={() => onDelete(map)}
             disabled={isActive}
-            title={isActive ? 'Cannot delete the active map' : 'Delete map'}
-            aria-label={isActive ? 'Cannot delete the active map' : 'Delete map'}
+            title={isActive ? t('mapManager.cannotDeleteActive') : t('mapManager.deleteMap')}
+            aria-label={isActive ? t('mapManager.cannotDeleteActive') : t('mapManager.deleteMap')}
             className={`touch-target inline-flex items-center justify-center p-1.5 rounded-lg transition-colors ${
               isActive
                 ? 'bg-danger/5 text-danger-ink/40 cursor-not-allowed'
@@ -223,6 +225,7 @@ function MapCard({
 export default function MapManager({ isOpen, onClose }: MapManagerProps) {
   const { campaign, currentMap, viewedMap, isPreparing, updateMap, upsertCampaignMap, removeCampaignMap, openToPrepare, mayChangeViewedMap } = useCampaign();
   const tableSwitch = useTableSwitch();
+  const { t } = useTranslation();
 
   const [maps, setMaps] = useState<CampaignMap[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -278,11 +281,11 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
       const fetched = await mapService.getMaps(campaign.id);
       setMaps(fetched);
     } catch {
-      setError('Failed to load maps.');
+      setError(t('mapManager.loadFailed'));
     } finally {
       setIsLoading(false);
     }
-  }, [campaign?.id]);
+  }, [campaign?.id, t]);
 
   useEffect(() => {
     if (isOpen) {
@@ -323,7 +326,7 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
     try {
       await api.downloadUVTTExport(campaign.id, map.id, `${map.name}.uvtt`);
     } catch (err: unknown) {
-      setError(apiErrorMessage(err) || 'Failed to export map.');
+      setError(apiErrorMessage(err) || t('mapManager.exportFailed'));
     }
   };
 
@@ -357,7 +360,7 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
       const campaignId = campaign.id;
       void dropDrafts(paintDraftStore(), (draft) => draft.campaignId === campaignId && draft.mapId === map.id);
     } catch (err: unknown) {
-      setError(apiErrorMessage(err) || 'Failed to delete map.');
+      setError(apiErrorMessage(err) || t('mapManager.deleteFailed'));
       return;
     }
     // Without force: a picture something else still uses stays.
@@ -367,8 +370,8 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
       await api.deleteAsset(pictureId);
     } catch (err: unknown) {
       setNotice(apiErrorCode(err) === 'ASSET_IN_USE'
-        ? `${map.name} is deleted. Its picture is used elsewhere, so it stays in the Asset Library.`
-        : `${map.name} is deleted. Its picture could not be deleted; delete it in the Asset Library.`);
+        ? t('mapManager.pictureInUse', { name: map.name })
+        : t('mapManager.pictureNotDeleted', { name: map.name }));
     }
   };
 
@@ -386,11 +389,10 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
       const result = await mapService.importUVTT(campaign.id, file, undefined, undefined, opts);
       setMaps((prev) => [result.map, ...prev]);
       upsertCampaignMap(result.map);
-      const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`;
-      const parts = [count(result.totalSegments, 'wall segment')];
-      if (result.portalCount > 0) parts.push(count(result.portalCount, 'door'));
-      if (result.lightCount > 0) parts.push(count(result.lightCount, 'light'));
-      setImportSuccess(`Imported "${result.map.name}" with ${parts.join(', ')}`);
+      const parts = [t('mapManager.wallSegments', { count: result.totalSegments })];
+      if (result.portalCount > 0) parts.push(t('mapManager.doors', { count: result.portalCount }));
+      if (result.lightCount > 0) parts.push(t('mapManager.lights', { count: result.lightCount }));
+      setImportSuccess(t('mapManager.imported', { name: result.map.name, parts: parts.join(', ') }));
       // Auto-clear success message after 5 seconds
       setTimeout(() => setImportSuccess(null), 5000);
     } catch (err: unknown) {
@@ -404,7 +406,7 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
           return;
         }
       }
-      setError(apiErrorMessage(err) || 'Failed to import UVTT file.');
+      setError(apiErrorMessage(err) || t('mapManager.importFailed'));
     } finally {
       setIsImportingUVTT(false);
     }
@@ -436,7 +438,7 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
       if (opened) onClose();
       return opened;
     } catch (err: unknown) {
-      setError(apiErrorMessage(err) || 'Could not open that map. Try again.');
+      setError(apiErrorMessage(err) || t('mapManager.openFailed'));
       return false;
     } finally {
       // Only this card's: a second card opened meanwhile keeps its spinner.
@@ -459,7 +461,7 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
             <div className="flex items-center gap-3">
               <MapPin className="w-6 h-6 text-brand-ink" />
               <div>
-                <SlideOverTitle className="text-xl font-bold text-brand-ink">Map Library</SlideOverTitle>
+                <SlideOverTitle className="text-xl font-bold text-brand-ink">{t('mapManager.title')}</SlideOverTitle>
                 <p className="text-xs text-stone-gray">{campaign.name}</p>
               </div>
             </div>
@@ -469,14 +471,14 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
                 onClick={() => uvttInputRef.current?.click()}
                 disabled={isImportingUVTT}
                 variant="secondary" className="flex items-center gap-2 text-sm"
-                title="Import a .uvtt or .dd2vtt file (Dungeondraft, DunGen, Dungeon Alchemist, etc.)"
+                title={t('mapManager.importTitle')}
               >
                 {isImportingUVTT ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Upload className="w-4 h-4" />
                 )}
-                Import UVTT
+                {t('mapManager.importUvtt')}
               </Button>
               <input
                 ref={uvttInputRef}
@@ -491,7 +493,7 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
                 className="flex items-center gap-2 text-sm"
               >
                 <Plus className="w-4 h-4" />
-                Create Map
+                {t('mapManager.createMap')}
               </Button>
               <SlideOverClose
                 className="p-2 hover:bg-moss-green/10 rounded-lg transition-colors"
@@ -531,9 +533,9 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
           ) : maps.length === 0 ? (
             <div className="text-center py-16 space-y-3">
               <MapPin className="w-14 h-14 mx-auto text-stone-gray/25" />
-              <p className="text-stone-gray font-medium">No maps yet</p>
+              <p className="text-stone-gray font-medium">{t('mapManager.noMaps')}</p>
               <p className="text-sm text-stone-gray/60">
-                Create your first map to start your adventure.
+                {t('mapManager.noMapsHint')}
               </p>
               <Button
                 type="button"
@@ -541,7 +543,7 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
                 className="inline-flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
-                Create Map
+                {t('mapManager.createMap')}
               </Button>
             </div>
           ) : (
@@ -606,8 +608,8 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
         message={uvttImportMessage(uvttToConfirm?.decision)}
         confirmLabel={
           uvttToConfirm && !hasOutOfBounds(uvttToConfirm.decision.outOfBounds)
-            ? 'Import'
-            : 'Import anyway'
+            ? t('mapManager.import')
+            : t('mapManager.importAnyway')
         }
         variant="warning"
         onConfirm={handleConfirmUVTTImport}
@@ -621,15 +623,15 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
               onChange={(e) => setIncludeObjectWalls(e.target.checked)}
               className="mt-0.5"
             />
-            <span>Let furniture block sight too</span>
+            <span>{t('mapManager.furnitureBlocks')}</span>
           </label>
         )}
       </ConfirmDialog>
       <ConfirmDialog
         isOpen={!!mapToDelete}
-        title="Delete Map"
-        message={`Delete "${mapToDelete?.name}"? This cannot be undone.`}
-        confirmLabel="Delete"
+        title={t('mapManager.deleteTitle')}
+        message={t('mapManager.deleteMessage', { name: mapToDelete?.name })}
+        confirmLabel={t('mapManager.delete')}
         variant="danger"
         onConfirm={handleConfirmDelete}
         onCancel={() => {
@@ -646,7 +648,7 @@ export default function MapManager({ isOpen, onClose }: MapManagerProps) {
               onChange={(e) => setDeletePicture(e.target.checked)}
               className="mt-0.5"
             />
-            <span>Also delete its picture from the Asset Library</span>
+            <span>{t('mapManager.alsoDeletePicture')}</span>
           </label>
         )}
       </ConfirmDialog>

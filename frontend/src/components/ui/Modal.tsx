@@ -8,6 +8,7 @@
 // ============================================
 
 import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMotionExit } from '@/utils/motion';
@@ -70,6 +71,7 @@ export default function Modal({
   fitViewport = false,
   escapeStaysInFields = false,
 }: ModalProps) {
+  const { t } = useTranslation();
   const titleId = useId();
   const dialogExit = useMotionExit({ opacity: 0, scale: 0.95, y: 20 });
 
@@ -144,7 +146,7 @@ export default function Modal({
                   className="p-2 rounded-lg hover:bg-ink/10 transition-colors touch-target pointer-coarse:[&>svg]:mx-auto
                              disabled:opacity-50 disabled:cursor-not-allowed
                              focus:outline-hidden focus:ring-2 focus:ring-brand"
-                  aria-label="Close dialog"
+                  aria-label={t('common.closeDialog')}
                 >
                   <X className="w-5 h-5 text-ink-muted" aria-hidden="true" />
                 </button>

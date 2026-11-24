@@ -96,7 +96,7 @@ describe('loadCampaignMembership', () => {
     mockFindUnique.mockResolvedValue(null);
     const answer = await run(loadCampaignMembership, { session: { userId: 'u1' }, params: { campaignId: 'c1' } });
     expect(answer.status).toBe(403);
-    expect(answer.body?.message).toBe('You are not a member of this campaign');
+    expect(answer.body?.message).toBe('Você não é membro desta campanha.');
     expect(answer.nexted).toBe(false);
   });
 

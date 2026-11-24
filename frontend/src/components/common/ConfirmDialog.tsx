@@ -6,6 +6,7 @@
 // ============================================
 
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, AlertCircle, HelpCircle, Loader2 } from 'lucide-react';
 import { Button, Modal } from '@/components/ui';
 
@@ -59,13 +60,14 @@ export default function ConfirmDialog({
   title,
   message,
   confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  cancelLabel,
   variant = 'danger',
   isLoading = false,
   children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
   const handleCancel = useCallback(() => {
     if (!isLoading) onCancel();
   }, [isLoading, onCancel]);
@@ -88,7 +90,7 @@ export default function ConfirmDialog({
             onClick={handleCancel}
             disabled={isLoading}
           >
-            {cancelLabel}
+            {cancelLabel ?? t('common.cancel')}
           </Button>
           <button
             type="button"

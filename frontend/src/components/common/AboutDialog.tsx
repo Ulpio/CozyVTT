@@ -12,6 +12,7 @@
 
 import { useId, useState } from 'react';
 import { Info } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import NoticeText from '@/components/common/NoticeText';
@@ -46,16 +47,20 @@ interface AboutDialogProps {
 }
 
 export default function AboutDialog({ open, onClose }: AboutDialogProps) {
+  const { t, i18n } = useTranslation();
+  // Only a translation needs to say it is one, and to keep the original at hand.
+  const translated = !i18n.language.startsWith('en');
+  const inEnglish = i18n.getFixedT('en');
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="About CozyVTT"
+      title={t('about.title')}
       icon={Info}
       size="lg"
       footer={
         <Button type="button" variant="secondary" onClick={onClose}>
-          Close
+          {t('common.close')}
         </Button>
       }
     >
@@ -63,29 +68,39 @@ export default function AboutDialog({ open, onClose }: AboutDialogProps) {
         <div className="space-y-2">
           {/* The notices the licence asks a program to show: that it may be passed on under the licence, with no warranty, and where the licence is. */}
           <p>
-            CozyVTT is free software: you can redistribute it and modify it under the terms of the{' '}
-            <a href={LICENCE_URL} target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>
-              GNU Affero General Public License v3.0
-            </a>
-            , as published by the Free Software Foundation.
+            <Trans
+              i18nKey="about.licence"
+              components={{ licence: <a href={LICENCE_URL} target="_blank" rel="noopener noreferrer" className={LINK_CLASS} /> }}
+            />
           </p>
-          <p>
-            CozyVTT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-            implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
-            License for more details.
-          </p>
+          <p>{t('about.warranty')}</p>
+          {translated && (
+            <>
+              <p>{t('about.unofficialNote')}</p>
+              <details>
+                <summary className="cursor-pointer">{t('about.originalText')}</summary>
+                <div className="mt-2 space-y-2" lang="en">
+                  <p>
+                    <Trans
+                      i18nKey="about.licence"
+                      t={inEnglish}
+                      components={{ licence: <a href={LICENCE_URL} target="_blank" rel="noopener noreferrer" className={LINK_CLASS} /> }}
+                    />
+                  </p>
+                  <p>{inEnglish('about.warranty')}</p>
+                </div>
+              </details>
+            </>
+          )}
           <p>
             <a href={SOURCE_CODE_URL} target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>
-              Source code
+              {t('about.sourceCode')}
             </a>
           </p>
         </div>
 
         <div className="space-y-4 border-t border-brand/15 pt-4">
-          <p>
-            The open game rules CozyVTT&apos;s sheets draw on are not under its licence. Each is credited here as its
-            own licence asks.
-          </p>
+          <p>{t('about.gameRules')}</p>
           <NoticeText text={INDEPENDENT_PRODUCT} />
           {GAME_CONTENT_NOTICES.map(({ system, lines }) => (
             <Part key={system} title={system}>
@@ -94,22 +109,25 @@ export default function AboutDialog({ open, onClose }: AboutDialogProps) {
               ))}
             </Part>
           ))}
-          <Part title="CozyVTT's own material">
+          <Part title={t('about.ownMaterial')}>
             {COZYVTT_ORC_STATEMENTS.map((line) => (
               <NoticeText key={line} text={line} className="text-xs" />
             ))}
           </Part>
           <p className="text-xs">
-            The full notices are in{' '}
-            <a
-              href={`${SOURCE_CODE_URL}/blob/main/GAME_CONTENT_NOTICES.md`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(LINK_CLASS, 'wrap-anywhere')}
-            >
-              GAME_CONTENT_NOTICES.md
-            </a>{' '}
-            in the source code.
+            <Trans
+              i18nKey="about.fullNotices"
+              components={{
+                file: (
+                  <a
+                    href={`${SOURCE_CODE_URL}/blob/main/GAME_CONTENT_NOTICES.md`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(LINK_CLASS, 'wrap-anywhere')}
+                  />
+                ),
+              }}
+            />
           </p>
         </div>
       </div>
@@ -119,6 +137,7 @@ export default function AboutDialog({ open, onClose }: AboutDialogProps) {
 
 /** The quiet button that opens About CozyVTT, for the foot of a page. */
 export function AboutButton({ className }: { className?: string }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -133,7 +152,7 @@ export function AboutButton({ className }: { className?: string }) {
         )}
       >
         <Info className="w-4 h-4" aria-hidden="true" />
-        About CozyVTT
+        {t('about.title')}
       </button>
       <AboutDialog open={open} onClose={() => setOpen(false)} />
     </>

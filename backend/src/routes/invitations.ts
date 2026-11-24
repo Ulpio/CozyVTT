@@ -71,7 +71,7 @@ router.get('/', authenticated, async (req: AuthenticatedRequest, res: Response) 
     }));
   } catch (error) {
     logger.error('Error fetching invitations', { err: error });
-    return res.status(500).json({ message: 'Failed to fetch invitations' });
+    return res.status(500).json({ message: 'Não foi possível carregar os convites.' });
   }
 });
 
@@ -88,7 +88,7 @@ router.post('/:id/accept', authenticated, async (req: AuthenticatedRequest, res:
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid character selection',
+        message: parsed.error.issues[0]?.message ?? 'Seleção de personagens inválida.',
       });
     }
     const { characterIds } = parsed.data;
@@ -101,16 +101,16 @@ router.post('/:id/accept', authenticated, async (req: AuthenticatedRequest, res:
 
     // Someone else's invitation answers as one that is not there.
     if (!invitation || invitation.userId !== userId) {
-      return res.status(404).json({ message: 'Invitation not found' });
+      return res.status(404).json({ message: 'Convite não encontrado.' });
     }
 
     if (invitation.status !== 'PENDING') {
-      return res.status(400).json({ message: 'Invitation already processed' });
+      return res.status(400).json({ message: 'Este convite já foi respondido.' });
     }
 
     // Check if invitation is expired
     if (invitation.expiresAt && new Date() > invitation.expiresAt) {
-      return res.status(400).json({ message: 'Invitation expired' });
+      return res.status(400).json({ message: 'Este convite expirou.' });
     }
 
     // Verify all characters belong to user and are compatible with campaign
@@ -123,14 +123,14 @@ router.post('/:id/accept', authenticated, async (req: AuthenticatedRequest, res:
       });
 
       if (characters.length !== characterIds.length) {
-        return res.status(400).json({ message: 'Invalid character selection' });
+        return res.status(400).json({ message: 'Seleção de personagens inválida.' });
       }
 
       // Check if any characters are already assigned to a campaign
       const assignedCharacter = characters.find((c) => c.campaignId !== null);
       if (assignedCharacter) {
         return res.status(400).json({
-          message: `Character "${assignedCharacter.name}" is already assigned to a campaign`,
+          message: `O personagem "${assignedCharacter.name}" já está vinculado a uma campanha.`,
         });
       }
 
@@ -140,7 +140,7 @@ router.post('/:id/accept', authenticated, async (req: AuthenticatedRequest, res:
       );
       if (incompatibleCharacter) {
         return res.status(400).json({
-          message: `Character "${incompatibleCharacter.name}" is not compatible with campaign game system`,
+          message: `O personagem "${incompatibleCharacter.name}" não é compatível com o sistema de jogo da campanha.`,
         });
       }
     }
@@ -156,7 +156,7 @@ router.post('/:id/accept', authenticated, async (req: AuthenticatedRequest, res:
           where: { id: invitationId, status: 'PENDING' },
           data: { status: 'ACCEPTED' },
         });
-        if (accepted.count === 0) throw new AcceptRefused('Invitation already processed');
+        if (accepted.count === 0) throw new AcceptRefused('Este convite já foi respondido.');
 
         // Create campaign membership
         const membership = await tx.campaignMembership.create({
@@ -209,12 +209,12 @@ router.post('/:id/accept', authenticated, async (req: AuthenticatedRequest, res:
     }
 
     return res.json({
-      message: 'Invitation accepted',
+      message: 'Convite aceito.',
       membership: result,
     });
   } catch (error) {
     logger.error('Error accepting invitation', { err: error });
-    return res.status(500).json({ message: 'Failed to accept invitation' });
+    return res.status(500).json({ message: 'Não foi possível aceitar o convite.' });
   }
 });
 
@@ -234,11 +234,11 @@ router.post('/:id/decline', authenticated, async (req: AuthenticatedRequest, res
 
     // Someone else's invitation answers as one that is not there.
     if (!invitation || invitation.userId !== userId) {
-      return res.status(404).json({ message: 'Invitation not found' });
+      return res.status(404).json({ message: 'Convite não encontrado.' });
     }
 
     if (invitation.status !== 'PENDING') {
-      return res.status(400).json({ message: 'Invitation already processed' });
+      return res.status(400).json({ message: 'Este convite já foi respondido.' });
     }
 
     // Update invitation status
@@ -247,10 +247,10 @@ router.post('/:id/decline', authenticated, async (req: AuthenticatedRequest, res
       data: { status: 'DECLINED' },
     });
 
-    return res.json({ message: 'Invitation declined' });
+    return res.json({ message: 'Convite recusado.' });
   } catch (error) {
     logger.error('Error declining invitation', { err: error });
-    return res.status(500).json({ message: 'Failed to decline invitation' });
+    return res.status(500).json({ message: 'Não foi possível recusar o convite.' });
   }
 });
 

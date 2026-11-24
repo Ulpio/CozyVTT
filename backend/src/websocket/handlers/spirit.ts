@@ -15,6 +15,7 @@ import { withMapsLocked } from '../../utils/mapTokens';
 import { getState as getCombatState } from '../initiativeState';
 import { resendInitiativeState } from './initiative';
 import { bestEffort, campaignSockets } from '../utils';
+import { GM_ONLY } from '../../services/gmNotice';
 
 export function registerSpiritHandlers(io: Server, socket: AuthenticatedSocket): void {
   /**
@@ -23,21 +24,21 @@ export function registerSpiritHandlers(io: Server, socket: AuthenticatedSocket):
   socket.on('spirit_layer.toggle', async (data: { visible: boolean }) => {
     try {
       if (!socket.campaignId) {
-        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        socket.emit('error', { message: 'Você não está em uma campanha.' });
         return;
       }
       if (!withinCeiling(socket, 'spirit_layer.toggle')) return;
 
       // GM only
       if (socket.role !== 'GM') {
-        socket.emit('error', { message: 'Only the GM can toggle the spirit layer' });
+        socket.emit('error', { message: GM_ONLY });
         return;
       }
 
       const { visible } = data;
 
       if (typeof visible !== 'boolean') {
-        socket.emit('error', { message: 'visible must be a boolean' });
+        socket.emit('error', { message: 'A visibilidade precisa ser verdadeira ou falsa.' });
         return;
       }
 
@@ -76,15 +77,15 @@ export function registerSpiritHandlers(io: Server, socket: AuthenticatedSocket):
       await sendSystemMessage(
         socket.campaignId,
         visible
-          ? 'The spirit layer has been revealed...'
-          : 'The spirit layer has been hidden.',
+          ? 'O plano espiritual foi revelado...'
+          : 'O plano espiritual foi escondido.',
         { userId: socket.userId, action: 'spirit_layer.toggle', visible }
       );
 
       logger.info('spirit_layer.toggle', { visible, userId: socket.userId, campaignId: socket.campaignId });
     } catch (error) {
       logger.error('spirit_layer.toggle failed', { err: error });
-      socket.emit('error', { message: 'Failed to toggle spirit layer' });
+      socket.emit('error', { message: 'Não foi possível alternar o plano espiritual.' });
     }
   });
 
@@ -96,13 +97,13 @@ export function registerSpiritHandlers(io: Server, socket: AuthenticatedSocket):
     if (!socket.campaignId) return;
     if (!withinCeiling(socket, 'spirit_layer.style_change')) return;
     if (socket.role !== 'GM') {
-      socket.emit('error', { message: 'Only GMs can change spirit layer style' });
+      socket.emit('error', { message: GM_ONLY });
       return;
     }
     // Same allowlist as the REST write path: a named look or custom:#RRGGBB.
     // Every client renders the value as CSS.
     if (typeof data?.style !== 'string' || !isValidSpiritStyle(data.style)) {
-      socket.emit('error', { message: 'Invalid spirit layer style' });
+      socket.emit('error', { message: 'Estilo do plano espiritual inválido.' });
       return;
     }
     io.to(socket.campaignId).emit('spirit_layer.style_changed', { style: data.style });
@@ -115,21 +116,21 @@ export function registerSpiritHandlers(io: Server, socket: AuthenticatedSocket):
   socket.on('spirit_layer.token.toggle', async (data: { mapId: string; tokenId: string; visible: boolean }) => {
     try {
       if (!socket.campaignId) {
-        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        socket.emit('error', { message: 'Você não está em uma campanha.' });
         return;
       }
       if (!withinCeiling(socket, 'spirit_layer.token.toggle')) return;
 
       // GM only
       if (socket.role !== 'GM') {
-        socket.emit('error', { message: 'Only the GM can toggle token visibility' });
+        socket.emit('error', { message: GM_ONLY });
         return;
       }
 
       const { mapId, tokenId, visible } = data;
 
       if (!mapId || !tokenId || typeof visible !== 'boolean') {
-        socket.emit('error', { message: 'mapId, tokenId, and visible (boolean) required' });
+        socket.emit('error', { message: 'Informe o mapa, o token e se ele fica visível.' });
         return;
       }
 
@@ -141,7 +142,7 @@ export function registerSpiritHandlers(io: Server, socket: AuthenticatedSocket):
       });
 
       if (!map || map.campaignId !== socket.campaignId) {
-        socket.emit('error', { message: 'Map not found' });
+        socket.emit('error', { message: 'Mapa não encontrado.' });
         return;
       }
 
@@ -159,7 +160,7 @@ export function registerSpiritHandlers(io: Server, socket: AuthenticatedSocket):
       const token: Token | undefined = updated?.tokens.find((t) => t.id === tokenId);
 
       if (!updated || !token) {
-        socket.emit('error', { message: 'Token not found' });
+        socket.emit('error', { message: 'Token não encontrado.' });
         return;
       }
 
@@ -193,7 +194,7 @@ export function registerSpiritHandlers(io: Server, socket: AuthenticatedSocket):
       logger.debug('spirit_layer.token.toggle', { tokenId, visible, userId: socket.userId, mapId });
     } catch (error) {
       logger.error('spirit_layer.token.toggle failed', { err: error });
-      socket.emit('error', { message: 'Failed to toggle token visibility' });
+      socket.emit('error', { message: 'Não foi possível alternar a visibilidade do token.' });
     }
   });
 }

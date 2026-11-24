@@ -105,7 +105,7 @@ describe('on a lit map', () => {
     const refused = waitForEvent<{ message: string }>(player, 'error');
     const back = waitForEvent<{ segment: Wall }>(player, 'wall:updated');
     player.emit('wall:update', { mapId, segment: { ...FAR, type: 'door-open' } });
-    expect((await refused).message).toBe('You cannot see that door');
+    expect((await refused).message).toBe('Você não consegue ver essa porta.');
     expect((await back).segment).toEqual(FAR);
     expect(await stored(mapId, FAR.id)).toBe('door-closed');
     player.disconnect();
@@ -116,7 +116,7 @@ describe('on a lit map', () => {
     const player = await server.connectAndAuth(playerCookie, campaignId);
     const refused = waitForEvent<{ message: string }>(player, 'error');
     player.emit('wall:update', { mapId, segment: { ...FAR_LOCKED, type: 'door-open' } });
-    expect((await refused).message).toBe('You cannot see that door');
+    expect((await refused).message).toBe('Você não consegue ver essa porta.');
     player.disconnect();
   });
 });
@@ -144,7 +144,7 @@ describe('under manual fog', () => {
     const refused = waitForEvent<{ message: string }>(player, 'error');
     const back = waitForEvent<{ segment: Wall }>(player, 'wall:updated');
     player.emit('wall:update', { mapId, segment: { ...NEAR, type: 'door-open' } });
-    expect((await refused).message).toBe('You cannot see that door');
+    expect((await refused).message).toBe('Você não consegue ver essa porta.');
     expect((await back).segment).toEqual(NEAR);
     expect(await stored(mapId, NEAR.id)).toBe('door-closed');
     player.disconnect();
@@ -155,7 +155,7 @@ describe('under manual fog', () => {
     const player = await server.connectAndAuth(playerCookie, campaignId);
     const refused = waitForEvent<{ message: string }>(player, 'error');
     player.emit('wall:update', { mapId, segment: { ...FAR_LOCKED, type: 'door-open' } });
-    expect((await refused).message).toBe('You cannot see that door');
+    expect((await refused).message).toBe('Você não consegue ver essa porta.');
     player.disconnect();
   });
 
@@ -244,7 +244,7 @@ describe('the sight check and the map\'s lock', () => {
       const refused = waitForEvent<{ message: string }>(player, 'error');
       const back = waitForEvent<{ segment: Wall }>(player, 'wall:updated');
       player.emit('wall:update', { mapId, segment: { ...NEAR, type: 'door-open' } });
-      expect((await refused).message).toBe('You cannot see that door');
+      expect((await refused).message).toBe('Você não consegue ver essa porta.');
       expect((await back).segment).toEqual(beyond);
     } finally {
       meanwhile.mockRestore();
@@ -261,7 +261,7 @@ describe('the sight check and the map\'s lock', () => {
     try {
       const refused = waitForEvent<{ message: string }>(player, 'error');
       player.emit('wall:update', { mapId, segment: { ...NEAR, type: 'door-open' } });
-      expect((await refused).message).toBe('That door is locked');
+      expect((await refused).message).toBe('Essa porta está trancada.');
     } finally {
       meanwhile.mockRestore();
     }

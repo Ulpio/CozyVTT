@@ -25,7 +25,7 @@ let phase: RestorePhase = 'none';
 let waiting: (() => void)[] = [];
 
 /** What a refused request or connection is told while the database is replaced. */
-export const RESTORING_MESSAGE = 'The instance is being restored from a backup. Try again in a minute; everyone signs in again once it has finished.';
+export const RESTORING_MESSAGE = 'A instância está sendo restaurada de um backup. Tente de novo em um minuto; todos entram de novo quando ela terminar.';
 
 /** Claim the restore; false when one is running already. */
 export function startRestore(): boolean {

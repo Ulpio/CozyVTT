@@ -5,7 +5,8 @@ import { prisma } from '../config/database';
 import logger from '../utils/logger';
 import { sessionIsSignedIn, sessionHasAgedOut } from '../services/signedIn';
 import { pastAdminMfaDeadline } from '../services/adminMfaPolicy';
-import { NOT_A_MEMBER_MESSAGE } from '../middleware/rbac';
+/** A join refused because the user is not in the campaign (removed, left, or never in it). */
+export const NOT_MEMBER_MESSAGE = 'Você não é membro desta campanha.';
 
 /**
  * WebSocket Authentication Middleware
@@ -204,7 +205,7 @@ export async function authenticateCampaign(
 ): Promise<CampaignCheck> {
   try {
     if (!socket.userId) {
-      return { success: false, refusal: 'not-signed-in', error: 'Socket not authenticated' };
+      return { success: false, refusal: 'not-signed-in', error: 'Conexão não autenticada.' };
     }
 
     // Verify campaign exists
@@ -214,7 +215,7 @@ export async function authenticateCampaign(
     });
 
     if (!campaign) {
-      return { success: false, refusal: 'no-campaign', error: 'Campaign not found' };
+      return { success: false, refusal: 'no-campaign', error: 'Campanha não encontrada.' };
     }
 
     // Verify user is a member of the campaign
@@ -229,7 +230,7 @@ export async function authenticateCampaign(
     });
 
     if (!membership) {
-      return { success: false, refusal: 'not-member', error: NOT_A_MEMBER_MESSAGE };
+      return { success: false, refusal: 'not-member', error: NOT_MEMBER_MESSAGE };
     }
 
     return {
@@ -238,6 +239,6 @@ export async function authenticateCampaign(
     };
   } catch (error) {
     logger.error('WebSocket campaign authentication error', { err: error });
-    return { success: false, refusal: 'failed', error: 'Internal server error' };
+    return { success: false, refusal: 'failed', error: 'Erro interno do servidor.' };
   }
 }

@@ -121,11 +121,11 @@ describe('wall:add', () => {
     const mapId = await mapOf(false);
     const page = await server.connectAndAuth(gmCookie, campaignId);
 
-    expect(await asked(page, 'wall:add', { mapId: randomUUID(), segment: wall() })).toEqual({ ok: false, error: 'Map not found' });
+    expect(await asked(page, 'wall:add', { mapId: randomUUID(), segment: wall() })).toEqual({ ok: false, error: 'Mapa não encontrado.' });
     expect(await asked(page, 'wall:add', { mapId, segment: { ...wall(), x2: 'far' } })).toMatchObject({ ok: false });
     page.disconnect();
     const player = await server.connectAndAuth(playerCookie, campaignId);
-    expect(await asked(player, 'wall:add', { mapId, segment: wall() })).toEqual({ ok: false, error: 'Only GMs can add wall segments' });
+    expect(await asked(player, 'wall:add', { mapId, segment: wall() })).toEqual({ ok: false, error: 'Só o mestre pode fazer isso.' });
     player.disconnect();
   });
 

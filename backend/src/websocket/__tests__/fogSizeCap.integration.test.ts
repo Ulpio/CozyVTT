@@ -83,7 +83,7 @@ describe('fog:request_state', () => {
 
     gm.emit('fog:request_state', { mapId: bigMapId });
 
-    expect((await error).message).toMatch(/too big for fog of war/);
+    expect((await error).message).toMatch(/grande demais para a névoa/);
     await noGrid;
     gm.disconnect();
   });
@@ -95,7 +95,7 @@ describe('fog:request_state', () => {
 
     player.emit('fog:request_state', { mapId: bigMapId });
 
-    expect((await error).message).toMatch(/too big for fog of war/);
+    expect((await error).message).toMatch(/grande demais para a névoa/);
     await noCells;
     player.disconnect();
   });
@@ -108,7 +108,7 @@ describe('fog:operation', () => {
 
     gm.emit('fog:operation', { mapId: bigMapId, operation: { op: 'reveal_all' } });
 
-    expect((await error).message).toMatch(/too big for fog of war/);
+    expect((await error).message).toMatch(/grande demais para a névoa/);
     expect((await prisma.map.findUniqueOrThrow({ where: { id: bigMapId } })).fogData).toBeNull();
     gm.disconnect();
   });
@@ -121,7 +121,7 @@ describe('explored areas', () => {
 
     player.emit('exploration:request', { mapId: bigMapId });
 
-    expect((await error).message).toMatch(/too big for fog of war/);
+    expect((await error).message).toMatch(/grande demais para a névoa/);
     player.disconnect();
   });
 

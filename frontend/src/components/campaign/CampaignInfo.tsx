@@ -4,10 +4,10 @@
 // ============================================
 
 import { useState } from 'react';
-import { CAMPAIGN_ROLE_LABEL, campaignGmName, campaignOwnerName, ownerDiffersFromGm } from '@/utils/campaignRoles';
+import { useTranslation } from 'react-i18next';
+import { campaignGmName, campaignOwnerName, ownerDiffersFromGm } from '@/utils/campaignRoles';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { Info, Users, Crown, Calendar, UserPlus, KeyRound} from 'lucide-react';
-import { CampaignRole } from '@/types';
 import type { AccessRevoked, CampaignStatus } from '@/types';
 import GameSystemBadge from '../common/GameSystemBadge';
 import InvitePlayerModal from './InvitePlayerModal';
@@ -20,6 +20,7 @@ interface CampaignInfoProps {
 }
 
 export default function CampaignInfo({ onLeft }: CampaignInfoProps) {
+  const { t, i18n } = useTranslation();
   const { campaign, userRole } = useCampaign();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteKey, setInviteKey] = useState(0);
@@ -40,27 +41,27 @@ export default function CampaignInfo({ onLeft }: CampaignInfoProps) {
   const getStatusBadge = (status: CampaignStatus) => {
     const badges = {
       PREPARATION: {
-        label: 'Preparation',
+        label: t('campaignCard.status.PREPARATION'),
         class: 'bg-warm-amber/15 text-accent-ink border-warm-amber/30',
       },
       ACTIVE: {
-        label: 'Active',
+        label: t('campaignCard.status.ACTIVE'),
         class: 'bg-moss-green/15 text-brand-ink border-moss-green/30',
       },
       PAUSED: {
-        label: 'Paused',
+        label: t('campaignCard.status.PAUSED'),
         class: 'bg-stone-gray/20 text-stone-gray border-stone-gray/30',
       },
       COMPLETED: {
-        label: 'Completed',
+        label: t('campaignCard.status.COMPLETED'),
         class: 'bg-spirit-purple/15 text-spirit-ink border-spirit-purple/30',
       },
       ARCHIVED: {
-        label: 'Archived',
+        label: t('campaignCard.status.ARCHIVED'),
         class: 'bg-warm-gray/20 text-warm-gray border-warm-gray/30',
       },
       INACTIVE: {
-        label: 'Inactive',
+        label: t('campaignCard.status.INACTIVE'),
         class: 'bg-warm-gray/20 text-warm-gray border-warm-gray/30',
       },
     };
@@ -82,7 +83,7 @@ export default function CampaignInfo({ onLeft }: CampaignInfoProps) {
       <div className="flex items-center gap-2 pb-2 border-b border-moss-green/20">
         <Info className="w-5 h-5 text-brand-ink" />
         <h3 className="text-lg font-semibold text-brand-ink">
-          Campaign Info
+          {t('campaignInfo.title')}
         </h3>
       </div>
 
@@ -112,7 +113,7 @@ export default function CampaignInfo({ onLeft }: CampaignInfoProps) {
       <div className="space-y-2 text-sm">
         <div className="flex items-center gap-2 text-stone-gray">
           <Crown className="w-4 h-4 text-brand-ink" />
-          <span className="text-warm-gray">{CAMPAIGN_ROLE_LABEL[CampaignRole.GM]}:</span>
+          <span className="text-warm-gray">{t('roles.GM')}:</span>
           <span className="text-stone-gray font-medium">{gmName}</span>
         </div>
 
@@ -121,23 +122,23 @@ export default function CampaignInfo({ onLeft }: CampaignInfoProps) {
         {showOwner && (
           <div className="flex items-center gap-2 text-stone-gray">
             <KeyRound className="w-4 h-4 text-accent-ink" />
-            <span className="text-warm-gray">Owner:</span>
+            <span className="text-warm-gray">{t('campaignInfo.owner')}</span>
             <span className="text-stone-gray font-medium">{ownerName}</span>
           </div>
         )}
 
         <div className="flex items-center gap-2 text-stone-gray">
           <Users className="w-4 h-4 text-spirit-ink" />
-          <span className="text-warm-gray">Members:</span>
+          <span className="text-warm-gray">{t('campaignInfo.members')}</span>
           <span className="text-stone-gray font-medium">{memberCount}</span>
         </div>
 
         {campaign.lastPlayedAt && (
           <div className="flex items-center gap-2 text-stone-gray">
             <Calendar className="w-4 h-4 text-accent-ink" />
-            <span className="text-warm-gray">Last played:</span>
+            <span className="text-warm-gray">{t('campaignInfo.lastPlayed')}</span>
             <span className="text-stone-gray font-medium">
-              {new Date(campaign.lastPlayedAt).toLocaleDateString()}
+              {new Date(campaign.lastPlayedAt).toLocaleDateString(i18n.language)}
             </span>
           </div>
         )}
@@ -151,7 +152,7 @@ export default function CampaignInfo({ onLeft }: CampaignInfoProps) {
             className="flex items-center gap-2 px-3 py-2 w-full rounded-lg bg-moss-green/10 text-brand-ink hover:bg-moss-green/15 transition-colors text-sm font-medium"
           >
             <UserPlus className="w-4 h-4" />
-            Invite Player
+            {t('campaignInfo.invitePlayer')}
           </button>
         </div>
       )}
@@ -160,7 +161,7 @@ export default function CampaignInfo({ onLeft }: CampaignInfoProps) {
       {userRole && (
         <div className="pt-2 border-t border-moss-green/20 space-y-3">
           <div>
-            <span className="text-xs text-warm-gray">Your role:</span>
+            <span className="text-xs text-warm-gray">{t('campaignInfo.yourRole')}</span>
             <div
               className={`inline-block ml-2 px-2.5 py-1 rounded-full border text-xs font-medium ${
                 userRole === 'GM'
@@ -168,7 +169,7 @@ export default function CampaignInfo({ onLeft }: CampaignInfoProps) {
                   : 'bg-spirit-purple/15 text-spirit-ink border-spirit-purple/40'
               }`}
             >
-              {CAMPAIGN_ROLE_LABEL[userRole]}
+              {t(`roles.${userRole}`)}
             </div>
           </div>
           <LeaveCampaign campaign={campaign} userRole={userRole} onLeft={onLeft} />

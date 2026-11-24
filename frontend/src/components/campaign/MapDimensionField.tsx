@@ -6,6 +6,7 @@
 // ============================================
 
 import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function MapDimensionField({
   label,
@@ -21,6 +22,7 @@ export default function MapDimensionField({
   max: number;
 }) {
   const boxId = useId();
+  const { t } = useTranslation();
   const clamp = (v: number) => Math.max(min, Math.min(max, v));
   return (
     <div>
@@ -41,7 +43,7 @@ export default function MapDimensionField({
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value))}
         className="w-full mt-1.5 accent-moss-green cursor-pointer"
-        aria-label={`${label} slider`}
+        aria-label={t('mapModal.slider', { label })}
       />
     </div>
   );

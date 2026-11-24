@@ -110,7 +110,7 @@ describe('PUT /api/campaigns/:campaignId/gm', () => {
       const res = await agent.put(`/api/campaigns/${campaignId}/gm`).send({ userId: playerId });
 
       expect(res.status).toBe(200);
-      expect(res.body.message).toBe('GM role transferred successfully');
+      expect(res.body.message).toBe('Posto de mestre transferido.');
 
       const roles = await rolesById();
       expect(roles[playerId]).toBe('GM');
@@ -220,7 +220,7 @@ describe('PUT /api/campaigns/:campaignId/gm', () => {
       const res = await agent.put(`/api/campaigns/${campaignId}/gm`).send({ userId: gmId });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toBe('That member is already the GM');
+      expect(res.body.message).toBe('Esse membro já é o mestre.');
       expect((await rolesById())[gmId]).toBe('GM');
     });
 
@@ -254,7 +254,7 @@ describe('PUT /api/campaigns/:campaignId/gm', () => {
       // Transferring is the supported way to move the seat; the generic role
       // route must not become a second, non-atomic path to the same thing.
       expect(res.status).toBe(400);
-      expect(res.body.message).toBe("Cannot change the GM's role");
+      expect(res.body.message).toBe('Não é possível mudar o papel do mestre.');
       expect((await rolesById())[gmId]).toBe('GM');
     });
 
@@ -265,7 +265,7 @@ describe('PUT /api/campaigns/:campaignId/gm', () => {
         .send({ role: 'GM' });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toBe('Campaign already has a GM. Only one GM per campaign is allowed.');
+      expect(res.body.message).toBe('A campanha já tem um mestre. Só é permitido um mestre por campanha.');
       expect(Object.values(await rolesById()).filter((r) => r === 'GM')).toHaveLength(1);
     });
   });

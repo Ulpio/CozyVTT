@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { X, Shield, User as UserIcon } from 'lucide-react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useAuth } from '@/contexts/AuthContext';
@@ -72,6 +73,7 @@ export default function CharacterSheetViewerModal({
   onClose,
   onCharacterChanged,
 }: CharacterSheetViewerModalProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   // Optional: this modal opens both from the campaign roster, where there is a
   // websocket, and from the character gallery, where there is not. Live updates
@@ -90,8 +92,8 @@ export default function CharacterSheetViewerModal({
   // its owner to anyone who may read it. Asking GET /api/users/:id instead was
   // refused for anyone but the owner and an admin.
   const ownerName = character.userId === user?.id
-    ? 'You'
-    : character.user?.displayName ?? 'Unknown Player';
+    ? t('sheetModal.you')
+    : character.user?.displayName ?? t('sheetModal.unknownPlayer');
 
   // Listen for character updates via WebSocket
   useEffect(() => {
@@ -250,7 +252,7 @@ export default function CharacterSheetViewerModal({
                   {character.name}
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-3 text-sm text-warm-gray">
-                  <span>Player: {ownerName}</span>
+                  <span>{t('sheetModal.player', { name: ownerName })}</span>
                   <span>•</span>
                   <span>{gameSystemName(character.gameSystem)}</span>
                 </div>
@@ -262,7 +264,7 @@ export default function CharacterSheetViewerModal({
               <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-moss-green/10 border border-moss-green/30 rounded-lg">
                 <Shield className="w-4 h-4 text-brand-ink" />
                 <p className="text-sm text-brand-ink">
-                  You are viewing <strong>{ownerName}'s</strong> character as GM
+                  <Trans i18nKey="sheetModal.gmView" values={{ name: ownerName }} components={{ b: <strong /> }} />
                 </p>
               </div>
             )}
@@ -274,7 +276,7 @@ export default function CharacterSheetViewerModal({
           <div className="flex items-center gap-2 justify-self-end">
             <button
               onClick={onClose}
-              aria-label="Close dialog"
+              aria-label={t('common.closeDialog')}
               className="touch-target inline-flex items-center justify-center p-2 rounded-lg hover:bg-stone-gray/10 transition-colors"
             >
               <X className="w-5 h-5 text-stone-gray" />
@@ -307,7 +309,7 @@ export default function CharacterSheetViewerModal({
             onClick={onClose}
             className="touch-target px-6 py-2 rounded-lg bg-stone-gray/10 text-stone-gray hover:bg-stone-gray/20 transition-colors"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
       </div>

@@ -12,5 +12,5 @@ import { SHEET_LIST_MAX } from './sheetLimits';
  * name of the list.
  */
 export function sheetList<T extends z.ZodType>(entry: T, max: number = SHEET_LIST_MAX) {
-  return z.array(entry).max(max, `Can hold at most ${max.toLocaleString('en-US')} entries`);
+  return z.array(entry).max(max, `Pode ter no máximo ${max.toLocaleString('pt-BR')} itens.`);
 }

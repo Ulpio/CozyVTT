@@ -6,7 +6,10 @@
 
 import React from 'react';
 import { Circle, CheckCircle2, CircleDot, Dices } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { i18n as I18n } from 'i18next';
 import { rollTarget } from '../../useSheetRolls';
+import { checkPurpose, skillNameForRoll } from '@/utils/rollText';
 
 interface Skill {
   proficient: boolean;
@@ -70,6 +73,12 @@ const SKILL_NAMES: Record<string, string> = {
   survival: 'Survival',
 };
 
+/** A skill's name in the app's language; a key the app has no name for shows as English or as stored. */
+function skillName(i18n: I18n, key: string): string {
+  const path = `guidedCreation.skill.${key}`;
+  return i18n.exists(path) ? i18n.t(path as never) : (SKILL_NAMES[key] ?? key);
+}
+
 /** The skills in alphabetical order of their names; any unknown key last. */
 export function sortedSkillEntries<T>(skills: Record<string, T>): [string, T][] {
   const order = Object.keys(SKILL_NAMES);
@@ -85,9 +94,11 @@ export function sortedSkillEntries<T>(skills: Record<string, T>): [string, T][] 
  */
 const SkillRow: React.FC<{
   name: string;
+  /** The skill as the roll names it, in English: the table reads it. */
+  rollName?: string;
   skill: Skill;
   onRoll?: (expression: string, purpose: string) => void;
-}> = ({ name, skill, onRoll }) => {
+}> = ({ name, rollName = name, skill, onRoll }) => {
   const formatBonus = (bonus: number): string => {
     return bonus >= 0 ? `+${bonus}` : `${bonus}`;
   };
@@ -103,7 +114,7 @@ const SkillRow: React.FC<{
   };
 
   const expression = `1d20${formatBonus(skill.bonus)}`;
-  const purpose = `${name} Check`;
+  const purpose = checkPurpose(skillNameForRoll(rollName));
   const isClickable = !!onRoll;
 
   return (
@@ -134,6 +145,7 @@ const SkillRow: React.FC<{
  * SkillsList - Displays all skills with proficiency indicators
  */
 export const SkillsList: React.FC<SkillsListProps> = ({ skills, passivePerception, customSkills, onRoll }) => {
+  const { t, i18n } = useTranslation();
   return (
     <div className="space-y-2">
       {/* Skills, alphabetical and read down each column, as on the printed
@@ -142,7 +154,7 @@ export const SkillsList: React.FC<SkillsListProps> = ({ skills, passivePerceptio
       <div className="md:columns-2 gap-x-4">
         {sortedSkillEntries(skills).map(([key, skill]) => (
           <div key={key} className="break-inside-avoid">
-            <SkillRow name={SKILL_NAMES[key] ?? key} skill={skill} onRoll={onRoll} />
+            <SkillRow name={skillName(i18n, key)} rollName={SKILL_NAMES[key] ?? key} skill={skill} onRoll={onRoll} />
           </div>
         ))}
       </div>
@@ -152,7 +164,7 @@ export const SkillsList: React.FC<SkillsListProps> = ({ skills, passivePerceptio
       {customSkills && customSkills.length > 0 && (
         <div className="pt-2 border-t border-ink/10">
           <div className="text-xs font-semibold text-ink-muted uppercase tracking-wide px-2 mb-1">
-            Your Own Skills
+            {t('sheet5e.yourOwnSkills')}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
             {customSkills.map((custom, index) => (
@@ -172,7 +184,7 @@ export const SkillsList: React.FC<SkillsListProps> = ({ skills, passivePerceptio
         <div className="pt-3 border-t border-ink/10">
           <div className="flex items-center justify-between px-2 py-1 bg-accent/10 rounded-sm">
             <span className="text-sm font-semibold text-ink-secondary">
-              Passive Perception
+              {t('sheet5e.passivePerception')}
             </span>
             <span className="text-lg font-bold text-accent-ink">
               {passivePerception}
@@ -186,15 +198,15 @@ export const SkillsList: React.FC<SkillsListProps> = ({ skills, passivePerceptio
         <div className="flex flex-wrap gap-4 text-xs text-ink-secondary">
           <div className="flex items-center space-x-1">
             <Circle className="w-3 h-3 text-ink-muted" />
-            <span>Not Proficient</span>
+            <span>{t('sheet5e.notProficient')}</span>
           </div>
           <div className="flex items-center space-x-1">
             <CheckCircle2 className="w-3 h-3 text-accent-ink" />
-            <span>Proficient</span>
+            <span>{t('sheet5e.proficient')}</span>
           </div>
           <div className="flex items-center space-x-1">
             <CircleDot className="w-3 h-3 text-accent-ink" />
-            <span>Expertise</span>
+            <span>{t('sheet5e.expertise')}</span>
           </div>
         </div>
       </div>

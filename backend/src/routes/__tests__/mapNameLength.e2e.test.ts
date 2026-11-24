@@ -55,7 +55,7 @@ describe('POST /maps', () => {
   it('refuses a name over 200 characters, saying so', async () => {
     const res = await create('n'.repeat(201));
     expect(res.status).toBe(400);
-    expect(res.body.message).toBe('A map name can be at most 200 characters.');
+    expect(res.body.message).toBe('O nome do mapa pode ter no máximo 200 caracteres.');
   });
 
   it('counts the name after trimming it', async () => {
@@ -71,7 +71,7 @@ describe('PUT /maps/:id', () => {
     const res = await gm.put(`/api/campaigns/${campaignId}/maps/${map.id}`).send({ name: 'n'.repeat(201) });
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toBe('A map name can be at most 200 characters.');
+    expect(res.body.message).toBe('O nome do mapa pode ter no máximo 200 caracteres.');
     expect((await prisma.map.findUniqueOrThrow({ where: { id: map.id } })).name).toBe('Cellar');
   });
 

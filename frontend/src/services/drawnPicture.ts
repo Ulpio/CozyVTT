@@ -6,6 +6,7 @@
 // cannot differ between them.
 // ============================================
 
+import i18n from '@/i18n';
 import { api } from './api';
 import { AssetScope, AssetType, type Asset } from '@/types';
 import { DRAWN_MAP_TAG } from '@/constants/assetLimits';
@@ -28,7 +29,7 @@ export class DrawnPictureRefused extends Error {
   }
 }
 
-const megabytes = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+const megabytes = (bytes: number) => `${(bytes / (1024 * 1024)).toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB`;
 
 /**
  * Refused here, before anything is sent, when `png` is over the server's
@@ -39,7 +40,7 @@ async function refuseOverLimit(png: Blob): Promise<void> {
   const config = await api.getServerConfig().catch(() => undefined);
   const limit = getUploadLimit(config, AssetType.MAP);
   if (png.size > limit) {
-    throw new DrawnPictureRefused(`This picture is ${megabytes(png.size)}, over this server's limit of ${formatUploadLimit(limit)} for a map picture.`);
+    throw new DrawnPictureRefused(i18n.t('mapModal.drawnTooBig', { size: megabytes(png.size), limit: formatUploadLimit(limit) }));
   }
 }
 
@@ -49,7 +50,7 @@ async function sent<T>(request: Promise<T>): Promise<T> {
     return await request;
   } catch (err) {
     if (apiErrorStatus(err) === 413) {
-      throw new DrawnPictureRefused('This picture is too large for this server to take. Its administrator can raise the limit.');
+      throw new DrawnPictureRefused(i18n.t('mapModal.drawnServerTooBig'));
     }
     throw err;
   }

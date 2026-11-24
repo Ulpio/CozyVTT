@@ -81,6 +81,7 @@ export default function EditMapModal({
   onClose,
   onUpdated,
 }: EditMapModalProps) {
+  const { t } = useTranslation();
   const [mapAssetId, setMapAssetId] = useState<string | null>(null);
   const [spiritAssetId, setSpiritAssetId] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -92,7 +93,6 @@ export default function EditMapModal({
   const [diagonalRule, setDiagonalRule] = useState<'flat' | 'alternating'>('flat');
   const [lightingEnabled, setLightingEnabled] = useState(false);
   const [fogEnabled, setFogEnabled] = useState(true);
-  const { t } = useTranslation();
   const [globalIllumination, setGlobalIllumination] = useState(true);
   const [explorationEnabled, setExplorationEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -214,7 +214,7 @@ export default function EditMapModal({
     } catch (err: unknown) {
       setError(
         (err as { response?: { data?: { message?: string } } }).response?.data?.message ||
-          'Failed to update map. Please try again.'
+          t('mapModal.updateFailed')
       );
     } finally {
       setIsSubmitting(false);
@@ -235,7 +235,7 @@ export default function EditMapModal({
         variant="secondary"
         disabled={isSubmitting}
       >
-        Cancel
+        {t('common.cancel')}
       </Button>
       <Button
         type="button"
@@ -244,13 +244,13 @@ export default function EditMapModal({
         className="flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-        Save Changes
+        {t('mapModal.saveChanges')}
       </Button>
     </>
   );
 
   return (
-    <Modal open={isOpen} onClose={handleClose} title="Edit Map" icon={MapPin} size="xl" closeDisabled={isSubmitting} fitViewport footer={footer}>
+    <Modal open={isOpen} onClose={handleClose} title={t('mapModal.editTitle')} icon={MapPin} size="xl" closeDisabled={isSubmitting} fitViewport footer={footer}>
             {/* Body: it scrolls, between the header and the Modal's footer */}
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-6">
               <p className="text-xs text-ink-muted -mt-4 truncate">{map.name}</p>
@@ -261,35 +261,35 @@ export default function EditMapModal({
               )}
 
               <AssetPicker
-                label="Map Image"
+                label={t('mapModal.mapImage')}
                 required
                 type={AssetType.MAP}
                 allowUpload={false}
-                searchPlaceholder="Search maps..."
-                emptyMessage="No map assets found. Upload a map image in the Asset Library first."
+                searchPlaceholder={t('mapModal.searchMaps')}
+                emptyMessage={t('mapModal.emptyEdit')}
                 selectedAssetId={mapAssetId}
                 onSelect={handleMapAssetSelect}
               />
 
               <AssetPicker
-                label="Spirit Layer Image (optional)"
+                label={t('mapModal.spiritLayer')}
                 type={AssetType.MAP}
                 allowUpload={false}
-                searchPlaceholder="Search maps..."
-                emptyMessage="No map assets found. Upload a map image in the Asset Library first."
+                searchPlaceholder={t('mapModal.searchMaps')}
+                emptyMessage={t('mapModal.emptyEdit')}
                 selectedAssetId={spiritAssetId}
                 onSelect={handleSpiritAssetSelect}
               />
 
               <div>
                 <label className="block text-sm font-medium text-stone-gray mb-1">
-                  Map Name <span className="text-danger-ink">*</span>
+                  {t('mapModal.mapName')} <span className="text-danger-ink">*</span>
                 </label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Map name..."
+                  placeholder={t('mapModal.namePlaceholderEdit')}
                   className="input-cozy"
                   maxLength={100}
                 />
@@ -304,25 +304,25 @@ export default function EditMapModal({
                   {/* Map Dimensions */}
                   <div>
                     <label className="block text-sm font-medium text-stone-gray mb-3">
-                      Map Dimensions
+                      {t('mapModal.dimensions')}
                     </label>
                     <div className="space-y-3">
                       <MapDimensionField
-                        label="Width (grid squares)"
+                        label={t('mapModal.width')}
                         value={width}
                         onChange={setWidth}
                         min={MAP_LIMITS.minSide}
                         max={MAP_LIMITS.maxSide}
                       />
                       <MapDimensionField
-                        label="Height (grid squares)"
+                        label={t('mapModal.height')}
                         value={height}
                         onChange={setHeight}
                         min={MAP_LIMITS.minSide}
                         max={MAP_LIMITS.maxSide}
                       />
                       <MapDimensionField
-                        label="Grid Size (px/square)"
+                        label={t('mapModal.gridSize')}
                         value={gridSize}
                         onChange={setGridSize}
                         min={MAP_LIMITS.minGridSize}
@@ -330,17 +330,17 @@ export default function EditMapModal({
                       />
                     </div>
                     <p className="text-xs text-stone-gray/50 mt-2">
-                      Canvas will be {width * gridSize}×{height * gridSize}px
+                      {t('mapModal.canvasWillBe', { width: width * gridSize, height: height * gridSize })}
                     </p>
                   </div>
 
                   {/* Grid Settings */}
                   <div className="border border-moss-green/20 rounded-lg p-4 space-y-4 bg-moss-green/5">
-                    <h3 className="text-sm font-medium text-brand-ink">Grid Settings</h3>
+                    <h3 className="text-sm font-medium text-brand-ink">{t('mapModal.gridSettings')}</h3>
 
                     {/* Grid Scale */}
                     <div>
-                      <label className="block text-xs font-medium text-stone-gray mb-2">Grid Scale</label>
+                      <label className="block text-xs font-medium text-stone-gray mb-2">{t('mapModal.gridScale')}</label>
                       <div className="flex gap-2 flex-wrap">
                         {(['5', '10'] as const).map((v) => (
                           <button
@@ -353,7 +353,7 @@ export default function EditMapModal({
                                 : 'bg-paper-white text-stone-gray border-moss-green/30 hover:border-moss-green/60'
                             }`}
                           >
-                            {v} ft
+                            {t('mapModal.feet', { n: v })}
                           </button>
                         ))}
                         <button
@@ -365,7 +365,7 @@ export default function EditMapModal({
                               : 'bg-paper-white text-stone-gray border-moss-green/30 hover:border-moss-green/60'
                           }`}
                         >
-                          Custom
+                          {t('mapModal.custom')}
                         </button>
                         {feetPreset === 'custom' && (
                           <input
@@ -375,16 +375,16 @@ export default function EditMapModal({
                             min={MAP_LIMITS.minFeetPerSquare}
                             max={MAP_LIMITS.maxFeetPerSquare}
                             className="input-cozy w-20"
-                            placeholder="ft"
+                            placeholder={t('mapModal.feetPlaceholder')}
                           />
                         )}
                       </div>
-                      <p className="text-xs text-stone-gray/50 mt-1">How many feet each grid square represents.</p>
+                      <p className="text-xs text-stone-gray/50 mt-1">{t('mapModal.feetHint')}</p>
                     </div>
 
                     {/* Diagonal Movement */}
                     <div>
-                      <label className="block text-xs font-medium text-stone-gray mb-2">Diagonal Movement</label>
+                      <label className="block text-xs font-medium text-stone-gray mb-2">{t('mapModal.diagonal')}</label>
                       <div className="space-y-2">
                         <label className="flex items-start gap-3 cursor-pointer group">
                           <input
@@ -397,9 +397,9 @@ export default function EditMapModal({
                           />
                           <div>
                             <span className="text-sm text-stone-gray group-hover:text-brand-ink transition-colors">
-                              Flat — every square costs the same
+                              {t('mapModal.flat')}
                             </span>
-                            <p className="text-xs text-stone-gray/50">{GAME_SYSTEM_SHORT_LABELS[GameSystem.FIFTH_EDITION]} default</p>
+                            <p className="text-xs text-stone-gray/50">{t('mapModal.systemDefault', { system: GAME_SYSTEM_SHORT_LABELS[GameSystem.FIFTH_EDITION] })}</p>
                           </div>
                         </label>
                         <label className="flex items-start gap-3 cursor-pointer group">
@@ -414,9 +414,9 @@ export default function EditMapModal({
                           <div>
                             {/* At the Grid Scale chosen: 10/20/10/20 ft on 10 ft squares. */}
                             <span className="text-sm text-stone-gray group-hover:text-brand-ink transition-colors">
-                              Alternating — {diagonalStepCosts(feetPerSquare, 'alternating').join('/')} ft diagonals
+                              {t('mapModal.alternating', { costs: diagonalStepCosts(feetPerSquare, 'alternating').join('/') })}
                             </span>
-                            <p className="text-xs text-stone-gray/50">{GAME_SYSTEM_SHORT_LABELS[GameSystem.FANTASY_D20]} default</p>
+                            <p className="text-xs text-stone-gray/50">{t('mapModal.systemDefault', { system: GAME_SYSTEM_SHORT_LABELS[GameSystem.FANTASY_D20] })}</p>
                           </div>
                         </label>
                       </div>
@@ -427,12 +427,12 @@ export default function EditMapModal({
                 {/* ── Right: Grid Preview + Zoom ── */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="block text-sm font-medium text-stone-gray">Grid Preview</label>
+                    <label className="block text-sm font-medium text-stone-gray">{t('mapModal.gridPreview')}</label>
                     <div className="flex items-center gap-2">
                       {isDetecting && (
                         <span className="flex items-center gap-1 text-xs text-stone-gray/50">
                           <Loader2 className="w-3 h-3 animate-spin" />
-                          Analysing…
+                          {t('mapModal.analysing')}
                         </span>
                       )}
                       <span className="text-xs text-stone-gray/50 tabular-nums">{previewZoom.toFixed(2)}×</span>
@@ -458,7 +458,7 @@ export default function EditMapModal({
                       value={previewZoom}
                       onChange={(e) => setPreviewZoom(parseFloat(e.target.value))}
                       className="flex-1 accent-moss-green cursor-pointer"
-                      aria-label="Preview zoom level"
+                      aria-label={t('mapModal.zoomLevel')}
                     />
                     <ZoomIn className="w-4 h-4 text-stone-gray/50 shrink-0" />
                   </div>
@@ -468,11 +468,11 @@ export default function EditMapModal({
                     <div className="flex items-start gap-2 p-2.5 bg-warning/10 border border-warning/30 rounded-lg">
                       <Sparkles className="w-4 h-4 text-warning-ink shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-warning-ink">Grid detected</p>
+                        <p className="text-xs font-medium text-warning-ink">{t('mapModal.gridDetected')}</p>
                         <p className="text-xs text-warning-ink mt-0.5">
-                          {detectedGrid.width}×{detectedGrid.height} squares · {detectedGrid.gridSize}px/sq
+                          {t('mapModal.detectedSize', { width: detectedGrid.width, height: detectedGrid.height, size: detectedGrid.gridSize })}
                           <span className="text-warning-ink ml-1">
-                            ({Math.round(detectedGrid.confidence * 100)}% confidence)
+                            {t('mapModal.confidence', { percent: Math.round(detectedGrid.confidence * 100) })}
                           </span>
                         </p>
                       </div>
@@ -482,13 +482,13 @@ export default function EditMapModal({
                           onClick={applyDetectedGrid}
                           className="text-xs px-2 py-1 bg-warning/15 border border-warning/30 text-warning-ink rounded-sm hover:bg-warning/25 transition-colors"
                         >
-                          Apply
+                          {t('mapModal.apply')}
                         </button>
                         <button
                           type="button"
                           onClick={() => setDetectedGrid(null)}
                           className="text-xs px-2 py-1 text-warning-ink hover:text-warning-ink transition-colors"
-                          aria-label="Dismiss suggestion"
+                          aria-label={t('mapModal.dismiss')}
                         >
                           ✕
                         </button>
@@ -497,7 +497,7 @@ export default function EditMapModal({
                   )}
 
                   <p className="text-xs text-stone-gray/50 text-center leading-relaxed">
-                    Zoom in to verify the grid aligns<br />with the lines on your map image.
+                    {t('mapModal.zoomToVerify')}<br />{t('mapModal.withLines')}
                   </p>
                 </div>
               </div>
@@ -505,7 +505,7 @@ export default function EditMapModal({
               {/* Lighting and fog: their own section under the grid and its
                   preview, so the preview stays beside the grid's settings. */}
               <div role="group" aria-labelledby="edit-map-lighting-fog" className="border-t border-stone-gray/20 pt-4 space-y-1">
-                <h3 id="edit-map-lighting-fog" className="text-sm font-medium text-brand-ink">Lighting and Fog</h3>
+                <h3 id="edit-map-lighting-fog" className="text-sm font-medium text-brand-ink">{t('mapModal.lightingFog')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
                   <div>
                     {/* Dynamic Lighting */}
@@ -516,13 +516,13 @@ export default function EditMapModal({
                           checked={lightingEnabled}
                           onChange={(e) => setLightingEnabled(e.target.checked)}
                           className="w-4 h-4 accent-moss-green"
-                          aria-label="Enable dynamic lighting"
+                          aria-label={t('mapModal.enableLightingAria')}
                         />
                         <div>
                           <span className="text-sm text-stone-gray group-hover:text-brand-ink transition-colors">
-                            Enable Dynamic Lighting
+                            {t('mapModal.enableLighting')}
                           </span>
-                          <p className="text-xs text-stone-gray/50">Raycasting visibility — players only see what their tokens can see through walls</p>
+                          <p className="text-xs text-stone-gray/50">{t('mapModal.lightingHint')}</p>
                         </div>
                       </label>
                     </div>
@@ -554,13 +554,13 @@ export default function EditMapModal({
                           disabled={!lightingEnabled}
                           onChange={(e) => setExplorationEnabled(e.target.checked)}
                           className="w-4 h-4 accent-moss-green"
-                          aria-label="Remember explored areas"
+                          aria-label={t('mapModal.rememberExploredAria')}
                         />
                         <div>
                           <span className="text-sm text-stone-gray group-hover:text-brand-ink transition-colors">
-                            Remember Explored Areas
+                            {t('mapModal.rememberExplored')}
                           </span>
-                          <p className="text-xs text-stone-gray/50">Places a player has seen stay on their map, greyed, until they see them again</p>
+                          <p className="text-xs text-stone-gray/50">{t('mapModal.rememberExploredHint')}</p>
                         </div>
                       </label>
                     </div>
@@ -574,13 +574,13 @@ export default function EditMapModal({
                           checked={fogEnabled}
                           onChange={(e) => setFogEnabled(e.target.checked)}
                           className="w-4 h-4 accent-moss-green"
-                          aria-label="Fog of war on this map"
+                          aria-label={t('mapModal.fogAria')}
                         />
                         <div>
                           <span className="text-sm text-stone-gray group-hover:text-brand-ink transition-colors">
-                            Fog of War
+                            {t('mapModal.fog')}
                           </span>
-                          <p className="text-xs text-stone-gray/50">Cover the map and reveal it by hand from the Fog panel. Off, players see the whole map (dynamic lighting still applies)</p>
+                          <p className="text-xs text-stone-gray/50">{t('mapModal.fogHint')}</p>
                         </div>
                       </label>
                     </div>

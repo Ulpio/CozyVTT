@@ -79,7 +79,7 @@ describe('map.change', () => {
     const silence = expectNoEvent(player, 'map.changed');
     const refusal = waitForEvent<{ message: string }>(gm, 'error');
     gm.emit('map.change', { mapId: otherId });
-    expect((await refusal).message).toMatch(/current/i);
+    expect((await refusal).message).toMatch(/mapa atual/);
     await silence;
     gm.disconnect();
     player.disconnect();

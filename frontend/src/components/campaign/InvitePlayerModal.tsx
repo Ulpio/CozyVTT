@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Mail, Loader2, User as UserIcon } from 'lucide-react';
 import { api } from '@/services/api';
 import { useServerConfigQuery } from '@/hooks/queries';
@@ -60,6 +61,7 @@ export default function InvitePlayerModal({
   const [sendEmail, setSendEmail] = useState(false);
 
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const { data: serverConfig } = useServerConfigQuery();
   const emailAvailable = serverConfig?.smtp?.configured ?? false;
 
@@ -85,7 +87,7 @@ export default function InvitePlayerModal({
         setError('');
       } catch (err) {
         if (!current) return;
-        setError(apiErrorMessage(err) || 'Failed to search for people to invite');
+        setError(apiErrorMessage(err) || t('invite.searchFailed'));
       } finally {
         if (current) setSearching(false);
       }
@@ -94,7 +96,7 @@ export default function InvitePlayerModal({
       current = false;
       clearTimeout(timer);
     };
-  }, [campaignId, term]);
+  }, [campaignId, term, t]);
 
   // A pick that a new search no longer lists is no longer a pick.
   useEffect(() => {
@@ -103,7 +105,7 @@ export default function InvitePlayerModal({
 
   const handleInvite = async () => {
     if (!selectedUserId) {
-      setError('Pick the person to invite');
+      setError(t('invite.pick'));
       return;
     }
     try {
@@ -118,14 +120,14 @@ export default function InvitePlayerModal({
       // Say what actually happened. Asking for an email and not getting one is
       // worth knowing about, and the server is the only thing that can tell us.
       showToast(
-        emailSent ? 'Invitation sent, and emailed to them.' : 'Invitation sent.',
+        emailSent ? t('invite.sentEmailed') : t('invite.sent'),
         'success'
       );
       onSuccess();
       onClose();
     } catch (err) {
       console.error('Error sending invitation:', errorSummary(err));
-      setError(apiErrorMessage(err) || 'Failed to send invitation');
+      setError(apiErrorMessage(err) || t('invite.sendFailed'));
     } finally {
       setSending(false);
     }
@@ -138,14 +140,14 @@ export default function InvitePlayerModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Invite Player"
+      title={t('invite.title')}
       icon={Mail}
       size="sm"
       closeDisabled={sending}
       footer={
         <>
           <Button type="button" onClick={onClose} disabled={sending} variant="secondary">
-            Cancel
+            {t('invite.cancel')}
           </Button>
           <Button
             onClick={handleInvite}
@@ -153,7 +155,7 @@ export default function InvitePlayerModal({
             loading={sending}
             icon={Mail}
           >
-            {sending ? 'Sending...' : 'Send Invitation'}
+            {sending ? t('invite.sending') : t('invite.send')}
           </Button>
         </>
       }
@@ -167,8 +169,8 @@ export default function InvitePlayerModal({
         )}
 
         <Field
-          label="Search by display name"
-          hint="Type at least 2 letters of their display name, or the whole name if it is one letter long."
+          label={t('invite.searchLabel')}
+          hint={t('invite.searchHint')}
         >
           {(field) => (
             <Input
@@ -186,12 +188,12 @@ export default function InvitePlayerModal({
 
         {searching && (
           <div className="flex items-center justify-center py-4" aria-live="polite">
-            <Loader2 className="w-6 h-6 text-brand-ink animate-spin" aria-label="Searching" />
+            <Loader2 className="w-6 h-6 text-brand-ink animate-spin" aria-label={t('invite.searching')} />
           </div>
         )}
 
         {!searching && users.length > 0 && (
-          <div role="radiogroup" aria-label="People who match" className="space-y-1 max-h-64 overflow-y-auto">
+          <div role="radiogroup" aria-label={t('invite.matches')} className="space-y-1 max-h-64 overflow-y-auto">
             {users.map((user) => (
               <label
                 key={user.id}
@@ -227,20 +229,19 @@ export default function InvitePlayerModal({
 
         {!searching && hasMore && (
           <p className="text-xs text-warm-gray">
-            Showing the first {INVITE_SEARCH_MAX_RESULTS} matches. Type more of the name to narrow it down.
+            {t('invite.firstMatches', { max: INVITE_SEARCH_MAX_RESULTS })}
           </p>
         )}
 
         {showNoMatches && wholeNameOnly && (
           <p className="text-sm text-ink-muted text-center py-2">
-            No one called “{term}” can be invited. Type {INVITE_SEARCH_MIN_LENGTH} or more letters to search for part of a name.
+            {t('invite.noOneCalled', { term, min: INVITE_SEARCH_MIN_LENGTH })}
           </p>
         )}
 
         {showNoMatches && !wholeNameOnly && (
           <p className="text-sm text-ink-muted text-center py-2">
-            No one by that name can be invited. They need an account on this server, and cannot
-            already be in this campaign or have an invitation waiting.
+            {t('invite.noOneByName')}
           </p>
         )}
 
@@ -263,11 +264,11 @@ export default function InvitePlayerModal({
             />
           </div>
           <div>
-            <span className="text-sm text-ink">Also email them an invitation</span>
+            <span className="text-sm text-ink">{t('invite.emailThem')}</span>
             <p className="text-xs text-warm-gray mt-0.5">
               {emailAvailable
-                ? "They'll see the invitation on their dashboard either way."
-                : 'Email is not set up on this server, so only the dashboard invitation will appear.'}
+                ? t('invite.emailDashboard')
+                : t('invite.emailOff')}
             </p>
           </div>
         </label>

@@ -12,6 +12,7 @@ import type { WallToolMode } from '@/components/campaign/GmWallControls';
 import type { FogToolMode } from '@/components/campaign/GmFogControls';
 import type { LightToolMode } from '@/components/campaign/GmLightControls';
 import type { ToastType } from '@/components/Toast';
+import i18n from '@/i18n';
 import { offeredDoorAt, type DoorViewer } from '../doorAccess';
 import type { OwnEdits } from '../ownEdits';
 import type { MapLayer } from '../useRenderLoop';
@@ -68,7 +69,7 @@ export function useDoorTool({
       const door = doorAt(at.mapPx);
       if (!door) return false;
       if (door.type === 'door-locked') {
-        showToast('This door is locked.', 'info');
+        showToast(i18n.t('doorMenu.isLocked'), 'info');
         return true;
       }
       setDoorType(door, door.type === 'door-closed' ? 'door-open' : 'door-closed');

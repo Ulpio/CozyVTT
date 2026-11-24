@@ -61,3 +61,14 @@ describe('characterRollPublicName', () => {
     expect(characterRollPublicName({ name: 'Alice', layer: 'spirit', controlledBy: 'alice' }, 'dm')).toBe('Unknown creature');
   });
 });
+
+describe('the unknown creature placeholder in Portuguese', () => {
+  it('is shown as criatura desconhecida', async () => {
+    const { inPortuguese } = await import('@/test/inPortuguese');
+    await inPortuguese(() => {
+      expect(tokenDisplayName({ name: '', obscured: true })).toBe('criatura desconhecida');
+      expect(tokenPublicName({ name: 'Goblin', obscured: true })).toBe('criatura desconhecida');
+      expect(characterRollPublicName({ name: 'X', layer: 'spirit' }, 'dm')).toBe('criatura desconhecida');
+    });
+  });
+});

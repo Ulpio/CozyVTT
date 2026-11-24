@@ -5,6 +5,7 @@
 // ============================================
 
 import { Keyboard } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Modal from '@/components/ui/Modal';
 import { shortcutsFor, type MapShortcut } from './map/keyboard';
 
@@ -15,28 +16,44 @@ interface ShortcutsPanelProps {
   role: string | null | undefined;
 }
 
+/** The keys that are described, not printed on a keyboard, as the window writes them in the app's language. */
+const KEY_NAMES = {
+  'Arrow keys': 'arrowKeys',
+  'Shift + arrow keys': 'shiftArrowKeys',
+  'Double tap': 'doubleTap',
+  'Alt + click': 'altClick',
+  'Shift + click': 'shiftClick',
+  'Double-click': 'doubleClick',
+  'Shift + drag': 'shiftDrag',
+} as const;
+
+function isDescribed(key: string): key is keyof typeof KEY_NAMES {
+  return key in KEY_NAMES;
+}
+
 function ShortcutTable({ caption, shortcuts }: { caption: string; shortcuts: MapShortcut[] }) {
+  const { t } = useTranslation();
   return (
     <table className="w-full text-sm">
       <caption className="mb-2 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">{caption}</caption>
       <thead className="sr-only">
         <tr>
-          <th scope="col">Keys</th>
-          <th scope="col">What they do</th>
+          <th scope="col">{t('shortcuts.keys')}</th>
+          <th scope="col">{t('shortcuts.whatTheyDo')}</th>
         </tr>
       </thead>
       <tbody>
         {shortcuts.map((s) => (
-          <tr key={`${s.who}:${s.does}`} className="border-t border-brand/10">
+          <tr key={s.id} className="border-t border-brand/10">
             <td className="py-1.5 pr-4 align-top whitespace-nowrap">
               {s.keys.map((k, i) => (
                 <span key={k}>
                   {i > 0 && ' '}
-                  <kbd className="rounded-sm border border-brand/30 bg-surface-light px-1.5 py-0.5 font-mono text-xs text-ink">{k}</kbd>
+                  <kbd className="rounded-sm border border-brand/30 bg-surface-light px-1.5 py-0.5 font-mono text-xs text-ink">{isDescribed(k) ? t(`shortcuts.keyNames.${KEY_NAMES[k]}`) : k}</kbd>
                 </span>
               ))}
             </td>
-            <td className="py-1.5 text-ink">{s.does}</td>
+            <td className="py-1.5 text-ink">{t(`shortcuts.does.${s.id}`)}</td>
           </tr>
         ))}
       </tbody>
@@ -45,18 +62,19 @@ function ShortcutTable({ caption, shortcuts }: { caption: string; shortcuts: Map
 }
 
 export default function ShortcutsPanel({ open, onClose, role }: ShortcutsPanelProps) {
+  const { t } = useTranslation();
   const shown = shortcutsFor(role);
   const map = shown.filter((s) => s.who !== 'gm');
   const walls = shown.filter((s) => s.who === 'gm');
 
   return (
-    <Modal open={open} onClose={onClose} title="Keyboard shortcuts" icon={Keyboard} size="md">
+    <Modal open={open} onClose={onClose} title={t('shortcuts.title')} icon={Keyboard} size="md">
       <div className="space-y-5">
         <p className="text-sm text-ink-muted">
-          Click the map first, so the keys go to it; Shift+Tab leaves it. None of them act while you type. On a Mac, use Cmd where it says Ctrl.
+          {t('shortcuts.intro')}
         </p>
-        <ShortcutTable caption="On the map" shortcuts={map} />
-        {walls.length > 0 && <ShortcutTable caption="Walls and undo, yours alone" shortcuts={walls} />}
+        <ShortcutTable caption={t('shortcuts.onTheMap')} shortcuts={map} />
+        {walls.length > 0 && <ShortcutTable caption={t('shortcuts.wallsAndUndo')} shortcuts={walls} />}
       </div>
     </Modal>
   );

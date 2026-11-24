@@ -38,8 +38,8 @@ import {
 } from '../../services/actionResolver';
 import { metadataFor, viewerOf } from '../../services/actionMessages';
 
-export const SPECTATOR_REFUSAL = 'Spectators cannot use actions';
-const FAILED = 'Failed to carry out the action';
+export const SPECTATOR_REFUSAL = 'Espectadores não podem usar ações.';
+const FAILED = 'Não foi possível executar a ação.';
 
 /**
  * Tell each member's sockets about a message, each reader the metadata as
@@ -119,7 +119,7 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
       const refuse = (message: string) => refuseRequest(socket, ack, message);
       try {
         if (!socket.campaignId || !socket.userId) {
-          refuse('Not authenticated to a campaign');
+          refuse('Você não está em uma campanha.');
           return;
         }
         if (!withinCeiling(socket, event, ack)) return;
@@ -129,7 +129,7 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
         }
         const parsed = parse(data);
         if (!parsed.success) {
-          refuse(parsed.error.issues[0]?.message ?? 'Invalid request');
+          refuse(parsed.error.issues[0]?.message ?? 'Pedido inválido.');
           return;
         }
         await work(parsed.data, socket.campaignId, ack, refuse);

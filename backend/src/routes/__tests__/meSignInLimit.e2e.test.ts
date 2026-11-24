@@ -57,7 +57,7 @@ it('answers a sign-in past the limit as the guarded routes do, and ends it', asy
     expect(guarded.body).toEqual({
       error: 'Unauthorized',
       code: 'SIGN_IN_EXPIRED',
-      message: 'Your sign-in has reached its 30-day limit. Sign in again.',
+      message: 'Seu login chegou ao limite de 30 dias. Entre de novo.',
     });
     expect(me.status).toBe(guarded.status);
     expect(me.body).toEqual(guarded.body);

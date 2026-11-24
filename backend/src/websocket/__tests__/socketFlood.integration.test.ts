@@ -147,7 +147,7 @@ describe('every event one socket sends', () => {
     expect(handled).toBeGreaterThanOrEqual(SOCKET_EVENTS_PER_SECOND);
     expect(handled).toBeLessThanOrEqual(2 * SOCKET_EVENTS_PER_SECOND);
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatch(/^Too many messages at once from this page/);
+    expect(errors[0]).toMatch(/^Muitas mensagens de uma vez desta página/);
     client.disconnect();
   });
 
@@ -365,7 +365,7 @@ describe("a player's wall and light edits", () => {
 
     expect(errors.length).toBeGreaterThan(0);
     expect(errors.length).toBeLessThanOrEqual(MAP_EDITS_PER_SECOND);
-    expect(errors.every((message) => /^Only GMs can/.test(message))).toBe(true);
+    expect(errors.every((message) => message === 'Só o mestre pode fazer isso.')).toBe(true);
     client.disconnect();
   });
 });

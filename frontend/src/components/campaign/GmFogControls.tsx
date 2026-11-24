@@ -9,6 +9,7 @@
 
 import { useId, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export type FogToolMode = 'fog-reveal' | 'fog-hide' | null;
 
@@ -53,6 +54,7 @@ export default function GmFogControls({
   onResetExploration,
   onCollapse,
 }: GmFogControlsProps) {
+  const { t } = useTranslation();
   const [confirmRevealAll, setConfirmRevealAll] = useState(false);
   const [confirmHideAll, setConfirmHideAll] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -93,7 +95,7 @@ export default function GmFogControls({
           if (next) onCollapse?.();
         }}
       >
-        <span className="text-xs text-brand-ink font-medium uppercase tracking-wide">Fog of War</span>
+        <span className="text-xs text-brand-ink font-medium uppercase tracking-wide">{t('gmFog.title')}</span>
         <span className="text-ink-muted text-xs" aria-hidden="true">{collapsed ? '▶' : '▼'}</span>
       </button>
     {!collapsed && (
@@ -111,15 +113,14 @@ export default function GmFogControls({
             if (!next) onFogModeChange(null);
             onFogEnabledChange(next);
           }}
-          aria-label="Fog of war on this map"
+          aria-label={t('gmFog.enabled')}
         />
-        Fog of war on this map
+        {t('gmFog.enabled')}
       </label>
 
       {!fogEnabled && (
         <p className="px-1 text-[11px] leading-snug text-ink-muted">
-          Fog is off. Players see the whole map (dynamic lighting still applies).
-          What you had revealed is kept for when you turn it back on.
+          {t('gmFog.offNote')}
         </p>
       )}
 
@@ -133,11 +134,11 @@ export default function GmFogControls({
               ? 'bg-success/25 text-success-ink border border-success/50'
               : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-moss-green/10'
           }`}
-          title="Reveal — drag a box over the map to reveal it to players"
-          aria-label="Fog reveal box"
+          title={t('gmFog.revealHint')}
+          aria-label={t('gmFog.revealLabel')}
         >
           <Eye className="w-3.5 h-3.5" />
-          Reveal
+          {t('gmFog.reveal')}
         </button>
         <button
           onClick={() => onFogModeChange(fogMode === 'fog-hide' ? null : 'fog-hide')}
@@ -146,20 +147,19 @@ export default function GmFogControls({
               ? 'bg-accent text-accent-text'
               : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-moss-green/10'
           }`}
-          title="Hide — drag a box over the map to hide it from players"
-          aria-label="Fog hide box"
+          title={t('gmFog.hideHint')}
+          aria-label={t('gmFog.hideLabel')}
         >
           <EyeOff className="w-3.5 h-3.5" />
-          Hide
+          {t('gmFog.hide')}
         </button>
       </div>
 
       {/* How-to hint — only while a mode is armed */}
       {fogMode && (
         <p className="px-1 text-[11px] leading-snug text-ink-muted">
-          Drag a box over the map. The selection snaps to whole squares —
-          click a single square to {fogMode === 'fog-reveal' ? 'reveal' : 'hide'} just that one.
-          <span className="block mt-0.5 text-ink-muted">Esc or right-drag cancels.</span>
+          {fogMode === 'fog-reveal' ? t('gmFog.dragHintReveal') : t('gmFog.dragHintHide')}
+          <span className="block mt-0.5 text-ink-muted">{t('gmFog.cancelHint')}</span>
         </p>
       )}
 
@@ -174,12 +174,12 @@ export default function GmFogControls({
               ? 'bg-brand text-brand-text'
               : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-success/20 hover:text-success-ink'
           }`}
-          title={confirmRevealAll ? 'Click again to confirm: reveal entire map' : 'Reveal all — show entire map to players'}
-          aria-label="Reveal entire map"
+          title={confirmRevealAll ? t('gmFog.revealAllConfirmHint') : t('gmFog.revealAllHint')}
+          aria-label={t('gmFog.revealAllLabel')}
           onBlur={() => setConfirmRevealAll(false)}
         >
           {confirmRevealAll && <ConfirmPulse ring="ring-brand" />}
-          {confirmRevealAll ? 'Confirm?' : 'Reveal all'}
+          {confirmRevealAll ? t('gmFog.confirm') : t('gmFog.revealAll')}
         </button>
         <button
           onClick={handleHideAll}
@@ -188,12 +188,12 @@ export default function GmFogControls({
               ? 'bg-accent text-accent-text'
               : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-accent/20 hover:text-accent-ink'
           }`}
-          title={confirmHideAll ? 'Click again to confirm: hide entire map' : 'Hide all — cover entire map with fog'}
-          aria-label="Hide entire map"
+          title={confirmHideAll ? t('gmFog.hideAllConfirmHint') : t('gmFog.hideAllHint')}
+          aria-label={t('gmFog.hideAllLabel')}
           onBlur={() => setConfirmHideAll(false)}
         >
           {confirmHideAll && <ConfirmPulse ring="ring-accent" />}
-          {confirmHideAll ? 'Confirm?' : 'Hide all'}
+          {confirmHideAll ? t('gmFog.confirm') : t('gmFog.hideAll')}
         </button>
       </div>
       </>)}
@@ -209,15 +209,15 @@ export default function GmFogControls({
                 ? 'bg-accent text-accent-text'
                 : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-accent/20 hover:text-accent-ink'
             }`}
-            title={confirmReset ? 'Click again to confirm: forget what every player has seen' : 'Reset explored areas: players forget what they have seen of this map'}
-            aria-label="Reset explored areas"
+            title={confirmReset ? t('gmFog.resetConfirmHint') : t('gmFog.resetHint')}
+            aria-label={t('gmFog.reset')}
             onBlur={() => setConfirmReset(false)}
           >
             {confirmReset && <ConfirmPulse ring="ring-accent" />}
-            {confirmReset ? 'Confirm?' : 'Reset explored areas'}
+            {confirmReset ? t('gmFog.confirm') : t('gmFog.reset')}
           </button>
           <p className="px-1 mt-1 text-[10px] leading-snug text-ink-muted">
-            Forgets what every player has seen of this map. Their view now is unchanged.
+            {t('gmFog.resetNote')}
           </p>
         </div>
       )}

@@ -180,7 +180,7 @@ describe('initiative.roll', () => {
 
     const denial = waitForEvent<{ message: string }>(spectator, 'error');
     spectator.emit('initiative.roll', { tokenId: HERO, mapId });
-    expect((await denial).message).toBe('Spectators cannot roll initiative');
+    expect((await denial).message).toBe('Espectadores não rolam iniciativa.');
     expect(reads).not.toHaveBeenCalled();
 
     gm.disconnect();

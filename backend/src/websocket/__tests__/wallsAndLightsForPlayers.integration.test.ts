@@ -176,7 +176,7 @@ describe('a live edit', () => {
     const refused = waitForEvent<{ message: string }>(player, 'error');
     const back = waitForEvent<{ segment: Wall; opId?: string }>(player, 'wall:updated');
     player.emit('wall:update', { mapId, segment: { ...asClosed, type: 'door-open' }, opId: 'try-the-door' });
-    expect((await refused).message).toBe('That door is locked');
+    expect((await refused).message).toBe('Essa porta está trancada.');
     const corrected = await back;
     expect(corrected.segment).toEqual(asClosed);
     expect(corrected.opId).toBeUndefined();
@@ -373,7 +373,7 @@ describe('a change a player cannot see, on a lit map', () => {
     const told = heard(player);
     const refused = waitForEvent<{ message: string }>(gm, 'error');
     gm.emit('wall:remove', { mapId, segmentId: randomUUID() });
-    expect((await refused).message).toBe('Wall segment not found');
+    expect((await refused).message).toBe('Segmento de parede não encontrado.');
     await settled();
     expect(told).toEqual([]);
     expect((await prisma.map.findUniqueOrThrow({ where: { id: mapId } })).updatedAt).toEqual(before);

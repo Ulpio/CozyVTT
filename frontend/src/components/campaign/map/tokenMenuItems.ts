@@ -97,19 +97,19 @@ export function tokenMenuItems(token: Token, ctx: TokenMenuContext): MenuItem[] 
   // The character's sheet and rolls, by the same rules as the initiative
   // tracker's menu.
   if (token.characterId) {
-    if (ctx.mayViewSheet) items.push(command('view-sheet', 'View Character Sheet', () => act.viewSheet(token)));
-    if (ctx.mayRoll) items.push(command('roll', 'Roll...', () => act.rollCharacter(token)));
-    if (ctx.mayGrantTemporaryHp) items.push(command('temporary-hp', 'Temporary HP...', () => act.grantTemporaryHp(token)));
+    if (ctx.mayViewSheet) items.push(command('view-sheet', i18n.t('tokenMenu.viewSheet'), () => act.viewSheet(token)));
+    if (ctx.mayRoll) items.push(command('roll', i18n.t('tokenMenu.roll'), () => act.rollCharacter(token)));
+    if (ctx.mayGrantTemporaryHp) items.push(command('temporary-hp', i18n.t('tokenMenu.temporaryHp'), () => act.grantTemporaryHp(token)));
   }
 
   // The menu stays open so presses add up.
   if (ctx.mayRotate) {
     items.push(
-      command('rotate-left', 'Rotate Left', () => act.rotate(token, -ROTATION_STEP), {
-        title: `Turn ${ROTATION_STEP} degrees anticlockwise`, keepsOpen: true,
+      command('rotate-left', i18n.t('tokenMenu.rotateLeft'), () => act.rotate(token, -ROTATION_STEP), {
+        title: i18n.t('tokenMenu.turnLeft', { degrees: ROTATION_STEP }), keepsOpen: true,
       }),
-      command('rotate-right', 'Rotate Right', () => act.rotate(token, ROTATION_STEP), {
-        title: `Turn ${ROTATION_STEP} degrees clockwise`, keepsOpen: true,
+      command('rotate-right', i18n.t('tokenMenu.rotateRight'), () => act.rotate(token, ROTATION_STEP), {
+        title: i18n.t('tokenMenu.turnRight', { degrees: ROTATION_STEP }), keepsOpen: true,
       }),
     );
   }
@@ -125,30 +125,30 @@ export function tokenMenuItems(token: Token, ctx: TokenMenuContext): MenuItem[] 
   // typed NPC and bound to a character (a companion, or a PC the GM re-typed)
   // from offering Roll... twice: it rolls from the sheet, above.
   if (type === TokenType.NPC && !token.characterId) {
-    items.push(command('roll-creature', 'Roll...', () => act.rollCreature(token)));
+    items.push(command('roll-creature', i18n.t('tokenMenu.roll'), () => act.rollCreature(token)));
   }
   // A creature's own hit points, which only the GM changes.
   if (!token.characterId && ctx.mayGrantTemporaryHp) {
-    items.push(command('temporary-hp', 'Temporary HP...', () => act.grantTemporaryHp(token)));
+    items.push(command('temporary-hp', i18n.t('tokenMenu.temporaryHp'), () => act.grantTemporaryHp(token)));
   }
 
   // Every token type. The editor shows a player token its name, image,
   // darkvision and controller; the NPC-only sections stay hidden.
-  items.push(command('edit', 'Edit Token', () => act.edit(token), { tone: 'brand', strong: true }));
+  items.push(command('edit', i18n.t('tokenMenu.edit'), () => act.edit(token), { tone: 'brand', strong: true }));
 
   const { mapId } = ctx;
-  if (mapId) items.push(command('add-to-initiative', 'Add to Initiative', () => act.addToInitiative(token, mapId), { tone: 'accent' }));
+  if (mapId) items.push(command('add-to-initiative', i18n.t('tokenMenu.addToInitiative'), () => act.addToInitiative(token, mapId), { tone: 'accent' }));
 
   items.push(
-    command('duplicate', 'Duplicate Token', () => act.duplicate(token)),
-    command('save-as-template', 'Save as Template', () => act.saveAsTemplate(token)),
+    command('duplicate', i18n.t('tokenMenu.duplicate'), () => act.duplicate(token)),
+    command('save-as-template', i18n.t('tokenMenu.saveAsTemplate'), () => act.saveAsTemplate(token)),
   );
 
   if (controls.hide) {
-    items.push(command('visibility', token.visible ? 'Hide from Players' : 'Reveal to Players', () => act.setVisible(token, !token.visible)));
+    items.push(command('visibility', token.visible ? i18n.t('tokenMenu.hide') : i18n.t('tokenMenu.reveal'), () => act.setVisible(token, !token.visible)));
   }
   if (controls.obscure) {
-    items.push(command('identity', token.obscured ? 'Reveal Identity' : 'Obscure Identity', () => act.setObscured(token, !token.obscured)));
+    items.push(command('identity', token.obscured ? i18n.t('tokenMenu.revealIdentity') : i18n.t('tokenMenu.obscureIdentity'), () => act.setObscured(token, !token.obscured)));
   }
 
   // Creatures cross planes; scenery does not.
@@ -156,9 +156,9 @@ export function tokenMenuItems(token: Token, ctx: TokenMenuContext): MenuItem[] 
     const toSpirit = token.layer === TokenLayer.TOKEN;
     items.push(command(
       'plane',
-      toSpirit ? 'Send to Spirit Realm' : 'Return to Material Plane',
+      toSpirit ? i18n.t('tokenMenu.toSpirit') : i18n.t('tokenMenu.toMaterial'),
       () => act.setLayer(token, toSpirit ? TokenLayer.SPIRIT : TokenLayer.TOKEN),
-      { tone: toSpirit ? 'spirit' : 'brand', busy: { active: ctx.busy.crossing, label: 'Moving…' } },
+      { tone: toSpirit ? 'spirit' : 'brand', busy: { active: ctx.busy.crossing, label: i18n.t('tokenMenu.moving') } },
     ));
   }
 
@@ -170,15 +170,15 @@ export function tokenMenuItems(token: Token, ctx: TokenMenuContext): MenuItem[] 
     items.push({
       kind: 'command',
       id: 'move-to-map',
-      label: 'Move to Map…',
+      label: i18n.t('tokenMenu.moveToMap'),
       tone: 'accent',
-      busy: { active: ctx.busy.moving, label: 'Moving…' },
+      busy: { active: ctx.busy.moving, label: i18n.t('tokenMenu.moving') },
       children: otherMaps.map((m) => ({ id: `map:${m.id}`, label: m.name, run: () => act.moveToMap(token, m.id) })),
     });
   }
   items.push({ kind: 'separator', id: 'separator-remove' });
 
-  items.push(command('remove', 'Remove from Map', () => act.remove(token), { tone: 'danger' }));
+  items.push(command('remove', i18n.t('tokenMenu.remove'), () => act.remove(token), { tone: 'danger' }));
   return items;
 }
 

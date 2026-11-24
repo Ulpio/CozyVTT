@@ -223,7 +223,7 @@ describe('control taken away in the middle of a drag', () => {
     const back = waitForEvent<{ tokenId: string; x: number; y: number; movedBy: string | null }>(player, 'token.moved');
     const quietGm = expectNoEvent(gm, 'token.moved', 600);
     player.emit('token.move.end', { tokenId: NPC, mapId, x: 5, y: 5 });
-    expect((await refused).message).toMatch(/permission/i);
+    expect((await refused).message).toMatch(/permissão/);
     expect(await back).toEqual({ tokenId: NPC, mapId, x: 1, y: 1, movedBy: null });
     await quietGm;
     expect(await positionOf(NPC)).toEqual({ x: 1, y: 1 });
@@ -241,7 +241,7 @@ describe('control taken away in the middle of a drag', () => {
     const refused = waitForEvent<{ message: string }>(player, 'error');
     const quiet = expectNoEvent(player, 'token.moved', 600);
     player.emit('token.move.end', { tokenId: NPC, mapId, x: 5, y: 5 });
-    expect((await refused).message).toMatch(/permission/i);
+    expect((await refused).message).toMatch(/permissão/);
     await quiet;
     player.disconnect();
   });
@@ -280,7 +280,7 @@ describe('a drop long after a drag, once the token is hidden', () => {
     const quietSender = expectNoEvent(player, 'token.moved', 600);
     const quietWatcher = expectNoEvent(other, 'token.moved', 600);
     player.emit('token.move.end', { tokenId: OWN, mapId, x: 0, y: 0 });
-    expect((await refused).message).toMatch(/permission/i);
+    expect((await refused).message).toMatch(/permissão/);
     await quietSender;
     await quietWatcher;
     player.disconnect();

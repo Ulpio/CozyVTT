@@ -83,7 +83,7 @@ describe('DELETE /api/campaigns/:campaignId with members connected', () => {
       data: { mapId, authorId: playerId, kind: 'line', color: '#e8a33c', width: 2, points: [[0, 0], [40, 40]] },
     });
 
-    const told = { campaignId, reason: 'campaign-deleted', message: 'This campaign was deleted.' };
+    const told = { campaignId, reason: 'campaign-deleted', message: 'Esta campanha foi excluída.' };
     const gmTold = waitForEvent(gm, 'campaign.access.revoked');
     const playerTold = waitForEvent(player, 'campaign.access.revoked');
     const res = await owner.delete(`/api/campaigns/${campaignId}`);

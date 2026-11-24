@@ -11,7 +11,8 @@ import { useEffect, useRef, useState, type Dispatch, type RefObject, type SetSta
 import type { LightSource } from '@/types/walls';
 import type { LightToolMode, LightPlacementDefaults } from '@/components/campaign/GmLightControls';
 import { randomId } from '@/utils/uuid';
-import { TOO_MANY_LIGHTS_MESSAGE } from '@/constants/mapLimits';
+import { MAP_LIMITS } from '@/constants/mapLimits';
+import i18n from '@/i18n';
 import type { OwnEdits } from '../ownEdits';
 import { answeredWithin, atLightCap, refusalIn, WALL_LIGHT_ANSWER_TIMEOUT_MS } from '../wallLightCaps';
 import type { MapLayer } from '../useRenderLoop';
@@ -65,7 +66,7 @@ export function useLightTool({
       if (!(lightMode && isGM)) return false;
       if (lightMode === 'light-place') {
         if (atLightCap(lightSources.length)) {
-          refuse(TOO_MANY_LIGHTS_MESSAGE);
+          refuse(i18n.t('mapView.tooManyLights', { max: MAP_LIMITS.maxLightSources }));
           return true;
         }
         const newLight: LightSource = {

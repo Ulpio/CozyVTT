@@ -4,6 +4,7 @@
 // ============================================
 
 import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ZoomIn, ZoomOut, Maximize2, Grid3x3, Palette, Ghost, Ruler, Zap, MapPin, Pencil, Paintbrush, SlidersHorizontal } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
@@ -107,7 +108,7 @@ import { gridDistanceLabel } from '@/utils/geometry';
 import type { DoorViewer } from './map/doorAccess';
 import { fogCellIndex, gridXToFogCol, gridYToFogRow } from './map/coords';
 import { isTypingInto } from './map/typingTarget';
-import { keyBelongsToMap, mapKeyAction, createRepeatPacer, ARROW_REPEAT_MS, MAP_KEYS_HINT } from './map/keyboard';
+import { keyBelongsToMap, mapKeyAction, createRepeatPacer, ARROW_REPEAT_MS } from './map/keyboard';
 import { selectableTokens, nextSelectedId, squareFromArrow, panToKeepInView, keepInViewMargin, settleArrowEcho, type ArrowKey, type StepDirection } from './map/selection';
 import { tokenCentre } from '@/utils/tokenCentre';
 import { createOwnEdits } from './map/ownEdits';
@@ -138,7 +139,7 @@ import NpcRollPicker from '@/components/campaign/NpcRollPicker';
 import RemoveTokenDialog from '@/components/campaign/RemoveTokenDialog';
 import TemporaryHpDialog from '@/components/campaign/TemporaryHpDialog';
 import TokenLightDialog from '@/components/campaign/TokenLightDialog';
-import { tokenDisplayName, tokenPublicName, characterRollPublicName, UNKNOWN_CREATURE } from '@/utils/tokenDisplayName';
+import { tokenDisplayName, tokenPublicName, characterRollPublicName, unknownCreature } from '@/utils/tokenDisplayName';
 import { setTokenFlag } from '@/utils/tokenFlags';
 import AtmosphereOverlay from '@/components/campaign/AtmosphereOverlay';
 import GmFogControls, { type FogToolMode } from '@/components/campaign/GmFogControls';
@@ -189,7 +190,7 @@ function getSpiritAccentColor(style: string | null | undefined): string {
 const COMPACT_BAND = 'absolute top-2 left-[max(0.5rem,env(safe-area-inset-left))] right-[max(0.5rem,env(safe-area-inset-right))] flex flex-wrap items-start gap-2 pointer-events-none';
 
 /** What the ruler says to a player with no token of theirs on the map. */
-const RULER_NEEDS_TOKEN = 'Place your character token on the map to use the ruler';
+const RULER_NEEDS_TOKEN = 'mapView.rulerNeedsToken';
 
 /**
  * What a lit map says to a player who controls no token on the plane they
@@ -197,8 +198,8 @@ const RULER_NEEDS_TOKEN = 'Place your character token on the map to use the rule
  * in it tells whether anyone else's tokens are there.
  */
 const NO_TOKEN_TO_SEE_THROUGH = {
-  material: 'You have no token on this map to see through. Ask your GM for one.',
-  spirit: 'You have no token in the spirit realm to see through. Ask your GM for one.',
+  material: 'mapView.noTokenToSeeThrough.material',
+  spirit: 'mapView.noTokenToSeeThrough.spirit',
 } as const satisfies Record<PreviewPlane, string>;
 
 /** How a note at the foot of the map looks: the ruler's, and the one saying there is no token to see through. */
@@ -228,6 +229,8 @@ interface MapCanvasProps {
 }
 
 export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasProps) {
+  // Re-renders when the language changes; the texts below are read with i18n.t.
+  useTranslation();
   // `currentMap` here is the map this page shows (viewedMap): the table's,
   // or one the GM is preparing. Every emit, request and filter below is for
   // it; the table's own map is the context's to follow (receiveTableMap).
@@ -310,7 +313,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   mapImageRef.current = mapImage;
   const imageLoaded = mapImage !== null;
   const imageError = failedPicture !== null && failedPicture.mapId === currentMap?.id && failedPicture.url === currentMap.imageUrl
-    ? 'Failed to load map image'
+    ? i18n.t('mapView.imageFailed')
     : null;
   const imageState = mapImageState(currentMap, imageLoaded, imageError);
   // The picture drawn, with the address it was loaded from: while a new
@@ -778,7 +781,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     onSaved: (saved, picture) => {
       rememberPictureAsset(picture);
       updateMap(saved.id, saved);
-      showToast(isPreparing ? 'Saved. Players see it when you bring them here.' : 'Saved. Players on this map see the new picture.', 'success');
+      showToast(i18n.t(isPreparing ? 'mapView.savedPreparing' : 'mapView.saved'), 'success');
     },
     // Save found the map's picture changed where this page was not told, or
     // pointed another map using the picture at its new address: show the map as it is.
@@ -1306,7 +1309,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
 
   /** What a refused turn says; a ref, so the turns made once keep the newest. */
   const turnRefusedRef = useRef<(err: unknown) => void>(() => undefined);
-  turnRefusedRef.current = (err) => showToast(apiErrorMessage(err) || 'Could not turn the token', 'error');
+  turnRefusedRef.current = (err) => showToast(apiErrorMessage(err) || i18n.t('mapView.turnFailed'), 'error');
   /**
    * A token's turns, sent one at a time (map/tokenTurns.ts), told each facing
    * the server sends by the map.changed listener below.
@@ -1948,7 +1951,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       ctx.font = '16px system-ui';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('No map loaded', canvas.width / dpr / 2, canvas.height / dpr / 2);
+      ctx.fillText(i18n.t('mapView.noMap'), canvas.width / dpr / 2, canvas.height / dpr / 2);
       ctx.restore();
       return;
     }
@@ -2283,7 +2286,9 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           drawActionAreaOverlay(ctx, {
             placed: actionArea.placed,
             inRange: actionArea.inRange,
-            label: spec.shape === 'line' ? `${spec.sizeFt} ft × ${spec.widthFt ?? 5} ft` : `${spec.sizeFt} ft`,
+            label: spec.shape === 'line'
+              ? `${i18n.t('mapView.feet', { feet: spec.sizeFt })} × ${i18n.t('mapView.feet', { feet: spec.widthFt ?? 5 })}`
+              : i18n.t('mapView.feet', { feet: spec.sizeFt }),
           }, viewport);
         }
 
@@ -2634,7 +2639,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         // A creature under the player's fog still holds its square, but the
         // note names only one this screen draws, so it gives none away.
         const seen = blockedBy.find((t) => drawnIds.has(t.id));
-        showToast(`${seen ? tokenDisplayName(seen) : 'Someone'} is already standing there.`, 'info');
+        showToast(i18n.t('mapView.occupied', { name: seen ? tokenDisplayName(seen) : i18n.t('mapView.someone') }), 'info');
         if (draggedToken?.id === token.id) cancelHold();
         markDirty('tokens');
         return false;
@@ -3469,7 +3474,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       );
       useGameStore.getState().addToken(result.token, currentMap.id);
     } catch (err) {
-      showToast(apiErrorMessage(err) || `Could not place ${dragData.name} on the map`, 'error');
+      showToast(apiErrorMessage(err) || i18n.t('mapView.placeFailed', { name: dragData.name }), 'error');
     }
   };
 
@@ -3521,7 +3526,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       await api.updateToken(campaign.id, currentMap.id, target.tokenId, { hp });
       useGameStore.getState().patchToken(target.tokenId, { hp }, currentMap.id);
     } catch (err) {
-      showToast(apiErrorMessage(err) || 'Could not give the token temporary hit points', 'error');
+      showToast(apiErrorMessage(err) || i18n.t('mapView.tempHpFailed'), 'error');
     }
   };
 
@@ -3755,7 +3760,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         setViewingSheet({ character, tokenId: token.id });
       } catch (err) {
         console.error('Failed to load character sheet:', errorSummary(err));
-        showToast(apiErrorMessage(err) || 'Could not open that character sheet.', 'error');
+        showToast(apiErrorMessage(err) || i18n.t('mapView.sheetFailed'), 'error');
       }
     },
     rollCharacter: (token) => {
@@ -3794,7 +3799,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       } catch (err) {
         // A copy is a new token, so an older one whose fields predate
         // validation is refused: say which, so the GM can fix it in Edit Token.
-        showToast(apiErrorMessage(err) || 'Failed to duplicate the token', 'error');
+        showToast(apiErrorMessage(err) || i18n.t('tokenRoster.duplicateFailed'), 'error');
       }
     },
     saveAsTemplate: async (token) => {
@@ -3813,9 +3818,9 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           statBlock: token.statBlock || null,
           sightRadius: token.sightRadius ?? null,
         });
-        showToast(`Saved ${tokenDisplayName(token)} as a template`, 'success');
+        showToast(i18n.t('mapView.templateSaved', { name: tokenDisplayName(token) }), 'success');
       } catch (err) {
-        showToast(apiErrorMessage(err) || 'Could not save the token as a template', 'error');
+        showToast(apiErrorMessage(err) || i18n.t('mapView.templateFailed'), 'error');
       }
     },
     setVisible: async (token, visible) => {
@@ -3823,7 +3828,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       try {
         await setTokenFlag(campaign.id, currentMap.id, token, 'visible', visible);
       } catch (err) {
-        showToast(apiErrorMessage(err) || (visible ? 'Could not show the token to players' : 'Could not hide the token from players'), 'error');
+        showToast(apiErrorMessage(err) || i18n.t(visible ? 'mapView.showFailed' : 'mapView.hideFailed'), 'error');
       }
     },
     setObscured: async (token, obscured) => {
@@ -3831,7 +3836,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       try {
         await setTokenFlag(campaign.id, currentMap.id, token, 'obscured', obscured);
       } catch (err) {
-        showToast(apiErrorMessage(err) || (obscured ? "Could not obscure the token's identity" : "Could not reveal the token's identity"), 'error');
+        showToast(apiErrorMessage(err) || i18n.t(obscured ? 'mapView.obscureFailed' : 'mapView.revealFailed'), 'error');
       }
     },
     setLayer: async (token, layer) => {
@@ -3841,9 +3846,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         await api.updateToken(campaign.id, currentMap.id, token.id, { layer });
         useGameStore.getState().patchToken(token.id, { layer }, currentMap.id);
       } catch (err) {
-        showToast(apiErrorMessage(err) || (layer === TokenLayer.SPIRIT
-          ? 'Could not send the token to the spirit realm'
-          : 'Could not return the token to the material plane'), 'error');
+        showToast(apiErrorMessage(err) || i18n.t(layer === TokenLayer.SPIRIT ? 'mapView.toSpiritFailed' : 'mapView.toMaterialFailed'), 'error');
       } finally {
         setIsMovingTokenLayer(false);
       }
@@ -3857,7 +3860,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         await api.moveTokens(campaign.id, currentMap.id, [token.id], mapId);
         useGameStore.getState().removeToken(token.id, currentMap.id);
       } catch (err) {
-        showToast(apiErrorMessage(err) || 'Failed to move the token to that map', 'error');
+        showToast(apiErrorMessage(err) || i18n.t('mapView.moveFailed'), 'error');
       } finally {
         setIsMoveToMapLoading(false);
       }
@@ -4091,14 +4094,14 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     ? drawnTokens.find((t) => t.id === selectedToken.id) ?? null
     : null;
   const selectionAnnouncement = selectedToken
-    ? `Selected ${tokenDisplayName(selectedToken)}, square ${selectedToken.position.x}, ${selectedToken.position.y}`
+    ? i18n.t('mapView.selected', { name: tokenDisplayName(selectedToken), x: selectedToken.position.x, y: selectedToken.position.y })
     : '';
 
   // The toolbar buttons that say what they show now: the tooltip and the
   // name a screen reader hears.
   const gridColorName = gridColorLabel(gridColor);
   const rulerColorName = rulerColorLabel(rulerColor);
-  const spiritTokensLabel = gmShowSpiritTokens ? 'Spirit tokens shown, click to hide' : 'Spirit tokens hidden — click to show';
+  const spiritTokensLabel = i18n.t(gmShowSpiritTokens ? 'mapView.spiritShown' : 'mapView.spiritTokensHidden');
   // What the toolbar's buttons do, and on the compact layout the rows of
   // Map controls, which hold the buttons its one row leaves out.
   const mapControlActions: MapControlsActions = {
@@ -4271,8 +4274,8 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       onClick={() => mapControls.zoomOut({ x: canvasSize.width / 2, y: canvasSize.height / 2 })}
       disabled={mapControls.zoom <= mapControls.minZoom}
       variant="secondary" iconOnly
-      title="Zoom Out"
-      aria-label="Zoom Out"
+      title={i18n.t('mapView.zoomOut')}
+      aria-label={i18n.t('mapView.zoomOut')}
     >
       <ZoomOut className="w-4 h-4" />
     </Button>
@@ -4290,8 +4293,8 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       onClick={() => mapControls.zoomIn({ x: canvasSize.width / 2, y: canvasSize.height / 2 })}
       disabled={mapControls.zoom >= mapControls.maxZoom}
       variant="secondary" iconOnly
-      title="Zoom In"
-      aria-label="Zoom In"
+      title={i18n.t('mapView.zoomIn')}
+      aria-label={i18n.t('mapView.zoomIn')}
     >
       <ZoomIn className="w-4 h-4" />
     </Button>
@@ -4301,9 +4304,9 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     <Button
       onClick={() => setPingArmed((armed) => !armed)}
       variant="secondary" iconOnly className={pingArmed ? 'bg-moss-green/20' : undefined}
-      aria-label="Ping"
+      aria-label={i18n.t('mapView.ping')}
       aria-pressed={pingArmed}
-      title="Ping: tap or click the map to show everyone a spot"
+      title={i18n.t('mapView.pingTitle')}
     >
       <MapPin className={`w-4 h-4 ${pingArmed ? 'text-brand-ink' : ''}`} />
     </Button>
@@ -4315,9 +4318,9 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       ref={drawButtonRef}
       onClick={toggleDraw}
       variant="secondary" iconOnly className={drawKind ? 'bg-moss-green/20' : undefined}
-      aria-label="Draw"
+      aria-label={i18n.t('mapView.draw')}
       aria-pressed={drawKind !== null}
-      title={eraseOnly ? 'Draw: drawing is off for now; erase your own drawings' : 'Draw: a pen, shapes, labels and the laser pointer'}
+      title={i18n.t(eraseOnly ? 'mapView.drawErase' : 'mapView.drawTitle')}
     >
       <Pencil className={`w-4 h-4 ${drawKind ? 'text-brand-ink' : ''}`} />
     </Button>
@@ -4328,9 +4331,9 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     <Button
       onClick={togglePaint}
       variant="secondary" iconOnly className={paint.on ? 'bg-moss-green/20' : undefined}
-      aria-label="Mapmaker"
+      aria-label={i18n.t('mapView.mapmaker')}
       aria-pressed={paint.on}
-      title="Mapmaker: draw on the map's picture, on your screen until it is saved"
+      title={i18n.t('mapView.mapmakerTitle')}
     >
       <Paintbrush className={`w-4 h-4 ${paint.on ? 'text-brand-ink' : ''}`} />
     </Button>
@@ -4340,25 +4343,25 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   // fog is on, and kept while a preview is on; not while Paint is on.
   const previewOffered = userRole === 'GM' && !paint.on && (gmPreviewPlayerView || (currentMap?.lightingEnabled ?? false) || fogEnabled);
   const previewHint = isPreparing
-    ? 'Preview Player View is off while you prepare a map the table is not on'
-    : gmPreviewPlayerView ? 'Back to GM view (see all)' : 'Preview this map as one of your players sees it';
+    ? i18n.t('mapView.previewOffPreparing')
+    : gmPreviewPlayerView ? i18n.t('mapView.previewBack') : i18n.t('mapView.previewStart');
   const playerPreviewControls = (
     <>
       {gmPreviewPlayerView && !isPreparing && (
         <select
           value={previewSelection ? encodePreviewSelection(previewSelection) : ''}
           onChange={(e) => setPreviewSelection(decodePreviewSelection(e.target.value))}
-          aria-label="Player or token to preview as"
+          aria-label={i18n.t('mapView.previewPicker')}
           className="touch-target px-2 py-1.5 rounded-sm text-xs bg-ink/85 text-paper border border-ink/40"
         >
-          {previewChoices.length === 0 && <option value="">Nothing to preview</option>}
+          {previewChoices.length === 0 && <option value="">{i18n.t('mapView.previewNothing')}</option>}
           {/* Looks through whichever token is selected, as , and . step. */}
-          <option value={encodePreviewSelection({ kind: 'selected' })}>Follow my selection</option>
+          <option value={encodePreviewSelection({ kind: 'selected' })}>{i18n.t('mapView.previewFollow')}</option>
           {(['players', 'tokens'] as const).map((group) => {
             const entries = previewChoices.filter((o) => o.group === group);
             if (entries.length === 0) return null;
             return (
-              <optgroup key={group} label={group === 'players' ? 'Players' : 'Tokens'}>
+              <optgroup key={group} label={i18n.t(group === 'players' ? 'mapView.previewPlayers' : 'mapView.previewTokens')}>
                 {entries.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </optgroup>
             );
@@ -4384,12 +4387,12 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         {/* Named by the words it shows, which say what a press does, so a
             voice command for them finds it. */}
         {gmPreviewPlayerView && !isPreparing
-          ? <><span aria-hidden="true">👁</span> GM View</>
-          : <><span aria-hidden="true">🎭</span> Preview Player View</>}
+          ? <><span aria-hidden="true">👁</span> {i18n.t('mapView.gmView')}</>
+          : <><span aria-hidden="true">🎭</span> {i18n.t('mapView.previewPlayerView')}</>}
       </button>
       {/* Said as well as greyed out: a touch screen shows no tooltip. */}
       {isPreparing && (
-        <span className="px-2 py-1 rounded-sm text-xs bg-ink/85 text-paper">Off while you prepare a map</span>
+        <span className="px-2 py-1 rounded-sm text-xs bg-ink/85 text-paper">{i18n.t('mapView.previewOff')}</span>
       )}
     </>
   );
@@ -4429,7 +4432,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   const noTokenNote = (currentMap?.lightingEnabled ?? false)
     && (previewing ? previewViewer?.kind === 'player' : userRole === 'PLAYER')
     && !tokens.some(viewerOwn)
-    ? NO_TOKEN_TO_SEE_THROUGH[viewerInSpiritRealm ? 'spirit' : 'material']
+    ? i18n.t(NO_TOKEN_TO_SEE_THROUGH[viewerInSpiritRealm ? 'spirit' : 'material'])
     : null;
 
   // The square under the pointer, shown where the details card goes while
@@ -4530,7 +4533,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         // canvases, so the panels over the map keep their own roles.
         tabIndex={0}
         role="application"
-        aria-label="Map"
+        aria-label={i18n.t('mapView.map')}
         aria-describedby={mapHintId}
         className="absolute inset-0 select-none [-webkit-touch-callout:none] outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
         style={{
@@ -4580,7 +4583,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         />
       </div>
 
-      <p id={mapHintId} className="sr-only">{MAP_KEYS_HINT}</p>
+      <p id={mapHintId} className="sr-only">{i18n.t('mapView.keysHint')}</p>
       <p role="status" aria-live="polite" className="sr-only">{selectionAnnouncement}</p>
 
       {/* Vibe hue tint overlay — color tint layered on top of canvas */}
@@ -4642,7 +4645,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
               {/* GM-only indicator: red dashed border shows spirit realm is hidden from players */}
               {/* Only shown in dual-plane mode where the ghost overlay is visible */}
               {isGM && !spiritActive && gmViewBothPlanes && (
-                <div className="spirit-layer-hidden-indicator" title="Spirit realm hidden from players" />
+                <div className="spirit-layer-hidden-indicator" title={i18n.t('mapView.spiritHidden')} />
               )}
             </>
           );
@@ -4660,7 +4663,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         {compact ? (
           // Across the map on a phone, with More at its far end; from a
           // small tablet up as wide as its buttons, More beside Draw.
-          <div ref={toolbarRef} role="group" aria-label="Map tools" className="glass-panel w-full sm:w-auto p-1.5 flex items-center gap-1.5 bg-parchment/90 backdrop-blur-xs pointer-events-auto">
+          <div ref={toolbarRef} role="group" aria-label={i18n.t('mapView.mapTools')} className="glass-panel w-full sm:w-auto p-1.5 flex items-center gap-1.5 bg-parchment/90 backdrop-blur-xs pointer-events-auto">
             {zoomOutButton}
             {zoomReadout}
             {zoomInButton}
@@ -4676,13 +4679,13 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
               onClick={() => setMapControlsOpen(true)}
               variant="secondary" size="sm"
               className="ml-auto sm:ml-0 shrink-0 inline-flex items-center justify-center"
-              aria-label="More map controls"
+              aria-label={i18n.t('mapView.moreControls')}
               aria-haspopup="dialog"
               aria-expanded={mapControlsOpen}
               title={mapControlsTitle(mapControlRows)}
             >
               <SlidersHorizontal className="w-4 h-4 shrink-0" aria-hidden="true" />
-              <span className="ml-1.5 max-[24rem]:sr-only">More</span>
+              <span className="ml-1.5 max-[24rem]:sr-only">{i18n.t('mapView.more')}</span>
             </Button>
           </div>
         ) : (
@@ -4702,8 +4705,8 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
             <Button
               onClick={mapControlActions.fit}
               variant="secondary" iconOnly
-              title="Fit to Screen"
-              aria-label="Fit to Screen"
+              title={i18n.t('mapView.fit')}
+              aria-label={i18n.t('mapView.fit')}
             >
               <Maximize2 className="w-4 h-4" />
             </Button>
@@ -4712,8 +4715,8 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
             <Button
               onClick={mapControlActions.toggleGrid}
               variant="secondary" iconOnly className={showGrid ? 'bg-moss-green/20' : undefined}
-              title="Toggle Grid"
-              aria-label="Toggle Grid"
+              title={i18n.t('mapView.toggleGrid')}
+              aria-label={i18n.t('mapView.toggleGrid')}
             >
               <Grid3x3 className="w-4 h-4" />
             </Button>
@@ -4740,8 +4743,8 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
               <Button
                 onClick={mapControlActions.toggleRuler}
                 variant="secondary" iconOnly className={showRuler ? 'bg-moss-green/20' : undefined}
-                title="Ruler — measure distance"
-                aria-label="Ruler — measure distance"
+                title={i18n.t('mapView.ruler')}
+                aria-label={i18n.t('mapView.ruler')}
               >
                 <Ruler className={`w-4 h-4 ${showRuler ? 'text-brand-ink' : ''}`} />
               </Button>
@@ -4760,8 +4763,8 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
               <Button
                 onClick={mapControlActions.toggleAoE}
                 variant="secondary" iconOnly className={showAoE ? 'bg-moss-green/20' : undefined}
-                title="AoE Shape — area of effect overlay"
-                aria-label="AoE Shape — area of effect overlay"
+                title={i18n.t('mapView.aoe')}
+                aria-label={i18n.t('mapView.aoe')}
               >
                 <Zap className={`w-4 h-4 ${showAoE ? 'text-brand-ink' : ''}`} />
               </Button>
@@ -4797,7 +4800,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           <div className="ml-auto mr-4 z-10 rounded-cozy bg-parchment animate-pulse-soft pointer-events-auto">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-cozy bg-spirit-purple/20 border border-spirit-purple/40">
               <Ghost className="w-3.5 h-3.5 text-spirit-ink" />
-              <span className="text-xs font-semibold text-spirit-ink">Spirit Realm</span>
+              <span className="text-xs font-semibold text-spirit-ink">{i18n.t('mapView.spiritRealm')}</span>
             </div>
           </div>
         )}
@@ -4808,7 +4811,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       {compact && mapControlsOpen && (
         <ActionSheet
           open
-          title="Map controls"
+          title={i18n.t('mapView.mapControls')}
           items={mapControlRows}
           onClose={() => setMapControlsOpen(false)}
         />
@@ -4819,7 +4822,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           player is sent it; a token the preview leaves out goes unnamed. */}
       {draggedToken && putBackShown && (() => {
         const shown = drawnTokens.find((t) => t.id === draggedToken.id);
-        const name = previewing ? (shown ? tokenDisplayName(shown) : UNKNOWN_CREATURE) : tokenDisplayName(draggedToken);
+        const name = previewing ? (shown ? tokenDisplayName(shown) : unknownCreature()) : tokenDisplayName(draggedToken);
         return (
           <HeldTokenBar
             name={name}
@@ -4895,7 +4898,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
                 // Say why: a map stored larger than the size limits is
                 // refused fog, and the box would otherwise just untick.
                 updateMap(mapId, (latest) => ({ ...latest, fogEnabled: before }));
-                showToast(apiErrorMessage(err) || 'Could not change fog of war for this map', 'error');
+                showToast(apiErrorMessage(err) || i18n.t('mapView.fogFailed'), 'error');
               }
             }}
             onCollapse={() => {
@@ -4998,7 +5001,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       {drawTool.textBox && currentMap && (
         <input
           ref={labelBoxRef}
-          aria-label="Label"
+          aria-label={i18n.t('mapView.label')}
           value={drawTool.textBox.draft}
           maxLength={DRAWING_LIMITS.maxTextLength}
           enterKeyHint="done"
@@ -5036,7 +5039,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       {paint.textBox && currentMap && (
         <input
           ref={paintTextRef}
-          aria-label="Text to paint"
+          aria-label={i18n.t('mapView.textToPaint')}
           value={paint.textBox.draft}
           maxLength={DRAWING_LIMITS.maxTextLength}
           enterKeyHint="done"
@@ -5085,7 +5088,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       {(noTokenNote || rulerNeedsToken) && !compact && (
         <div className={`absolute ${previewing ? 'bottom-32' : 'bottom-16'} left-1/2 -translate-x-1/2 w-max max-w-[calc(100%-2rem)] flex flex-col items-center gap-2 pointer-events-none`}>
           {noTokenNote && <div className={MAP_NOTE}>{noTokenNote}</div>}
-          {rulerNeedsToken && <div className={MAP_NOTE}>{RULER_NEEDS_TOKEN}</div>}
+          {rulerNeedsToken && <div className={MAP_NOTE}>{i18n.t(RULER_NEEDS_TOKEN)}</div>}
         </div>
       )}
 
@@ -5100,7 +5103,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
             ? { top: aoeTop, maxHeight: `calc(100% - ${aoeTop}px - 1rem)`, overflowY: 'auto', overscrollBehavior: 'contain' }
             : undefined}
         >
-          <p className="text-xs font-semibold text-brand-ink">AoE Shape</p>
+          <p className="text-xs font-semibold text-brand-ink">{i18n.t('mapView.aoeTitle')}</p>
 
           {/* Shape selector */}
           <div className="flex flex-wrap gap-1.5">
@@ -5114,7 +5117,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
                     : 'border-stone-gray/30 text-stone-gray hover:border-moss-green/40 hover:text-brand-ink'
                 }`}
               >
-                {shape === 'sphere' ? 'Circle' : shape.charAt(0).toUpperCase() + shape.slice(1)}
+                {i18n.t(`mapView.aoeShape.${shape === 'sphere' ? 'sphere' : shape}`)}
               </button>
             ))}
           </div>
@@ -5122,7 +5125,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           {/* Size input */}
           <div className="space-y-1">
             <label className="text-xs font-medium text-stone-gray">
-              {aoeConfig.shape === 'sphere' ? 'Radius' : 'Length'} (ft)
+              {i18n.t('mapView.inFeet', { what: i18n.t(aoeConfig.shape === 'sphere' ? 'mapView.radius' : 'mapView.length') })}
             </label>
             <input
               type="number"
@@ -5138,7 +5141,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           {/* Width input (line only) */}
           {aoeConfig.shape === 'line' && (
             <div className="space-y-1">
-              <label className="text-xs font-medium text-stone-gray">Width (ft)</label>
+              <label className="text-xs font-medium text-stone-gray">{i18n.t('mapView.width')}</label>
               <input
                 type="number"
                 min={5}
@@ -5153,7 +5156,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
 
           {/* Quick-size presets */}
           <div className="space-y-1">
-            <p className="text-xs font-medium text-stone-gray">Presets</p>
+            <p className="text-xs font-medium text-stone-gray">{i18n.t('mapView.presets')}</p>
             <div className="flex flex-wrap gap-1">
               {[10, 15, 20, 30, 60].map((ft) => (
                 <button
@@ -5161,7 +5164,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
                   onClick={() => setAoEConfig((prev) => ({ ...prev, sizeFt: ft }))}
                   className="touch-target text-xs px-1.5 py-0.5 rounded-sm bg-moss-green/10 hover:bg-moss-green/15 text-brand-ink border border-moss-green/20 transition-colors"
                 >
-                  {ft} ft
+                  {i18n.t('mapView.feet', { feet: ft })}
                 </button>
               ))}
             </div>
@@ -5175,7 +5178,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
               onChange={(e) => setAoESnap(e.target.checked)}
               className="accent-moss-green"
             />
-            <span className="text-xs font-medium text-stone-gray">Snap to grid</span>
+            <span className="text-xs font-medium text-stone-gray">{i18n.t('mapView.snap')}</span>
           </label>
 
           {/* Clear the anchor */}
@@ -5184,12 +5187,12 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
               onClick={() => setAoEAnchor(null)}
               className="touch-target text-xs text-stone-gray hover:text-danger-ink transition-colors"
             >
-              × Clear placement
+              {i18n.t('mapView.clearPlacement')}
             </button>
           )}
 
           <p className="text-xs text-stone-gray/70">
-            {aoeAnchor ? 'Click map to reposition' : 'Click map to place shape'}
+            {i18n.t(aoeAnchor ? 'mapView.clickReposition' : 'mapView.clickPlace')}
           </p>
           {/* Cone and line pivot about the square you click, so most of the
               time you want them on your token. Alt, or Snap to grid off, is
@@ -5199,9 +5202,9 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
             <p className="text-xs text-stone-gray/70">
               {/* A finger has no hover to aim with, nor an Alt key. */}
               {aoeAnchor
-                ? (coarsePointer ? 'Drag from its square to aim it' : 'Move the cursor to aim it around that square')
-                : !aoeSnap ? 'Placed freely, off the grid'
-                  : coarsePointer ? 'Untick Snap to grid to place it freely, off the grid' : 'Alt+click to place it freely, off the grid'}
+                ? i18n.t(coarsePointer ? 'mapView.aimTouch' : 'mapView.aimMouse')
+                : !aoeSnap ? i18n.t('mapView.placedFreely')
+                  : i18n.t(coarsePointer ? 'mapView.untickSnap' : 'mapView.altClick')}
             </p>
           )}
         </div>
@@ -5231,7 +5234,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           <div ref={dockContentRef} className="flex min-h-0 flex-col">
             <div className={`${DOCK_ROW} flex flex-col gap-2 pb-2`}>
               {noTokenNote && <div className={`self-center ${MAP_NOTE}`}>{noTokenNote}</div>}
-              {rulerNeedsToken && <div className={`self-center ${MAP_NOTE}`}>{RULER_NEEDS_TOKEN}</div>}
+              {rulerNeedsToken && <div className={`self-center ${MAP_NOTE}`}>{i18n.t(RULER_NEEDS_TOKEN)}</div>}
               {/* The square under the pointer and the GM's Preview controls share
                   a row, the square at the left: stacked, the controls rose and
                   fell as the square came and went, out from under the pointer. */}
@@ -5279,7 +5282,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         <div className="absolute inset-0 flex items-center justify-center bg-parchment/80">
           <div className="text-center">
             <div className="w-8 h-8 border-4 border-moss-green/30 border-t-moss-green rounded-full animate-spin mx-auto mb-2" />
-            <p className="text-sm text-stone-gray">Loading map...</p>
+            <p className="text-sm text-stone-gray">{i18n.t('mapView.loading')}</p>
           </div>
         </div>
       )}
@@ -5288,11 +5291,11 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       {shownImageState === 'missing' && (
         <div className="absolute inset-0 flex items-center justify-center bg-parchment/80">
           <div className="glass-panel p-4 text-center max-w-sm">
-            <p className="text-sm text-brand-ink mb-1">This map has no picture.</p>
+            <p className="text-sm text-brand-ink mb-1">{i18n.t('mapView.noPicture')}</p>
             <p className="text-xs text-stone-gray">
               {isGM
-                ? 'Choose one in Edit Map, or draw one with Mapmaker; its walls, tokens and fog are kept.'
-                : 'The GM has to choose one before the map can be shown.'}
+                ? i18n.t('mapView.noPictureGm')
+                : i18n.t('mapView.noPicturePlayer')}
             </p>
           </div>
         </div>
@@ -5304,7 +5307,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         <div className={`absolute inset-0 flex items-center justify-center ${shownImageState === 'kept' ? 'pointer-events-none' : 'bg-parchment/80'}`}>
           <div className="glass-panel p-4 text-center">
             <p className="text-sm text-danger-ink mb-2">{imageError}</p>
-            <p className="text-xs text-stone-gray">Check map image URL</p>
+            <p className="text-xs text-stone-gray">{i18n.t('mapView.checkUrl')}</p>
           </div>
         </div>
       )}
@@ -5314,9 +5317,9 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <Grid3x3 className="w-12 h-12 text-brand-ink/30 mx-auto mb-3" />
-            <p className="text-sm text-warm-gray mb-2">No map loaded</p>
+            <p className="text-sm text-warm-gray mb-2">{i18n.t('mapView.noMap')}</p>
             <p className="text-xs text-stone-gray/70">
-              Upload a map to get started
+              {i18n.t('mapView.uploadToStart')}
             </p>
           </div>
         </div>
@@ -5384,7 +5387,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       {/* Paint not saved, before something takes it off the screen; and left behind by a map gone without asking. */}
       <PaintSaveQuestion
         open={paint.on && askingSaveOf !== null && askingSaveOf === currentMap?.id}
-        mapName={currentMap?.name ?? 'this map'}
+        mapName={currentMap?.name ?? i18n.t('mapView.thisMap')}
         sharing={currentMap ? mapsSharingPicture(currentMap.id, currentMap.imageUrl).map((m) => m.name) : []}
         onSave={() => {
           setAskingSaveOf(null);
@@ -5394,7 +5397,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       />
       <PaintLeaveQuestion
         leaving={paintGuards.leaving}
-        mapName={currentMap?.name ?? 'this map'}
+        mapName={currentMap?.name ?? i18n.t('mapView.thisMap')}
         overwrites={saveOverwrites}
         answering={paintGuards.answering}
         onAnswer={(choice) => { void paintGuards.answer(choice); }}
@@ -5408,12 +5411,12 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
       {/* A draft of what was painted here and not saved, offered back as Paint opens. */}
       <ConfirmDialog
         isOpen={paint.offer !== null}
-        title="Restore your painting?"
+        title={i18n.t('mapView.restoreTitle')}
         message={paint.offer?.older
-          ? `Your unsaved painting from ${draftTime(paint.offer.header.savedAt)} was painted on an older picture of this map. Restore it over this picture, or discard it?`
-          : `Restore your unsaved painting from ${paint.offer ? draftTime(paint.offer.header.savedAt) : ''}?`}
-        confirmLabel={paint.offer?.older ? 'Restore it over this picture' : 'Restore my painting'}
-        cancelLabel="Not now"
+          ? i18n.t('mapView.restoreOlder', { time: draftTime(paint.offer.header.savedAt, Date.now(), i18n.language) })
+          : i18n.t('mapView.restoreAsk', { time: paint.offer ? draftTime(paint.offer.header.savedAt, Date.now(), i18n.language) : '' })}
+        confirmLabel={i18n.t(paint.offer?.older ? 'mapView.restoreOver' : 'mapView.restoreMine')}
+        cancelLabel={i18n.t('mapView.notNow')}
         variant="info"
         onConfirm={() => { void paint.answerOffer('restore'); }}
         onCancel={() => { void paint.answerOffer('later'); }}
@@ -5423,17 +5426,17 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           onClick={() => { void paint.answerOffer('discard'); }}
           className="touch-target text-sm text-danger-ink underline underline-offset-2 hover:no-underline"
         >
-          Discard it
+          {i18n.t('mapView.discardIt')}
         </button>
       </ConfirmDialog>
 
       {/* Paint not saved over a picture changed elsewhere: what to do with it. */}
       <ConfirmDialog
         isOpen={paint.asking}
-        title="This map's picture changed"
-        message={`The picture of ${currentMap?.name ?? 'this map'} was changed elsewhere, in Edit Map or another tab or device, while you had paint here not saved. Save your painting over the new picture, or discard it?`}
-        confirmLabel="Save my painting over it"
-        cancelLabel="Not now"
+        title={i18n.t('mapView.changedTitle')}
+        message={i18n.t('mapView.changedMessage', { name: currentMap?.name ?? i18n.t('mapView.thisMap') })}
+        confirmLabel={i18n.t('mapView.saveOver')}
+        cancelLabel={i18n.t('mapView.notNow')}
         variant="warning"
         onConfirm={() => paint.answer('save')}
         onCancel={() => paint.answer('later')}
@@ -5443,7 +5446,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           onClick={() => paint.answer('discard')}
           className="touch-target text-sm text-danger-ink underline underline-offset-2 hover:no-underline"
         >
-          Discard my painting
+          {i18n.t('mapView.discardMine')}
         </button>
       </ConfirmDialog>
 
@@ -5458,7 +5461,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
             await api.deleteToken(campaign.id, currentMap.id, token.id);
             useGameStore.getState().removeToken(token.id, currentMap.id);
           } catch (err) {
-            showToast(apiErrorMessage(err) || 'Failed to remove the token', 'error');
+            showToast(apiErrorMessage(err) || i18n.t('tokenRoster.removeFailed'), 'error');
           }
         }}
       />
@@ -5561,7 +5564,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           map/doorMenuItems.ts. Same flex-column sizing as the token menu
           above, drawn on the body and placed as it is; see the notes there. */}
       {doorContextMenu && compact && (() => {
-        const menu = headedMenu(doorMenuItems(doorContextMenu.door, { role: userRole, actions: { setType: setDoorType } }), 'Door');
+        const menu = headedMenu(doorMenuItems(doorContextMenu.door, { role: userRole, actions: { setType: setDoorType } }), i18n.t('mapView.door'));
         return (
           <ActionSheet
             open

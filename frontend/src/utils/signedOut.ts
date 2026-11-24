@@ -6,11 +6,13 @@
  * in another tab shares the session with this one, and Save then works.
  */
 
+import i18n from '@/i18n';
 import { apiErrorStatus } from './errors';
 
 export function isSignedOutSave(err: unknown): boolean {
   return apiErrorStatus(err) === 401;
 }
 
-export const SIGNED_OUT_NOT_SAVED =
-  "Not saved: you've been signed out. Sign in again in a new tab, then press Save.";
+export function signedOutNotSaved(): string {
+  return i18n.t('common.signedOutNotSaved');
+}

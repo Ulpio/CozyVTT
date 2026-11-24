@@ -32,7 +32,7 @@ router.get('/:campaignId/macros', campaignMember, async (req: AuthenticatedReque
     return res.status(200).json({ macros });
   } catch (error) {
     logger.error('Error fetching dice macros', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch macros' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível carregar as rolagens salvas.' });
   }
 });
 
@@ -46,7 +46,7 @@ router.post('/:campaignId/macros', campaignMember, async (req: AuthenticatedRequ
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid macro',
+        message: parsed.error.issues[0]?.message ?? 'Rolagem salva inválida.',
       });
     }
 
@@ -57,7 +57,7 @@ router.post('/:campaignId/macros', campaignMember, async (req: AuthenticatedRequ
     if (existing >= MAX_MACROS_PER_CAMPAIGN) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: `You already have ${MAX_MACROS_PER_CAMPAIGN} macros in this campaign. Delete one to make room.`,
+        message: `Você já tem ${MAX_MACROS_PER_CAMPAIGN} rolagens salvas nesta campanha. Exclua uma para abrir espaço.`,
       });
     }
 
@@ -75,7 +75,7 @@ router.post('/:campaignId/macros', campaignMember, async (req: AuthenticatedRequ
     return res.status(201).json({ macro });
   } catch (error) {
     logger.error('Error creating dice macro', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to create macro' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível criar a rolagem salva.' });
   }
 });
 
@@ -94,13 +94,13 @@ router.get('/:campaignId/macros/:macroId', campaignMember, async (req: Authentic
     });
 
     if (!macro) {
-      return res.status(404).json({ error: 'Not Found', message: 'Macro not found' });
+      return res.status(404).json({ error: 'Not Found', message: 'Rolagem salva não encontrada.' });
     }
 
     return res.status(200).json({ macro });
   } catch (error) {
     logger.error('Error fetching dice macro', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch macro' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível carregar a rolagem salva.' });
   }
 });
 
@@ -115,7 +115,7 @@ router.put('/:campaignId/macros/:macroId', campaignMember, async (req: Authentic
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Validation Error',
-        message: parsed.error.issues[0]?.message ?? 'Invalid macro',
+        message: parsed.error.issues[0]?.message ?? 'Rolagem salva inválida.',
       });
     }
 
@@ -131,7 +131,7 @@ router.put('/:campaignId/macros/:macroId', campaignMember, async (req: Authentic
     });
 
     if (!owned) {
-      return res.status(404).json({ error: 'Not Found', message: 'Macro not found' });
+      return res.status(404).json({ error: 'Not Found', message: 'Rolagem salva não encontrada.' });
     }
 
     const macro = await prisma.diceMacro.update({
@@ -147,7 +147,7 @@ router.put('/:campaignId/macros/:macroId', campaignMember, async (req: Authentic
     return res.status(200).json({ macro });
   } catch (error) {
     logger.error('Error updating dice macro', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update macro' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível atualizar a rolagem salva.' });
   }
 });
 
@@ -168,13 +168,13 @@ router.delete('/:campaignId/macros/:macroId', campaignMember, async (req: Authen
     });
 
     if (count === 0) {
-      return res.status(404).json({ error: 'Not Found', message: 'Macro not found' });
+      return res.status(404).json({ error: 'Not Found', message: 'Rolagem salva não encontrada.' });
     }
 
-    return res.status(200).json({ message: 'Macro deleted' });
+    return res.status(200).json({ message: 'Rolagem salva excluída.' });
   } catch (error) {
     logger.error('Error deleting dice macro', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to delete macro' });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Não foi possível excluir a rolagem salva.' });
   }
 });
 

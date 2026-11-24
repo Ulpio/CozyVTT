@@ -328,7 +328,7 @@ const spellSlotSchema = z
     expended: slotCountSchema,
   })
   .refine((slot) => slot.expended <= slot.total, {
-    message: 'Used slots cannot be more than the total',
+    message: 'Os espaços usados não podem passar do total.',
     path: ['expended'],
   });
 

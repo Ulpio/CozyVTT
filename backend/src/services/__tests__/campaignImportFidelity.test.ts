@@ -348,7 +348,7 @@ describe('a map the app could not hold', () => {
     expect(result.mapCount).toBe(1);
     expect((await importedMaps(result.campaignId)).map((m) => m.name)).toEqual(['Hall']);
     expect(result.skipped).toEqual([
-      { kind: 'map', name: 'Vast', reason: 'Map width must be a whole number from 1 to 500 squares' },
+      { kind: 'map', name: 'Vast', reason: 'Largura do mapa: use um número inteiro de 1 a 500 quadrados.' },
     ]);
   });
 

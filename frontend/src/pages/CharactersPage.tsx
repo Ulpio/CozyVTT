@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -26,6 +27,7 @@ import { canEditCharacterIn } from '@/services/permissions';
 import type { CharacterData } from '@/types';
 
 export default function CharactersPage() {
+  const { t } = useTranslation();
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -48,7 +50,7 @@ export default function CharactersPage() {
   const loading = charactersQuery.isPending || campaignsQuery.isPending;
   const queryError = charactersQuery.error || campaignsQuery.error;
   const error = queryError
-    ? (apiErrorMessage(queryError) || 'Failed to load characters')
+    ? (apiErrorMessage(queryError) || t('charactersPage.loadFailed'))
     : '';
 
   // Local cache mutations mirror the previous setState behavior. The list
@@ -65,12 +67,12 @@ export default function CharactersPage() {
       let because = '.';
       if (reason) because = /[.!?]$/.test(reason) ? `: ${reason}` : `: ${reason}.`;
       showToast(
-        `${newCharacter.name} was created, but it was not published as a template${because} You can retry with "Save as Template" in the editor.`,
+        t('charactersPage.templateFailed', { name: newCharacter.name, because }),
         'warning'
       );
       return;
     }
-    showSuccess('Character created successfully!');
+    showSuccess(t('charactersPage.created'));
   };
 
   const [viewingCharacter, setViewingCharacter] = useState<Character | null>(null);
@@ -86,7 +88,7 @@ export default function CharactersPage() {
     try {
       setViewingCharacter(await characterService.getCharacter(character.id));
     } catch (err) {
-      showToast(apiErrorMessage(err) || 'Failed to open the character', 'error');
+      showToast(apiErrorMessage(err) || t('charactersPage.openFailed'), 'error');
     }
   };
 
@@ -98,9 +100,9 @@ export default function CharactersPage() {
     try {
       const copiedCharacter = await characterService.copyCharacter(character.id);
       setCharactersData((prev) => [toCharacterSummary(copiedCharacter), ...prev]);
-      showSuccess(`${character.name} copied successfully`);
+      showSuccess(t('charactersPage.copied', { name: character.name }));
     } catch (err) {
-      showToast(apiErrorMessage(err) || 'Failed to copy character', 'error');
+      showToast(apiErrorMessage(err) || t('charactersPage.copyFailed'), 'error');
     }
   };
 
@@ -113,7 +115,7 @@ export default function CharactersPage() {
     // Errors propagate to the modal, which handles the display
     await characterService.deleteCharacter(characterId);
     setCharactersData((prev) => prev.filter((c) => c.id !== characterId));
-    showSuccess('Character deleted successfully');
+    showSuccess(t('charactersPage.deleted'));
     setShowDeleteModal(false);
     setSelectedCharacter(null);
   };
@@ -130,10 +132,10 @@ export default function CharactersPage() {
     if (campaignId) {
       updatedCharacter = await characterService.assignCharacter(characterId, campaignId);
       const campaign = campaigns.find((c) => c.id === campaignId);
-      showSuccess(`Assigned to ${campaign?.name || 'campaign'}`);
+      showSuccess(t('charactersPage.assignedTo', { name: campaign?.name || t('charactersPage.campaignFallback') }));
     } else {
       updatedCharacter = await characterService.unassignCharacter(characterId);
-      showSuccess('Character unassigned');
+      showSuccess(t('charactersPage.unassigned'));
     }
 
     // Update character in list
@@ -149,9 +151,9 @@ export default function CharactersPage() {
   const handleExport = async (character: CharacterSummary) => {
     try {
       characterService.exportCharacterJSON(await characterService.getCharacter(character.id));
-      showSuccess(`Exported ${character.name}`);
+      showSuccess(t('charactersPage.exported', { name: character.name }));
     } catch (err) {
-      showToast(apiErrorMessage(err) || 'Failed to export the character', 'error');
+      showToast(apiErrorMessage(err) || t('charactersPage.exportFailed'), 'error');
     }
   };
 
@@ -164,7 +166,7 @@ export default function CharactersPage() {
     });
 
     setCharactersData((prev) => [toCharacterSummary(importedCharacter), ...prev]);
-    showSuccess(`${data.name} imported successfully`);
+    showSuccess(t('charactersPage.imported', { name: data.name }));
   };
 
   const handleLogout = async () => {
@@ -199,10 +201,10 @@ export default function CharactersPage() {
               </button>
               <div>
                 <h1 className="text-3xl font-bold text-brand-ink font-heading">
-                  My Characters
+                  {t('charactersPage.title')}
                 </h1>
                 <p className="text-sm text-warm-gray">
-                  Manage your character library
+                  {t('charactersPage.subtitle')}
                 </p>
               </div>
             </div>
@@ -213,17 +215,17 @@ export default function CharactersPage() {
                 onClick={() => navigate('/dashboard')}
                 variant="secondary" className="flex items-center gap-2"
               >
-                <span className="hidden sm:inline">Back to Dashboard</span>
-                <span className="sm:hidden">Dashboard</span>
+                <span className="hidden sm:inline">{t('charactersPage.backToDashboard')}</span>
+                <span className="sm:hidden">{t('session.back')}</span>
               </Button>
 
               <Button
                 onClick={handleLogout}
                 variant="danger" className="flex items-center gap-2"
-                aria-label="Log out of CozyVTT"
+                aria-label={t('dashboard.logoutLabel')}
               >
                 <LogOut className="w-4 h-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Logout</span>
+                <span className="hidden sm:inline">{t('dashboard.logout')}</span>
               </Button>
             </div>
           </div>
@@ -239,7 +241,7 @@ export default function CharactersPage() {
           <section>
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 mb-6">
               <h2 className="text-2xl font-semibold text-brand-ink font-heading">
-                Your Characters
+                {t('dashboard.characters.title')}
                 {!loading && (
                   <span className="text-lg text-warm-gray ml-2">
                     ({characters.length})
@@ -252,14 +254,14 @@ export default function CharactersPage() {
                   variant="secondary" className="flex items-center gap-2"
                 >
                   <Upload className="w-5 h-5" />
-                  Import
+                  {t('charactersPage.import')}
                 </Button>
                 <Button
                   onClick={() => setShowCreateModal(true)}
                   className="flex items-center gap-2"
                 >
                   <Plus className="w-5 h-5" />
-                  Create Character
+                  {t('dashboard.characters.create')}
                 </Button>
               </div>
             </div>
@@ -275,22 +277,22 @@ export default function CharactersPage() {
             {loading && (
               <div className="flex flex-col items-center justify-center py-16">
                 <Loader2 className="w-12 h-12 text-brand-ink animate-spin mb-4" />
-                <p className="text-stone-gray">Loading your characters...</p>
+                <p className="text-stone-gray">{t('charactersPage.loading')}</p>
               </div>
             )}
 
             {/* Empty State */}
             {!loading && characters.length === 0 && (
               <EmptyState
-                title="No characters yet"
-                description="Create your first character to get started! You can create characters for any of your campaigns or prepare them for future adventures."
+                title={t('dashboard.characters.none')}
+                description={t('charactersPage.emptyText')}
                 action={
                   <Button
                     onClick={() => setShowCreateModal(true)}
                     className="inline-flex items-center gap-2"
                   >
                     <Plus className="w-5 h-5" />
-                    Create Your First Character
+                    {t('charactersPage.createFirst')}
                   </Button>
                 }
               />
@@ -321,26 +323,26 @@ export default function CharactersPage() {
           {!loading && characters.length > 0 && (
             <section className="glass-panel p-6">
               <h3 className="text-lg font-semibold text-brand-ink mb-4">
-                Quick Stats
+                {t('dashboard.stats.title')}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="text-center p-4 rounded-lg bg-moss-green/5">
                   <p className="text-3xl font-bold text-brand-ink">
                     {characters.filter((c) => c.campaignId).length}
                   </p>
-                  <p className="text-sm text-warm-gray mt-1">Assigned to Campaigns</p>
+                  <p className="text-sm text-warm-gray mt-1">{t('charactersPage.assigned')}</p>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-spirit-purple/5">
                   <p className="text-3xl font-bold text-spirit-ink">
                     {characters.filter((c) => !c.campaignId).length}
                   </p>
-                  <p className="text-sm text-warm-gray mt-1">Unassigned</p>
+                  <p className="text-sm text-warm-gray mt-1">{t('charactersPage.unassignedStat')}</p>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-warm-amber/5">
                   <p className="text-3xl font-bold text-accent-ink">
                     {characters.filter((c) => c.gameSystem).length}
                   </p>
-                  <p className="text-sm text-warm-gray mt-1">With Game System</p>
+                  <p className="text-sm text-warm-gray mt-1">{t('charactersPage.withSystem')}</p>
                 </div>
               </div>
             </section>

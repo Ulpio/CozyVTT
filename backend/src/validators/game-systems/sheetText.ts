@@ -13,7 +13,7 @@ import { SHEET_LONG_TEXT_MAX, SHEET_NAME_MAX, SHEET_SHORT_TEXT_MAX } from './she
 export const sheetCharacterNameSchema = z
   .string()
   .min(1)
-  .max(SHEET_NAME_MAX, `A character's name can be at most ${SHEET_NAME_MAX} characters`);
+  .max(SHEET_NAME_MAX, `O nome de um personagem pode ter no máximo ${SHEET_NAME_MAX} caracteres.`);
 
 /**
  * Any other one-line box on a sheet: a class, a damage roll, an item's name,
@@ -21,7 +21,7 @@ export const sheetCharacterNameSchema = z
  */
 export const sheetShortTextSchema = z
   .string()
-  .max(SHEET_SHORT_TEXT_MAX, `Can be at most ${SHEET_SHORT_TEXT_MAX.toLocaleString('en-US')} characters`);
+  .max(SHEET_SHORT_TEXT_MAX, `Pode ter no máximo ${SHEET_SHORT_TEXT_MAX.toLocaleString('pt-BR')} caracteres.`);
 
 /**
  * A box that holds paragraphs: notes, a description, a backstory. Also any
@@ -30,4 +30,4 @@ export const sheetShortTextSchema = z
  */
 export const sheetLongTextSchema = z
   .string()
-  .max(SHEET_LONG_TEXT_MAX, `Can be at most ${SHEET_LONG_TEXT_MAX.toLocaleString('en-US')} characters`);
+  .max(SHEET_LONG_TEXT_MAX, `Pode ter no máximo ${SHEET_LONG_TEXT_MAX.toLocaleString('pt-BR')} caracteres.`);

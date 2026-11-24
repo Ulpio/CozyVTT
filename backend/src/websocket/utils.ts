@@ -8,7 +8,7 @@ import { canReadMap } from '../services/permissions';
 import { characterForReader } from '../utils/gmNotes';
 import type { AuthenticatedFields } from './auth';
 import { emitNewestState } from './outgoingQueue';
-import { NOT_A_MEMBER_MESSAGE } from '../middleware/rbac';
+import { NOT_MEMBER_MESSAGE } from './auth';
 
 /** The events that carry a map's whole list of walls, lights or drawings. */
 const WHOLE_LIST_EVENTS: ReadonlySet<string> = new Set(['walls:replaced', 'lights:replaced', 'drawings:state']);
@@ -271,12 +271,12 @@ export interface AccessRevoked {
   message: string;
 }
 
-export const REMOVED_MESSAGE = 'You were removed from this campaign.';
-export const LEFT_MESSAGE = 'You left this campaign.';
-export const CAMPAIGN_DELETED_MESSAGE = 'This campaign was deleted.';
+export const REMOVED_MESSAGE = 'Você foi removido desta campanha.';
+export const LEFT_MESSAGE = 'Você saiu desta campanha.';
+export const CAMPAIGN_DELETED_MESSAGE = 'Esta campanha foi excluída.';
 /** A join refused because no campaign has that id: deleted, or never there. */
-export const NO_SUCH_CAMPAIGN_MESSAGE = 'This campaign does not exist. It may have been deleted.';
-export const NOT_MEMBER_MESSAGE = `${NOT_A_MEMBER_MESSAGE}.`;
+export const NO_SUCH_CAMPAIGN_MESSAGE = 'Esta campanha não existe. Ela pode ter sido excluída.';
+export { NOT_MEMBER_MESSAGE };
 
 const NOT_A_MEMBER_MESSAGES: Record<NotAMemberReason, string> = {
   removed: REMOVED_MESSAGE,

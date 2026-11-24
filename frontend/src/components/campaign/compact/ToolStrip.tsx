@@ -21,6 +21,7 @@
  */
 
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { SHEET_WIDTH } from '@/components/campaign/compact/BottomSheet';
 import { cn } from '@/utils/cn';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -58,6 +59,7 @@ export interface ToolStripProps {
 }
 
 export default function ToolStrip({ label, title, actions, hint, tools, children, after }: ToolStripProps) {
+  const { t } = useTranslation();
   const short = useMediaQuery(SHORT_SCREEN_QUERY);
   const { ref: toolRowCue, more: toolRowMore } = useScrollMore<HTMLDivElement>();
 
@@ -68,7 +70,7 @@ export default function ToolStrip({ label, title, actions, hint, tools, children
       <div
         ref={toolRowCue}
         role="group"
-        aria-label="Tools"
+        aria-label={t('compact.tools')}
         className={cn('flex gap-1 overflow-x-auto overscroll-x-contain pr-2 [scrollbar-width:none]', scrollFade(toolRowMore))}
       >
         {tools}

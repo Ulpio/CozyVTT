@@ -35,7 +35,7 @@ import { GameSystem as AppGameSystem } from '../../game-systems';
 
 const app = createTestApp();
 
-const NOT_A_TOKEN_PICTURE = 'The token image must be a token picture from the asset library.';
+const NOT_A_TOKEN_PICTURE = 'A imagem do token deve ser uma imagem de token da biblioteca.';
 const PNG = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c63000100000500010d0a2db40000000049454e44ae426082', 'hex');
 
 let gmId: string;

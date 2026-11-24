@@ -28,14 +28,14 @@ import campaignService from '@/services/campaign.service';
 import InvitePlayerModal from './InvitePlayerModal';
 import CampaignBooksPicker from './CampaignBooksPicker';
 import CampaignCreationSettings from './CampaignCreationSettings';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { CampaignRole, GameSystem } from '@/types';
 import type { AbilityScoreMethod, AccessRevoked, AssignableCampaignRole, CampaignDetailLevel, CampaignBookChoice, CampaignMembership, CampaignInvitationSummary } from '@/types';
 import Button from '@/components/ui/Button';
 import SlideOver, { SlideOverClose, SlideOverTitle } from '@/components/ui/SlideOver';
 import { apiErrorMessage } from '@/utils/errors';
-import { CAMPAIGN_ROLE_LABEL, isCampaignOwner } from '@/utils/campaignRoles';
+import { isCampaignOwner } from '@/utils/campaignRoles';
 import { CAMPAIGN_LIMITS } from '@/constants/campaignLimits';
 
 interface CampaignSettingsModalProps {
@@ -84,7 +84,9 @@ export default function CampaignSettingsModal({
   const isGmViewer = userRole === 'GM';
   const { showToast } = useToast();
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  /** A role by the name this language gives it. */
+  const roleLabel = (role: CampaignRole) => t(`roles.${role}`);
   const mayDelete = isCampaignOwner(campaign, user?.id) || user?.platformRole === 'ADMIN';
 
   // ── Tab ─────────────────────────────────────
@@ -124,7 +126,7 @@ export default function CampaignSettingsModal({
   const memberListRef = useRef<HTMLDivElement>(null);
   const inviteButtonRef = useRef<HTMLButtonElement>(null);
   // What Remove's question calls the member asked about.
-  const removingRole = memberToRemove ? CAMPAIGN_ROLE_LABEL[memberToRemove.role] : CAMPAIGN_ROLE_LABEL[CampaignRole.PLAYER];
+  const removingRole = memberToRemove ? roleLabel(memberToRemove.role) : roleLabel(CampaignRole.PLAYER);
   const [memberToPromote, setMemberToPromote] = useState<CampaignMembership | null>(null);
   const [promotingMemberId, setPromotingMemberId] = useState<string | null>(null);
   // The role each Role picker shows while its change is on its way, by member;
@@ -166,9 +168,9 @@ export default function CampaignSettingsModal({
     try {
       setInvitations((await api.listCampaignInvitations(campaign.id)).invitations);
     } catch (err) {
-      showToast(apiErrorMessage(err) ?? 'Could not load the pending invitations', 'error');
+      showToast(apiErrorMessage(err) ?? t('campaignSettings.invitationsLoadFailed'), 'error');
     }
-  }, [campaign?.id, showToast]);
+  }, [campaign?.id, showToast, t]);
 
   useEffect(() => {
     if (isOpen && isGmViewer && activeTab === 'members') void loadInvitations();
@@ -262,9 +264,9 @@ export default function CampaignSettingsModal({
     try {
       await api.withdrawCampaignInvitation(campaign.id, invitation.id);
       setInvitations((prev) => prev.filter((i) => i.id !== invitation.id));
-      showToast(`Withdrew the invitation to ${invitation.user.displayName}`, 'success');
+      showToast(t('campaignSettings.withdrew', { name: invitation.user.displayName }), 'success');
     } catch (err) {
-      showToast(apiErrorMessage(err) ?? 'Failed to withdraw the invitation', 'error');
+      showToast(apiErrorMessage(err) ?? t('campaignSettings.withdrawFailed'), 'error');
     } finally {
       setWithdrawingId(null);
     }
@@ -275,7 +277,7 @@ export default function CampaignSettingsModal({
   const handleSaveGeneral = async () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      showToast('Campaign name cannot be empty', 'error');
+      showToast(t('campaignSettings.nameEmpty'), 'error');
       return;
     }
     setSavingGeneral(true);
@@ -286,9 +288,9 @@ export default function CampaignSettingsModal({
         description: description.trim() || null,
       });
       await refreshCampaign();
-      showToast('Campaign settings saved', 'success');
+      showToast(t('campaignSettings.saved'), 'success');
     } catch (err) {
-      showToast(apiErrorMessage(err) ?? 'Failed to save settings', 'error');
+      showToast(apiErrorMessage(err) ?? t('campaignSettings.saveFailed'), 'error');
     } finally {
       setSavingGeneral(false);
     }
@@ -300,9 +302,9 @@ export default function CampaignSettingsModal({
     try {
       await campaignService.updateCampaign(campaign.id, { playersMayDraw: next });
       await refreshCampaign();
-      showToast(next ? 'Players may draw on the map now' : 'Only you can draw on the map now', 'success');
+      showToast(next ? t('campaignSettings.drawOn') : t('campaignSettings.drawOff'), 'success');
     } catch (err) {
-      showToast(apiErrorMessage(err) ?? 'Could not change who may draw on the map', 'error');
+      showToast(apiErrorMessage(err) ?? t('campaignSettings.drawFailed'), 'error');
     } finally {
       setPlayersMayDrawShown(null);
     }
@@ -316,9 +318,9 @@ export default function CampaignSettingsModal({
         chatCooldownSeconds,
       });
       await refreshCampaign();
-      showToast('Chat settings saved', 'success');
+      showToast(t('campaignSettings.chatSaved'), 'success');
     } catch (err) {
-      showToast(apiErrorMessage(err) ?? 'Failed to save chat settings', 'error');
+      showToast(apiErrorMessage(err) ?? t('campaignSettings.chatSaveFailed'), 'error');
     } finally {
       setSavingChat(false);
     }
@@ -339,9 +341,9 @@ export default function CampaignSettingsModal({
     try {
       await api.removeCampaignMember(campaign.id, memberToRemove.userId);
       await refreshCampaign();
-      showToast(`${CAMPAIGN_ROLE_LABEL[memberToRemove.role]} removed from campaign`, 'success');
+      showToast(t('campaignSettings.removed', { role: roleLabel(memberToRemove.role) }), 'success');
     } catch (err) {
-      showToast(apiErrorMessage(err) ?? 'Failed to remove member', 'error');
+      showToast(apiErrorMessage(err) ?? t('campaignSettings.removeFailed'), 'error');
     } finally {
       setRemovingMemberId(null);
     }
@@ -360,9 +362,9 @@ export default function CampaignSettingsModal({
     try {
       await api.changeCampaignMemberRole(campaign.id, userId, role);
       await refreshCampaign();
-      showToast(`${membership.user?.displayName ?? 'The member'} is now a ${CAMPAIGN_ROLE_LABEL[role].toLowerCase()}`, 'success');
+      showToast(t('campaignSettings.roleChanged', { name: membership.user?.displayName ?? t('campaignSettings.theMember'), role: roleLabel(role).toLowerCase() }), 'success');
     } catch (err) {
-      showToast(apiErrorMessage(err) ?? 'Failed to change the role', 'error');
+      showToast(apiErrorMessage(err) ?? t('campaignSettings.roleChangeFailed'), 'error');
     } finally {
       setPendingRoles((prev) => {
         const next = { ...prev };
@@ -385,11 +387,11 @@ export default function CampaignSettingsModal({
     try {
       await api.transferGM(campaign.id, promoted.userId);
       await refreshCampaign();
-      showToast(`${promoted.user?.displayName ?? 'They'} is now the GM`, 'success');
+      showToast(t('campaignSettings.nowGm', { name: promoted.user?.displayName ?? t('campaignSettings.they') }), 'success');
       // This panel is GM-only, and the caller has just stopped being the GM.
       onClose();
     } catch (err) {
-      showToast(apiErrorMessage(err) ?? 'Failed to transfer the GM role', 'error');
+      showToast(apiErrorMessage(err) ?? t('campaignSettings.transferFailed'), 'error');
     } finally {
       setPromotingMemberId(null);
     }
@@ -402,9 +404,9 @@ export default function CampaignSettingsModal({
     setDeletingCampaign(true);
     try {
       await campaignService.deleteCampaign(campaign.id);
-      onDeleted({ campaignId: campaign.id, reason: 'campaign-deleted', message: `${campaign.name} was deleted.` });
+      onDeleted({ campaignId: campaign.id, reason: 'campaign-deleted', message: t('campaignSettings.deletedNotice', { name: campaign.name }) });
     } catch (err) {
-      showToast(apiErrorMessage(err) ?? 'Failed to delete campaign', 'error');
+      showToast(apiErrorMessage(err) ?? t('campaignSettings.deleteFailed'), 'error');
       setDeletingCampaign(false);
     }
   };
@@ -418,9 +420,9 @@ export default function CampaignSettingsModal({
         { includeAudio: exportIncludeAudio },
         `${safeName}-export.cozyvtt`
       );
-      if (outcome === 'saved') showToast('Campaign exported successfully', 'success');
+      if (outcome === 'saved') showToast(t('campaignSettings.exported'), 'success');
     } catch (err) {
-      showToast(apiErrorMessage(err) ?? 'Failed to export campaign', 'error');
+      showToast(apiErrorMessage(err) ?? t('campaignSettings.exportFailed'), 'error');
     } finally {
       setExporting(false);
     }
@@ -448,7 +450,7 @@ export default function CampaignSettingsModal({
             <div className="flex items-center gap-3">
               <Settings className="w-6 h-6 text-brand-ink" />
               <div>
-                <SlideOverTitle className="text-xl font-bold text-brand-ink">Campaign Settings</SlideOverTitle>
+                <SlideOverTitle className="text-xl font-bold text-brand-ink">{t('campaignSettings.title')}</SlideOverTitle>
                 <p className="text-xs text-stone-gray truncate max-w-[220px]">{campaign.name}</p>
               </div>
             </div>
@@ -464,14 +466,14 @@ export default function CampaignSettingsModal({
               [
                 ...(isGmViewer
                   ? [
-                      { id: 'general', label: 'General' },
-                      { id: 'chat', label: 'Chat' },
+                      { id: 'general', label: t('campaignSettings.tabs.general') },
+                      { id: 'chat', label: t('campaignSettings.tabs.chat') },
                     ]
                   : []),
-                { id: 'members', label: 'Members' },
+                { id: 'members', label: t('campaignSettings.tabs.members') },
                 // Only Delete Campaign is here, which the server leaves
                 // to the owner or an administrator, whatever their role.
-                ...(mayDelete ? [{ id: 'danger', label: 'Danger Zone' }] : []),
+                ...(mayDelete ? [{ id: 'danger', label: t('campaignSettings.tabs.danger') }] : []),
               ] as { id: SettingsTab; label: string }[]
             ).map((tab) => (
               <button
@@ -502,7 +504,7 @@ export default function CampaignSettingsModal({
                   htmlFor="cs-name"
                   className="block text-sm font-semibold text-stone-gray mb-1.5"
                 >
-                  Campaign Name <span className="text-danger-ink">*</span>
+                  {t('campaignSettings.nameLabel')} <span className="text-danger-ink">*</span>
                 </label>
                 <input
                   id="cs-name"
@@ -511,7 +513,7 @@ export default function CampaignSettingsModal({
                   onChange={(e) => setName(e.target.value)}
                   maxLength={CAMPAIGN_LIMITS.maxNameLength}
                   className="input-cozy w-full"
-                  placeholder="My Campaign"
+                  placeholder={t('campaignSettings.namePlaceholder')}
                 />
               </div>
 
@@ -520,7 +522,7 @@ export default function CampaignSettingsModal({
                   htmlFor="cs-description"
                   className="block text-sm font-semibold text-stone-gray mb-1.5"
                 >
-                  Description <span className="text-warm-gray font-normal">(optional)</span>
+                  {t('campaignSettings.descriptionLabel')} <span className="text-warm-gray font-normal">{t('campaignSettings.optional')}</span>
                 </label>
                 <textarea
                   id="cs-description"
@@ -529,7 +531,7 @@ export default function CampaignSettingsModal({
                   rows={4}
                   maxLength={CAMPAIGN_LIMITS.maxDescriptionLength}
                   className="input-cozy w-full resize-none"
-                  placeholder="Describe your campaign…"
+                  placeholder={t('campaignSettings.descriptionPlaceholder')}
                 />
                 <p className="mt-1 text-xs text-warm-gray text-right">
                   {description.length}/{CAMPAIGN_LIMITS.maxDescriptionLength}
@@ -546,12 +548,12 @@ export default function CampaignSettingsModal({
                   {savingGeneral ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Saving…
+                      {t('campaignSettings.saving')}
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      Save Changes
+                      {t('campaignSettings.save')}
                     </>
                   )}
                 </Button>
@@ -560,9 +562,9 @@ export default function CampaignSettingsModal({
               {/* ── Players may draw ── */}
               <div className="pt-4 mt-4 border-t border-moss-green/15 flex items-center justify-between gap-4">
                 <div>
-                  <p id="cs-players-may-draw" className="text-sm font-semibold text-stone-gray">Players may draw</p>
+                  <p id="cs-players-may-draw" className="text-sm font-semibold text-stone-gray">{t('campaignSettings.playersMayDraw')}</p>
                   <p className="text-xs text-warm-gray mt-0.5">
-                    Players can draw on the map and point the laser, except while the session is paused or has ended. You can always draw. Saved at once.
+                    {t('campaignSettings.playersMayDrawHint')}
                   </p>
                 </div>
                 <button
@@ -606,17 +608,16 @@ export default function CampaignSettingsModal({
               <div className="pt-4 mt-4 border-t border-moss-green/15 space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold text-stone-gray">
                   <Download className="w-4 h-4 text-brand-ink" />
-                  Export Campaign
+                  {t('campaignSettings.exportTitle')}
                 </div>
                 <p className="text-xs text-warm-gray">
-                  Download a <span className="font-mono">.cozyvtt</span> archive containing maps, creatures,
-                  token templates, and all associated assets. Character data is not included for privacy.
+                  <Trans i18nKey="campaignSettings.exportHint" components={{ mono: <span className="font-mono" /> }} />
                 </p>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p id="cs-export-audio" className="text-sm text-stone-gray">Include audio assets</p>
-                    <p className="text-xs text-warm-gray">The tracks your atmosphere plays</p>
+                    <p id="cs-export-audio" className="text-sm text-stone-gray">{t('campaignSettings.includeAudio')}</p>
+                    <p className="text-xs text-warm-gray">{t('campaignSettings.includeAudioHint')}</p>
                   </div>
                   <button
                     type="button"
@@ -645,12 +646,12 @@ export default function CampaignSettingsModal({
                   {exporting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Exporting…
+                      {t('campaignSettings.exporting')}
                     </>
                   ) : (
                     <>
                       <Download className="w-4 h-4" />
-                      Export Campaign
+                      {t('campaignSettings.exportTitle')}
                     </>
                   )}
                 </Button>
@@ -664,17 +665,15 @@ export default function CampaignSettingsModal({
               <div className="flex items-start gap-3 p-4 rounded-lg bg-moss-green/5 border border-moss-green/15">
                 <MessageCircle className="w-5 h-5 text-brand-ink shrink-0 mt-0.5" />
                 <p className="text-sm text-stone-gray">
-                  A message cooldown prevents players from sending messages too quickly.
-                  When enabled, each player must wait the configured number of seconds
-                  before sending their next message.
+                  {t('campaignSettings.chatIntro')}
                 </p>
               </div>
 
               {/* Enable toggle */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-stone-gray">Enable message cooldown</p>
-                  <p className="text-xs text-warm-gray mt-0.5">Off by default — players can chat freely</p>
+                  <p className="text-sm font-semibold text-stone-gray">{t('campaignSettings.cooldown')}</p>
+                  <p className="text-xs text-warm-gray mt-0.5">{t('campaignSettings.cooldownHint')}</p>
                 </div>
                 <button
                   type="button"
@@ -700,7 +699,7 @@ export default function CampaignSettingsModal({
                     htmlFor="cs-cooldown-seconds"
                     className="block text-sm font-semibold text-stone-gray mb-1.5"
                   >
-                    Cooldown duration <span className="font-normal text-warm-gray">(seconds)</span>
+                    {t('campaignSettings.cooldownDuration')} <span className="font-normal text-warm-gray">{t('campaignSettings.seconds')}</span>
                   </label>
                   <div className="flex items-center gap-3">
                     <input
@@ -716,12 +715,10 @@ export default function CampaignSettingsModal({
                       className="input-cozy w-28"
                     />
                     <span className="text-sm text-warm-gray">
-                      {chatCooldownSeconds === 1
-                        ? '1 second between messages'
-                        : `${chatCooldownSeconds} seconds between messages`}
+                      {t('campaignSettings.secondsBetween', { count: chatCooldownSeconds })}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-warm-gray">Between 1 and 300 seconds.</p>
+                  <p className="mt-1 text-xs text-warm-gray">{t('campaignSettings.cooldownRange')}</p>
                 </div>
               )}
 
@@ -735,12 +732,12 @@ export default function CampaignSettingsModal({
                   {savingChat ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Saving…
+                      {t('campaignSettings.saving')}
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      Save Changes
+                      {t('campaignSettings.save')}
                     </>
                   )}
                 </Button>
@@ -755,7 +752,7 @@ export default function CampaignSettingsModal({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-stone-gray">
                   <Users className="w-4 h-4" />
-                  <span>{memberships.length} member{memberships.length !== 1 ? 's' : ''}</span>
+                  <span>{t('campaignSettings.members', { count: memberships.length })}</span>
                 </div>
                 {isGmViewer && (
                 <Button
@@ -765,7 +762,7 @@ export default function CampaignSettingsModal({
                   variant="secondary" className="flex items-center gap-2 text-sm"
                 >
                   <UserPlus className="w-4 h-4" />
-                  Invite Player
+                  {t('invite.title')}
                 </Button>
                 )}
               </div>
@@ -777,7 +774,7 @@ export default function CampaignSettingsModal({
                   const isGm = membership.role === 'GM';
                   const isRemoving = removingMemberId === membership.userId;
                   const pendingRole = pendingRoles[membership.userId];
-                  const memberName = membership.user?.displayName ?? 'this member';
+                  const memberName = membership.user?.displayName ?? t('campaignSettings.thisMember');
 
                   // The controls go under the name when they do not fit beside it.
                   return (
@@ -794,9 +791,9 @@ export default function CampaignSettingsModal({
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-stone-gray truncate">
-                            {membership.user?.displayName ?? 'Unknown'}
+                            {membership.user?.displayName ?? t('campaignSettings.unknown')}
                             {isSelf && (
-                              <span className="ml-1.5 text-xs font-normal text-warm-gray">(you)</span>
+                              <span className="ml-1.5 text-xs font-normal text-warm-gray">{t('campaignSettings.you')}</span>
                             )}
                           </p>
                         </div>
@@ -813,7 +810,7 @@ export default function CampaignSettingsModal({
                           // change made meanwhile is ignored, and the
                           // controlled value puts the choice back.
                           <select
-                            aria-label={`Role of ${memberName}`}
+                            aria-label={t('campaignSettings.roleOf', { name: memberName })}
                             value={pendingRole ?? membership.role}
                             aria-busy={pendingRole !== undefined || undefined}
                             aria-disabled={pendingRole !== undefined || isRemoving || undefined}
@@ -825,7 +822,7 @@ export default function CampaignSettingsModal({
                             className="touch-target rounded-cozy border border-ink-muted/30 bg-paper/80 px-2 py-1 text-xs font-medium text-ink focus:outline-hidden focus:ring-2 focus:ring-brand aria-disabled:opacity-60"
                           >
                             {ROLE_CHOICES.map((role) => (
-                              <option key={role} value={role}>{CAMPAIGN_ROLE_LABEL[role]}</option>
+                              <option key={role} value={role}>{roleLabel(role)}</option>
                             ))}
                           </select>
                         ) : (
@@ -841,10 +838,10 @@ export default function CampaignSettingsModal({
                             {isGm ? (
                               <span className="flex items-center gap-1">
                                 <ShieldCheck className="w-3 h-3" />
-                                {CAMPAIGN_ROLE_LABEL[membership.role]}
+                                {roleLabel(membership.role)}
                               </span>
                             ) : (
-                              CAMPAIGN_ROLE_LABEL[membership.role]
+                              roleLabel(membership.role)
                             )}
                           </span>
                         )}
@@ -856,9 +853,9 @@ export default function CampaignSettingsModal({
                             type="button"
                             onClick={() => setMemberToPromote(membership)}
                             disabled={promotingMemberId === membership.userId}
-                            title={`Make ${membership.user?.displayName ?? 'this player'} the GM`}
+                            title={t('campaignSettings.makeGm', { name: membership.user?.displayName ?? t('campaignSettings.thisPlayer') })}
                             className="touch-target inline-flex items-center justify-center p-1.5 rounded-lg text-spirit-ink hover:bg-spirit-purple/10 transition-colors disabled:opacity-40"
-                            aria-label={`Make ${membership.user?.displayName} the GM`}
+                            aria-label={t('campaignSettings.makeGm', { name: membership.user?.displayName ?? t('campaignSettings.thisPlayer') })}
                           >
                             {promotingMemberId === membership.userId ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -876,7 +873,7 @@ export default function CampaignSettingsModal({
                             disabled={isRemoving}
                             data-remove-member
                             className="touch-target inline-flex items-center justify-center p-1.5 rounded-lg text-danger-ink hover:text-danger-ink hover:bg-danger/10 transition-colors disabled:opacity-40"
-                            aria-label={`Remove ${membership.user?.displayName} from campaign`}
+                            aria-label={t('campaignSettings.removeAria', { name: membership.user?.displayName })}
                           >
                             {isRemoving ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -894,7 +891,7 @@ export default function CampaignSettingsModal({
               {/* Invitations that still stand: who has been asked, until when */}
               {isGmViewer && invitations.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide">Invited</h3>
+                  <h3 className="text-xs font-semibold text-stone-gray uppercase tracking-wide">{t('campaignSettings.invited')}</h3>
                   {invitations.map((invitation) => (
                     <div
                       key={invitation.id}
@@ -904,8 +901,8 @@ export default function CampaignSettingsModal({
                         <p className="text-sm font-medium text-ink-black truncate">{invitation.user.displayName}</p>
                         <p className="text-xs text-stone-gray">
                           {invitation.expiresAt
-                            ? `Invited, until ${new Date(invitation.expiresAt).toLocaleDateString()}`
-                            : 'Invited'}
+                            ? t('campaignSettings.invitedUntil', { date: new Date(invitation.expiresAt).toLocaleDateString(i18n.language) })
+                            : t('campaignSettings.invited')}
                         </p>
                       </div>
                       <button
@@ -913,8 +910,8 @@ export default function CampaignSettingsModal({
                         onClick={() => handleWithdrawInvitation(invitation)}
                         disabled={withdrawingId === invitation.id}
                         className="touch-target inline-flex items-center justify-center p-1.5 rounded-lg text-danger-ink hover:bg-danger/10 transition-colors disabled:opacity-40"
-                        aria-label={`Withdraw the invitation to ${invitation.user.displayName}`}
-                        title="Withdraw the invitation"
+                        aria-label={t('campaignSettings.withdrawAria', { name: invitation.user.displayName })}
+                        title={t('campaignSettings.withdrawTitle')}
                       >
                         {withdrawingId === invitation.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
                       </button>
@@ -932,15 +929,12 @@ export default function CampaignSettingsModal({
                 <div className="flex items-start gap-3 mb-4">
                   <AlertTriangle className="w-5 h-5 text-danger-ink shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-sm font-bold text-danger-ink mb-1">Delete Campaign</h3>
+                    <h3 className="text-sm font-bold text-danger-ink mb-1">{t('campaignSettings.deleteTitle')}</h3>
                     <p className="text-sm text-danger-ink">
-                      Permanently deletes this campaign and all associated maps, tokens, chat
-                      history, and session records. Characters and uploaded assets are{' '}
-                      <strong>not</strong> deleted: characters stay with their owners, and each
-                      uploaded file moves to the personal library of whoever uploaded it.
+                      <Trans i18nKey="campaignSettings.deleteBody" components={{ b: <strong /> }} />
                     </p>
                     <p className="text-sm text-danger-ink mt-2">
-                      This action <strong>cannot be undone</strong>.
+                      <Trans i18nKey="campaignSettings.deleteIrreversible" components={{ b: <strong /> }} />
                     </p>
                   </div>
                 </div>
@@ -951,7 +945,11 @@ export default function CampaignSettingsModal({
                       htmlFor="cs-delete-confirm"
                       className="block text-sm font-semibold text-danger-ink mb-1.5"
                     >
-                      Type <span className="font-mono bg-danger/10 px-1 rounded-sm">{campaign.name}</span> to confirm:
+                      <Trans
+                        i18nKey="campaignSettings.typeToConfirm"
+                        values={{ name: campaign.name }}
+                        components={{ name: <span className="font-mono bg-danger/10 px-1 rounded-sm" /> }}
+                      />
                     </label>
                     <input
                       id="cs-delete-confirm"
@@ -973,12 +971,12 @@ export default function CampaignSettingsModal({
                     {deletingCampaign ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Deleting…
+                        {t('campaignSettings.deleting')}
                       </>
                     ) : (
                       <>
                         <Trash2 className="w-4 h-4" />
-                        Delete Campaign
+                        {t('campaignSettings.deleteTitle')}
                       </>
                     )}
                   </Button>
@@ -992,10 +990,10 @@ export default function CampaignSettingsModal({
       {/* Remove member confirm dialog, named for the member's role */}
       <ConfirmDialog
         isOpen={!!memberToRemove}
-        title={`Remove ${removingRole}`}
-        message={`Remove ${memberToRemove?.user?.displayName ?? `this ${removingRole.toLowerCase()}`} from "${campaign.name}"? They will lose access to the campaign immediately.`}
-        confirmLabel="Remove"
-        cancelLabel="Cancel"
+        title={t('campaignSettings.removeTitle', { role: removingRole })}
+        message={t('campaignSettings.removeMessage', { who: memberToRemove?.user?.displayName ?? t('campaignSettings.thisRole', { role: removingRole.toLowerCase() }), campaign: campaign.name })}
+        confirmLabel={t('campaignSettings.removeConfirm')}
+        cancelLabel={t('common.cancel')}
         variant="danger"
         onConfirm={handleConfirmRemoveMember}
         onCancel={() => setMemberToRemove(null)}
@@ -1004,10 +1002,10 @@ export default function CampaignSettingsModal({
       {/* Transfer GM confirm dialog */}
       <ConfirmDialog
         isOpen={!!memberToPromote}
-        title="Hand over the GM role"
-        message={`Make ${memberToPromote?.user?.displayName ?? 'this player'} the GM of "${campaign.name}"? They get the GM's controls and you become a player. You stay in the campaign, and this does not change who owns it — you can be made GM again later.`}
-        confirmLabel="Make them GM"
-        cancelLabel="Cancel"
+        title={t('campaignSettings.handTitle')}
+        message={t('campaignSettings.handMessage', { name: memberToPromote?.user?.displayName ?? t('campaignSettings.thisPlayer'), campaign: campaign.name })}
+        confirmLabel={t('campaignSettings.handConfirm')}
+        cancelLabel={t('common.cancel')}
         onConfirm={handleConfirmMakeGm}
         onCancel={() => setMemberToPromote(null)}
       />
@@ -1015,10 +1013,10 @@ export default function CampaignSettingsModal({
       {/* Final delete confirm dialog */}
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        title="Delete Campaign"
-        message={`Are you absolutely sure you want to permanently delete "${campaign.name}"? This cannot be undone.`}
-        confirmLabel="Delete Forever"
-        cancelLabel="Cancel"
+        title={t('campaignSettings.deleteTitle')}
+        message={t('campaignSettings.finalMessage', { campaign: campaign.name })}
+        confirmLabel={t('campaignSettings.deleteForever')}
+        cancelLabel={t('common.cancel')}
         variant="danger"
         isLoading={deletingCampaign}
         onConfirm={handleDeleteCampaign}

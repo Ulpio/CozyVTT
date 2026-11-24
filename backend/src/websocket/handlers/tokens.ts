@@ -63,7 +63,7 @@ interface DragAudience {
 
 /** Why a socket may not move a token, in the words the client already shows. */
 const moveRefusal = (role: string | undefined): string =>
-  role === 'SPECTATOR' ? 'Spectators cannot move tokens' : 'You do not have permission to move this token';
+  role === 'SPECTATOR' ? 'Espectadores não podem mover tokens.' : 'Você não tem permissão para mover este token.';
 
 /**
  * How long a drag's decision of who may see the token is reused, at most,
@@ -352,7 +352,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
     let done: (() => void) | undefined;
     try {
       if (!socket.campaignId) {
-        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        socket.emit('error', { message: 'Você não está em uma campanha.' });
         return;
       }
 
@@ -365,7 +365,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
       const { tokenId, mapId } = data;
 
       if (typeof tokenId !== 'string' || !tokenId || typeof mapId !== 'string' || !mapId) {
-        socket.emit('error', { message: 'tokenId and mapId required' });
+        socket.emit('error', { message: 'Informe o token e o mapa.' });
         return;
       }
 
@@ -387,7 +387,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
       });
 
       if (!map || map.campaignId !== socket.campaignId || !canReadMap(socket.role, mapId, map.campaign.currentMapId)) {
-        socket.emit('error', { message: 'Map not found' });
+        socket.emit('error', { message: 'Mapa não encontrado.' });
         return;
       }
 
@@ -396,7 +396,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
       const token = tokensArray.find((t) => t.id === tokenId);
 
       if (!token) {
-        socket.emit('error', { message: 'Token not found' });
+        socket.emit('error', { message: 'Token não encontrado.' });
         return;
       }
 
@@ -409,7 +409,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
 
       // The same plane rule the REST update route applies.
       if (!(await canActOnTokenPlane(socket.role, token, socket.campaignId, socket.userId!))) {
-        socket.emit('error', { message: 'You cannot interact with spirit layer tokens' });
+        socket.emit('error', { message: 'Você não pode interagir com tokens do plano espiritual.' });
         return;
       }
 
@@ -424,7 +424,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
       logger.debug('token.move.start', { tokenId, userId: socket.userId, mapId });
     } catch (error) {
       logger.error('token.move.start failed', { err: error });
-      socket.emit('error', { message: 'Failed to start token movement' });
+      socket.emit('error', { message: 'Não foi possível iniciar o movimento do token.' });
     } finally {
       done?.();
     }
@@ -467,7 +467,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
 
       // Validate coordinates are within map bounds
       if (x < 0 || x >= map.width || y < 0 || y >= map.height) {
-        socket.emit('error', { message: 'Token position out of bounds' });
+        socket.emit('error', { message: 'A posição do token está fora do mapa.' });
         return;
       }
 
@@ -523,7 +523,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
     let done: (() => void) | undefined;
     try {
       if (!socket.campaignId) {
-        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        socket.emit('error', { message: 'Você não está em uma campanha.' });
         return;
       }
 
@@ -538,7 +538,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
       // Whole squares, as the client always sends: other clients draw a
       // fraction half a square from where sight and stored position count it.
       if (typeof tokenId !== 'string' || !tokenId || typeof mapId !== 'string' || !mapId || !Number.isInteger(dropX) || !Number.isInteger(dropY)) {
-        socket.emit('error', { message: 'Invalid token move data' });
+        socket.emit('error', { message: 'Dados de movimento do token inválidos.' });
         return;
       }
 
@@ -554,7 +554,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
       });
 
       if (!map || map.campaignId !== socket.campaignId || !canReadMap(socket.role, mapId, map.campaign.currentMapId)) {
-        socket.emit('error', { message: 'Map not found' });
+        socket.emit('error', { message: 'Mapa não encontrado.' });
         return;
       }
 
@@ -563,7 +563,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
       const tokenIndex = tokensArray.findIndex((t) => t.id === tokenId);
 
       if (tokenIndex === -1) {
-        socket.emit('error', { message: 'Token not found' });
+        socket.emit('error', { message: 'Token não encontrado.' });
         return;
       }
 
@@ -620,7 +620,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
 
       // The same plane rule the REST update route applies.
       if (!(await canActOnTokenPlane(socket.role, token, socket.campaignId, socket.userId!))) {
-        socket.emit('error', { message: 'You cannot interact with spirit layer tokens' });
+        socket.emit('error', { message: 'Você não pode interagir com tokens do plano espiritual.' });
         await putBack();
         return;
       }
@@ -653,10 +653,10 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
             campaign: { select: { currentMapId: true } },
           },
         });
-        if (dropX < 0 || dropX >= fresh.width || dropY < 0 || dropY >= fresh.height) return { refused: 'Token position out of bounds' };
+        if (dropX < 0 || dropX >= fresh.width || dropY < 0 || dropY >= fresh.height) return { refused: 'A posição do token está fora do mapa.' };
         const tokens = readTokens(fresh.tokens);
         const index = tokens.findIndex((t) => t.id === tokenId);
-        if (index === -1) return { refused: 'Token not found' };
+        if (index === -1) return { refused: 'Token não encontrado.' };
         const from = tokens[index].position;
         const position = clampTokenPosition({ x: dropX, y: dropY }, tokens[index].size ?? { width: 1, height: 1 }, fresh);
         const before = { ...fresh, tokens: [...tokens] };
@@ -794,7 +794,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
       logger.debug('token.move.end', { tokenId, x, y, userId: socket.userId });
     } catch (error) {
       logger.error('token.move.end failed', { err: error });
-      socket.emit('error', { message: 'Failed to finalize token movement' });
+      socket.emit('error', { message: 'Não foi possível concluir o movimento do token.' });
     } finally {
       done?.();
     }
@@ -815,7 +815,7 @@ export function registerTokenHandlers(io: Server, socket: AuthenticatedSocket): 
     try {
       const campaignId = socket.campaignId;
       if (!campaignId || !socket.userId) {
-        refuse('Not authenticated to a campaign');
+        refuse('Você não está em uma campanha.');
         return;
       }
       if (!withinCeiling(socket, 'token.light.set', ack)) return;

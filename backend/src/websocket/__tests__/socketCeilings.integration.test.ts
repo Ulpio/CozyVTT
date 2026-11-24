@@ -52,7 +52,7 @@ const users: string[] = [];
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** A refusal from one of the flood ceilings, as opposed to any other error. */
-const CEILING_REFUSAL = /at once/;
+const CEILING_REFUSAL = /at once|de uma vez/;
 
 /** Everything `client` receives of `event` from now on. */
 function collect<T = unknown>(client: ClientSocket, event: string): T[] {

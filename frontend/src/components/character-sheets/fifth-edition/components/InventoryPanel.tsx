@@ -234,7 +234,7 @@ export function InventoryPanel({ characterId, inventory = [], currency, strength
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
             {(['pp', 'gp', 'ep', 'sp', 'cp'] as const).map((coin) => (
               <div key={coin} className="text-center">
-                <div className="mb-1 text-xs text-ink-muted">{coin.toUpperCase()}</div>
+                <div className="mb-1 text-xs text-ink-muted">{t(`inventoryPanel.coinShort.${coin}`)}</div>
                 <div className="text-lg font-bold text-ink">{currency[coin]}</div>
               </div>
             ))}

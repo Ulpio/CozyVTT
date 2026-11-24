@@ -23,6 +23,8 @@ const GROUPS: CheckGroup[] = ['skills', 'abilities', 'savingThrows'];
  * "Check" / "Saving Throw" / "Save" ending (and a Horror d100 target).
  */
 function nameOf(option: RollOption): string {
+  // A 5E check carries its English name; its purpose is in the roller's language.
+  if (option.testName !== undefined) return option.testName;
   return option.purpose
     .replace(/ — target: .*$/, '')
     .replace(/ (Check|Saving Throw|Save)$/, '');

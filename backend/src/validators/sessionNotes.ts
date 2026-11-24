@@ -16,9 +16,9 @@ import { z } from 'zod';
 export const MAX_SESSION_NOTES_LENGTH = 2000;
 
 const SessionNotesField = z
-  .string({ error: 'Session notes must be text' })
+  .string({ error: 'As notas da sessão devem ser texto.' })
   .max(MAX_SESSION_NOTES_LENGTH, {
-    message: `Session notes are limited to ${MAX_SESSION_NOTES_LENGTH} characters`,
+    message: `As notas da sessão são limitadas a ${MAX_SESSION_NOTES_LENGTH} caracteres.`,
   });
 
 export const UpdateSessionNotesSchema = z.object({
@@ -27,6 +27,6 @@ export const UpdateSessionNotesSchema = z.object({
 
 /** PUT .../sessions/:sessionId/end. The state is saved unless `saveState` is false. */
 export const EndSessionSchema = z.object({
-  saveState: z.boolean({ error: 'saveState must be true or false' }).optional(),
+  saveState: z.boolean({ error: 'saveState deve ser true ou false.' }).optional(),
   notes: SessionNotesField.nullish(),
 });

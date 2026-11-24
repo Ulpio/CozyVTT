@@ -15,6 +15,7 @@
 
 import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Dices, X, ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/services/api';
 import type { Character } from '@/types';
 import {
@@ -133,6 +134,7 @@ export default function CharacterRollPicker({
   anchorX,
   anchorY,
 }: CharacterRollPickerProps) {
+  const { t } = useTranslation();
   const compact = useCompactLayout();
   const pickerRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
@@ -152,16 +154,16 @@ export default function CharacterRollPicker({
       setLoading(false);
       return;
     }
-    if (!characterId) { setError('No character provided'); setLoading(false); return; }
+    if (!characterId) { setError(t('rollPicker.noCharacter')); setLoading(false); return; }
 
     api.getCharacter(characterId)
       .then(({ character: c }) => {
         setCharacter(c);
         setRolls(getCharacterRolls(c.gameSystem, c.data));
       })
-      .catch(() => setError('Failed to load character data'))
+      .catch(() => setError(t('rollPicker.loadFailed')))
       .finally(() => setLoading(false));
-  }, [initialCharacter, characterId]);  
+  }, [initialCharacter, characterId, t]);
 
   // Position picker, flipping if needed
   useEffect(() => {
@@ -231,7 +233,7 @@ export default function CharacterRollPicker({
   // actually made — this never decides the outcome.
   const initiative = resolveCharacterInitiative(gameSystem, character?.data);
 
-  const characterName = character?.name ?? 'Character';
+  const characterName = character?.name ?? t('rollPicker.character');
   const hasAnyRolls = rolls && (
     rolls.abilities.length > 0 ||
     rolls.skills.length > 0 ||
@@ -246,7 +248,7 @@ export default function CharacterRollPicker({
       {/* Roll Mode Selector (d20 systems only) */}
       {hasAdvantage && !loading && hasAnyRolls && (
         <div className="shrink-0 px-3 py-2 border-b border-moss-green/10 bg-parchment/30">
-          <div className="text-xs text-warm-gray mb-1">Roll mode</div>
+          <div className="text-xs text-warm-gray mb-1">{t('rollPicker.rollMode')}</div>
           <div className="relative">
             <button
               onClick={() => setModeOpen((o) => !o)}
@@ -280,7 +282,7 @@ export default function CharacterRollPicker({
       <div className={`flex-1 min-h-0 overflow-y-auto${compact ? ' overscroll-contain' : ''}`}>
         {loading && (
           <div className="flex items-center justify-center py-8 text-warm-gray text-sm">
-            Loading rolls…
+            {t('rollPicker.loading')}
           </div>
         )}
 
@@ -296,7 +298,7 @@ export default function CharacterRollPicker({
         {!loading && !error && onRollInitiative && (
           <div className="border-b border-moss-green/10">
             <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-warm-gray bg-parchment/40">
-              Initiative
+              {t('rollPicker.initiative')}
             </div>
             <button
               onClick={() => { onRollInitiative(); onClose(); }}
@@ -307,7 +309,7 @@ export default function CharacterRollPicker({
                   combatants by Dexterity with no die involved, so offering to
                   "roll" would promise something that does not happen. */}
               <span className="flex-1">
-                {initiative?.kind === 'fixed' ? 'Set Initiative' : 'Roll Initiative'}
+                {initiative?.kind === 'fixed' ? t('rollPicker.setInitiative') : t('rollPicker.rollInitiative')}
               </span>
               {initiative && (
                 <span className="text-xs text-warm-gray shrink-0">{initiative.label}</span>
@@ -318,22 +320,22 @@ export default function CharacterRollPicker({
 
         {!loading && !error && !hasAnyRolls && (
           <div className="px-3 py-6 text-sm text-warm-gray text-center">
-            No rollable stats found for this character.
+            {t('rollPicker.noRollable')}
             <br />
-            <span className="text-xs">Make sure the character sheet is filled in.</span>
+            <span className="text-xs">{t('rollPicker.fillSheet')}</span>
           </div>
         )}
 
         {!loading && !error && rolls && (
           <div className="divide-y divide-moss-green/10">
             {/* Headed as the sheet names them: a Horror d100 sheet has characteristics. */}
-            <Section title={gameSystem === 'HORROR_D100' ? 'Characteristics' : 'Abilities'} rolls={rolls.abilities} mode={mode} onRoll={handleRollOption} compact={compact} />
-            <Section title="Skills" rolls={rolls.skills} mode={mode} onRoll={handleRollOption} compact={compact} />
+            <Section title={gameSystem === 'HORROR_D100' ? t('rollPicker.characteristics') : t('rollPicker.abilities')} rolls={rolls.abilities} mode={mode} onRoll={handleRollOption} compact={compact} />
+            <Section title={t('rollPicker.skills')} rolls={rolls.skills} mode={mode} onRoll={handleRollOption} compact={compact} />
             {rolls.savingThrows.length > 0 && (
-              <Section title="Saving Throws" rolls={rolls.savingThrows} mode={mode} onRoll={handleRollOption} compact={compact} />
+              <Section title={t('rollPicker.savingThrows')} rolls={rolls.savingThrows} mode={mode} onRoll={handleRollOption} compact={compact} />
             )}
-            <Section title="Combat" rolls={rolls.combat} mode={mode} onRoll={handleRollOption} compact={compact} />
-            <Section title="Hit Dice" rolls={rolls.hitDice} mode={mode} onRoll={handleRollOption} compact={compact} />
+            <Section title={t('rollPicker.combat')} rolls={rolls.combat} mode={mode} onRoll={handleRollOption} compact={compact} />
+            <Section title={t('rollPicker.hitDice')} rolls={rolls.hitDice} mode={mode} onRoll={handleRollOption} compact={compact} />
           </div>
         )}
       </div>
@@ -355,7 +357,7 @@ export default function CharacterRollPicker({
 
   if (compact) {
     return (
-      <BottomSheet open title={`Roll for ${characterName}`} height="full" onClose={onClose}>
+      <BottomSheet open title={t('rollPicker.rollFor', { name: characterName })} height="full" onClose={onClose}>
         <div className="flex h-full min-h-0 flex-col">{body}</div>
       </BottomSheet>
     );
@@ -380,10 +382,10 @@ export default function CharacterRollPicker({
           <div className="flex items-center gap-2">
             <Dices className="w-4 h-4 text-brand-ink" />
             <span className="text-sm font-semibold text-stone-gray truncate">
-              Roll for {characterName}
+              {t('rollPicker.rollFor', { name: characterName })}
             </span>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="p-0.5 touch-target inline-flex items-center justify-center rounded-sm hover:bg-moss-green/10 transition-colors">
+          <button type="button" onClick={onClose} aria-label={t('rollPicker.close')} className="p-0.5 touch-target inline-flex items-center justify-center rounded-sm hover:bg-moss-green/10 transition-colors">
             <X className="w-4 h-4 text-warm-gray" aria-hidden="true" />
           </button>
         </div>

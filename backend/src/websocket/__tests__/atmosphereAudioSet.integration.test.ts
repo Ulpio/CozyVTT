@@ -124,7 +124,7 @@ describe('atmosphere.audio.set', () => {
     // Setting it would make it readable by every member of this campaign.
     const refused = waitForEvent<{ message: string }>(gmClient, 'error');
     gmClient.emit('atmosphere.audio.set', { assetId: strangersTrackId });
-    expect((await refused).message).toMatch(/not found/i);
+    expect((await refused).message).toMatch(/Áudio não encontrado/);
     expect(await currentTrack()).toBeNull();
   });
 
@@ -137,7 +137,7 @@ describe('atmosphere.audio.set', () => {
   it('still refuses an asset that does not exist', async () => {
     const refused = waitForEvent<{ message: string }>(gmClient, 'error');
     gmClient.emit('atmosphere.audio.set', { assetId: randomUUID() });
-    expect((await refused).message).toMatch(/not found/i);
+    expect((await refused).message).toMatch(/Áudio não encontrado/);
   });
 
   it('lets the GM stop the audio', async () => {

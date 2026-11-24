@@ -85,12 +85,12 @@ function dispositionIcon(entry: CombatantEntry) {
 // AddCombatantModal — GM picks a map token to add to initiative
 // ---------------------------------------------------------------------------
 
-/** What each kind of token is called where a list names it. */
-const TOKEN_TYPE_NAMES: Record<TokenType, string> = {
-  [TokenType.PLAYER]: 'Player',
-  [TokenType.NPC]: 'NPC',
-  [TokenType.OBJECT]: 'Object',
-};
+/** What each kind of token is called where a list names it (keys under initiative.tokenType). */
+const TOKEN_TYPE_KEYS = {
+  [TokenType.PLAYER]: 'initiative.tokenType.player',
+  [TokenType.NPC]: 'initiative.tokenType.npc',
+  [TokenType.OBJECT]: 'initiative.tokenType.object',
+} as const;
 
 interface AddCombatantModalProps {
   open: boolean;
@@ -101,14 +101,15 @@ interface AddCombatantModalProps {
 }
 
 function AddCombatantModal({ open, tokens, combatantIds, onAdd, onClose }: AddCombatantModalProps) {
+  const { t: tr } = useTranslation();
   const available = tokens.filter((t) => !combatantIds.has(t.id) && t.visible);
 
   return (
-    <Modal open={open} onClose={onClose} title="Add Combatant" size="sm">
+    <Modal open={open} onClose={onClose} title={tr('initiative.addCombatant')} size="sm">
       <div className="space-y-2 max-h-80 overflow-y-auto">
         {available.length === 0 ? (
           <p className="text-sm text-stone-gray text-center py-4">
-            All visible tokens are already in initiative.
+            {tr('initiative.allInInitiative')}
           </p>
         ) : (
           available.map((token) => (
@@ -132,8 +133,8 @@ function AddCombatantModal({ open, tokens, combatantIds, onAdd, onClose }: AddCo
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm text-brand-ink truncate">{token.name}</div>
                 <div className="text-xs text-stone-gray">
-                  {TOKEN_TYPE_NAMES[token.type ?? TokenType.NPC]}
-                  {token.disposition ? <> · <span className="capitalize">{token.disposition}</span></> : null}
+                  {tr(TOKEN_TYPE_KEYS[token.type ?? TokenType.NPC])}
+                  {token.disposition ? <> · <span className="capitalize">{tr(`initiative.disposition.${token.disposition}`)}</span></> : null}
                 </div>
               </div>
               {/*
@@ -211,6 +212,7 @@ interface MoveButtonsProps {
 
 /** The grip's Up and Down arrow keys, as buttons. */
 function MoveButtons({ tokenId, name, isFirst, isLast, onMove, className }: MoveButtonsProps) {
+  const { t } = useTranslation();
   return (
     <>
       <button
@@ -219,8 +221,8 @@ function MoveButtons({ tokenId, name, isFirst, isLast, onMove, className }: Move
         data-move="up"
         onClick={() => onMove(tokenId, -1, 'up')}
         disabled={isFirst}
-        aria-label={`Move ${name} up`}
-        title="Move up one place"
+        aria-label={t('initiative.moveUpLabel', { name })}
+        title={t('initiative.moveUp')}
         className={className}
       >
         <ArrowUp className="w-3.5 h-3.5" aria-hidden="true" />
@@ -231,8 +233,8 @@ function MoveButtons({ tokenId, name, isFirst, isLast, onMove, className }: Move
         data-move="down"
         onClick={() => onMove(tokenId, 1, 'down')}
         disabled={isLast}
-        aria-label={`Move ${name} down`}
-        title="Move down one place"
+        aria-label={t('initiative.moveDownLabel', { name })}
+        title={t('initiative.moveDown')}
         className={className}
       >
         <ArrowDown className="w-3.5 h-3.5" aria-hidden="true" />
@@ -325,6 +327,7 @@ function CombatantRow({
   onDragStart, onDragOver, onDrop, onDragEnd, onMove, isFirst, isLast,
   hasMenu, hasSheet, onOpenMenu, onOpenSheet, spend, onRestore,
 }: CombatantRowProps) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [inputVal, setInputVal] = useState(entry.initiative !== null ? String(entry.initiative) : '');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -420,7 +423,7 @@ function CombatantRow({
             data-grip-token={entry.tokenId}
             data-drag-grip
             draggable
-            aria-label={`Move ${name}`}
+            aria-label={t('initiative.moveLabel', { name })}
             aria-describedby={reorderHintId}
             onKeyDown={(e) => {
               if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -492,7 +495,7 @@ function CombatantRow({
           <button
             type="button"
             data-combatant-name={entry.tokenId}
-            title={hasSheet ? 'Click for the sheet and rolls, or double-click to open the sheet' : 'Click for rolls'}
+            title={hasSheet ? t('initiative.menuWithSheet') : t('initiative.menuRollsOnly')}
             onClick={(e) => {
               if (e.detail > 1) return;
               const rect = e.currentTarget.getBoundingClientRect();
@@ -509,7 +512,7 @@ function CombatantRow({
         )}
         {entry.hp && (
           <div className="text-xs text-stone-gray">
-            HP {entry.hp.current}/{entry.hp.max}
+            {t('initiative.hp', { current: entry.hp.current, max: entry.hp.max })}
           </div>
         )}
         {spend && <TurnPips spend={spend} />}
@@ -533,7 +536,7 @@ function CombatantRow({
               if (e.key === 'Enter') { refocusValue.current = true; commitEdit(); }
               if (e.key === 'Escape') { refocusValue.current = true; setEditing(false); }
             }}
-            aria-label={`Initiative for ${name}`}
+            aria-label={t('initiative.valueLabel', { name })}
             className="w-12 text-center text-sm font-bold bg-paper/70 text-ink border border-warm-amber/50 rounded-sm px-1 py-0.5 focus:outline-hidden focus:ring-1 focus:ring-warm-amber"
           />
         ) : isGM ? (
@@ -542,8 +545,8 @@ function CombatantRow({
             type="button"
             className={`text-sm font-bold cursor-pointer rounded-sm focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand/50 ${isActive ? 'text-accent-ink' : 'text-stone-gray'}`}
             onClick={() => setEditing(true)}
-            aria-label={`Initiative for ${name}: ${entry.initiative !== null ? entry.initiative : 'none'}. Edit`}
-            title="Click to edit initiative value"
+            aria-label={t('initiative.valueEditLabel', { name, value: entry.initiative !== null ? entry.initiative : t('initiative.valueNone') })}
+            title={t('initiative.valueEditTitle')}
           >
             {entry.initiative !== null ? entry.initiative : '—'}
           </button>
@@ -575,8 +578,8 @@ function CombatantRow({
             <button
               type="button"
               onClick={() => onRoll(entry.tokenId)}
-              aria-label={`Roll initiative for ${name}`}
-              title={isGM ? 'Roll initiative for this token' : 'Roll your initiative'}
+              aria-label={t('initiative.rollLabel', { name })}
+              title={isGM ? t('initiative.rollGm') : t('initiative.rollOwn')}
               className="p-1 touch-target inline-flex items-center justify-center rounded-sm hover:bg-moss-green/10 text-stone-gray hover:text-brand-ink transition-colors"
             >
               <Dices className="w-3.5 h-3.5" aria-hidden="true" />
@@ -586,8 +589,8 @@ function CombatantRow({
             <button
               type="button"
               onClick={() => onRemove(entry.tokenId)}
-              aria-label={`Remove ${name} from initiative`}
-              title="Remove from initiative"
+              aria-label={t('initiative.removeLabel', { name })}
+              title={t('initiative.remove')}
               className="p-1 touch-target inline-flex items-center justify-center rounded-sm hover:bg-danger/10 text-stone-gray hover:text-danger-ink transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
@@ -678,12 +681,12 @@ export default function InitiativeTracker() {
   const combatantMenuItems = (entry: CombatantEntry): FlatMenuItem[] => {
     const items: FlatMenuItem[] = [];
     if (offersSheet(entry)) {
-      items.push({ kind: 'command', id: 'view-sheet', icon: Eye, label: 'View Character Sheet', run: () => { void openSheet(entry.tokenId); } });
+      items.push({ kind: 'command', id: 'view-sheet', icon: Eye, label: t('initiative.viewSheet'), run: () => { void openSheet(entry.tokenId); } });
     }
     const token = tokenOf(entry.tokenId);
     if (token && (offersCharacterRolls(token) || offersCreatureRolls(token))) {
       items.push({
-        kind: 'command', id: 'roll', icon: Dices, label: 'Roll...',
+        kind: 'command', id: 'roll', icon: Dices, label: t('initiative.roll'),
         run: () => {
           if (!menu) return;
           const { x, y } = menu;
@@ -708,7 +711,7 @@ export default function InitiativeTracker() {
       const { character } = await api.getCharacter(characterId);
       setSheet({ character, tokenId });
     } catch (err) {
-      showToast(apiErrorMessage(err) || 'Could not open that character sheet.', 'error');
+      showToast(apiErrorMessage(err) || t('initiative.sheetOpenFailed'), 'error');
     }
   };
 
@@ -886,7 +889,7 @@ export default function InitiativeTracker() {
     const result = reorderTo(tokenId, fromIndex + step);
     if (!result) return;
     refocusAfterMove.current = { tokenId, from };
-    setMoveAnnouncement(`${tokenDisplayName(result.moved)} moved to ${result.toIndex + 1} of ${result.total}`);
+    setMoveAnnouncement(t('initiative.movedTo', { name: tokenDisplayName(result.moved), position: result.toIndex + 1, total: result.total }));
   }, [combatState.combatants, reorderTo]);
 
   // Moving a focused row in the DOM can drop the cursor; put it back on the
@@ -921,12 +924,12 @@ export default function InitiativeTracker() {
     <>
       {combatState.active && (
         <span className="text-xs font-bold text-accent-ink bg-warm-amber/10 border border-warm-amber/20 rounded-sm px-1.5 py-0.5">
-          Round {combatState.round}
+          {t('initiative.round', { round: combatState.round })}
         </span>
       )}
       {hasCombatants && !combatState.active && (
         <span className="text-xs text-stone-gray bg-stone-gray/10 rounded-sm px-1.5 py-0.5">
-          {combatState.combatants.length} ready
+          {t('initiative.ready', { count: combatState.combatants.length })}
         </span>
       )}
     </>
@@ -938,7 +941,7 @@ export default function InitiativeTracker() {
         {isGM && (
           <>
             <p id={reorderHintId} className="sr-only">
-              Use the Up and Down arrow keys to move this combatant one place in the order.
+              {t('initiative.reorderHint')}
             </p>
             <p role="status" aria-live="polite" className="sr-only">{moveAnnouncement}</p>
           </>
@@ -959,7 +962,7 @@ export default function InitiativeTracker() {
         >
           <div className="flex items-center gap-2">
             <Swords className="w-4 h-4 text-brand-ink" />
-            <span className="font-semibold text-brand-ink text-sm">Initiative Tracker</span>
+            <span className="font-semibold text-brand-ink text-sm">{t('initiative.title')}</span>
             {statusBadges}
           </div>
           {collapsed ? (
@@ -977,7 +980,7 @@ export default function InitiativeTracker() {
               <div className="flex items-center gap-2 px-3 py-2 bg-warm-amber/10 border border-warm-amber/30 rounded-lg">
                 <div className="w-2 h-2 rounded-full bg-warm-amber animate-pulse shrink-0" />
                 <span className="text-xs font-semibold text-accent-ink truncate">
-                  {tokenDisplayName(currentCombatant)}'s turn
+                  {t('initiative.turnOf', { name: tokenDisplayName(currentCombatant) })}
                 </span>
               </div>
             )}
@@ -1026,9 +1029,9 @@ export default function InitiativeTracker() {
             ) : (
               <div className="text-center py-4 text-stone-gray">
                 <Swords className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="text-xs">No combatants yet</p>
+                <p className="text-xs">{t('initiative.empty')}</p>
                 {isGM && (
-                  <p className="text-xs mt-1">Add tokens from the map to begin</p>
+                  <p className="text-xs mt-1">{t('initiative.emptyHint')}</p>
                 )}
               </div>
             )}
@@ -1043,7 +1046,7 @@ export default function InitiativeTracker() {
                     className="w-full flex items-center justify-center gap-2 py-1.5 px-3 text-xs font-medium text-brand-ink border border-dashed border-moss-green/30 rounded-lg hover:bg-moss-green/5 transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Add Combatant
+                    {t('initiative.addCombatant')}
                   </button>
                 )}
 
@@ -1082,7 +1085,7 @@ export default function InitiativeTracker() {
                         className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-semibold bg-moss-green text-brand-text rounded-lg hover:bg-brand-hover transition-colors"
                       >
                         <Play className="w-3.5 h-3.5" />
-                        Start Combat
+                        {t('initiative.start')}
                       </button>
                     ) : (
                       <>
@@ -1091,12 +1094,12 @@ export default function InitiativeTracker() {
                           className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-semibold bg-accent text-accent-text rounded-lg hover:bg-accent-hover transition-colors"
                         >
                           <SkipForward className="w-3.5 h-3.5" />
-                          Next Turn
+                          {t('initiative.next')}
                         </button>
                         <button
                           onClick={handleEnd}
                           className="flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-semibold border border-danger/30 text-danger-ink rounded-lg hover:bg-danger/10 transition-colors"
-                          title="End combat"
+                          title={t('initiative.endTooltip')}
                         >
                           <XCircle className="w-3.5 h-3.5" />
                         </button>
@@ -1110,7 +1113,7 @@ export default function InitiativeTracker() {
             {/* Initiative hint for GM */}
             {isGM && hasCombatants && !combatState.active && (
               <p className="text-xs text-stone-gray text-center">
-                Drag to reorder · Click a value to edit · <Dices className="w-3 h-3 inline" /> to roll
+                {t('initiative.gmHintBefore')}<Dices className="w-3 h-3 inline" />{t('initiative.gmHintAfter')}
               </p>
             )}
 
@@ -1118,7 +1121,7 @@ export default function InitiativeTracker() {
                 has not rolled yet — the die is small and easy to miss. */}
             {!isGM && hasCombatants && !combatState.active && playerNeedsToRoll && (
               <p className="text-xs text-stone-gray text-center">
-                <Dices className="w-3 h-3 inline" /> to roll your initiative
+                <Dices className="w-3 h-3 inline" />{t('initiative.playerHintAfter')}
               </p>
             )}
           </div>
@@ -1196,9 +1199,9 @@ export default function InitiativeTracker() {
       {/* End combat confirmation */}
       <ConfirmDialog
         isOpen={showEndConfirm}
-        title="End Combat"
-        message="End combat and clear initiative order?"
-        confirmLabel="End Combat"
+        title={t('initiative.endTitle')}
+        message={t('initiative.endMessage')}
+        confirmLabel={t('initiative.endTitle')}
         variant="danger"
         onConfirm={handleEndConfirmed}
         onCancel={() => setShowEndConfirm(false)}

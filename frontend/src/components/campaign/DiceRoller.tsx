@@ -1,5 +1,6 @@
 import { Fragment, useState, useEffect, useEffectEvent, useLayoutEffect, useRef, useCallback, useMemo, FormEvent, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Dices, Send, AlertCircle, RotateCcw, Trash2, EyeOff, Eye, Plus, ChevronDown } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useCompactLayout } from '@/contexts/LayoutContext';
@@ -84,6 +85,7 @@ const SPECIAL_ROLLS = [
  * Dice roller component with carousel navigation and secret rolls
  */
 export default function DiceRoller() {
+  const { t } = useTranslation();
   const { socket, joinedEpoch, status } = useWebSocket();
   // Joins after the first; see the history load below.
   const rejoins = Math.max(0, joinedEpoch - 1);
@@ -387,7 +389,7 @@ export default function DiceRoller() {
   const rollDice = (expr: string, saved?: DiceMacro) => {
     const { characterName: rollCharacter, purpose: rollPurpose } = rollLabels({ characterName, purpose }, saved);
     if (isSpectator) {
-      setError('Spectators watch the dice; they cannot roll.');
+      setError(t('dice.spectators'));
       return;
     }
     // When session is paused, roll entirely client-side — no server, no DB, no GM visibility
@@ -409,7 +411,7 @@ export default function DiceRoller() {
     }
 
     if (!socket?.isConnected()) {
-      setError('Not connected to server');
+      setError(t('dice.notConnected'));
       return;
     }
 
@@ -437,7 +439,7 @@ export default function DiceRoller() {
       .then((answer) => {
         clearPendingRoll();
         if (answer.ok) return;
-        setError(answer.error);
+        setError(answer.error.startsWith('Rate limit exceeded') ? t('dice.rateLimited') : answer.error);
         // The server's flood ceiling: wait it out before rolling again.
         if (answer.error.startsWith('Rate limit exceeded') && !isInCooldown.current) {
           isInCooldown.current = true;
@@ -602,7 +604,7 @@ export default function DiceRoller() {
         text-ink${compact ? ' shrink-0 touch-target' : ''}
       `}
     >
-      {btn.label}
+      {btn.expression === '2d20kh1' ? t('dice.adv') : btn.expression === '2d20kl1' ? t('dice.dis') : btn.label}
     </button>
   ));
 
@@ -626,8 +628,8 @@ export default function DiceRoller() {
   const savedButton = (
     <button
       onClick={() => setIsMacroManagerOpen(true)}
-      title="Saved rolls — add, edit or delete"
-      aria-label="Manage saved rolls"
+      title={t('dice.savedTitle')}
+      aria-label={t('dice.manageSaved')}
       className={`
         px-2 py-1 rounded-md border border-dashed border-ink-muted/40 text-xs
         hover:bg-surface transition-all text-ink-secondary
@@ -635,7 +637,7 @@ export default function DiceRoller() {
       `}
     >
       <Plus className="w-3 h-3" />
-      Saved
+      {t('dice.saved')}
     </button>
   );
 
@@ -646,8 +648,8 @@ export default function DiceRoller() {
       value={expression}
       onChange={(e) => setExpression(e.target.value)}
       onKeyDown={handleKeyDown}
-      placeholder="e.g., 2d6+3, 1d20+5, 4d6kh3"
-      aria-label="Dice expression"
+      placeholder={t('dice.expressionPlaceholder')}
+      aria-label={t('dice.expressionLabel')}
       // Read-only while a roll is on its way: disabled, it threw keyboard
       // focus to the page after every roll.
       readOnly={isRolling}
@@ -663,8 +665,8 @@ export default function DiceRoller() {
         type="text"
         value={characterName}
         onChange={(e) => setCharacterName(e.target.value)}
-        placeholder="Character"
-        aria-label="Character name"
+        placeholder={t('dice.character')}
+        aria-label={t('dice.characterLabel')}
         // The longest name and purpose the server stores with a roll.
         maxLength={MAX_ROLL_CHARACTER_NAME_LENGTH}
         // Read-only while a roll is on its way: disabled, it threw keyboard
@@ -679,8 +681,8 @@ export default function DiceRoller() {
         type="text"
         value={purpose}
         onChange={(e) => setPurpose(e.target.value)}
-        placeholder="Purpose"
-        aria-label="Purpose"
+        placeholder={t('dice.purpose')}
+        aria-label={t('dice.purpose')}
         maxLength={MAX_ROLL_PURPOSE_LENGTH}
         // Read-only while a roll is on its way: disabled, it threw keyboard
         // focus to the page after every roll.
@@ -693,11 +695,11 @@ export default function DiceRoller() {
 
   // Closed, More options names what the next roll still carries that it hides.
   const optionsInUse = [
-    ...(characterName.trim() ? ['Character'] : []),
-    ...(purpose.trim() ? ['Purpose'] : []),
-    ...(compact && isSecret ? ['Secret'] : []),
+    ...(characterName.trim() ? [t('dice.character')] : []),
+    ...(purpose.trim() ? [t('dice.purpose')] : []),
+    ...(compact && isSecret ? [t('dice.secret')] : []),
   ];
-  const moreOptionsLabel = !moreOptions && optionsInUse.length > 0 ? `More options: ${optionsInUse.join(', ')}` : 'More options';
+  const moreOptionsLabel = !moreOptions && optionsInUse.length > 0 ? t('dice.moreOptionsIn', { list: optionsInUse.join(', ') }) : t('dice.moreOptions');
 
   const secretRollBox = (
     <input
@@ -712,10 +714,10 @@ export default function DiceRoller() {
   // Not "only you": the server sends every secret roll to the GM as well,
   // deliberately, for audit and dispute resolution. Saying otherwise promises
   // a privacy the app does not provide.
-  const secretRollWords = <span>{compact ? 'Secret Roll' : 'Secret Roll (hidden from other players)'}</span>;
+  const secretRollWords = <span>{compact ? t('dice.secretRollShort') : t('dice.secretRollLong')}</span>;
   const secretRoll = compact ? (
     // The box inside its label, which a finger presses; the label short, to share its row.
-    <label title="Hidden from other players" className="touch-target flex items-center gap-2 text-xs text-ink-secondary cursor-pointer">
+    <label title={t('dice.secretRollHidden')} className="touch-target flex items-center gap-2 text-xs text-ink-secondary cursor-pointer">
       {secretRollBox}
       <EyeOff className="w-3 h-3" />
       {secretRollWords}
@@ -753,12 +755,12 @@ export default function DiceRoller() {
           >
             <Dices className="w-4 h-4" />
           </motion.div>
-          <span>Rolling...</span>
+          <span>{t('dice.rolling')}</span>
         </>
       ) : (
         <>
           <Send className="w-4 h-4" />
-          <span>Roll</span>
+          <span>{t('dice.roll')}</span>
         </>
       )}
     </button>
@@ -777,8 +779,8 @@ export default function DiceRoller() {
         transition-all duration-200
         focus:outline-hidden focus:ring-2 focus:ring-brand/50
       `, compact && 'touch-target inline-flex items-center justify-center')}
-      title="Clear all fields"
-      aria-label="Clear all fields"
+      title={t('dice.clearFields')}
+      aria-label={t('dice.clearFields')}
     >
       <RotateCcw className="w-4 h-4" />
     </button>
@@ -796,7 +798,7 @@ export default function DiceRoller() {
     >
       <ChevronDown className={cn('w-3 h-3 transition-transform', moreOptions && 'rotate-180')} aria-hidden="true" />
       {/* Short, to share the row; what it hides that the next roll carries is counted, and named in its name. */}
-      {!moreOptions && optionsInUse.length > 0 ? `More (${optionsInUse.length})` : 'More'}
+      {!moreOptions && optionsInUse.length > 0 ? t('dice.moreCount', { count: optionsInUse.length }) : t('dice.more')}
     </button>
   );
 
@@ -813,13 +815,13 @@ export default function DiceRoller() {
       }${compact ? ' touch-target' : ''}`}
       title={
         showSecretRolls
-          ? 'Hide secret rolls in this list (only affects your view)'
-          : 'Show secret rolls in this list (only affects your view)'
+          ? t('dice.hideSecret')
+          : t('dice.showSecret')
       }
     >
       {showSecretRolls ? <Eye className="w-3 h-3" aria-hidden="true" /> : <EyeOff className="w-3 h-3" aria-hidden="true" />}
       {/* On a phone, the icon alone, to share the row with Secret Roll. */}
-      {compact ? <span className="sr-only">Secret</span> : <span>Secret</span>}
+      {compact ? <span className="sr-only">{t('dice.secret')}</span> : <span>{t('dice.secret')}</span>}
     </button>
   );
 
@@ -828,10 +830,10 @@ export default function DiceRoller() {
     <button
       onClick={handleClearHistory}
       className={`flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-danger/30 bg-danger/10 text-danger-ink hover:bg-danger/15 transition-all${compact ? ' touch-target' : ''}`}
-      title="Clear all roll history"
+      title={t('dice.clearHistory')}
     >
       <Trash2 className="w-3 h-3" aria-hidden="true" />
-      {compact ? <span className="sr-only">Clear</span> : <span>Clear</span>}
+      {compact ? <span className="sr-only">{t('dice.clear')}</span> : <span>{t('dice.clear')}</span>}
     </button>
   );
 
@@ -849,9 +851,9 @@ export default function DiceRoller() {
 
     <ConfirmDialog
       isOpen={confirmClear}
-      title="Clear Roll History"
-      message="Clear all roll history for everyone? This cannot be undone."
-      confirmLabel="Clear History"
+      title={t('dice.clearHistoryTitle')}
+      message={t('dice.clearHistoryMessage')}
+      confirmLabel={t('dice.clearHistoryConfirm')}
       variant="danger"
       onConfirm={handleConfirmClear}
       onCancel={() => setConfirmClear(false)}
@@ -866,7 +868,7 @@ export default function DiceRoller() {
           <div className="flex items-center gap-2">
             <Dices className="w-4 h-4 text-brand-ink" />
             <h2 className="text-base font-semibold text-ink">
-              Dice Roller
+              {t('dice.title')}
             </h2>
           </div>
           <div className="flex items-center gap-1.5">
@@ -886,7 +888,7 @@ export default function DiceRoller() {
         onScroll={handleRollsScroll}
         role="log"
         aria-live={historyIn ? 'polite' : 'off'}
-        aria-label="Dice rolls"
+        aria-label={t('dice.log')}
         aria-relevant="additions"
         className={compact ? 'flex-1 overflow-y-auto px-2 py-1 min-h-0' : 'flex-1 overflow-y-auto p-3 min-h-0'}
       >
@@ -894,7 +896,7 @@ export default function DiceRoller() {
           <div className="flex flex-col items-center justify-center h-full text-center p-4">
             <Dices className="w-10 h-10 text-ink-muted/40 mb-2" />
             <p className="text-ink-secondary text-xs">
-              No rolls yet. Roll some dice to get started!
+              {t('dice.empty')}
             </p>
           </div>
         ) : (
@@ -913,7 +915,7 @@ export default function DiceRoller() {
             ))}
             {shownRolls.length === 0 && (
               <p className="text-xs text-ink-secondary text-center py-6">
-                Secret rolls are hidden. Use the eye button to show them.
+                {t('dice.secretHidden')}
               </p>
             )}
             <div ref={rollsEndRef} />
@@ -930,12 +932,12 @@ export default function DiceRoller() {
         {/* Paused notice: rolls still work, but only in this browser */}
         {isPaused && (
           <p className="text-xs text-accent-ink text-center mb-2 italic">
-            Session paused: rolls from this tab stay on your own screen.
+            {t('dice.paused')}
           </p>
         )}
         {isSpectator && (
           <p className="text-xs text-stone-gray text-center mb-2 italic">
-            You are watching this campaign: the dice are the players' to roll.
+            {t('dice.watching')}
           </p>
         )}
         {/* Error Message */}
@@ -954,7 +956,7 @@ export default function DiceRoller() {
         </AnimatePresence>
 
         {/* The seven dice, one row, each a share of the width. */}
-        <div role="group" aria-label="Dice" className={cn('grid grid-cols-7 gap-1', compact ? 'mb-1.5' : 'mb-2')}>
+        <div role="group" aria-label={t('dice.group')} className={cn('grid grid-cols-7 gap-1', compact ? 'mb-1.5' : 'mb-2')}>
           {quickRollButtons}
         </div>
 
@@ -1012,7 +1014,7 @@ export default function DiceRoller() {
         {/* The countdown after too many rolls. */}
         {rateLimitCooldown > 0 && (
           <div className="mt-1.5 text-xs text-danger-ink text-center font-medium">
-            You may roll again in: {rateLimitCooldown} second{rateLimitCooldown !== 1 ? 's' : ''}
+            {t('dice.rollAgainIn', { count: rateLimitCooldown })}
           </div>
         )}
       </div>
@@ -1021,7 +1023,7 @@ export default function DiceRoller() {
       <Modal
         open={secretRollResult !== null}
         onClose={() => setSecretRollResult(null)}
-        title="Secret Roll"
+        title={t('dice.secretPopupTitle')}
         icon={EyeOff}
         size="sm"
         footer={
@@ -1030,12 +1032,12 @@ export default function DiceRoller() {
             onClick={() => setSecretRollResult(null)}
             className="w-full px-3 py-2 rounded-md bg-brand hover:bg-brand-hover text-brand-text font-semibold text-sm shadow-xs transition-all"
           >
-            Close
+            {t('dice.close')}
           </button>
         }
       >
         <p className="text-xs text-ink-muted -mt-4 mb-4">
-          {userRole === 'GM' ? 'Hidden from the players' : 'Hidden from other players — your GM can still see it'}
+          {userRole === 'GM' ? t('dice.secretPopupGM') : t('dice.secretPopupPlayer')}
         </p>
         {secretRollResult && (
           <div className="bg-paper rounded-lg p-3 shadow-inner">

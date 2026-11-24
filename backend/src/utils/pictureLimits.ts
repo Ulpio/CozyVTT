@@ -31,18 +31,18 @@ export function isPictureAssetType(type: string): type is PictureAssetType {
 }
 
 const ANIMATION_WORDS: Record<PictureAssetType, string> = {
-  MAP: 'An animated map',
-  TOKEN: 'An animated token picture',
-  AVATAR: 'An animated avatar',
+  MAP: 'Um mapa animado',
+  TOKEN: 'Uma imagem de token animada',
+  AVATAR: 'Um avatar animado',
 };
 
 export const UNREADABLE_PICTURE_MESSAGE =
-  'CozyVTT could not read the size of this picture, so it cannot be checked. Save it again in an image editor and try once more.';
+  'Não foi possível ler o tamanho desta imagem, então ela não pode ser verificada. Salve-a de novo em um editor de imagens e tente outra vez.';
 
-const count = (n: number) => n.toLocaleString('en-US');
+const count = (n: number) => n.toLocaleString('pt-BR');
 
 /** Millions to one decimal place, rounded up, so a total over a limit never reads as the limit. */
-const millions = (n: number) => `${count(Math.ceil(n / 100_000) / 10)} million`;
+const millions = (n: number) => `${count(Math.ceil(n / 100_000) / 10)} ${Math.ceil(n / 100_000) / 10 < 2 ? 'milhão' : 'milhões'}`;
 
 /**
  * A GIF's logical screen, the canvas a browser draws its frames on. The
@@ -169,9 +169,9 @@ async function readHeader(input: Buffer | string): Promise<Header | null> {
 
 /** What is wrong with a picture `width` by `height` where `what` may be at most `max` on each side, or null. */
 function sideProblem(width: number, height: number, max: number, what: string): string | null {
-  const side = `${what} can be at most ${count(max)} pixels on each side.`;
-  if (width > max) return `This picture is ${count(width)} pixels wide. ${side}`;
-  if (height > max) return `This picture is ${count(height)} pixels tall. ${side}`;
+  const side = `${what} pode ter no máximo ${count(max)} pixels de cada lado.`;
+  if (width > max) return `Esta imagem tem ${count(width)} pixels de largura. ${side}`;
+  if (height > max) return `Esta imagem tem ${count(height)} pixels de altura. ${side}`;
   return null;
 }
 
@@ -182,20 +182,20 @@ function sideProblem(width: number, height: number, max: number, what: string): 
  * picture whose size cannot be read is refused, since it cannot be checked.
  */
 export async function pictureLimitProblem(input: Buffer | string, type: PictureAssetType): Promise<string | null> {
-  const tooManyFrames = `An animated picture can have at most ${count(PICTURE_LIMITS.maxFrames)}.`;
+  const tooManyFrames = `Uma imagem animada pode ter no máximo ${count(PICTURE_LIMITS.maxFrames)} quadros.`;
   let width: number;
   let height: number;
   let frames: number;
   try {
     const header = await readHeader(input);
     if (header?.format === 'png') {
-      const problem = sideProblem(header.width, header.height, PICTURE_LIMITS.maxSide, 'A picture');
+      const problem = sideProblem(header.width, header.height, PICTURE_LIMITS.maxSide, 'Uma imagem');
       if (problem) return problem;
     } else if (header?.format === 'webp') {
-      const problem = header.canvas && sideProblem(header.canvas.width, header.canvas.height, WEBP_MAX_SIDE, 'A WebP picture');
+      const problem = header.canvas && sideProblem(header.canvas.width, header.canvas.height, WEBP_MAX_SIDE, 'Uma imagem WebP');
       if (problem) return problem;
       if (header.frames > PICTURE_LIMITS.maxFrames) {
-        return `This animation has more than ${count(PICTURE_LIMITS.maxFrames)} frames. ${tooManyFrames}`;
+        return `Esta animação tem mais de ${count(PICTURE_LIMITS.maxFrames)} quadros. ${tooManyFrames}`;
       }
     }
     // Without `animated`, the height is one frame's and `pages` counts them.
@@ -215,17 +215,17 @@ export async function pictureLimitProblem(input: Buffer | string, type: PictureA
   }
   if (!(width > 0 && height > 0 && frames > 0)) return UNREADABLE_PICTURE_MESSAGE;
 
-  const tooLarge = sideProblem(width, height, PICTURE_LIMITS.maxSide, 'A picture');
+  const tooLarge = sideProblem(width, height, PICTURE_LIMITS.maxSide, 'Uma imagem');
   if (tooLarge) return tooLarge;
   if (frames === 1) return null;
 
   if (frames > PICTURE_LIMITS.maxFrames) {
-    return `This animation has ${count(frames)} frames. ${tooManyFrames}`;
+    return `Esta animação tem ${count(frames)} quadros. ${tooManyFrames}`;
   }
   const pixels = width * height * frames;
   const limit = PICTURE_LIMITS.maxAnimatedPixels[type];
   if (pixels > limit) {
-    return `This animation is ${millions(pixels)} pixels across its frames. ${ANIMATION_WORDS[type]} can be at most ${millions(limit)}.`;
+    return `Esta animação tem ${millions(pixels)} de pixels somando todos os quadros. ${ANIMATION_WORDS[type]} pode ter no máximo ${millions(limit)}.`;
   }
   return null;
 }

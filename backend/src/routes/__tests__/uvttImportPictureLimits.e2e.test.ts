@@ -92,16 +92,16 @@ beforeEach(async () => {
 describe('a UVTT whose picture is over the limits', () => {
   it.each([
     ['an animated WebP of over 200 million pixels', () => craftedAnimatedWebp({ width: 16_000, height: 125, frames: 101 }),
-      'This animation is 202 million pixels across its frames. An animated map can be at most 200 million.'],
+      'Esta animação tem 202 milhões de pixels somando todos os quadros. Um mapa animado pode ter no máximo 200 milhões.'],
     ['an animated WebP of 1,001 frames', () => craftedAnimatedWebp({ width: 4, height: 4, frames: 1_001 }),
-      'This animation has more than 1,000 frames. An animated picture can have at most 1,000.'],
+      'Esta animação tem mais de 1.000 quadros. Uma imagem animada pode ter no máximo 1.000 quadros.'],
     ['a still PNG 16,385 pixels wide', () => plainPng(16_385, 1),
-      'This picture is 16,385 pixels wide. A picture can be at most 16,384 pixels on each side.'],
+      'Esta imagem tem 16.385 pixels de largura. Uma imagem pode ter no máximo 16.384 pixels de cada lado.'],
   ])('is refused, and nothing is saved: %s', async (_label, make, problem) => {
     const files = filesOnDisk();
     const res = await importUvtt(uvttWithImage(await make()), 'too-large');
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Validation Error', message: `The picture inside this file cannot be used as a map. ${problem}` });
+    expect(res.body).toEqual({ error: 'Validation Error', message: `A imagem dentro deste arquivo não pode ser usada como mapa. ${problem}` });
     expect(await prisma.map.count({ where: { campaignId } })).toBe(0);
     expect(await prisma.asset.count({ where: { uploadedById: gmId } })).toBe(0);
     expect(filesOnDisk()).toEqual(files);

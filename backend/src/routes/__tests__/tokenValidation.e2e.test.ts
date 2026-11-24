@@ -24,6 +24,7 @@ import request from 'supertest';
 import { createTestApp } from '../../__tests__/helpers/test-app';
 import { readTokens, toJson } from '../../utils/prisma-json';
 import { PAUSED_MOVE_REFUSAL } from '../../services/permissions';
+import { GM_ONLY } from '../../services/gmNotice';
 import {
   prisma,
   createTestUser,
@@ -331,7 +332,7 @@ describe('map token validation', () => {
     it('may not write metadata', async () => {
       const res = await playerUpdate({ metadata: { anything: 'at all' } });
       expect(res.status).toBe(403);
-      expect(res.body.message).toMatch(/metadata/);
+      expect(res.body.message).toBe(GM_ONLY);
     });
 
     it('may not write a stat block either', async () => {
@@ -350,7 +351,7 @@ describe('map token validation', () => {
     it('may not resize it', async () => {
       const res = await playerUpdate({ size: { width: 10, height: 10 } });
       expect(res.status).toBe(403);
-      expect(res.body.message).toMatch(/size/);
+      expect(res.body.message).toBe(GM_ONLY);
       const after = await gm.get(`/api/campaigns/${campaignId}/maps/${mapId}`);
       const token = after.body.map.tokens.find((t: { id: string }) => t.id === ownedTokenId);
       expect(token.size).toEqual({ width: 1, height: 1 });
@@ -492,7 +493,7 @@ describe('map token validation', () => {
       it('may not be set by a player, even on their own token', async () => {
         const res = await playerUpdate({ obscured: true });
         expect(res.status).toBe(403);
-        expect(res.body.message).toMatch(/obscured/);
+        expect(res.body.message).toBe(GM_ONLY);
       });
 
       it('must be a boolean', async () => {
@@ -565,7 +566,7 @@ describe('map token validation', () => {
       it('may not be set by a player, even on their own token', async () => {
         const res = await playerUpdate({ rechargeSpent: ['npc:actions:1'] });
         expect(res.status).toBe(403);
-        expect(res.body.message).toMatch(/rechargeSpent/);
+        expect(res.body.message).toBe(GM_ONLY);
       });
 
       it('must be a list of option ids', async () => {
@@ -773,7 +774,7 @@ describe('map token validation', () => {
     ])('is refused for %s', async (_what, id) => {
       const res = await place({ name: 'Bound Elsewhere', characterId: id() });
       expect(res.status).toBe(400);
-      expect(res.body.message).toMatch(/character/i);
+      expect(res.body.message).toMatch(/personagem/i);
       const after = await gm.get(`/api/campaigns/${campaignId}/maps/${mapId}`);
       expect(after.body.map.tokens.some((t: { name: string }) => t.name === 'Bound Elsewhere')).toBe(false);
     });

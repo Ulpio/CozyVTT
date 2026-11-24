@@ -107,7 +107,7 @@ describe('the dice history', () => {
 
     const live = await toPlayer;
     const stored = await prisma.diceRoll.findFirstOrThrow({ where: { campaignId } });
-    expect(stored).toMatchObject({ userId: gmId, characterName: 'Goblin', purpose: 'Goblin Initiative', secret: false, result: live.result });
+    expect(stored).toMatchObject({ userId: gmId, characterName: 'Goblin', purpose: 'Iniciativa de Goblin', secret: false, result: live.result });
     expect(live).toMatchObject({ id: stored.id, characterName: 'Goblin', secret: false });
   });
 
@@ -159,9 +159,9 @@ describe('the dice history', () => {
 
     player.emit('initiative.roll', { tokenId: 'Maren', mapId });
 
-    expect(await toPlayer).toMatchObject({ characterName: 'Maren', purpose: 'Maren Initiative' });
-    expect(await toGm).toMatchObject({ characterName: 'Unknown creature', purpose: 'Unknown creature Initiative' });
-    expect(await prisma.diceRoll.findFirstOrThrow({ where: { campaignId } })).toMatchObject({ characterName: 'Unknown creature' });
+    expect(await toPlayer).toMatchObject({ characterName: 'Maren', purpose: 'Iniciativa de Maren' });
+    expect(await toGm).toMatchObject({ characterName: 'criatura desconhecida', purpose: 'Iniciativa de criatura desconhecida' });
+    expect(await prisma.diceRoll.findFirstOrThrow({ where: { campaignId } })).toMatchObject({ characterName: 'criatura desconhecida' });
   });
 });
 
@@ -177,7 +177,7 @@ describe('a player\'s roll', () => {
 
     const refused = waitForEvent<{ message: string }>(player, 'error');
     player.emit('initiative.roll', { tokenId: 'Corvel', mapId });
-    expect((await refused).message).toBe('You have rolled initiative for this fight already. Ask your GM to change it.');
+    expect((await refused).message).toBe('Você já rolou iniciativa neste combate. Peça ao mestre para mudá-la.');
     expect(await prisma.diceRoll.count({ where: { campaignId } })).toBe(1);
 
     // Out of the order and back in: a new roll.
@@ -218,7 +218,7 @@ describe('a token deleted while its roll is worked out', () => {
       await tx.map.update({ where: { id: mapId }, data: { tokens: toJson(readTokens(fresh.tokens).filter((t) => t.id !== 'Ghost')) } });
     });
 
-    expect((await refused).message).toBe('Token not found');
+    expect((await refused).message).toBe('Token não encontrado.');
     expect(getState(campaignId).combatants).toHaveLength(0);
     expect(await prisma.diceRoll.count({ where: { campaignId } })).toBe(0);
   });

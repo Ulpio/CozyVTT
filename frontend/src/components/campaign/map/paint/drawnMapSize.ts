@@ -12,6 +12,7 @@
 // grid size, so the picture's own size is the map's size in pixels.
 // ============================================
 
+import i18n from '@/i18n';
 import { MAP_LIMITS } from '@/constants/mapLimits';
 import { PICTURE_SIZE_LIMITS } from '@/constants/pictureSizeLimits';
 import { MAX_BACKING_PIXELS } from '../layerCanvas';
@@ -73,6 +74,8 @@ export function drawnPictureSize(squaresWide: number, squaresHigh: number, gridS
 
 /** What the dialog says of a size: why it is drawn at fewer pixels a square, why it cannot be drawn, or nothing. */
 export function drawnSizeNote(size: DrawnPictureSize): string | null {
-  if (!size.fits) return TOO_MANY_SQUARES_TO_DRAW;
-  return size.lowered ? `Drawn at ${size.pixelsPerSquare} px a square so it can be edited on any device.` : null;
+  if (!size.fits) {
+    return i18n.t('mapModal.tooManySquares', { max: MOST_DRAWN_SQUARES.toLocaleString(i18n.language), side: MOST_SQUARE_SIDE });
+  }
+  return size.lowered ? i18n.t('mapModal.drawnLowered', { size: size.pixelsPerSquare }) : null;
 }

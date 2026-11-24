@@ -69,7 +69,7 @@ describe('the 5E lists', () => {
     ['proficiencies', rows(SHEET_LIST_MAX + 1, 'Common')],
   ])('refuse %s past the limit, naming the list', (field, list) => {
     expect(refusals(GameSystem.FIFTH_EDITION, sheet({ [field]: list }))).toEqual([
-      `${field}: Can hold at most ${SHEET_LIST_MAX} entries`,
+      `${field}: Pode ter no máximo ${SHEET_LIST_MAX} itens.`,
     ]);
   });
 
@@ -77,10 +77,10 @@ describe('the 5E lists', () => {
     const spell = { level: 1, name: 'Shield', prepared: true, ritual: false, concentration: false };
     expect(
       refusals(GameSystem.FIFTH_EDITION, sheet({ spellcasting: { spells: rows(SHEET_LIST_MAX + 1, spell) } }))
-    ).toEqual([`spellcasting.spells: Can hold at most ${SHEET_LIST_MAX} entries`]);
+    ).toEqual([`spellcasting.spells: Pode ter no máximo ${SHEET_LIST_MAX} itens.`]);
     expect(
       refusals(GameSystem.FIFTH_EDITION, sheet({ spellcasting: { cantrips: rows(SHEET_LIST_MAX + 1, 'Light') } }))
-    ).toEqual([`spellcasting.cantrips: Can hold at most ${SHEET_LIST_MAX} entries`]);
+    ).toEqual([`spellcasting.cantrips: Pode ter no máximo ${SHEET_LIST_MAX} itens.`]);
   });
 
   it('take every list at the limit', () => {
@@ -154,7 +154,7 @@ describe('the Fantasy d20 lists', () => {
 
   it.each(lists)('refuse %s past the limit, naming the list', (path, entry) => {
     expect(refusals(GameSystem.FANTASY_D20, sheet(path, rows(SHEET_LIST_MAX + 1, entry)))).toEqual([
-      `${path}: Can hold at most ${SHEET_LIST_MAX} entries`,
+      `${path}: Pode ter no máximo ${SHEET_LIST_MAX} itens.`,
     ]);
   });
 
@@ -165,7 +165,7 @@ describe('the Fantasy d20 lists', () => {
   it(`refuse more than ${SHEET_ROW_TAGS_MAX} traits on one strike`, () => {
     const strike = (count: number) => [{ name: 'Sword', traits: rows(count, 'agile') }];
     expect(refusals(GameSystem.FANTASY_D20, sheet('strikes', strike(SHEET_ROW_TAGS_MAX + 1)))).toEqual([
-      `strikes.0.traits: Can hold at most ${SHEET_ROW_TAGS_MAX} entries`,
+      `strikes.0.traits: Pode ter no máximo ${SHEET_ROW_TAGS_MAX} itens.`,
     ]);
     expect(refusals(GameSystem.FANTASY_D20, sheet('strikes', strike(SHEET_ROW_TAGS_MAX)))).toEqual([]);
   });
@@ -231,7 +231,7 @@ describe('the Fantasy d20 spell slots', () => {
     // Also more used than the 4 there are, which is refused on its own.
     expect(refusals(GameSystem.FANTASY_D20, withSlot({ total: 4, expended: SPELL_SLOTS_MAX + 1 }))).toEqual([
       `spellcasting.slots.3.expended: Must be from 0 to ${SPELL_SLOTS_MAX}`,
-      'spellcasting.slots.3.expended: Used slots cannot be more than the total',
+      'spellcasting.slots.3.expended: Os espaços usados não podem passar do total.',
     ]);
   });
 
@@ -271,7 +271,7 @@ describe('the Horror d100 lists', () => {
   it.each(lists)('refuse %s past the limit, naming the list', (path, entry) => {
     const max = limitOf(path);
     expect(refusals(GameSystem.HORROR_D100, sheet(path, rows(max + 1, entry)))).toEqual([
-      `${path}: Can hold at most ${max} entries`,
+      `${path}: Pode ter no máximo ${max} itens.`,
     ]);
   });
 

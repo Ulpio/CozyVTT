@@ -14,6 +14,7 @@
  * `sheetTabPanel(id, active)` on it, with the `id` it gave the bar.
  */
 import { useRef, type ElementType } from 'react';
+import { useTranslation } from 'react-i18next';
 import { tabKeyTarget } from '@/utils/tabKeys';
 
 export interface SheetTab<Id extends string> {
@@ -41,6 +42,7 @@ export function sheetTabPanel(id: string, active: string) {
 }
 
 export function SheetTabs<Id extends string>({ id, tabs, active, onSelect, underline }: SheetTabsProps<Id>) {
+  const { t } = useTranslation();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const onKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
     const target = tabKeyTarget(event.key, index, tabs.length);
@@ -51,7 +53,7 @@ export function SheetTabs<Id extends string>({ id, tabs, active, onSelect, under
   };
 
   return (
-    <div data-sheet-tabs role="tablist" aria-label="Sheet sections" className="flex flex-wrap gap-1 border-b-2 border-ink/10 bg-ink/5 px-4">
+    <div data-sheet-tabs role="tablist" aria-label={t('sheet5e.sheetSections')} className="flex flex-wrap gap-1 border-b-2 border-ink/10 bg-ink/5 px-4">
       {tabs.map(({ id: tab, label, icon: Icon }, index) => {
         const isActive = tab === active;
         return (

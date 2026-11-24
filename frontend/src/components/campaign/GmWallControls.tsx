@@ -8,18 +8,19 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import type { WallType } from '@/types/walls';
+import { useTranslation } from 'react-i18next';
 import { wallStrokeColor } from './map/layers/drawWalls';
 
 export type WallToolMode = 'wall-draw' | 'wall-select' | 'wall-split' | 'wall-erase' | 'wall-polygon' | 'wall-brush' | null;
 
 export const WALL_PRESET_COLORS = [
-  { label: 'Orange (default)', value: '#f97316' },
-  { label: 'White', value: '#ffffff' },
-  { label: 'Yellow', value: '#facc15' },
-  { label: 'Cyan', value: '#22d3ee' },
-  { label: 'Red', value: '#ef4444' },
-  { label: 'Green', value: '#4ade80' },
-];
+  { labelKey: 'gmWalls.colors.orange', value: '#f97316' },
+  { labelKey: 'gmWalls.colors.white', value: '#ffffff' },
+  { labelKey: 'gmWalls.colors.yellow', value: '#facc15' },
+  { labelKey: 'gmWalls.colors.cyan', value: '#22d3ee' },
+  { labelKey: 'gmWalls.colors.red', value: '#ef4444' },
+  { labelKey: 'gmWalls.colors.green', value: '#4ade80' },
+] as const;
 
 export interface GmWallControlsProps {
   wallMode: WallToolMode;
@@ -64,13 +65,13 @@ export interface GmWallControlsProps {
 /** A chip of the selected type: the border and the swatch carry the colour the map draws it in. */
 const WALL_CHIP_ON = 'bg-brand/15 text-ink';
 
-const WALL_TYPE_LABELS: Record<WallType, string> = {
-  'wall':        'Wall',
-  'door-closed': 'Door',
-  'door-open':   'Open Door',
-  'door-locked': 'Locked',
-  'window':      'Window',
-};
+const WALL_TYPE_KEYS = {
+  'wall':        'gmWalls.types.wall',
+  'door-closed': 'gmWalls.types.doorClosed',
+  'door-open':   'gmWalls.types.doorOpen',
+  'door-locked': 'gmWalls.types.doorLocked',
+  'window':      'gmWalls.types.window',
+} as const satisfies Record<WallType, string>;
 
 const ALL_WALL_TYPES: WallType[] = ['wall', 'door-closed', 'door-open', 'door-locked', 'window'];
 
@@ -111,6 +112,8 @@ export default function GmWallControls({
   onBrushSizeChange,
   onCollapse,
 }: GmWallControlsProps) {
+  const { t } = useTranslation();
+  const tr = t; // `t` is a wall type inside the chip loops
   const [confirmClear, setConfirmClear] = useState(false);
   // Done, and Cancel for a polygon, come in under the mode buttons as the
   // first point is placed. The stack is capped and scrolls on a short
@@ -151,7 +154,7 @@ export default function GmWallControls({
         }}
       >
         <span className="text-xs text-brand-ink font-medium uppercase tracking-wide">
-          Walls
+          {t('gmWalls.title')}
           {wallCount > 0 && (
             <>{' '}<span className="text-ink-muted normal-case">({wallCount})</span></>
           )}
@@ -170,10 +173,10 @@ export default function GmWallControls({
                   ? 'bg-warning/25 text-warning-ink border-warning/50'
                   : 'bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10'
               }`}
-              title="Draw walls — click to place points, double-click to finish"
-              aria-label="Wall draw mode"
+              title={t('gmWalls.drawHint')}
+              aria-label={t('gmWalls.drawLabel')}
             >
-              ✏️ Draw
+              ✏️ {t('gmWalls.draw')}
             </button>
             <button
               onClick={() => toggleMode('wall-select')}
@@ -182,10 +185,10 @@ export default function GmWallControls({
                   ? 'bg-info/25 text-info-ink border-info/50'
                   : 'bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10'
               }`}
-              title="Select a wall segment to change its type or delete it"
-              aria-label="Wall select mode"
+              title={t('gmWalls.selectHint')}
+              aria-label={t('gmWalls.selectLabel')}
             >
-              ↗ Select
+              ↗ {t('gmWalls.select')}
             </button>
             <button
               onClick={() => toggleMode('wall-split')}
@@ -194,10 +197,10 @@ export default function GmWallControls({
                   ? 'bg-warning/25 text-warning-ink border-warning/50'
                   : 'bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10'
               }`}
-              title="Split a wall segment — hover over a wall to preview the split point, click to split"
-              aria-label="Wall split mode"
+              title={t('gmWalls.splitHint')}
+              aria-label={t('gmWalls.splitLabel')}
             >
-              ✂ Split
+              ✂ {t('gmWalls.split')}
             </button>
             <button
               onClick={() => toggleMode('wall-erase')}
@@ -206,10 +209,10 @@ export default function GmWallControls({
                   ? 'bg-danger/25 text-danger-ink border-danger/50'
                   : 'bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10'
               }`}
-              title="Erase walls — drag to brush-erase multiple segments"
-              aria-label="Wall erase mode"
+              title={t('gmWalls.eraseHint')}
+              aria-label={t('gmWalls.eraseLabel')}
             >
-              🗑 Erase
+              🗑 {t('gmWalls.erase')}
             </button>
           </div>
           {/* Polygon + Brush mode */}
@@ -221,10 +224,10 @@ export default function GmWallControls({
                   ? 'bg-success/25 text-success-ink border-success/50'
                   : 'bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10'
               }`}
-              title="Polygon mode — click corners to draw a closed room perimeter"
-              aria-label="Polygon wall mode"
+              title={t('gmWalls.polygonHint')}
+              aria-label={t('gmWalls.polygonLabel')}
             >
-              ⬡ Polygon
+              ⬡ {t('gmWalls.polygon')}
             </button>
             <button
               onClick={() => toggleMode('wall-brush')}
@@ -233,10 +236,10 @@ export default function GmWallControls({
                   ? 'bg-success/25 text-success-ink border-success/50'
                   : 'bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10'
               }`}
-              title="Brush mode — paint over walls to trace them. Use snap-to-grid for straight walls."
-              aria-label="Brush wall mode"
+              title={t('gmWalls.brushHint')}
+              aria-label={t('gmWalls.brushLabel')}
             >
-              🖌 Brush
+              🖌 {t('gmWalls.brush')}
             </button>
           </div>
 
@@ -252,9 +255,9 @@ export default function GmWallControls({
                 type="button"
                 onClick={onFinishLine}
                 className={`w-full ${FINISH_BUTTON}`}
-                title="Finish the line, as a double-click or Esc does"
+                title={t('gmWalls.finishLineHint')}
               >
-                Done
+                {t('gmWalls.done')}
               </button>
             </div>
           )}
@@ -265,17 +268,17 @@ export default function GmWallControls({
                 onClick={onClosePolygon}
                 disabled={polygonCorners < 3}
                 className={FINISH_BUTTON}
-                title={polygonCorners < 3 ? 'Place at least three corners first' : 'Close the shape, as a double-click does'}
+                title={polygonCorners < 3 ? t('gmWalls.closeNeedsThree') : t('gmWalls.closeHint')}
               >
-                Done
+                {t('gmWalls.done')}
               </button>
               <button
                 type="button"
                 onClick={onDropPolygon}
                 className="touch-target px-2 py-1.5 rounded text-xs font-medium transition-colors border bg-surface-light/60 text-ink border-moss-green/30 hover:bg-moss-green/10"
-                title="Drop the corners, as Esc does"
+                title={t('gmWalls.dropHint')}
               >
-                Cancel
+                {t('gmWalls.cancel')}
               </button>
             </div>
           )}
@@ -284,7 +287,7 @@ export default function GmWallControls({
           {wallMode === 'wall-brush' && onBrushSizeChange && (
             <div className="flex flex-col gap-0.5">
               <div className="flex justify-between text-xs text-ink-muted px-1">
-                <span>Brush size</span>
+                <span>{t('gmWalls.brushSize')}</span>
                 <span>{brushSize}px</span>
               </div>
               <input
@@ -295,7 +298,7 @@ export default function GmWallControls({
                 value={brushSize}
                 onChange={(e) => onBrushSizeChange(Number(e.target.value))}
                 className="w-full accent-success"
-                aria-label="Brush size for wall painting"
+                aria-label={t('gmWalls.brushSizeLabel')}
               />
             </div>
           )}
@@ -306,7 +309,7 @@ export default function GmWallControls({
             <div className="flex flex-col gap-1 pt-1 border-t border-info/30">
               {selectedSegmentType != null && (
                 <>
-                  <span className="text-xs text-info-ink px-1">Change type</span>
+                  <span className="text-xs text-info-ink px-1">{t('gmWalls.changeType')}</span>
                   <div className="grid grid-cols-2 gap-1">
                     {ALL_WALL_TYPES.map((t) => (
                       <button
@@ -317,11 +320,11 @@ export default function GmWallControls({
                             ? WALL_CHIP_ON
                             : 'bg-surface-light/60 text-ink-muted border-moss-green/30 hover:bg-moss-green/10'
                         }`}
-                        aria-label={`Set type: ${WALL_TYPE_LABELS[t]}`}
+                        aria-label={tr('gmWalls.setType', { type: tr(WALL_TYPE_KEYS[t]) })}
                         style={{ borderColor: wallStrokeColor(t, wallColor) }}
                       >
                         <span data-wall-swatch aria-hidden="true" className="inline-block w-2 h-2 rounded-full mr-1 align-middle" style={{ backgroundColor: wallStrokeColor(t, wallColor) }} />
-                        {WALL_TYPE_LABELS[t]}
+                        {tr(WALL_TYPE_KEYS[t])}
                       </button>
                     ))}
                   </div>
@@ -330,45 +333,45 @@ export default function GmWallControls({
               <button
                 onClick={onDeleteSelected}
                 className="w-full touch-target px-2 py-1 mt-0.5 rounded-sm text-xs font-medium bg-danger/25 text-danger-ink border border-danger/40 hover:bg-danger/35 transition-colors"
-                title={selectedCount === 1 ? 'Delete the selected wall segment' : `Delete the ${selectedCount} selected wall segments`}
+                title={selectedCount === 1 ? t('gmWalls.deleteOneHint') : t('gmWalls.deleteManyHint', { count: selectedCount })}
               >
-                {selectedCount === 1 ? 'Delete segment' : `Delete ${selectedCount} segments`}
+                {selectedCount === 1 ? t('gmWalls.deleteOne') : t('gmWalls.deleteMany', { count: selectedCount })}
               </button>
             </div>
           )}
 
           {/* Shift's adding to the selection, for a finger or a pen. */}
           {wallMode === 'wall-select' && onAddToSelectionChange && (
-            <label className="flex items-center gap-2 px-1 cursor-pointer touch-target" title="Add to the selection, as Shift does">
+            <label className="flex items-center gap-2 px-1 cursor-pointer touch-target" title={t('gmWalls.addToSelectionHint')}>
               <input
                 type="checkbox"
                 checked={addToSelection}
                 onChange={(e) => onAddToSelectionChange(e.target.checked)}
                 className="accent-info"
               />
-              <span className="text-xs text-ink">Add to selection</span>
+              <span className="text-xs text-ink">{t('gmWalls.addToSelection')}</span>
             </label>
           )}
 
           {/* Selected endpoint — merge option (wall-select mode, endpoint clicked) */}
           {wallMode === 'wall-select' && selectedEndpoint != null && selectedSegmentType == null && (
             <div className="flex flex-col gap-1 pt-1 border-t border-info/30">
-              <span className="text-xs text-info-ink px-1">Selected point</span>
+              <span className="text-xs text-info-ink px-1">{t('gmWalls.selectedPoint')}</span>
               <button
                 onClick={onMergeEndpoint}
                 className="w-full px-2 py-1 rounded-sm text-xs font-medium bg-info/25 text-info-ink border border-info/40 hover:bg-info/35 transition-colors"
-                aria-label="Merge wall segments at this point"
+                aria-label={t('gmWalls.mergeLabel')}
               >
-                Merge point
+                {t('gmWalls.mergePoint')}
               </button>
-              <span className="text-[10px] text-ink px-1">Remove this point and join the two segments into one straight wall</span>
+              <span className="text-[10px] text-ink px-1">{t('gmWalls.mergeHelp')}</span>
             </div>
           )}
 
           {/* Wall type selector (draw, polygon, brush modes) */}
           {(wallMode === 'wall-draw' || wallMode === 'wall-polygon' || wallMode === 'wall-brush') && (
             <div className="flex flex-col gap-1">
-              <span className="text-xs text-ink-muted px-1">Draw type</span>
+              <span className="text-xs text-ink-muted px-1">{t('gmWalls.drawType')}</span>
               <div className="grid grid-cols-2 gap-1">
                 {ALL_WALL_TYPES.map((t) => (
                   <button
@@ -379,11 +382,11 @@ export default function GmWallControls({
                         ? WALL_CHIP_ON
                         : 'bg-surface-light/60 text-ink-muted border-moss-green/30 hover:bg-moss-green/10'
                     }`}
-                    aria-label={`Wall type: ${WALL_TYPE_LABELS[t]}`}
+                    aria-label={tr('gmWalls.wallType', { type: tr(WALL_TYPE_KEYS[t]) })}
                     style={{ borderColor: wallStrokeColor(t, wallColor) }}
                   >
                     <span data-wall-swatch aria-hidden="true" className="inline-block w-2 h-2 rounded-full mr-1 align-middle" style={{ backgroundColor: wallStrokeColor(t, wallColor) }} />
-                    {WALL_TYPE_LABELS[t]}
+                    {tr(WALL_TYPE_KEYS[t])}
                   </button>
                 ))}
               </div>
@@ -397,38 +400,38 @@ export default function GmWallControls({
                 onClick={onUndo}
                 disabled={!canUndo}
                 className="flex-1 px-2 py-1 rounded-sm text-xs font-medium bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-moss-green/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                title="Undo the last corner, the line being drawn or the last wall change (Ctrl+Z)"
-                aria-label="Undo wall edit"
+                title={t('gmWalls.undoHint')}
+                aria-label={t('gmWalls.undoLabel')}
               >
-                ↩ Undo
+                {t('gmWalls.undo')}
               </button>
               <button
                 onClick={onRedo}
                 disabled={!canRedo}
                 className="flex-1 px-2 py-1 rounded-sm text-xs font-medium bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-moss-green/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                title="Redo wall change (Ctrl+Y)"
-                aria-label="Redo wall edit"
+                title={t('gmWalls.redoHint')}
+                aria-label={t('gmWalls.redoLabel')}
               >
-                ↪ Redo
+                {t('gmWalls.redo')}
               </button>
             </div>
           )}
 
           {/* Wall color picker */}
           <div className="flex flex-col gap-1">
-            <span className="text-xs text-ink-muted px-1">Wall color</span>
+            <span className="text-xs text-ink-muted px-1">{t('gmWalls.wallColor')}</span>
             <div className="flex gap-1 flex-wrap px-1">
               {WALL_PRESET_COLORS.map((c) => (
                 <button
                   key={c.value}
                   onClick={() => onWallColorChange(c.value)}
-                  title={c.label}
+                  title={t(c.labelKey)}
                   className="w-5 h-5 rounded-full border-2 transition-transform hover:scale-110"
                   style={{
                     backgroundColor: c.value,
                     borderColor: wallColor === c.value ? '#fff' : 'transparent',
                   }}
-                  aria-label={`Wall color: ${c.label}`}
+                  aria-label={t('gmWalls.wallColorLabel', { color: t(c.labelKey) })}
                 />
               ))}
               <input
@@ -436,8 +439,8 @@ export default function GmWallControls({
                 value={wallColor}
                 onChange={(e) => onWallColorChange(e.target.value)}
                 className="w-5 h-5 rounded-sm cursor-pointer border-0 bg-transparent p-0"
-                title="Custom wall color"
-                aria-label="Custom wall color picker"
+                title={t('gmWalls.customColor')}
+                aria-label={t('gmWalls.customColorLabel')}
               />
             </div>
           </div>
@@ -452,9 +455,9 @@ export default function GmWallControls({
                 if (e.target.checked) onSnapToEndpointChange(false);
               }}
               className="accent-brand"
-              aria-label="Snap wall points to grid"
+              aria-label={t('gmWalls.snapGridLabel')}
             />
-            <span className="text-xs text-ink">Snap to grid</span>
+            <span className="text-xs text-ink">{t('gmWalls.snapGrid')}</span>
           </label>
 
           {/* Snap to nearest endpoint — only available when grid snap is off */}
@@ -465,9 +468,9 @@ export default function GmWallControls({
               disabled={snapToGrid}
               onChange={(e) => onSnapToEndpointChange(e.target.checked)}
               className="accent-brand"
-              aria-label="Snap wall points to nearest existing endpoint"
+              aria-label={t('gmWalls.snapEndpointLabel')}
             />
-            <span className="text-xs text-ink">Snap to endpoint</span>
+            <span className="text-xs text-ink">{t('gmWalls.snapEndpoint')}</span>
           </label>
 
           {/* Clear all */}
@@ -480,11 +483,11 @@ export default function GmWallControls({
                     ? 'bg-danger-fill text-white animate-pulse'
                     : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-danger/20 hover:text-danger-ink'
                 }`}
-                title={confirmClear ? 'Click again to confirm: delete all walls' : 'Delete all wall segments'}
-                aria-label="Clear all wall segments"
+                title={confirmClear ? t('gmWalls.clearConfirmHint') : t('gmWalls.clearHint')}
+                aria-label={t('gmWalls.clearLabel')}
                 onBlur={() => setConfirmClear(false)}
               >
-                {confirmClear ? 'Confirm clear all?' : `Clear all (${wallCount})`}
+                {confirmClear ? t('gmWalls.clearConfirm') : t('gmWalls.clearAll', { count: wallCount })}
               </button>
             </div>
           )}

@@ -17,6 +17,7 @@ import {
   Settings,
   type LucideIcon,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '@/components/ui/Button';
 import Tooltip from '@/components/ui/Tooltip';
 import { cn } from '@/utils/cn';
@@ -33,7 +34,7 @@ export type SessionToolKey =
 
 export interface ToolDef {
   key: SessionToolKey;
-  label: string;
+  labelKey: `session.tools.${SessionToolKey}`;
   icon: LucideIcon;
 }
 
@@ -42,18 +43,18 @@ export interface ToolDef {
 // (compact/MoreSheet.tsx).
 export const TOOL_GROUPS: ToolDef[][] = [
   [
-    { key: 'maps', label: 'Map Library', icon: MapIcon },
-    { key: 'tokens', label: 'Token Manager', icon: Swords },
-    { key: 'creatures', label: 'Creature Library', icon: Skull },
-    { key: 'templates', label: 'Token Templates', icon: Stamp },
+    { key: 'maps', labelKey: 'session.tools.maps', icon: MapIcon },
+    { key: 'tokens', labelKey: 'session.tools.tokens', icon: Swords },
+    { key: 'creatures', labelKey: 'session.tools.creatures', icon: Skull },
+    { key: 'templates', labelKey: 'session.tools.templates', icon: Stamp },
   ],
   [
-    { key: 'spirit', label: 'Spirit Layer', icon: Ghost },
-    { key: 'atmosphere', label: 'Atmosphere', icon: Cloud },
+    { key: 'spirit', labelKey: 'session.tools.spirit', icon: Ghost },
+    { key: 'atmosphere', labelKey: 'session.tools.atmosphere', icon: Cloud },
   ],
   [
-    { key: 'secretCheck', label: 'Secret check', icon: EyeOff },
-    { key: 'settings', label: 'Campaign Settings', icon: Settings },
+    { key: 'secretCheck', labelKey: 'session.tools.secretCheck', icon: EyeOff },
+    { key: 'settings', labelKey: 'session.tools.settings', icon: Settings },
   ],
 ];
 
@@ -70,12 +71,15 @@ export default function SessionToolbar({
   onOpen,
   spiritLayerEnabled = false,
 }: SessionToolbarProps) {
+  const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-1" role="toolbar" aria-label="GM tools">
+    <div className="flex items-center gap-1" role="toolbar" aria-label={t('session.menus.label')}>
       {TOOL_GROUPS.map((group, groupIndex) => (
         <div key={groupIndex} className="flex items-center gap-1">
           {groupIndex > 0 && <div className="h-6 w-px bg-moss-green/20 mx-1" aria-hidden="true" />}
-          {group.map(({ key, label, icon }) => (
+          {group.map(({ key, labelKey, icon }) => {
+            const label = t(labelKey);
+            return (
             <Tooltip key={key} content={label} side="bottom">
               <Button
                 variant="ghost"
@@ -90,7 +94,8 @@ export default function SessionToolbar({
                 )}
               />
             </Tooltip>
-          ))}
+            );
+          })}
         </div>
       ))}
     </div>

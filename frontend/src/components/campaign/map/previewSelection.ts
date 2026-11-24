@@ -15,6 +15,7 @@ import { TokenLayer, TokenType } from '@/types';
 import { controlsToken } from '@/utils/tokenOwnership';
 import { tokenCentre } from '@/utils/tokenCentre';
 import { tokenSentTo } from '@/utils/tokenMask';
+import i18n from '@/i18n';
 
 /** The plane a previewed viewer is on: what they are sent, and see through. */
 export type PreviewPlane = 'material' | 'spirit';
@@ -250,7 +251,7 @@ export function previewOptions(
 ): PreviewOption[] {
   const players: PreviewOption[] = memberships
     .filter((m) => (m.role as string) === 'PLAYER')
-    .map((m) => ({ group: 'players', value: `player:${m.userId}`, label: m.user?.displayName ?? 'Player' }));
+    .map((m) => ({ group: 'players', value: `player:${m.userId}`, label: m.user?.displayName ?? i18n.t('previewChoices.player') }));
 
   const seeing = tokens.filter((t) => onViewersPlane(t, 'material') || onViewersPlane(t, 'spirit'));
   const byName = (a: Token, b: Token) => a.name.localeCompare(b.name);
@@ -258,9 +259,9 @@ export function previewOptions(
   const others = seeing.filter((t) => t.type !== TokenType.PLAYER).sort(byName);
 
   const tokenEntries: PreviewOption[] = [];
-  if (pcs.length > 0) tokenEntries.push({ group: 'tokens', value: PARTY, label: 'All player tokens' });
+  if (pcs.length > 0) tokenEntries.push({ group: 'tokens', value: PARTY, label: i18n.t('previewChoices.allPlayerTokens') });
   for (const t of [...pcs, ...others]) {
-    const label = t.layer === TokenLayer.SPIRIT ? `${t.name} (spirit)` : t.name;
+    const label = t.layer === TokenLayer.SPIRIT ? i18n.t('previewChoices.spirit', { name: t.name }) : t.name;
     tokenEntries.push({ group: 'tokens', value: `token:${t.id}`, label });
   }
   return [...players, ...tokenEntries];

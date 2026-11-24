@@ -25,7 +25,7 @@
 
 import { CampaignRole } from '@/types';
 import type { CampaignMembership, Character } from '@/types';
-import { CAMPAIGN_ROLE_LABEL } from '@/utils/campaignRoles';
+import i18n from '@/i18n';
 
 /** A member someone may whisper to, with the name the chat shows for them. */
 export interface WhisperTarget {
@@ -67,12 +67,12 @@ const byJoining = (a: Labelling, b: Labelling) =>
 
 /** Every member of the campaign by user id, labelled by the rule above. */
 export function whisperTargets(memberships: readonly CampaignMembership[], characters: readonly Character[]): Map<string, WhisperTarget> {
-  const all: Labelling[] = memberships.map((membership) => ({ membership, displayName: membership.user?.displayName ?? 'Unknown User', parts: [] }));
+  const all: Labelling[] = memberships.map((membership) => ({ membership, displayName: membership.user?.displayName ?? i18n.t('chat.unknownUser'), parts: [] }));
 
   for (const group of equalGroups(all, (l) => l.displayName)) {
     for (const l of group) {
       const m = l.membership;
-      l.parts.push(CAMPAIGN_ROLE_LABEL[m.role]);
+      l.parts.push(i18n.t(`roles.${m.role}`));
       if (m.role === CampaignRole.PLAYER) {
         const characterId = m.characterIds.find((id) => characters.some((c) => c.id === id && c.userId === m.userId));
         const character = characters.find((c) => c.id === characterId);
@@ -81,7 +81,7 @@ export function whisperTargets(memberships: readonly CampaignMembership[], chara
     }
   }
   for (const group of equalGroups(all, labelOf)) {
-    for (const l of group) l.parts.push(`joined ${joinedDay(l.membership.joinedAt)}`);
+    for (const l of group) l.parts.push(i18n.t('chat.joinedDay', { day: joinedDay(l.membership.joinedAt) }));
   }
   // Each round leaves the members of every equal group unequal to each
   // other; only a name copied from one of the new ones can make another.
@@ -154,11 +154,11 @@ export function readSlashWhisper(text: string, targets: readonly WhisperTarget[]
 export function slashWhisperRefusal(read: Exclude<SlashWhisper, { kind: 'none' }>): string {
   switch (read.kind) {
     case 'to':
-      return 'Write your message after the name.';
+      return i18n.t('chat.whisperWriteMessage');
     case 'several':
-      return `That name fits more than one person: ${read.labels.join(', ')}. Choose one in the To list.`;
+      return i18n.t('chat.whisperSeveral', { names: read.labels.join(', ') });
     case 'nobody':
-      return read.typed ? `Nobody in this campaign is called "${read.typed}".` : 'Write a name after /w or /whisper, then your message.';
+      return read.typed ? i18n.t('chat.whisperNobody', { name: read.typed }) : i18n.t('chat.whisperWriteName');
   }
 }
 

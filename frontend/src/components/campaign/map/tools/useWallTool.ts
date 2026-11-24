@@ -11,7 +11,8 @@ import type { WallSegment, WallType } from '@/types/walls';
 import type { WallToolMode, GmWallControlsProps } from '@/components/campaign/GmWallControls';
 import { douglasPeucker, edgeSnapPoints } from '@/utils/geometry';
 import { randomId } from '@/utils/uuid';
-import { TOO_MANY_WALLS_MESSAGE } from '@/constants/mapLimits';
+import { MAP_LIMITS } from '@/constants/mapLimits';
+import i18n from '@/i18n';
 import { carryChange } from '@/hooks/useWallHistory';
 import { rectFromDrag, segmentsInRect } from '../mapSelection';
 import { useWallSelection } from '../useWallSelection';
@@ -183,7 +184,7 @@ export function useWallTool({
    */
   const roomFor = useCallback((before: number, after: number): boolean => {
     if (!pastWallCap(before, after)) return true;
-    refuse(TOO_MANY_WALLS_MESSAGE);
+    refuse(i18n.t('mapView.tooManyWalls', { max: MAP_LIMITS.maxWallSegments }));
     return false;
   }, [refuse]);
 

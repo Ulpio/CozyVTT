@@ -12,6 +12,7 @@
 // ============================================
 
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { assetDirectory } from '@/utils/assetUrl';
 import { Check, Loader2 } from 'lucide-react';
 import { api } from '@/services/api';
@@ -90,6 +91,7 @@ export default function AssetGrid({
   gapClass = 'gap-2',
   hideEmptyMessage = false,
 }: AssetGridProps) {
+  const { t } = useTranslation();
   const [fetched, setFetched] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(false);
   // The server's pages: one is fetched at first, and Load more adds the next.
@@ -175,8 +177,8 @@ export default function AssetGrid({
   const emptyNote = filtered.length === 0 && !hideEmptyMessage && (
     <p className="text-center text-sm text-stone-gray/60 py-4">
       {searching
-        ? 'No results for your search.'
-        : emptyMessage ?? 'No assets found. Upload one to get started.'}
+        ? t('assetPicker.noResults')
+        : emptyMessage ?? t('assetPicker.empty')}
     </p>
   );
   if (emptyNote && !leadingItem) return emptyNote;
@@ -238,7 +240,7 @@ export default function AssetGrid({
       {!controlled && !loading && page < totalPages && (
         <div className="flex justify-center pt-2">
           <Button type="button" variant="secondary" size="sm" onClick={loadMore} disabled={loadingMore}>
-            {loadingMore ? 'Loading…' : 'Load more'}
+            {loadingMore ? t('assetPicker.loading') : t('assetPicker.loadMore')}
           </Button>
         </div>
       )}

@@ -13,12 +13,12 @@ describe('buildWsFogState', () => {
   });
 
   it('refuses one cell more, saying why', () => {
-    expect(() => buildWsFogState({ width: 250001, height: 1, gridSize: 50 })).toThrow(/too big for fog of war/);
+    expect(() => buildWsFogState({ width: 250001, height: 1, gridSize: 50 })).toThrow(/grande demais para a névoa/);
   });
 
   it('refuses a huge map at once, without trying to allocate it', () => {
     const started = Date.now();
-    expect(() => buildWsFogState({ width: 70000, height: 70000, gridSize: 50 })).toThrow(/too big for fog of war/);
+    expect(() => buildWsFogState({ width: 70000, height: 70000, gridSize: 50 })).toThrow(/grande demais para a névoa/);
     expect(Date.now() - started).toBeLessThan(50);
   });
 });

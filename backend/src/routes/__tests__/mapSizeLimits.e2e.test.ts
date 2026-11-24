@@ -91,7 +91,7 @@ describe('POST /maps', () => {
     const res = await create({ [field]: value });
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/1 to 500/);
+    expect(res.body.message).toMatch(/1 a 500/);
   });
 
   it('accepts the largest map the dialogs offer', async () => {
@@ -147,7 +147,7 @@ describe('PUT /maps/:id', () => {
     const res = await update(map.id, { fogEnabled: true });
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/too big for fog of war/);
+    expect(res.body.message).toMatch(/grande demais para a névoa/);
     expect((await prisma.map.findUniqueOrThrow({ where: { id: map.id } })).fogEnabled).toBe(false);
   });
 
@@ -157,7 +157,7 @@ describe('PUT /maps/:id', () => {
     const res = await update(map.id, { explorationEnabled: true });
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/too big for fog of war/);
+    expect(res.body.message).toMatch(/grande demais para a névoa/);
   });
 
   it('turns fog on when the same request makes the map small enough', async () => {
@@ -185,7 +185,7 @@ describe('fog on a map stored larger than the limits', () => {
     const res = await gm.get(`/api/campaigns/${campaignId}/maps/${map.id}/fog`);
 
     expect(res.status).toBe(409);
-    expect(res.body.message).toMatch(/too big for fog of war/);
+    expect(res.body.message).toMatch(/grande demais para a névoa/);
   });
 
   it('answers a fog operation with 409 and stores nothing', async () => {
@@ -224,7 +224,8 @@ describe('POST /maps/import-uvtt', () => {
     const res = await importUvtt(uvtt({ x: 10 }));
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/does not say how many squares/);
+    expect(res.body.message).toMatch(/não informa quantos quadrados/);
+    expect(res.body.message).toMatch(/Um mapa pode ter de 1 a 500 quadrados de cada lado.$/);
     expect(await prisma.asset.count({ where: { campaignId } })).toBe(assetsBefore);
   });
 

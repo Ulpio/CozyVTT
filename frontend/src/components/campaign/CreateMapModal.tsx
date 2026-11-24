@@ -6,6 +6,7 @@
 // ============================================
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MapPin, Loader2, ZoomIn, ZoomOut, Sparkles } from 'lucide-react';
 import { api } from '@/services/api';
 import mapService from '@/services/map.service';
@@ -34,11 +35,6 @@ interface CreateMapModalProps {
   onCreated: (map: CampaignMap, drawnPicture?: Asset) => void;
 }
 
-/** What a browser that made no PNG of the blank picture is told. */
-const NO_PICTURE_MADE = "This browser could not make the map's picture. Choose fewer squares and try again.";
-
-const count = (n: number) => n.toLocaleString('en-US');
-
 // ============================================
 // CreateMapModal
 // ============================================
@@ -49,6 +45,8 @@ export default function CreateMapModal({
   onClose,
   onCreated,
 }: CreateMapModalProps) {
+  const { t, i18n } = useTranslation();
+  const count = (n: number) => n.toLocaleString(i18n.language);
   // From a picture, or drawn in CozyVTT.
   const [making, setMaking] = useState<'picture' | 'drawing'>('picture');
   const drawing = making === 'drawing';
@@ -167,7 +165,7 @@ export default function CreateMapModal({
       const png = canvas ? await pictureToPng(canvas) : null;
       if (canvas) releaseCanvas(canvas);
       if (!png) {
-        setError(NO_PICTURE_MADE);
+        setError(t('mapModal.noPictureMade'));
         return;
       }
       uploaded = await uploadDrawnPicture(png, campaignId);
@@ -191,7 +189,7 @@ export default function CreateMapModal({
           console.warn('[CreateMapModal] Could not delete the picture of a map not made:', errorSummary(cleanup));
         });
       }
-      setError(err instanceof DrawnPictureRefused ? err.message : apiErrorMessage(err) || 'Failed to create map. Please try again.');
+      setError(err instanceof DrawnPictureRefused ? err.message : apiErrorMessage(err) || t('mapModal.createFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -223,7 +221,7 @@ export default function CreateMapModal({
     } catch (err: unknown) {
       setError(
         (err as { response?: { data?: { message?: string } } }).response?.data?.message ||
-          'Failed to create map. Please try again.'
+          t('mapModal.createFailed')
       );
     } finally {
       setIsSubmitting(false);
@@ -244,7 +242,7 @@ export default function CreateMapModal({
         variant="secondary"
         disabled={isSubmitting}
       >
-        Cancel
+        {t('common.cancel')}
       </Button>
       <Button
         type="button"
@@ -253,13 +251,13 @@ export default function CreateMapModal({
         className="flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-        Create Map
+        {t('mapModal.createMap')}
       </Button>
     </>
   );
 
   return (
-    <Modal open={isOpen} onClose={handleClose} title="Create Map" icon={MapPin} size="xl" closeDisabled={isSubmitting} fitViewport footer={footer}>
+    <Modal open={isOpen} onClose={handleClose} title={t('mapModal.createTitle')} icon={MapPin} size="xl" closeDisabled={isSubmitting} fitViewport footer={footer}>
             {/* Body: it scrolls, between the header and the Modal's footer */}
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-6">
               {/* Error */}
@@ -270,8 +268,8 @@ export default function CreateMapModal({
               )}
 
               {/* A picture, or a map drawn here. */}
-              <div role="group" aria-label="How to make the map" className="flex gap-2 flex-wrap">
-                {([['picture', 'Use a picture'], ['drawing', 'Draw a map']] as const).map(([way, label]) => (
+              <div role="group" aria-label={t('mapModal.howToMake')} className="flex gap-2 flex-wrap">
+                {([['picture', t('mapModal.usePicture')], ['drawing', t('mapModal.drawMap')]] as const).map(([way, label]) => (
                   <button
                     key={way}
                     type="button"
@@ -294,11 +292,11 @@ export default function CreateMapModal({
                   campaign picture stays with the table if the GM leaves. */}
               {!drawing && (<>
               <AssetPicker
-                label="Map Image"
+                label={t('mapModal.mapImage')}
                 required
                 type={AssetType.MAP}
-                searchPlaceholder="Search maps..."
-                emptyMessage="No map assets found. Upload a map image to get started."
+                searchPlaceholder={t('mapModal.searchMaps')}
+                emptyMessage={t('mapModal.emptyCreate')}
                 selectedAssetId={mapAssetId}
                 onSelect={handleMapAssetSelect}
                 campaignOption={campaignId}
@@ -306,10 +304,10 @@ export default function CreateMapModal({
 
               {/* Spirit Layer, uploaded the same way */}
               <AssetPicker
-                label="Spirit Layer Image (optional)"
+                label={t('mapModal.spiritLayer')}
                 type={AssetType.MAP}
-                searchPlaceholder="Search maps..."
-                emptyMessage="No map assets found. Upload a map image to get started."
+                searchPlaceholder={t('mapModal.searchMaps')}
+                emptyMessage={t('mapModal.emptyCreate')}
                 selectedAssetId={spiritAssetId}
                 onSelect={handleSpiritAssetSelect}
                 campaignOption={campaignId}
@@ -319,13 +317,13 @@ export default function CreateMapModal({
               {/* Map Name */}
               <div>
                 <label className="block text-sm font-medium text-stone-gray mb-1">
-                  Map Name <span className="text-danger-ink">*</span>
+                  {t('mapModal.mapName')} <span className="text-danger-ink">*</span>
                 </label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Tavern Interior, World Map..."
+                  placeholder={t('mapModal.namePlaceholderCreate')}
                   className="input-cozy"
                   maxLength={100}
                 />
@@ -340,18 +338,18 @@ export default function CreateMapModal({
                   {/* Map Dimensions */}
                   <div>
                     <label className="block text-sm font-medium text-stone-gray mb-3">
-                      Map Dimensions
+                      {t('mapModal.dimensions')}
                     </label>
                     <div className="space-y-3">
                       <MapDimensionField
-                        label="Width (grid squares)"
+                        label={t('mapModal.width')}
                         value={width}
                         onChange={setWidth}
                         min={MAP_LIMITS.minSide}
                         max={MAP_LIMITS.maxSide}
                       />
                       <MapDimensionField
-                        label="Height (grid squares)"
+                        label={t('mapModal.height')}
                         value={height}
                         onChange={setHeight}
                         min={MAP_LIMITS.minSide}
@@ -359,7 +357,7 @@ export default function CreateMapModal({
                       />
                       {drawing ? (
                         <MapDimensionField
-                          label="Detail (pixels per square)"
+                          label={t('mapModal.detail')}
                           value={detail}
                           onChange={setDetail}
                           min={MAP_LIMITS.minGridSize}
@@ -367,7 +365,7 @@ export default function CreateMapModal({
                         />
                       ) : (
                         <MapDimensionField
-                          label="Grid Size (px/square)"
+                          label={t('mapModal.gridSize')}
                           value={gridSize}
                           onChange={setGridSize}
                           min={MAP_LIMITS.minGridSize}
@@ -379,7 +377,7 @@ export default function CreateMapModal({
                       <>
                         {drawnSize.fits && (
                           <p className="text-xs text-stone-gray/50 mt-2">
-                            It is painted at {count(drawnSize.width)} × {count(drawnSize.height)} px.
+                            {t('mapModal.paintedAt', { width: count(drawnSize.width), height: count(drawnSize.height) })}
                           </p>
                         )}
                         {drawnNote && (
@@ -388,7 +386,7 @@ export default function CreateMapModal({
                       </>
                     ) : (
                       <p className="text-xs text-stone-gray/50 mt-2">
-                        Canvas will be {width * gridSize}×{height * gridSize}px
+                        {t('mapModal.canvasWillBe', { width: width * gridSize, height: height * gridSize })}
                       </p>
                     )}
                   </div>
@@ -396,7 +394,7 @@ export default function CreateMapModal({
                   {/* A drawn map's colour, which the eraser paints too. */}
                   {drawing && (
                     <div>
-                      <span className="block text-sm font-medium text-stone-gray mb-2">Background colour</span>
+                      <span className="block text-sm font-medium text-stone-gray mb-2">{t('mapModal.backgroundColour')}</span>
                       <div className="flex flex-wrap gap-1.5">
                         {PAINT_COLOURS.map((colour) => (
                           <button
@@ -416,11 +414,11 @@ export default function CreateMapModal({
                         ))}
                         <label
                           className={`touch-target inline-flex items-center justify-center w-7 h-7 rounded-full ${PAINT_COLOURS.some((c) => c.value === background) ? '' : 'ring-2 ring-brand'}`}
-                          title="Another colour"
+                          title={t('mapModal.anotherColour')}
                         >
                           <input
                             type="color"
-                            aria-label="Another colour"
+                            aria-label={t('mapModal.anotherColour')}
                             value={background}
                             onChange={(e) => {
                               const colour = pickedColour(e.target.value);
@@ -435,11 +433,11 @@ export default function CreateMapModal({
 
                   {/* Grid Settings */}
                   <div className="border border-moss-green/20 rounded-lg p-4 space-y-4 bg-moss-green/5">
-                    <h3 className="text-sm font-medium text-brand-ink">Grid Settings</h3>
+                    <h3 className="text-sm font-medium text-brand-ink">{t('mapModal.gridSettings')}</h3>
 
                     {/* Grid Scale */}
                     <div>
-                      <label className="block text-xs font-medium text-stone-gray mb-2">Grid Scale</label>
+                      <label className="block text-xs font-medium text-stone-gray mb-2">{t('mapModal.gridScale')}</label>
                       <div className="flex gap-2 flex-wrap">
                         {(['5', '10'] as const).map((v) => (
                           <button
@@ -452,7 +450,7 @@ export default function CreateMapModal({
                                 : 'bg-paper-white text-stone-gray border-moss-green/30 hover:border-moss-green/60'
                             }`}
                           >
-                            {v} ft
+                            {t('mapModal.feet', { n: v })}
                           </button>
                         ))}
                         <button
@@ -464,7 +462,7 @@ export default function CreateMapModal({
                               : 'bg-paper-white text-stone-gray border-moss-green/30 hover:border-moss-green/60'
                           }`}
                         >
-                          Custom
+                          {t('mapModal.custom')}
                         </button>
                         {feetPreset === 'custom' && (
                           <input
@@ -474,16 +472,16 @@ export default function CreateMapModal({
                             min={MAP_LIMITS.minFeetPerSquare}
                             max={MAP_LIMITS.maxFeetPerSquare}
                             className="input-cozy w-20"
-                            placeholder="ft"
+                            placeholder={t('mapModal.feetPlaceholder')}
                           />
                         )}
                       </div>
-                      <p className="text-xs text-stone-gray/50 mt-1">How many feet each grid square represents.</p>
+                      <p className="text-xs text-stone-gray/50 mt-1">{t('mapModal.feetHint')}</p>
                     </div>
 
                     {/* Diagonal Movement */}
                     <div>
-                      <label className="block text-xs font-medium text-stone-gray mb-2">Diagonal Movement</label>
+                      <label className="block text-xs font-medium text-stone-gray mb-2">{t('mapModal.diagonal')}</label>
                       <div className="space-y-2">
                         <label className="flex items-start gap-3 cursor-pointer group">
                           <input
@@ -496,9 +494,9 @@ export default function CreateMapModal({
                           />
                           <div>
                             <span className="text-sm text-stone-gray group-hover:text-brand-ink transition-colors">
-                              Flat — every square costs the same
+                              {t('mapModal.flat')}
                             </span>
-                            <p className="text-xs text-stone-gray/50">{GAME_SYSTEM_SHORT_LABELS[GameSystem.FIFTH_EDITION]} default</p>
+                            <p className="text-xs text-stone-gray/50">{t('mapModal.systemDefault', { system: GAME_SYSTEM_SHORT_LABELS[GameSystem.FIFTH_EDITION] })}</p>
                           </div>
                         </label>
                         <label className="flex items-start gap-3 cursor-pointer group">
@@ -513,9 +511,9 @@ export default function CreateMapModal({
                           <div>
                             {/* At the Grid Scale chosen: 10/20/10/20 ft on 10 ft squares. */}
                             <span className="text-sm text-stone-gray group-hover:text-brand-ink transition-colors">
-                              Alternating — {diagonalStepCosts(feetPerSquare, 'alternating').join('/')} ft diagonals
+                              {t('mapModal.alternating', { costs: diagonalStepCosts(feetPerSquare, 'alternating').join('/') })}
                             </span>
-                            <p className="text-xs text-stone-gray/50">{GAME_SYSTEM_SHORT_LABELS[GameSystem.FANTASY_D20]} default</p>
+                            <p className="text-xs text-stone-gray/50">{t('mapModal.systemDefault', { system: GAME_SYSTEM_SHORT_LABELS[GameSystem.FANTASY_D20] })}</p>
                           </div>
                         </label>
                       </div>
@@ -526,25 +524,25 @@ export default function CreateMapModal({
                 {/* ── Right: Grid Preview + Zoom, or the drawn map's shape and colour ── */}
                 {drawing ? (
                   <div className="space-y-3">
-                    <span className="block text-sm font-medium text-stone-gray">Preview</span>
+                    <span className="block text-sm font-medium text-stone-gray">{t('mapModal.preview')}</span>
                     <div
                       aria-hidden="true"
                       className="w-full max-h-72 rounded-sm border border-moss-green/30 mx-auto"
                       style={{ aspectRatio: `${width} / ${height}`, backgroundColor: background, maxWidth: `calc(18rem * ${width / height})` }}
                     />
                     <p className="text-xs text-stone-gray/50 text-center leading-relaxed">
-                      The map opens on your screen only, with Mapmaker on, while your players stay where they are.
+                      {t('mapModal.drawnPreviewHint')}
                     </p>
                   </div>
                 ) : (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="block text-sm font-medium text-stone-gray">Grid Preview</label>
+                    <label className="block text-sm font-medium text-stone-gray">{t('mapModal.gridPreview')}</label>
                     <div className="flex items-center gap-2">
                       {isDetecting && (
                         <span className="flex items-center gap-1 text-xs text-stone-gray/50">
                           <Loader2 className="w-3 h-3 animate-spin" />
-                          Analysing…
+                          {t('mapModal.analysing')}
                         </span>
                       )}
                       <span className="text-xs text-stone-gray/50 tabular-nums">{previewZoom.toFixed(2)}×</span>
@@ -570,7 +568,7 @@ export default function CreateMapModal({
                       value={previewZoom}
                       onChange={(e) => setPreviewZoom(parseFloat(e.target.value))}
                       className="flex-1 accent-moss-green cursor-pointer"
-                      aria-label="Preview zoom level"
+                      aria-label={t('mapModal.zoomLevel')}
                     />
                     <ZoomIn className="w-4 h-4 text-stone-gray/50 shrink-0" />
                   </div>
@@ -580,11 +578,11 @@ export default function CreateMapModal({
                     <div className="flex items-start gap-2 p-2.5 bg-warning/10 border border-warning/30 rounded-lg">
                       <Sparkles className="w-4 h-4 text-warning-ink shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-warning-ink">Grid detected</p>
+                        <p className="text-xs font-medium text-warning-ink">{t('mapModal.gridDetected')}</p>
                         <p className="text-xs text-warning-ink mt-0.5">
-                          {detectedGrid.width}×{detectedGrid.height} squares · {detectedGrid.gridSize}px/sq
+                          {t('mapModal.detectedSize', { width: detectedGrid.width, height: detectedGrid.height, size: detectedGrid.gridSize })}
                           <span className="text-warning-ink ml-1">
-                            ({Math.round(detectedGrid.confidence * 100)}% confidence)
+                            {t('mapModal.confidence', { percent: Math.round(detectedGrid.confidence * 100) })}
                           </span>
                         </p>
                       </div>
@@ -594,13 +592,13 @@ export default function CreateMapModal({
                           onClick={applyDetectedGrid}
                           className="text-xs px-2 py-1 bg-warning/15 border border-warning/30 text-warning-ink rounded-sm hover:bg-warning/25 transition-colors"
                         >
-                          Apply
+                          {t('mapModal.apply')}
                         </button>
                         <button
                           type="button"
                           onClick={() => setDetectedGrid(null)}
                           className="text-xs px-2 py-1 text-warning-ink hover:text-warning-ink transition-colors"
-                          aria-label="Dismiss suggestion"
+                          aria-label={t('mapModal.dismiss')}
                         >
                           ✕
                         </button>
@@ -610,13 +608,13 @@ export default function CreateMapModal({
 
                   {!isDetecting && !detectedGrid && mapAssetId && (
                     <p className="text-xs text-stone-gray/50 text-center leading-relaxed">
-                      No grid detected automatically.<br />Use the sliders to align manually.
+                      {t('mapModal.noGridDetected')}<br />{t('mapModal.alignManually')}
                     </p>
                   )}
 
                   {!mapAssetId && (
                     <p className="text-xs text-stone-gray/50 text-center leading-relaxed">
-                      Zoom in to verify the grid aligns<br />with the lines on your map image.
+                      {t('mapModal.zoomToVerify')}<br />{t('mapModal.withLines')}
                     </p>
                   )}
                 </div>

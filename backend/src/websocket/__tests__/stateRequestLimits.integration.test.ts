@@ -188,7 +188,7 @@ describe('a fan-out that fails', () => {
     const told = waitForEvent<{ content: string }>(gm, 'chat.system');
     gm.emit('spirit_layer.toggle', { visible: true });
     await silence;
-    expect((await told).content).toMatch(/spirit layer/i);
+    expect((await told).content).toMatch(/plano espiritual/i);
     await prisma.campaign.update({ where: { id: campaignId }, data: { spiritLayerEnabled: false } });
     gm.disconnect();
   });

@@ -11,6 +11,7 @@ import { lastAmbientVolume, setCampaignAmbientAudio } from '../../services/atmos
 import { sendSystemMessage } from '../utils';
 import { withinCeiling } from '../shared';
 import logger from '../../utils/logger';
+import { GM_ONLY } from '../../services/gmNotice';
 
 export function registerVibeHandlers(io: Server, socket: AuthenticatedSocket): void {
   /**
@@ -21,21 +22,21 @@ export function registerVibeHandlers(io: Server, socket: AuthenticatedSocket): v
   socket.on('vibe.update', async (data: { period: string }) => {
     try {
       if (!socket.campaignId || !socket.userId) {
-        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        socket.emit('error', { message: 'Você não está em uma campanha.' });
         return;
       }
       if (!withinCeiling(socket, 'vibe.update')) return;
 
       // GM only
       if (socket.role !== 'GM') {
-        socket.emit('error', { message: 'Only the GM can change the vibe' });
+        socket.emit('error', { message: GM_ONLY });
         return;
       }
 
       const { period } = data;
 
       if (!period || typeof period !== 'string') {
-        socket.emit('error', { message: 'period (string) is required' });
+        socket.emit('error', { message: 'Informe o período.' });
         return;
       }
 
@@ -46,7 +47,7 @@ export function registerVibeHandlers(io: Server, socket: AuthenticatedSocket): v
       });
 
       if (!campaign) {
-        socket.emit('error', { message: 'Campaign not found' });
+        socket.emit('error', { message: 'Campanha não encontrada.' });
         return;
       }
 
@@ -55,7 +56,7 @@ export function registerVibeHandlers(io: Server, socket: AuthenticatedSocket): v
 
       // Check if vibe tracker is enabled
       if (!vibeSettings.enabled) {
-        socket.emit('error', { message: 'Vibe tracker is not enabled for this campaign' });
+        socket.emit('error', { message: 'O clima não está ativado nesta campanha.' });
         return;
       }
 
@@ -65,7 +66,7 @@ export function registerVibeHandlers(io: Server, socket: AuthenticatedSocket): v
       if (!vibePeriod) {
         const availablePeriods = vibeSettings.periods.map((p: { name: string }) => p.name).join(', ');
         socket.emit('error', {
-          message: `Unknown vibe period '${period}'. Available: ${availablePeriods}`,
+          message: `Período de clima desconhecido: ${period}. Disponíveis: ${availablePeriods}`,
         });
         return;
       }
@@ -96,7 +97,7 @@ export function registerVibeHandlers(io: Server, socket: AuthenticatedSocket): v
       if (!audioResult.ok) {
         await setCampaignAmbientAudio(io, socket.campaignId, socket.userId, null, { volume });
         socket.emit('error', {
-          message: `The "${vibePeriod.name}" period's audio track is unavailable, so the vibe changed without audio`,
+          message: `O áudio do período "${vibePeriod.name}" não está disponível, então o clima mudou sem áudio.`,
         });
       }
 
@@ -104,14 +105,14 @@ export function registerVibeHandlers(io: Server, socket: AuthenticatedSocket): v
       const periodDisplayName = vibePeriod.name.charAt(0).toUpperCase() + vibePeriod.name.slice(1);
       await sendSystemMessage(
         socket.campaignId,
-        `Time advances to ${periodDisplayName}.`,
+        `O tempo avança para ${periodDisplayName}.`,
         { userId: socket.userId, action: 'vibe.update', period: vibePeriod.name }
       );
 
       logger.info('vibe.update', { period: vibePeriod.name, userId: socket.userId, campaignId: socket.campaignId });
     } catch (error) {
       logger.error('vibe.update failed', { err: error });
-      socket.emit('error', { message: 'Failed to update vibe' });
+      socket.emit('error', { message: 'Não foi possível atualizar o clima.' });
     }
   });
 }

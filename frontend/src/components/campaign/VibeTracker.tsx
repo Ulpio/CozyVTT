@@ -8,6 +8,8 @@
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Settings, Sun, Moon, Sunset, Sunrise, Clock } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
@@ -30,7 +32,15 @@ function getPeriodIcon(periodName: string) {
 // Main Component
 // ============================================
 
+// The four stock periods are named in the app's language; a name the GM wrote is shown as it was.
+const STOCK_PERIODS = ['dawn', 'day', 'dusk', 'night'] as const;
+function periodLabel(t: TFunction, name: string): string {
+  const stock = STOCK_PERIODS.find((p) => p === name.toLowerCase());
+  return stock ? t(`vibe.periods.${stock}`) : name;
+}
+
 export default function VibeTracker() {
+  const { t } = useTranslation();
   const { campaign, userRole, currentVibe } = useCampaign();
   const { socket } = useWebSocket();
   const [isConfigureOpen, setIsConfigureOpen] = useState(false);
@@ -70,15 +80,15 @@ export default function VibeTracker() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sun className="w-4 h-4 text-accent-ink" />
-            <h3 className="text-sm font-semibold text-brand-ink">Vibe Tracker</h3>
+            <h3 className="text-sm font-semibold text-brand-ink">{t('vibe.title')}</h3>
           </div>
 
           {userRole === 'GM' && (
             <button
               onClick={() => setIsConfigureOpen(true)}
               className="p-1.5 rounded-lg hover:bg-moss-green/10 transition-colors text-stone-gray hover:text-brand-ink"
-              title="Configure periods"
-              aria-label="Configure periods"
+              title={t('vibe.configure')}
+              aria-label={t('vibe.configure')}
             >
               <Settings className="w-3.5 h-3.5" />
             </button>
@@ -95,13 +105,13 @@ export default function VibeTracker() {
               />
               <div className="flex items-center gap-1.5 text-stone-gray">
                 {getPeriodIcon(activePeriod.name)}
-                <span className="text-sm font-medium capitalize">{activePeriod.name}</span>
+                <span className="text-sm font-medium capitalize">{periodLabel(t, activePeriod.name)}</span>
               </div>
             </>
           ) : (
             <div className="flex items-center gap-1.5 text-warm-gray">
               <Clock className="w-4 h-4" />
-              <span className="text-sm italic">No vibe set</span>
+              <span className="text-sm italic">{t('vibe.none')}</span>
             </div>
           )}
         </div>
@@ -109,8 +119,7 @@ export default function VibeTracker() {
         {/* With the tracker off, saving the period editor turns it on. */}
         {userRole === 'GM' && !vibeEnabled && (
           <p className="text-xs text-warm-gray">
-            The vibe tracker is off for this campaign. Open the period editor
-            with the gear above and save its periods to turn it on.
+            {t('vibe.off')}
           </p>
         )}
 
@@ -124,7 +133,7 @@ export default function VibeTracker() {
                   key={period.name}
                   onClick={() => handleChangePeriod(period.name)}
                   disabled={isSwitching}
-                  title={`Set vibe to ${period.name}`}
+                  title={t('vibe.setTo', { period: periodLabel(t, period.name) })}
                   className={`
                     flex items-center gap-2 px-3 py-2 rounded-lg border text-left
                     transition-all duration-200 text-sm
@@ -139,7 +148,7 @@ export default function VibeTracker() {
                     className="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10"
                     style={{ backgroundColor: period.hue }}
                   />
-                  <span className="capitalize truncate">{period.name}</span>
+                  <span className="capitalize truncate">{periodLabel(t, period.name)}</span>
                   {isActive && (
                     <span className="ml-auto w-1.5 h-1.5 rounded-full bg-moss-green shrink-0" />
                   )}
@@ -152,7 +161,7 @@ export default function VibeTracker() {
         {/* Player-only hint when no vibe is set */}
         {userRole !== 'GM' && !currentVibe && (
           <p className="text-xs text-warm-gray text-center italic">
-            Waiting for the GM to set the scene...
+            {t('vibe.waiting')}
           </p>
         )}
       </div>

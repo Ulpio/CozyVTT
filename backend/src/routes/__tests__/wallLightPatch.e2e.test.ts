@@ -64,7 +64,7 @@ describe('PATCH /lights/:lightId', () => {
     const res = await gm.patch(`${base(mapId)}/lights/${torch.id}`).send(patch);
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/dimRadius must be >= brightRadius/);
+    expect(res.body.message).toMatch(/O raio de penumbra não pode ser menor que o raio de luz forte./);
     expect((await stored(mapId)).lights).toEqual([torch]);
   });
 

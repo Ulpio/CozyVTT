@@ -13,33 +13,33 @@ import { CAMPAIGN_LIMITS } from './campaignLimits';
 
 /** The ways a campaign lets players set ability scores: at least one, each once. */
 const AbilityScoreMethodsSchema = z.array(z.enum(['POINT_BUY', 'STANDARD_ARRAY', 'ROLL']), {
-  error: 'abilityScoreMethods must be a list of POINT_BUY, STANDARD_ARRAY or ROLL',
-}).min(1, 'abilityScoreMethods needs at least one method').max(3)
+  error: 'abilityScoreMethods deve ser uma lista de POINT_BUY, STANDARD_ARRAY ou ROLL',
+}).min(1, 'abilityScoreMethods precisa de ao menos um método').max(3)
   .transform((methods) => [...new Set(methods)]);
 
-const DetailLevelSchema = z.enum(['FAITHFUL', 'FLEXIBLE'], { error: 'detailLevel must be FAITHFUL or FLEXIBLE' });
+const DetailLevelSchema = z.enum(['FAITHFUL', 'FLEXIBLE'], { error: 'detailLevel deve ser FAITHFUL ou FLEXIBLE' });
 
 /** POST /api/campaigns */
 export const CreateCampaignSchema = z.object({
-  name: z.string().trim().min(1, 'Campaign name is required').max(CAMPAIGN_LIMITS.maxNameLength, `Campaign name must be ${CAMPAIGN_LIMITS.maxNameLength} characters or fewer`),
+  name: z.string().trim().min(1, 'O nome da campanha é obrigatório.').max(CAMPAIGN_LIMITS.maxNameLength, `O nome da campanha deve ter no máximo ${CAMPAIGN_LIMITS.maxNameLength} caracteres.`),
   description: z.string().max(CAMPAIGN_LIMITS.maxDescriptionLength).optional(),
   gameSystem: GameSystemSchema.nullish(),
   // The compendium books it uses; left out, its system's books but the English SRD.
-  bookIds: z.array(z.string().max(40), { error: 'bookIds must be a list of book ids' }).max(50).optional(),
+  bookIds: z.array(z.string().max(40), { error: 'bookIds deve ser uma lista de IDs de livros.' }).max(50).optional(),
   abilityScoreMethods: AbilityScoreMethodsSchema.optional(),
   detailLevel: DetailLevelSchema.optional(),
 });
 
 /** PUT /api/campaigns/:campaignId/books: the compendium books the campaign uses. */
 export const CampaignBooksSchema = z.object({
-  bookIds: z.array(z.string().max(40), { error: 'bookIds must be a list of book ids' }).max(50),
+  bookIds: z.array(z.string().max(40), { error: 'bookIds deve ser uma lista de IDs de livros.' }).max(50),
 });
 
 export type CreateCampaignInput = z.infer<typeof CreateCampaignSchema>;
 
 /** PUT /api/campaigns/:campaignId/gm, and /dm as older versions named it */
 export const TransferGMSchema = z.object({
-  userId: z.string().uuid('A campaign member must be named by their user id'),
+  userId: z.string().uuid('Um membro da campanha deve ser indicado pelo ID de usuário.'),
 });
 
 export type TransferGMInput = z.infer<typeof TransferGMSchema>;
@@ -54,24 +54,24 @@ export const MAX_INVITE_EXPIRY_DAYS = 365;
  * anything but `true` simply means no email.
  */
 export const CampaignInviteSchema = z.object({
-  userId: z.string({ error: 'User ID is required' }).min(1, { error: 'User ID is required' }),
+  userId: z.string({ error: 'O ID do usuário é obrigatório.' }).min(1, { error: 'O ID do usuário é obrigatório.' }),
   expiresInDays: z
-    .number({ error: 'expiresInDays must be a number of days' })
-    .int({ error: 'expiresInDays must be a whole number of days' })
-    .max(MAX_INVITE_EXPIRY_DAYS, { error: `expiresInDays must be at most ${MAX_INVITE_EXPIRY_DAYS}` })
+    .number({ error: 'expiresInDays deve ser um número de dias.' })
+    .int({ error: 'expiresInDays deve ser um número inteiro de dias.' })
+    .max(MAX_INVITE_EXPIRY_DAYS, { error: `expiresInDays deve ser no máximo ${MAX_INVITE_EXPIRY_DAYS}.` })
     .nullable()
     .optional(),
 });
 
 /** A period's colour, filter and track, as every writer reads them. */
 const vibePeriodLook = {
-  hue: z.string().regex(HEX_COLOR_PATTERN, 'A period hue must be a #RRGGBB colour'),
+  hue: z.string().regex(HEX_COLOR_PATTERN, 'O matiz de um período deve ser uma cor #RRGGBB.'),
   // `abort` stops the check after it on an over-long value. Without it, Zod
   // runs every check in the chain whether or not an earlier one failed.
   filter: z
     .string()
     .max(200, { abort: true })
-    .refine(isSafeVibeFilter, 'A period filter may only use brightness(), saturate(), contrast() and hue-rotate()'),
+    .refine(isSafeVibeFilter, 'O filtro de um período só pode usar brightness(), saturate(), contrast() e hue-rotate().'),
   // An asset id, or none. A period sent without one has none.
   audio: z.string().max(500).nullable().optional().transform((audio) => audio ?? null),
 };
@@ -79,8 +79,8 @@ const vibePeriodLook = {
 /** One atmosphere period, as the period editor makes it. */
 export const VibePeriodSchema = z.object({
   name: z.string().trim()
-    .min(1, 'A period needs a name')
-    .max(CAMPAIGN_LIMITS.maxVibePeriodNameLength, `A period's name may be at most ${CAMPAIGN_LIMITS.maxVibePeriodNameLength} characters`),
+    .min(1, 'Um período precisa de um nome.')
+    .max(CAMPAIGN_LIMITS.maxVibePeriodNameLength, `O nome de um período pode ter no máximo ${CAMPAIGN_LIMITS.maxVibePeriodNameLength} caracteres.`),
   ...vibePeriodLook,
 }).strip();
 
@@ -92,13 +92,13 @@ export const VibePeriodSchema = z.object({
  * atmosphere audio, which the save keeps as stored.
  */
 export const VibeSettingsSchema = z.object({
-  enabled: z.boolean({ error: 'enabled must be true or false' }).optional(),
+  enabled: z.boolean({ error: 'enabled deve ser true ou false.' }).optional(),
   periods: z.array(VibePeriodSchema)
-    .min(1, 'A campaign needs at least one vibe period')
-    .max(CAMPAIGN_LIMITS.maxVibePeriods, `A campaign may have at most ${CAMPAIGN_LIMITS.maxVibePeriods} vibe periods`)
+    .min(1, 'A campanha precisa de ao menos um período de ambiente.')
+    .max(CAMPAIGN_LIMITS.maxVibePeriods, `A campanha pode ter no máximo ${CAMPAIGN_LIMITS.maxVibePeriods} períodos de ambiente.`)
     .refine(
       (periods) => new Set(periods.map((p) => p.name.toLowerCase())).size === periods.length,
-      'Each vibe period needs a different name'
+      'Cada período de ambiente precisa de um nome diferente.'
     ),
 }).passthrough();
 
@@ -113,7 +113,7 @@ export const ImportVibeSettingsSchema = z.object({
   periods: z.array(z.object({ name: z.string().max(100), ...vibePeriodLook }).strip()).max(CAMPAIGN_LIMITS.maxVibePeriods),
 }).passthrough();
 
-const COOLDOWN_MESSAGE = 'chatCooldownSeconds must be an integer between 1 and 300';
+const COOLDOWN_MESSAGE = 'chatCooldownSeconds deve ser um inteiro entre 1 e 300.';
 
 /**
  * The statuses settings may set, between sessions. ACTIVE, PAUSED and
@@ -124,20 +124,20 @@ const SETTABLE_STATUSES = [CampaignStatus.PREPARATION, CampaignStatus.COMPLETED,
 
 /** PUT /api/campaigns/:campaignId. Every field optional; each is checked when present. */
 export const UpdateCampaignSchema = z.object({
-  name: z.string().trim().min(1, 'Campaign name is required').max(CAMPAIGN_LIMITS.maxNameLength, `Campaign name must be ${CAMPAIGN_LIMITS.maxNameLength} characters or fewer`).optional(),
-  description: z.string().max(CAMPAIGN_LIMITS.maxDescriptionLength, `Description must be ${CAMPAIGN_LIMITS.maxDescriptionLength} characters or fewer`).nullable().optional(),
+  name: z.string().trim().min(1, 'O nome da campanha é obrigatório.').max(CAMPAIGN_LIMITS.maxNameLength, `O nome da campanha deve ter no máximo ${CAMPAIGN_LIMITS.maxNameLength} caracteres.`).optional(),
+  description: z.string().max(CAMPAIGN_LIMITS.maxDescriptionLength, `A descrição deve ter no máximo ${CAMPAIGN_LIMITS.maxDescriptionLength} caracteres.`).nullable().optional(),
   status: z.enum(SETTABLE_STATUSES, {
-    error: `Invalid status. Must be one of: ${SETTABLE_STATUSES.join(', ')}; starting, pausing and ending a session set the others`,
+    error: `Status inválido. Use um destes: ${SETTABLE_STATUSES.join(', ')}; iniciar, pausar e encerrar uma sessão definem os outros.`,
   }).optional(),
   gameSystem: GameSystemSchema.nullish(),
   vibeSettings: VibeSettingsSchema.optional(),
-  spiritLayerEnabled: z.boolean({ error: 'spiritLayerEnabled must be true or false' }).optional(),
-  spiritLayerStyle: z.string({ error: 'spiritLayerStyle must be a string' }).max(100, { abort: true })
-    .regex(SPIRIT_STYLE_PATTERN, 'spiritLayerStyle must be wispy, ethereal, shadow, dream, or custom:#RRGGBB with an optional :<look>')
+  spiritLayerEnabled: z.boolean({ error: 'spiritLayerEnabled deve ser true ou false.' }).optional(),
+  spiritLayerStyle: z.string({ error: 'spiritLayerStyle deve ser um texto.' }).max(100, { abort: true })
+    .regex(SPIRIT_STYLE_PATTERN, 'spiritLayerStyle deve ser wispy, ethereal, shadow, dream ou custom:#RRGGBB com um :<aparência> opcional.')
     .optional(),
-  chatCooldownEnabled: z.boolean({ error: 'chatCooldownEnabled must be true or false' }).optional(),
+  chatCooldownEnabled: z.boolean({ error: 'chatCooldownEnabled deve ser true ou false.' }).optional(),
   chatCooldownSeconds: z.number({ error: COOLDOWN_MESSAGE }).int(COOLDOWN_MESSAGE).min(1, COOLDOWN_MESSAGE).max(300, COOLDOWN_MESSAGE).optional(),
-  playersMayDraw: z.boolean({ error: 'playersMayDraw must be true or false' }).optional(),
+  playersMayDraw: z.boolean({ error: 'playersMayDraw deve ser true ou false.' }).optional(),
   abilityScoreMethods: AbilityScoreMethodsSchema.optional(),
   detailLevel: DetailLevelSchema.optional(),
 });

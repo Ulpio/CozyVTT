@@ -19,6 +19,8 @@ import {
   Upload,
   Palette,
 } from 'lucide-react';
+import { useTranslation, Trans } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Character } from '../../../types';
 import type { CharacterData } from '../../../types';
 import type {
@@ -67,7 +69,7 @@ import {
   customWeaponProperties,
   addCustomWeaponProperty,
 } from '@/utils/weaponProperties';
-import { toStoredHexColor, HEX_COLOUR_HINT, shouldUseWhiteText, headerInk } from '@/utils/themeColor';
+import { toStoredHexColor, hexColourHint, shouldUseWhiteText, headerInk } from '@/utils/themeColor';
 import {
   FIFTH_EDITION_ATTACK_DAMAGE_ROLLS_MAX,
   FIFTH_EDITION_CUSTOM_SKILLS_MAX,
@@ -87,6 +89,7 @@ import { COLOR_PRESETS } from './colorPresets';
 import ItemIcon from './components/ItemIcon';
 import Button from '@/components/ui/Button';
 import { SheetTabs, sheetTabPanel, type SheetTab } from '../SheetTabs';
+import { sheetWord } from './sheetWords';
 
 /**
  * The sheet as this editor holds it.
@@ -250,11 +253,11 @@ function bonusWithinRange<T>(value: T): T | number {
  * be saved, and the next save stores them so. Worked out once, from the sheet
  * as it was stored, including a bonus an older sheet's total implies.
  */
-function numbersBroughtWithinRange(sheet: FifthEditionFormData): string[] {
+function numbersBroughtWithinRange(sheet: FifthEditionFormData, t: TFunction): string[] {
   const changes: string[] = [];
   const note = (what: string, stored: unknown, shown: number) => {
     if (typeof stored === 'number' && Number.isFinite(stored) && stored !== shown) {
-      changes.push(`${what} (${stored} to ${shown})`);
+      changes.push(t('sheet5eEditor.changed', { what, stored, shown }));
     }
   };
   const noteBonus = (what: string, stored: number | null | undefined) => {
@@ -264,21 +267,21 @@ function numbersBroughtWithinRange(sheet: FifthEditionFormData): string[] {
   const storedSlots = (sheet.spellcasting?.slots ?? {}) as Record<string, { total?: unknown; expended?: unknown } | undefined>;
   const shownSlots = withAllSlotLevels(sheet.spellcasting?.slots) as unknown as Record<string, { total: number; expended: number }>;
   for (const level of ['1', '2', '3', '4', '5', '6', '7', '8', '9']) {
-    note(`level ${level} spell slots`, storedSlots[level]?.total, shownSlots[level].total);
-    note(`level ${level} spell slots used`, storedSlots[level]?.expended, shownSlots[level].expended);
+    note(t('sheet5eEditor.rangeSlots', { level }), storedSlots[level]?.total, shownSlots[level].total);
+    note(t('sheet5eEditor.rangeSlotsUsed', { level }), storedSlots[level]?.expended, shownSlots[level].expended);
   }
 
-  noteBonus('initiative other bonus', sheet.initiativeBonus ?? fifthEditionBackfilledInitiativeBonus(sheet));
+  noteBonus(t('sheet5eEditor.rangeInitiative'), sheet.initiativeBonus ?? fifthEditionBackfilledInitiativeBonus(sheet));
   noteBonus(
-    'passive Perception other bonus',
+    t('sheet5eEditor.rangePassive'),
     sheet.passivePerceptionBonus ??
       (typeof sheet.passivePerception === 'number'
         ? sheet.passivePerception - passiveScore(fifthEditionSkillBonus(sheet, 'perception'))
         : null)
   );
   if (sheet.spellcasting) {
-    noteBonus('spell save DC other bonus', sheet.spellcasting.spellSaveDCOtherBonus ?? fifthEditionBackfilledSpellSaveDCBonus(sheet));
-    noteBonus('spell attack other bonus', sheet.spellcasting.spellAttackOtherBonus ?? fifthEditionBackfilledSpellAttackBonus(sheet));
+    noteBonus(t('sheet5eEditor.rangeDc'), sheet.spellcasting.spellSaveDCOtherBonus ?? fifthEditionBackfilledSpellSaveDCBonus(sheet));
+    noteBonus(t('sheet5eEditor.rangeAttack'), sheet.spellcasting.spellAttackOtherBonus ?? fifthEditionBackfilledSpellAttackBonus(sheet));
   }
   return changes;
 }
@@ -354,6 +357,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
   onDone,
   allowTokenPicture = true,
 }) => {
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabId>('stats');
   const sheetTabsId = useId();
   const [isSaving, setIsSaving] = useState(false);
@@ -382,7 +386,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
   // Type assertion for 5E character data
   const data = character.data as FifthEditionFormData;
   // Said once, above the sheet, for as long as it is open.
-  const [broughtWithinRange] = useState(() => numbersBroughtWithinRange(data ?? ({} as FifthEditionFormData)));
+  const [broughtWithinRange] = useState(() => numbersBroughtWithinRange(data ?? ({} as FifthEditionFormData), t));
 
 
   // Form state, initialised from the editor's own copy of the sheet. The
@@ -877,57 +881,57 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
 
     // Validate level (1-20)
     if (!formData.level || formData.level < 1 || formData.level > 20) {
-      newErrors.level = 'Level must be between 1 and 20';
+      newErrors.level = t('sheet5eEditor.errors.level');
     }
 
     // Validate ability scores (1-30)
     if (formData.stats) {
       Object.entries(formData.stats).forEach(([ability, data]) => {
         if (!data.score || data.score < 1 || data.score > 30) {
-          newErrors[`stats.${ability}`] = 'Ability score must be between 1 and 30';
+          newErrors[`stats.${ability}`] = t('sheet5eEditor.errors.abilityScore');
         }
       });
     }
 
     // Validate character name
     if (!formData.characterName || formData.characterName.trim() === '') {
-      newErrors.characterName = 'Character name is required';
+      newErrors.characterName = t('sheet5eEditor.errors.characterName');
     }
-    if (blank(formData.race)) newErrors.race = 'Race is required';
-    if (blank(formData.class)) newErrors.class = 'Class is required';
+    if (blank(formData.race)) newErrors.race = t('sheet5eEditor.errors.race');
+    if (blank(formData.class)) newErrors.class = t('sheet5eEditor.errors.class');
 
     if (!hitPointsLeftOut(formData.hp) && (formData.hp?.maximum ?? 0) < 1) {
-      newErrors['hp.maximum'] = 'Maximum hit points must be at least 1';
+      newErrors['hp.maximum'] = t('sheet5eEditor.errors.hpMaximum');
     }
     if (formData.armorClass != null && formData.armorClass < 1) {
-      newErrors.armorClass = 'Armor Class must be at least 1';
+      newErrors.armorClass = t('sheet5eEditor.errors.armorClass');
     }
 
     // A row added and never typed in is left out of the save; one that was
     // typed in and has no name is the player's to finish or remove.
     const kept = (row: object) => !untouchedRows.current.has(row);
     (formData.attacks ?? []).forEach((row, i) => {
-      if (kept(row) && blank(row.name)) newErrors[`attacks.${i}.name`] = 'Name this attack, or remove it';
+      if (kept(row) && blank(row.name)) newErrors[`attacks.${i}.name`] = t('sheet5eEditor.errors.attackName');
     });
     (formData.hitDice ?? []).forEach((row, i) => {
-      if (kept(row) && blank(row.class)) newErrors[`hitDice.${i}.class`] = 'Give this hit die a class, or remove it';
+      if (kept(row) && blank(row.class)) newErrors[`hitDice.${i}.class`] = t('sheet5eEditor.errors.hitDieClass');
     });
     (formData.inventory ?? []).forEach((row, i) => {
-      if (kept(row) && blank(row.name)) newErrors[`inventory.${i}.name`] = 'Name this item, or remove it';
+      if (kept(row) && blank(row.name)) newErrors[`inventory.${i}.name`] = t('sheet5eEditor.errors.itemName');
     });
     (formData.spellcasting?.spells ?? []).forEach((row, i) => {
-      if (kept(row) && blank(row.name)) newErrors[`spellcasting.spells.${i}.name`] = 'Name this spell, or remove it';
+      if (kept(row) && blank(row.name)) newErrors[`spellcasting.spells.${i}.name`] = t('sheet5eEditor.errors.spellName');
     });
     if (passivePerception < 1) {
-      newErrors.passivePerceptionBonus = 'Passive Perception must be at least 1. Raise its Other bonus.';
+      newErrors.passivePerceptionBonus = t('sheet5eEditor.errors.passive');
     }
     if (formData.spellcasting && spellSaveDC < 1) {
-      newErrors['spellcasting.spellSaveDCOtherBonus'] = 'The spell save DC must be at least 1. Raise its Other bonus.';
+      newErrors['spellcasting.spellSaveDCOtherBonus'] = t('sheet5eEditor.errors.spellDc');
     }
 
     // The server refuses a colour it cannot read, and the whole save with it.
     if (isCustomColor && customColorHex !== '' && !toStoredHexColor(customColorHex)) {
-      newErrors.themeColor = HEX_COLOUR_HINT;
+      newErrors.themeColor = hexColourHint();
       setShowColorPicker(true);
     }
 
@@ -1042,7 +1046,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
           newTokenImageUrl = await uploadTokenPicture(tokenImageFile, formData.characterName || 'Character', character.campaignId);
         } catch (uploadError: unknown) {
           console.error('Error uploading token image:', errorSummary(uploadError));
-          setErrors((prev) => ({ ...prev, tokenImage: apiErrorMessage(uploadError) || 'Failed to upload token image' }));
+          setErrors((prev) => ({ ...prev, tokenImage: apiErrorMessage(uploadError) || t('sheet5eEditor.errors.uploadFailed') }));
           setIsSaving(false);
           return;
         }
@@ -1053,7 +1057,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       markClean();
     } catch (error) {
       console.error('Error saving character:', errorSummary(error));
-      setErrors((prev) => ({ ...prev, submit: 'Failed to save character. Please try again.' }));
+      setErrors((prev) => ({ ...prev, submit: t('sheet5eEditor.errors.saveFailed') }));
     } finally {
       setIsSaving(false);
     }
@@ -1218,14 +1222,14 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             className="px-4 py-2 bg-white text-black hover:bg-white/90 rounded-lg transition-colors flex items-center space-x-2 font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="w-4 h-4" />
-            <span>{isSaving ? 'Saving...' : 'Save'}</span>
+            <span>{isSaving ? t('sheet5eEditor.saving') : t('sheet5eEditor.save')}</span>
           </button>
           <button
             onClick={onCancel}
             className={`px-4 py-2 ${ink.button} rounded-lg transition-colors flex items-center space-x-2 font-medium shadow-lg`}
           >
             <X className="w-4 h-4" />
-            <span>Cancel</span>
+            <span>{t('sheet5eEditor.cancel')}</span>
           </button>
         </div>
 
@@ -1233,7 +1237,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
         <button
           onClick={() => setShowColorPicker(!showColorPicker)}
           className={`absolute top-4 right-4 p-2 ${ink.button} rounded-lg transition-colors`}
-          title="Change theme color"
+          title={t('sheet5eEditor.changeTheme')}
         >
           <Palette className="w-5 h-5" />
         </button>
@@ -1241,7 +1245,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
         {/* Color Picker Dropdown */}
         {showColorPicker && (
           <div className="absolute top-16 right-4 bg-paper text-ink rounded-lg shadow-xl p-4 z-10 border-2 border-ink/10 max-w-md">
-            <h4 className="font-semibold mb-3">Theme Color</h4>
+            <h4 className="font-semibold mb-3">{t('sheet5eEditor.themeColor')}</h4>
 
             {/* Preset Colors */}
             <div className="grid grid-cols-3 gap-2 mb-4">
@@ -1256,14 +1260,14 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                   }`}
                 >
                   <div className={`w-full h-6 rounded-sm mb-1 bg-linear-to-r/srgb ${color.from} ${color.to}`} />
-                  <div className="text-xs">{color.name}</div>
+                  <div className="text-xs">{t(`sheet5eEditor.colors.${color.name.replace(/ /g, '')}` as never)}</div>
                 </button>
               ))}
             </div>
 
             {/* Custom Color Section */}
             <div className="border-t border-ink/10 pt-4 space-y-3">
-              <h5 className="text-sm font-semibold text-ink-secondary">Custom Color</h5>
+              <h5 className="text-sm font-semibold text-ink-secondary">{t('sheet5eEditor.customColor')}</h5>
 
               <div className="flex items-center space-x-2">
                 {/* Native Color Picker */}
@@ -1272,7 +1276,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                   value={customColorHex || '#b91c1c'}
                   onChange={(e) => handleCustomColorChange(e.target.value)}
                   className="w-12 h-12 rounded-sm cursor-pointer border-2 border-ink/20"
-                  title="Pick a custom color"
+                  title={t('sheet5eEditor.pickCustomColor')}
                 />
 
                 {/* Hex Code Input */}
@@ -1288,10 +1292,10 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                       }
                     }}
                     placeholder="#b91c1c"
-                    aria-label="Custom colour hex code"
+                    aria-label={t('sheet5eEditor.hexAria')}
                     className="w-full px-3 py-2 border border-ink/20 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
                   />
-                  <div className="text-xs text-ink-muted mt-1">Enter hex code (e.g., #b91c1c)</div>
+                  <div className="text-xs text-ink-muted mt-1">{t('sheet5eEditor.hexHint')}</div>
                   {errors.themeColor && <div className="text-xs text-danger-ink mt-1">{errors.themeColor}</div>}
                 </div>
               </div>
@@ -1303,7 +1307,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                     className="w-8 h-8 rounded-sm"
                     style={{ background: `linear-gradient(to right, ${customColorHex}, ${customColorHex}dd)` }}
                   />
-                  <span className="text-sm font-medium">Custom: {customColorHex}</span>
+                  <span className="text-sm font-medium">{t('sheet5eEditor.customPreview', { hex: customColorHex })}</span>
                 </div>
               )}
             </div>
@@ -1339,7 +1343,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
               {tokenImagePreview ? (
                 <img
                   src={tokenImagePreview}
-                  alt={formData.characterName || 'Character'}
+                  alt={formData.characterName || t('sheet5e.character')}
                   className="w-24 h-24 sm:w-40 sm:h-40 rounded-full border-4 border-white/20 object-cover"
                 />
               ) : (
@@ -1362,8 +1366,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
               value={formData.characterName || ''}
               onChange={(e) => updateField('characterName', e.target.value)}
               maxLength={SHEET_NAME_MAX}
-              placeholder="Character Name"
-              aria-label="Character name"
+              placeholder={t('sheet5eEditor.characterNamePlaceholder')}
+              aria-label={t('sheet5eEditor.characterNameAria')}
               className={`w-full text-3xl font-bold bg-white/10 border-2 ${
                 errors.characterName ? 'border-white' : 'border-white/20'
               } rounded px-3 py-1 ${headerTextColor} placeholder-current/50 focus:outline-hidden focus:border-white/40`}
@@ -1378,7 +1382,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             </div>
             <div className={`flex items-center flex-wrap gap-2 opacity-80`}>
               <div className="flex items-center space-x-2">
-                <label htmlFor="fifth-edition-level" className="text-xs">Level</label>
+                <label htmlFor="fifth-edition-level" className="text-xs">{t('sheet5eEditor.level')}</label>
                 <span
                   className="contents"
                   onFocus={() => {
@@ -1405,8 +1409,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 type="text"
                 value={formData.race || ''}
                 onChange={(e) => updateField('race', e.target.value)}
-                placeholder="Race"
-                aria-label="Race"
+                placeholder={t('sheet5eEditor.race')}
+                aria-label={t('sheet5eEditor.race')}
                 maxLength={SHEET_SHORT_TEXT_MAX}
                 aria-invalid={!!errors.race}
                 className={`bg-white/10 border ${errors.race ? 'border-white border-2' : 'border-white/20'} rounded-sm px-2 py-0.5 text-sm ${headerTextColor} placeholder-current/50 focus:outline-hidden focus:border-white/40`}
@@ -1415,8 +1419,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 type="text"
                 value={formData.class || ''}
                 onChange={(e) => updateField('class', e.target.value)}
-                placeholder="Class"
-                aria-label="Class"
+                placeholder={t('sheet5eEditor.class')}
+                aria-label={t('sheet5eEditor.class')}
                 maxLength={SHEET_SHORT_TEXT_MAX}
                 aria-invalid={!!errors.class}
                 className={`bg-white/10 border ${errors.class ? 'border-white border-2' : 'border-white/20'} rounded-sm px-2 py-0.5 text-sm ${headerTextColor} placeholder-current/50 focus:outline-hidden focus:border-white/40`}
@@ -1426,7 +1430,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
         </div>
 
         <div className="sm:text-right space-y-1">
-          <label htmlFor="fifth-edition-experience" className="block text-xs opacity-70">Experience Points</label>
+          <label htmlFor="fifth-edition-experience" className="block text-xs opacity-70">{t('sheet5eEditor.experiencePoints')}</label>
           <NumberField
             id="fifth-edition-experience"
             min={0}
@@ -1447,26 +1451,26 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       {/* Character Details */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="fifth-edition-alignment" className="block text-sm font-semibold text-ink-secondary mb-1">Alignment</label>
+          <label htmlFor="fifth-edition-alignment" className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.alignment')}</label>
           <input
             id="fifth-edition-alignment"
             maxLength={SHEET_SHORT_TEXT_MAX}
             type="text"
             value={formData.alignment || ''}
             onChange={(e) => updateField('alignment', e.target.value)}
-            placeholder="e.g., Lawful Good"
+            placeholder={t('sheet5eEditor.alignmentPlaceholder')}
             className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
           />
         </div>
         <div>
-          <label htmlFor="fifth-edition-background" className="block text-sm font-semibold text-ink-secondary mb-1">Background</label>
+          <label htmlFor="fifth-edition-background" className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.background')}</label>
           <input
             id="fifth-edition-background"
             maxLength={SHEET_SHORT_TEXT_MAX}
             type="text"
             value={formData.background || ''}
             onChange={(e) => updateField('background', e.target.value)}
-            placeholder="e.g., Acolyte"
+            placeholder={t('sheet5eEditor.backgroundPlaceholder')}
             className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
           />
         </div>
@@ -1475,7 +1479,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       {/* Proficiency Bonus and Inspiration */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="fifth-edition-proficiency-bonus" className="block text-sm font-semibold text-ink-secondary mb-1">Proficiency Bonus</label>
+          <label htmlFor="fifth-edition-proficiency-bonus" className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5e.proficiencyBonus')}</label>
           <NumberField
             id="fifth-edition-proficiency-bonus"
             min={2}
@@ -1487,13 +1491,13 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
           />
           {formData.proficiencyBonus !== levelBonus && (
             <p className="mt-1 text-xs text-ink-secondary">
-              Level {formData.level} gives {formatModifier(levelBonus)}.{' '}
+              {t('sheet5eEditor.levelGives', { level: formData.level, bonus: formatModifier(levelBonus) })}{' '}
               <button
                 type="button"
                 onClick={() => updateField('proficiencyBonus', levelBonus)}
                 className="font-semibold text-accent-ink hover:text-ink underline"
               >
-                Use {formatModifier(levelBonus)}
+                {t('sheet5eEditor.useBonus', { bonus: formatModifier(levelBonus) })}
               </button>
             </p>
           )}
@@ -1507,14 +1511,14 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             className="w-5 h-5 accent-accent border-ink/20 rounded-sm focus:ring-2 focus:ring-brand"
           />
           <label htmlFor="inspiration" className="text-sm font-semibold text-ink-secondary">
-            Inspiration
+            {t('sheet5e.inspiration')}
           </label>
         </div>
       </div>
 
       {/* Ability Scores */}
       <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-4">Ability Scores</h3>
+        <h3 className="text-lg font-semibold text-ink mb-4">{t('sheet5e.abilityScores')}</h3>
         <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
           {(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'] as const).map((ability) => {
             const abilityData = formData.stats?.[ability] || { score: 10, modifier: 0 };
@@ -1540,7 +1544,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             return (
               <div key={ability} className="flex flex-col items-center space-y-1">
                 <div className="text-xs font-semibold text-ink-secondary uppercase tracking-wide">
-                  {ability.slice(0, 3)}
+                  {t(`sheet5e.abbreviations.${ability}`).toLowerCase()}
                 </div>
                 <div className={circleClasses} style={{ ...circleStyle, ...borderStyle }}>
                   <span className={`text-xl font-bold ${textColor}`}>
@@ -1548,7 +1552,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                   </span>
                 </div>
                 <NumberField
-                  aria-label={`${ability.charAt(0).toUpperCase()}${ability.slice(1)} score`}
+                  aria-label={t('sheet5eEditor.abilityScore', { ability: t(`sheet5e.abilities.${ability}`) })}
                   min={1}
                   max={30}
                   value={abilityData.score}
@@ -1568,10 +1572,9 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
 
       {/* Saving Throws */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-1">Saving Throws</h3>
+        <h3 className="text-lg font-semibold text-ink mb-1">{t('sheet5e.savingThrows')}</h3>
         <p className="text-xs text-ink-muted mb-3">
-          Worked out from your ability scores and proficiency. Use the box beside each one for
-          anything else that adds to it, such as Aura of Protection or a Ring of Protection.
+          {t('sheet5eEditor.savesHint')}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'] as const).map((ability) => {
@@ -1589,15 +1592,15 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                     className="w-4 h-4 accent-accent border-ink/20 rounded-sm focus:ring-2 focus:ring-brand"
                   />
                   <label htmlFor={`save-${ability}`} className="text-sm font-medium text-ink capitalize">
-                    {ability}
+                    {sheetWord(i18n, 'saveNames', ability)}
                   </label>
                 </div>
                 <div className="flex items-center gap-2">
                   <NumberField
                     value={saveData.otherBonus ?? 0}
                     onChange={(v: number) => updateField(`savingThrows.${ability}.otherBonus`, v)}
-                    aria-label={`Other bonus to ${ability.charAt(0).toUpperCase() + ability.slice(1)} saves`}
-                    title="Other bonus"
+                    aria-label={t('sheet5eEditor.otherBonusToSaves', { ability: t(`sheet5e.abilities.${ability}`) })}
+                    title={t('sheet5eEditor.otherBonus')}
                     className="w-12 px-1 py-0.5 text-xs border border-ink/20 rounded-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand"
                     fallback={0}
                   />
@@ -1613,20 +1616,16 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
 
       {/* Skills */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-1">Skills</h3>
+        <h3 className="text-lg font-semibold text-ink mb-1">{t('sheet5e.skills')}</h3>
         <p className="text-xs text-ink-muted mb-3">
-          Worked out from your ability scores, proficiency and expertise. Use the box beside each
-          one for anything else that adds to it, such as Jack of All Trades or a magic item.
+          {t('sheet5eEditor.skillsHint')}
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
           {(Object.keys(SKILL_ABILITIES) as (keyof FifthEditionSkills)[]).map((skill) => {
             const skillData = formData.skills?.[skill] || { proficient: false, expertise: false, bonus: 0 };
-            const skillLabel = skill
-              .replace(/([A-Z])/g, ' $1')
-              .replace(/^./, (str) => str.toUpperCase())
-              .trim();
+            const skillLabel = t(`guidedCreation.skill.${skill}`);
             const ability = SKILL_ABILITIES[skill];
-            const abilityAbbr = ability.slice(0, 3).toUpperCase();
+            const abilityAbbr = t(`sheet5e.abbreviations.${ability}`);
 
             return (
               <div key={skill} className="flex items-center justify-between p-2 hover:bg-ink/10 rounded-sm">
@@ -1653,7 +1652,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                     disabled={!skillData.proficient}
                     onChange={(e) => updateField(`skills.${skill}.expertise`, e.target.checked)}
                     className="w-4 h-4 accent-accent border-ink/20 rounded-full focus:ring-2 focus:ring-brand disabled:opacity-30"
-                    title="Expertise (double proficiency)"
+                    title={t('sheet5eEditor.expertiseTitle')}
                   />
                   <label
                     htmlFor={`skill-prof-${skill}`}
@@ -1671,8 +1670,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                   <NumberField
                     value={skillData.otherBonus ?? 0}
                     onChange={(v: number) => updateField(`skills.${skill}.otherBonus`, v)}
-                    aria-label={`Other bonus to ${skillLabel}`}
-                    title="Other bonus"
+                    aria-label={t('sheet5eEditor.otherBonusTo', { name: skillLabel })}
+                    title={t('sheet5eEditor.otherBonus')}
                     className="w-12 px-1 py-0.5 text-xs border border-ink/20 rounded-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand"
                     fallback={0}
                   />
@@ -1701,7 +1700,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
           derived here too rather than typed in. */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap mb-1">
-          <h3 className="text-lg font-semibold text-ink">Your Own Skills</h3>
+          <h3 className="text-lg font-semibold text-ink">{t('sheet5e.yourOwnSkills')}</h3>
           <Button
             variant="primary"
             size="sm"
@@ -1714,13 +1713,12 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             }
             disabled={listIsFull(formData.customSkills, FIFTH_EDITION_CUSTOM_SKILLS_MAX)}
           >
-            + Add Skill
+            {t('sheet5eEditor.addSkill')}
           </Button>
         </div>
         <ListLimitNote full={listIsFull(formData.customSkills, FIFTH_EDITION_CUSTOM_SKILLS_MAX)} max={FIFTH_EDITION_CUSTOM_SKILLS_MAX} />
         <p className="text-xs text-ink-muted mb-3">
-          Tool proficiencies, or anything your table made up. Pick the ability it uses
-          and the bonus is worked out for you.
+          {t('sheet5eEditor.customSkillsHint')}
         </p>
 
         <div className="space-y-2">
@@ -1739,8 +1737,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                   type="text"
                   value={custom.name || ''}
                   onChange={(e) => updateField(`customSkills.${index}.name`, e.target.value)}
-                  placeholder="e.g. Thieves' Tools"
-                  aria-label={`Name of skill ${index + 1}`}
+                  placeholder={t('sheet5eEditor.customSkillPlaceholder')}
+                  aria-label={t('sheet5eEditor.nameOfSkill', { n: index + 1 })}
                   maxLength={FIFTH_EDITION_CUSTOM_SKILL_NAME_MAX}
                   className="flex-1 min-w-36 px-2 py-1 text-sm border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
                 />
@@ -1748,12 +1746,12 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 <select
                   value={custom.ability}
                   onChange={(e) => updateField(`customSkills.${index}.ability`, e.target.value)}
-                  aria-label={`Ability used by ${custom.name || 'this skill'}`}
+                  aria-label={t('sheet5eEditor.abilityUsedBy', { name: custom.name || t('sheet5eEditor.thisSkill') })}
                   className="px-2 py-1 text-sm border border-ink/20 rounded-sm bg-paper focus:outline-hidden focus:ring-2 focus:ring-brand"
                 >
                   {FIFTH_EDITION_ABILITY_NAMES.map((ability) => (
                     <option key={ability} value={ability}>
-                      {ability.slice(0, 3).toUpperCase()}
+                      {t(`sheet5e.abbreviations.${ability}`)}
                     </option>
                   ))}
                 </select>
@@ -1770,7 +1768,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                     }}
                     className="w-4 h-4 accent-accent border-ink/20 rounded-sm focus:ring-2 focus:ring-brand"
                   />
-                  Prof
+                  {t('sheet5eEditor.prof')}
                 </label>
 
                 <label className="flex items-center gap-1 text-xs text-ink-secondary">
@@ -1780,16 +1778,16 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                     disabled={!custom.proficient}
                     onChange={(e) => updateField(`customSkills.${index}.expertise`, e.target.checked)}
                     className="w-4 h-4 accent-accent border-ink/20 rounded-full focus:ring-2 focus:ring-brand disabled:opacity-30"
-                    title="Expertise (double proficiency)"
+                    title={t('sheet5eEditor.expertiseTitle')}
                   />
-                  Exp
+                  {t('sheet5eEditor.exp')}
                 </label>
 
                 <div className="flex items-center gap-1">
-                  <label htmlFor={`custom-skill-${index}-other`} className="text-xs text-ink-muted">Other</label>
+                  <label htmlFor={`custom-skill-${index}-other`} className="text-xs text-ink-muted">{t('sheet5eEditor.other')}</label>
                   <NumberField
                     id={`custom-skill-${index}-other`}
-                    aria-label={`Other bonus to ${custom.name || `skill ${index + 1}`}`}
+                    aria-label={t('sheet5eEditor.otherBonusTo', { name: custom.name || t('sheet5eEditor.skillN', { n: index + 1 }) })}
                     min={MIN_BONUS_OVERRIDE}
                     max={MAX_BONUS_OVERRIDE}
                     value={custom.otherBonus ?? 0}
@@ -1815,7 +1813,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                       (formData.customSkills || []).filter((_, i) => i !== index)
                     )
                   }
-                  aria-label={`Remove ${custom.name || 'skill'}`}
+                  aria-label={t('sheet5eEditor.removeNamed', { name: custom.name || t('sheet5eEditor.skillWord') })}
                   className="touch-target inline-flex items-center justify-center px-2 text-danger-ink hover:bg-danger/10 font-bold"
                 >
                   ×
@@ -1825,7 +1823,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
           })}
 
           {(formData.customSkills || []).length === 0 && (
-            <p className="text-sm text-ink-muted italic">None yet</p>
+            <p className="text-sm text-ink-muted italic">{t('sheet5eEditor.noneYet')}</p>
           )}
         </div>
       </div>
@@ -1834,7 +1832,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
           that is not the skill itself, never from the stored field, so this
           matches the view exactly. */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-2">Passive Perception</h3>
+        <h3 className="text-lg font-semibold text-ink mb-2">{t('sheet5e.passivePerception')}</h3>
         <div className="flex items-end gap-4">
           <div className="text-2xl font-bold text-ink">
             {passiveScore(
@@ -1843,11 +1841,11 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
           </div>
           <div>
             <label htmlFor="passive-perception-other-bonus" className="block text-xs font-semibold text-ink-secondary mb-1">
-              Other bonus
+              {t('sheet5eEditor.otherBonus')}
             </label>
             <NumberField
               id="passive-perception-other-bonus"
-              aria-label="Other bonus to passive Perception"
+              aria-label={t('sheet5eEditor.passiveOtherAria')}
               min={passiveOtherBonusMin}
               max={MAX_BONUS_OVERRIDE}
               value={formData.passivePerceptionBonus ?? 0}
@@ -1859,8 +1857,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
           </div>
         </div>
         <p className="mt-2 text-xs text-ink-muted">
-          10 + your Perception bonus, plus anything that raises passive scores
-          without changing the skill, such as a feat worth +5.
+          {t('sheet5eEditor.passiveHint')}
         </p>
       </div>
     </div>
@@ -1885,7 +1882,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       {/* Combat Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <label htmlFor="fifth-edition-armor-class" className="block text-sm font-semibold text-ink-secondary mb-1">Armor Class</label>
+          <label htmlFor="fifth-edition-armor-class" className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5e.armorClass')}</label>
           <NumberField
             id="fifth-edition-armor-class"
             min={1}
@@ -1901,19 +1898,21 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
               "Other bonus" below — it used to be a single hand-typed number
               that nothing kept in step with Dexterity, and that the roll then
               ignored entirely. */}
-          <div id="fifth-edition-initiative-label" className="block text-sm font-semibold text-ink-secondary mb-1">Initiative</div>
+          <div id="fifth-edition-initiative-label" className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5e.initiative')}</div>
           <output
             aria-labelledby="fifth-edition-initiative-label"
             className="block w-full px-3 py-2 border border-ink/20 rounded-lg text-center text-xl font-bold bg-ink/10 text-ink"
-            title={`Dexterity ${formatModifier(formData.stats?.dexterity?.modifier ?? 0)}${
-              formData.initiativeBonus ? `, other ${formatModifier(formData.initiativeBonus)}` : ''
-            }`}
+            title={
+              formData.initiativeBonus
+                ? t('sheet5eEditor.initiativeTitleOther', { dex: formatModifier(formData.stats?.dexterity?.modifier ?? 0), other: formatModifier(formData.initiativeBonus) })
+                : t('sheet5eEditor.initiativeTitle', { dex: formatModifier(formData.stats?.dexterity?.modifier ?? 0) })
+            }
           >
             {formatModifier(initiativeModifier)}
           </output>
         </div>
         <div>
-          <label htmlFor="fifth-edition-speed" className="block text-sm font-semibold text-ink-secondary mb-1">Speed (ft)</label>
+          <label htmlFor="fifth-edition-speed" className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.speedFt')}</label>
           <NumberField
             id="fifth-edition-speed"
             min={0}
@@ -1932,7 +1931,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label htmlFor="initiative-other-bonus" className="block text-sm font-semibold text-ink-secondary mb-1">
-            Initiative — other bonus
+            {t('sheet5eEditor.initiativeOther')}
           </label>
           <NumberField
             id="initiative-other-bonus"
@@ -1944,8 +1943,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             fallback={0}
           />
           <p className="mt-1 text-xs text-ink-muted">
-            A feat that adds to initiative, Jack of All Trades, Remarkable Athlete,
-            and anything else beyond your Dexterity modifier.
+            {t('sheet5eEditor.initiativeOtherHint')}
           </p>
         </div>
         <div className="sm:col-span-2 sm:pt-7">
@@ -1958,25 +1956,24 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
               className="w-5 h-5 accent-accent border-ink/20 rounded-sm focus:ring-2 focus:ring-brand"
             />
             <label htmlFor="initiative-advantage" className="text-sm font-semibold text-ink-secondary">
-              Advantage on initiative
+              {t('sheet5eEditor.advantageOnInitiative')}
             </label>
           </div>
           <p className="mt-1 text-xs text-ink-muted">
-            Initiative rolls two d20s and keeps the higher. A level of exhaustion
-            or the Poisoned condition cancels it, and one d20 is rolled.
+            {t('sheet5eEditor.advantageHint')}
           </p>
         </div>
       </div>
 
       {/* Hit Points */}
       <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-3">Hit Points</h3>
+        <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.hitPoints')}</h3>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label htmlFor="fifth-edition-hp-maximum" className="block text-xs font-semibold text-ink-secondary mb-1">Maximum</label>
+            <label htmlFor="fifth-edition-hp-maximum" className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.hpMaximum')}</label>
             <NumberField
               id="fifth-edition-hp-maximum"
-              aria-label="Maximum hit points"
+              aria-label={t('sheet5eEditor.hpMaximumAria')}
               min={1}
               value={formData.hp?.maximum}
               onChange={(v: number) => updateField('hp.maximum', v)}
@@ -1986,10 +1983,10 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             {fieldError('hp.maximum')}
           </div>
           <div>
-            <label htmlFor="fifth-edition-hp-current" className="block text-xs font-semibold text-ink-secondary mb-1">Current</label>
+            <label htmlFor="fifth-edition-hp-current" className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.hpCurrent')}</label>
             <NumberField
               id="fifth-edition-hp-current"
-              aria-label="Current hit points"
+              aria-label={t('sheet5eEditor.hpCurrentAria')}
               min={0}
               value={formData.hp?.current}
               onChange={(v: number) => updateField('hp.current', v)}
@@ -1998,10 +1995,10 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             />
           </div>
           <div>
-            <label htmlFor="fifth-edition-hp-temporary" className="block text-xs font-semibold text-ink-secondary mb-1">Temporary</label>
+            <label htmlFor="fifth-edition-hp-temporary" className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.hpTemporary')}</label>
             <NumberField
               id="fifth-edition-hp-temporary"
-              aria-label="Temporary hit points"
+              aria-label={t('sheet5eEditor.hpTemporaryAria')}
               min={0}
               value={formData.hp?.temporary}
               onChange={(v: number) => updateField('hp.temporary', v)}
@@ -2015,7 +2012,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       {/* Hit Dice */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap mb-3">
-          <h3 className="text-lg font-semibold text-ink">Hit Dice</h3>
+          <h3 className="text-lg font-semibold text-ink">{t('sheet5e.hitDice')}</h3>
           <Button
             variant="primary"
             size="sm"
@@ -2028,16 +2025,16 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             }}
             disabled={listIsFull(formData.hitDice)}
           >
-            + Add Hit Die
+            {t('sheet5eEditor.addHitDie')}
           </Button>
         </div>
         <ListLimitNote full={listIsFull(formData.hitDice)} />
         <div className={`${HIT_DICE_COLUMNS} mb-1`}>
-          <span aria-hidden="true" className="col-span-5 sm:col-span-1 text-xs font-semibold text-ink-secondary">Class</span>
-          <span aria-hidden="true" className="text-xs font-semibold text-ink-secondary text-center">Die</span>
-          <span aria-hidden="true" className="text-xs font-semibold text-ink-secondary text-center">Left</span>
+          <span aria-hidden="true" className="col-span-5 sm:col-span-1 text-xs font-semibold text-ink-secondary">{t('sheet5eEditor.colClass')}</span>
+          <span aria-hidden="true" className="text-xs font-semibold text-ink-secondary text-center">{t('sheet5eEditor.colDie')}</span>
+          <span aria-hidden="true" className="text-xs font-semibold text-ink-secondary text-center">{t('sheet5eEditor.colLeft')}</span>
           <span aria-hidden="true" />
-          <span aria-hidden="true" className="text-xs font-semibold text-ink-secondary text-center">Max</span>
+          <span aria-hidden="true" className="text-xs font-semibold text-ink-secondary text-center">{t('sheet5eEditor.colMax')}</span>
           <span aria-hidden="true" />
         </div>
         <div className="space-y-2">
@@ -2047,8 +2044,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 type="text"
                 value={die.class || ''}
                 onChange={(e) => updateField(`hitDice.${index}.class`, e.target.value)}
-                placeholder="Fighter"
-                aria-label={`Class of hit dice ${index + 1}`}
+                placeholder={t('sheet5eEditor.hitDieClassPlaceholder')}
+                aria-label={t('sheet5eEditor.hitDieClassAria', { n: index + 1 })}
                 maxLength={SHEET_SHORT_TEXT_MAX}
                 aria-invalid={!!errors[`hitDice.${index}.class`]}
                 className="col-span-5 sm:col-span-1 min-w-0 px-2 py-1 border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
@@ -2058,9 +2055,9 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 value={die.die ?? (die.total ? hitDieExpression(die, formData.stats?.constitution?.modifier ?? 0) ?? '' : '')}
                 onChange={(e) => updateField(`hitDice.${index}.die`, e.target.value)}
                 placeholder="d10"
-                aria-label={`Hit die of row ${index + 1}`}
+                aria-label={t('sheet5eEditor.hitDieAria', { n: index + 1 })}
                 maxLength={FIFTH_EDITION_HIT_DIE_MAX}
-                title="One hit die — d10 for a fighter. Something like 2d6 works too if your game uses it."
+                title={t('sheet5eEditor.hitDieTitle')}
                 className="min-w-0 px-2 py-1 border border-ink/20 rounded-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand"
               />
               {/* Shown no higher than the pool holds, and brought down on save,
@@ -2070,8 +2067,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 max={die.maximum ?? hitDiceMaximum(die) ?? undefined}
                 value={Math.min(die.remaining, die.maximum ?? hitDiceMaximum(die) ?? die.remaining)}
                 onChange={(v: number) => updateField(`hitDice.${index}.remaining`, v)}
-                aria-label={`Hit dice left in row ${index + 1}`}
-                title="How many are unspent right now"
+                aria-label={t('sheet5eEditor.hitDiceLeftAria', { n: index + 1 })}
+                title={t('sheet5eEditor.hitDiceLeftTitle')}
                 className="min-w-0 px-1 py-1 border border-ink/20 rounded-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand"
                 fallback={0}
               />
@@ -2080,8 +2077,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 min={0}
                 value={die.maximum ?? hitDiceMaximum(die) ?? 0}
                 onChange={(v: number) => updateField(`hitDice.${index}.maximum`, v)}
-                aria-label={`Hit dice in row ${index + 1} at full`}
-                title="How many this pool holds when nothing is spent"
+                aria-label={t('sheet5eEditor.hitDiceFullAria', { n: index + 1 })}
+                title={t('sheet5eEditor.hitDiceFullTitle')}
                 className="min-w-0 px-1 py-1 border border-ink/20 rounded-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand"
                 fallback={0}
               />
@@ -2090,8 +2087,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                   const newHitDice = formData.hitDice!.filter((_, i) => i !== index);
                   updateField('hitDice', newHitDice);
                 }}
-                aria-label={`Remove ${die.class || 'this'} hit dice`}
-                title="Remove"
+                aria-label={t('sheet5eEditor.removeHitDice', { name: die.class || t('sheet5eEditor.thisOne') })}
+                title={t('sheet5eEditor.remove')}
                 className="touch-target inline-flex items-center justify-center text-danger-ink hover:bg-danger/10 font-bold leading-none"
               >
                 ×
@@ -2103,29 +2100,27 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
           ))}
           {(!formData.hitDice || formData.hitDice.length === 0) && (
             <div className="text-sm text-ink-muted italic">
-              No hit dice yet. Add one for each class you have levels in.
+              {t('sheet5eEditor.noHitDice')}
             </div>
           )}
         </div>
         <p className="mt-2 text-xs text-ink-muted">
-          One row per class. <strong>Die</strong> is a single hit die — a fighter's is
-          d10 — and <strong>Max</strong> is how many of them you have at your level.{' '}
-          <strong>Left</strong> counts down as you spend them on a short rest.
+          <Trans i18nKey="sheet5eEditor.hitDiceHelp" components={{ bold: <strong /> }} />
         </p>
       </div>
 
       {/* Death Saves */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-3">Death Saves</h3>
+        <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.deathSaves')}</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-success-ink mb-2">Successes</label>
+            <label className="block text-sm font-semibold text-success-ink mb-2">{t('sheet5e.successes')}</label>
             <div className="flex space-x-2">
               {[1, 2, 3].map((i) => (
                 <input
                   key={`success-${i}`}
                   type="checkbox"
-                  aria-label={`Death save success ${i}`}
+                  aria-label={t('sheet5eEditor.deathSaveSuccess', { n: i })}
                   checked={(formData.deathSaves?.successes || 0) >= i}
                   onChange={(e) => {
                     if (e.target.checked) {
@@ -2140,13 +2135,13 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-danger-ink mb-2">Failures</label>
+            <label className="block text-sm font-semibold text-danger-ink mb-2">{t('sheet5e.failures')}</label>
             <div className="flex space-x-2">
               {[1, 2, 3].map((i) => (
                 <input
                   key={`failure-${i}`}
                   type="checkbox"
-                  aria-label={`Death save failure ${i}`}
+                  aria-label={t('sheet5eEditor.deathSaveFailure', { n: i })}
                   checked={(formData.deathSaves?.failures || 0) >= i}
                   onChange={(e) => {
                     if (e.target.checked) {
@@ -2165,7 +2160,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
 
       {/* Conditions */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-3">Conditions</h3>
+        <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.conditions')}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {conditions.map((condition) => (
             <label key={condition} className="flex items-center space-x-2 cursor-pointer hover:bg-ink/10 p-1 rounded-sm">
@@ -2182,7 +2177,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 }}
                 className="w-4 h-4 accent-accent border-ink/20 rounded-sm focus:ring-2 focus:ring-brand"
               />
-              <span className="text-sm text-ink-secondary">{condition}</span>
+              <span className="text-sm text-ink-secondary">{sheetWord(i18n, 'conditionNames', condition)}</span>
             </label>
           ))}
         </div>
@@ -2193,10 +2188,9 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
           either have or do not. It used to be one checkbox in the list above,
           which could not tell disadvantage on ability checks apart from death. */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-1">Exhaustion</h3>
+        <h3 className="text-lg font-semibold text-ink mb-1">{t('sheet5e.exhaustion')}</h3>
         <p className="text-xs text-ink-secondary mb-3">
-          Six levels, and each one carries every level below it. A long rest with food
-          and drink removes one.
+          {t('sheet5eEditor.exhaustionHint')}
         </p>
         <div className="flex flex-wrap gap-2 mb-3">
           {[0, 1, 2, 3, 4, 5, 6].map((level) => {
@@ -2205,7 +2199,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
               <button
                 key={level}
                 onClick={() => updateField('exhaustionLevel', level)}
-                aria-label={level === 0 ? 'No exhaustion' : `Exhaustion level ${level}`}
+                aria-label={level === 0 ? t('sheet5eEditor.noExhaustion') : t('sheet5eEditor.exhaustionLevelAria', { level })}
                 aria-pressed={active}
                 className={`px-3 py-1 rounded-cozy border text-sm transition-all ${
                   !active
@@ -2216,19 +2210,19 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                       : 'bg-danger/15 text-danger-ink border-danger font-semibold'
                 }`}
               >
-                {level === 0 ? 'None' : level}
+                {level === 0 ? t('sheet5eEditor.none') : level}
               </button>
             );
           })}
         </div>
         {exhaustionEffects(exhaustion).length > 0 && (
           <ul className="text-sm text-ink-secondary space-y-0.5">
-            {exhaustionEffects(exhaustion).map((effect, idx) => (
+            {exhaustionEffects(exhaustion).map((_effect, idx) => (
               <li key={idx} className="flex items-start space-x-2">
                 <span className="text-danger-ink">•</span>
                 <span>
                   <span className="text-ink-muted mr-1">{idx + 1}.</span>
-                  {effect}
+                  {t(`sheet5e.exhaustionEffects.${idx + 1}` as never)}
                 </span>
               </li>
             ))}
@@ -2239,7 +2233,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       {/* Attacks */}
       <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap mb-3">
-          <h3 className="text-lg font-semibold text-ink">Attacks & Spellcasting</h3>
+          <h3 className="text-lg font-semibold text-ink">{t('sheet5eEditor.attacksHeading')}</h3>
           <Button
             variant="primary"
             size="sm"
@@ -2252,7 +2246,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             }}
             disabled={listIsFull(formData.attacks)}
           >
-            + Add Attack
+            {t('sheet5eEditor.addAttack')}
           </Button>
         </div>
         <ListLimitNote full={listIsFull(formData.attacks)} />
@@ -2264,8 +2258,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                   type="text"
                   value={attack.name || ''}
                   onChange={(e) => renameRow('attacks', index, e.target.value)}
-                  placeholder="Attack Name"
-                  aria-label={`Name of attack ${index + 1}`}
+                  placeholder={t('sheet5eEditor.attackNamePlaceholder')}
+                  aria-label={t('sheet5eEditor.nameOfAttack', { n: index + 1 })}
                   maxLength={SHEET_SHORT_TEXT_MAX}
                   aria-invalid={!!errors[`attacks.${index}.name`]}
                   className="min-w-0 flex-1 px-2 py-1 border border-ink/20 rounded-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-brand"
@@ -2276,7 +2270,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                     updateField('attacks', newAttacks);
                     removeCustomPropertyDraft(index);
                   }}
-                  aria-label={`Remove ${attack.name || 'attack'}`}
+                  aria-label={t('sheet5eEditor.removeNamed', { name: attack.name || t('sheet5eEditor.attackWord') })}
                   className="touch-target inline-flex items-center justify-center ml-2 px-2 py-1 text-danger-ink hover:bg-danger/10 font-bold"
                 >
                   ×
@@ -2285,7 +2279,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
               {fieldError(`attacks.${index}.name`)}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label htmlFor={`attack-${index}-bonus`} className="block text-xs font-semibold text-ink-secondary mb-1">Attack Bonus</label>
+                  <label htmlFor={`attack-${index}-bonus`} className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.attackBonus')}</label>
                   <NumberField
                     id={`attack-${index}-bonus`}
                     value={attack.attackBonus}
@@ -2295,31 +2289,31 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                   />
                 </div>
                 <div>
-                  <label htmlFor={`attack-${index}-damage`} className="block text-xs font-semibold text-ink-secondary mb-1">Damage Roll</label>
+                  <label htmlFor={`attack-${index}-damage`} className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.damageRoll')}</label>
                   <input
                     id={`attack-${index}-damage`}
                     maxLength={SHEET_SHORT_TEXT_MAX}
                     type="text"
                     value={attack.damageRoll || ''}
                     onChange={(e) => updateField(`attacks.${index}.damageRoll`, e.target.value)}
-                    placeholder="e.g., 1d8+3"
+                    placeholder={t('sheet5eEditor.damageRollPlaceholder')}
                     className="w-full px-2 py-1 border border-ink/20 rounded-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand"
                   />
                 </div>
                 <div>
-                  <label htmlFor={`attack-${index}-damage-type`} className="block text-xs font-semibold text-ink-secondary mb-1">Damage Type</label>
+                  <label htmlFor={`attack-${index}-damage-type`} className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.damageType')}</label>
                   <input
                     id={`attack-${index}-damage-type`}
                     maxLength={SHEET_SHORT_TEXT_MAX}
                     type="text"
                     value={attack.damageType || ''}
                     onChange={(e) => updateField(`attacks.${index}.damageType`, e.target.value)}
-                    placeholder="e.g., slashing"
+                    placeholder={t('sheet5eEditor.damageTypePlaceholder')}
                     className="w-full px-2 py-1 border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
                   />
                 </div>
                 <div>
-                  <label htmlFor={`attack-${index}-range`} className="block text-xs font-semibold text-ink-secondary mb-1">Range (ft)</label>
+                  <label htmlFor={`attack-${index}-range`} className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.rangeFt')}</label>
                   <NumberField
                     id={`attack-${index}-range`}
                     min={0}
@@ -2336,7 +2330,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                   offer was a note reading "e.g., Versatile, Finesse", which
                   stored prose nothing could read. */}
               <div>
-                <label className="block text-xs font-semibold text-ink-secondary mb-1">Properties</label>
+                <label className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.properties')}</label>
                 <div className="flex flex-wrap gap-1.5">
                   {FIFTH_EDITION_WEAPON_PROPERTIES.map((property) => {
                     const on = hasWeaponProperty(attack.properties || [], property);
@@ -2358,7 +2352,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                             : 'bg-paper border-ink/20 text-ink-secondary hover:border-accent'
                         }`}
                       >
-                        {property}
+                        {sheetWord(i18n, 'weaponProperties', property).toLowerCase()}
                       </button>
                     );
                   })}
@@ -2378,7 +2372,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                             toggleWeaponProperty(attack.properties || [], property)
                           )
                         }
-                        title={`Remove "${property}"`}
+                        title={t('sheet5eEditor.removeProperty', { property })}
                         className="touch-target inline-flex items-center justify-center px-2 py-0.5 text-xs rounded-full border border-warning/30 bg-warning/10 text-warning-ink hover:bg-warning/15"
                       >
                         {property} ×
@@ -2403,8 +2397,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                       }
                     }}
                     maxLength={FIFTH_EDITION_WEAPON_PROPERTY_LENGTH_MAX}
-                    placeholder="Add your own property"
-                    aria-label="Add a custom weapon property"
+                    placeholder={t('sheet5eEditor.addOwnProperty')}
+                    aria-label={t('sheet5eEditor.addCustomPropertyAria')}
                     className="min-w-0 flex-1 px-2 py-1 text-sm border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
                   />
                   <button
@@ -2413,7 +2407,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                     disabled={propertiesFull(attack.properties)}
                     className={`px-3 py-1 text-sm font-medium text-accent-ink hover:text-ink ${ADD_BUTTON_OFF}`}
                   >
-                    Add
+                    {t('sheet5eEditor.add')}
                   </button>
                 </div>
                 <ListLimitNote full={propertiesFull(attack.properties)} max={FIFTH_EDITION_WEAPON_PROPERTIES_MAX} />
@@ -2425,7 +2419,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap mb-1">
                   <label className="block text-xs font-semibold text-ink-secondary">
-                    Other Damage Rolls
+                    {t('sheet5eEditor.otherDamageRolls')}
                   </label>
                   <button
                     type="button"
@@ -2438,7 +2432,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                     disabled={listIsFull(attack.additionalDamage, FIFTH_EDITION_ATTACK_DAMAGE_ROLLS_MAX)}
                     className={`px-2 py-0.5 text-xs font-medium text-accent-ink hover:text-ink ${ADD_BUTTON_OFF}`}
                   >
-                    + Add Damage Roll
+                    {t('sheet5eEditor.addDamageRoll')}
                   </button>
                 </div>
                 <ListLimitNote
@@ -2456,8 +2450,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                           e.target.value
                         )
                       }
-                      placeholder="When (e.g. Two-handed)"
-                      aria-label={`When damage roll ${dmgIndex + 1} applies`}
+                      placeholder={t('sheet5eEditor.whenPlaceholder')}
+                      aria-label={t('sheet5eEditor.whenAria', { n: dmgIndex + 1 })}
                       maxLength={FIFTH_EDITION_DAMAGE_ROLL_TEXT_MAX}
                       className="min-w-0 flex-1 basis-full sm:basis-0 px-2 py-1 text-sm border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
                     />
@@ -2471,7 +2465,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                         )
                       }
                       placeholder="1d10+3"
-                      aria-label={`Damage roll ${dmgIndex + 1}`}
+                      aria-label={t('sheet5eEditor.damageRollAria', { n: dmgIndex + 1 })}
                       maxLength={FIFTH_EDITION_DAMAGE_ROLL_TEXT_MAX}
                       className="min-w-0 flex-1 sm:flex-initial w-28 px-2 py-1 text-sm border border-ink/20 rounded-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand"
                     />
@@ -2484,8 +2478,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                           e.target.value
                         )
                       }
-                      placeholder="slashing"
-                      aria-label={`Damage type of roll ${dmgIndex + 1}`}
+                      placeholder={t('sheet5eEditor.additionalTypePlaceholder')}
+                      aria-label={t('sheet5eEditor.damageTypeOfRoll', { n: dmgIndex + 1 })}
                       maxLength={FIFTH_EDITION_DAMAGE_TYPE_MAX}
                       className="min-w-0 flex-1 sm:flex-initial w-28 px-2 py-1 text-sm border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
                     />
@@ -2497,7 +2491,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                           (attack.additionalDamage || []).filter((_, i) => i !== dmgIndex)
                         )
                       }
-                      aria-label={`Remove damage roll ${dmgIndex + 1}`}
+                      aria-label={t('sheet5eEditor.removeDamageRoll', { n: dmgIndex + 1 })}
                       className="touch-target inline-flex items-center justify-center px-2 text-danger-ink hover:bg-danger/10 font-bold"
                     >
                       ×
@@ -2506,20 +2500,20 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 ))}
               </div>
               <div>
-                <label htmlFor={`attack-${index}-notes`} className="block text-xs font-semibold text-ink-secondary mb-1">Notes</label>
+                <label htmlFor={`attack-${index}-notes`} className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.notes')}</label>
                 <input
                   id={`attack-${index}-notes`}
                   type="text"
                   value={attack.notes || ''}
                   onChange={(e) => updateField(`attacks.${index}.notes`, e.target.value)}
-                  placeholder="e.g., silvered, returns when thrown"
+                  placeholder={t('sheet5eEditor.attackNotesPlaceholder')}
                   className="w-full px-2 py-1 border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
                 />
               </div>
             </div>
           ))}
           {(!formData.attacks || formData.attacks.length === 0) && (
-            <div className="text-sm text-ink-muted italic">No attacks added yet</div>
+            <div className="text-sm text-ink-muted italic">{t('sheet5eEditor.noAttacksYet')}</div>
           )}
         </div>
       </div>
@@ -2539,29 +2533,28 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       {/* Spellcasting class and ability */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-semibold text-ink-secondary mb-1">Spellcasting Class</label>
+          <label className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.spellcastingClass')}</label>
           <input
             type="text"
             value={formData.spellcasting?.class || ''}
             onChange={(e) => updateField('spellcasting.class', e.target.value)}
-            placeholder="e.g., Wizard — leave blank if you don't cast"
-            aria-label="Spellcasting Class"
+            placeholder={t('sheet5eEditor.spellcastingClassPlaceholder')}
+            aria-label={t('sheet5eEditor.spellcastingClass')}
             maxLength={SHEET_SHORT_TEXT_MAX}
             className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
           />
           <p className="mt-1 text-xs text-ink-secondary">
-            Shown as the heading on your sheet. There was no field for this, so every
-            character read &quot;Wizard Spellcasting&quot; whatever they were.
+            {t('sheet5eEditor.spellcastingClassHint')}
           </p>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-ink-secondary mb-1">Spellcasting Ability</label>
+          <label className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5e.spellcastingAbility')}</label>
           <input
             type="text"
             value={formData.spellcasting?.ability || ''}
             onChange={(e) => updateField('spellcasting.ability', e.target.value)}
-            placeholder="e.g., Intelligence"
-            aria-label="Spellcasting Ability"
+            placeholder={t('sheet5eEditor.spellAbilityPlaceholder')}
+            aria-label={t('sheet5e.spellcastingAbility')}
             maxLength={SHEET_SHORT_TEXT_MAX}
             className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
           />
@@ -2575,56 +2568,54 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
           of the War Mage raises the attack roll and not the DC. */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-3">
-          <div id="fifth-edition-spell-dc-label" className="block text-sm font-semibold text-ink-secondary mb-1">Spell Save DC</div>
+          <div id="fifth-edition-spell-dc-label" className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5e.spellSaveDc')}</div>
           <output
             aria-labelledby="fifth-edition-spell-dc-label"
             className="block w-full px-3 py-2 bg-paper border border-ink/20 rounded-lg text-center text-xl font-bold text-ink"
-            title={`8 + proficiency ${formatModifier(formData.proficiencyBonus ?? 0)} + ability ${formatModifier(spellAbilityModifier)}`}
+            title={t('sheet5eEditor.spellDcTitle', { prof: formatModifier(formData.proficiencyBonus ?? 0), ability: formatModifier(spellAbilityModifier) })}
           >
             {spellSaveDC}
           </output>
-          <label className="block text-xs font-semibold text-ink-secondary mt-2 mb-1">Other bonus</label>
+          <label className="block text-xs font-semibold text-ink-secondary mt-2 mb-1">{t('sheet5eEditor.otherBonus')}</label>
           <NumberField
             min={dcOtherBonusMin}
             max={MAX_BONUS_OVERRIDE}
             value={formData.spellcasting?.spellSaveDCOtherBonus}
             onChange={(v: number) => updateField('spellcasting.spellSaveDCOtherBonus', v)}
-            aria-label="Spell save DC other bonus"
+            aria-label={t('sheet5eEditor.spellDcOtherAria')}
             className="w-full px-2 py-1 border border-ink/20 rounded-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand"
             fallback={0}
           />
           {fieldError('spellcasting.spellSaveDCOtherBonus')}
         </div>
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-3">
-          <div id="fifth-edition-spell-attack-label" className="block text-sm font-semibold text-ink-secondary mb-1">Spell Attack Bonus</div>
+          <div id="fifth-edition-spell-attack-label" className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.spellAttackBonus')}</div>
           <output
             aria-labelledby="fifth-edition-spell-attack-label"
             className="block w-full px-3 py-2 bg-paper border border-ink/20 rounded-lg text-center text-xl font-bold text-ink"
-            title={`proficiency ${formatModifier(formData.proficiencyBonus ?? 0)} + ability ${formatModifier(spellAbilityModifier)}`}
+            title={t('sheet5eEditor.spellAttackTitle', { prof: formatModifier(formData.proficiencyBonus ?? 0), ability: formatModifier(spellAbilityModifier) })}
           >
             {formatModifier(spellAttackBonus)}
           </output>
-          <label className="block text-xs font-semibold text-ink-secondary mt-2 mb-1">Other bonus</label>
+          <label className="block text-xs font-semibold text-ink-secondary mt-2 mb-1">{t('sheet5eEditor.otherBonus')}</label>
           <NumberField
             min={MIN_BONUS_OVERRIDE}
             max={MAX_BONUS_OVERRIDE}
             value={formData.spellcasting?.spellAttackOtherBonus}
             onChange={(v: number) => updateField('spellcasting.spellAttackOtherBonus', v)}
-            aria-label="Spell attack other bonus"
+            aria-label={t('sheet5eEditor.spellAttackOtherAria')}
             className="w-full px-2 py-1 border border-ink/20 rounded-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand"
             fallback={0}
           />
         </div>
       </div>
       <p className="text-xs text-ink-secondary">
-        Both are worked out from your proficiency bonus and spellcasting ability. Use
-        &quot;Other bonus&quot; for anything else that changes them — a Wand of the War
-        Mage, a Robe of the Archmagi. They are separate because some items raise only one.
+        {t('sheet5eEditor.spellBonusesHint')}
       </p>
 
       {/* Cantrips */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-3">Cantrips</h3>
+        <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.cantrips')}</h3>
         <textarea
           value={cantripsText}
           onChange={(e) => {
@@ -2644,8 +2635,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
               return { ...prev, spellcasting: { ...prev.spellcasting!, cantripRefs: refs.filter((r) => listed.has(r.name.trim())) } };
             });
           }}
-          placeholder="Enter cantrips separated by commas (e.g., Fire Bolt, Mage Hand, Prestidigitation)"
-          aria-label="Cantrips"
+          placeholder={t('sheet5eEditor.cantripsPlaceholder')}
+          aria-label={t('sheet5eEditor.cantripsAria')}
           rows={2}
           className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
         />
@@ -2654,16 +2645,16 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
 
       {/* Spell Slots */}
       <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-3">Spell Slots</h3>
+        <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.spellSlots')}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map((level) => {
             const slotData = formData.spellcasting?.slots?.[level] || { total: 0, expended: 0 };
             return (
               <div key={level} className="bg-paper border border-ink/20 rounded-lg p-3">
-                <div className="text-sm font-semibold text-ink-secondary mb-2 text-center">Level {level}</div>
+                <div className="text-sm font-semibold text-ink-secondary mb-2 text-center">{t('sheet5e.level', { level })}</div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label htmlFor={`spell-slots-${level}-total`} className="block text-xs text-ink-secondary mb-1">Total</label>
+                    <label htmlFor={`spell-slots-${level}-total`} className="block text-xs text-ink-secondary mb-1">{t('sheet5eEditor.total')}</label>
                     <NumberField
                       id={`spell-slots-${level}-total`}
                       min={0}
@@ -2675,7 +2666,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                     />
                   </div>
                   <div>
-                    <label htmlFor={`spell-slots-${level}-used`} className="block text-xs text-ink-secondary mb-1">Used</label>
+                    <label htmlFor={`spell-slots-${level}-used`} className="block text-xs text-ink-secondary mb-1">{t('sheet5eEditor.used')}</label>
                     {/* Shown no higher than the total. The stored count is
                         brought down on save, so typing a new total digit by
                         digit does not lose it. */}
@@ -2699,7 +2690,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       {/* Spells List */}
       <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap mb-3">
-          <h3 className="text-lg font-semibold text-ink">Spells</h3>
+          <h3 className="text-lg font-semibold text-ink">{t('sheet5eEditor.spells')}</h3>
           <Button
             variant="primary"
             size="sm"
@@ -2712,7 +2703,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             }}
             disabled={listIsFull(formData.spellcasting?.spells)}
           >
-            + Add Spell
+            {t('sheet5eEditor.addSpell')}
           </Button>
         </div>
         <ListLimitNote full={listIsFull(formData.spellcasting?.spells)} />
@@ -2726,55 +2717,55 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 value={spell.level}
                 onChange={(v: number) => updateField(`spellcasting.spells.${index}.level`, v)}
                 className="w-14 px-2 py-1 border border-ink/20 rounded-sm text-center font-semibold focus:outline-hidden focus:ring-2 focus:ring-brand"
-                title="Spell Level"
-                aria-label={`Level of spell ${index + 1}`}
+                title={t('sheet5eEditor.spellLevelTitle')}
+                aria-label={t('sheet5eEditor.levelOfSpell', { n: index + 1 })}
               fallback={0}
               />
               <input
                 type="text"
                 value={spell.name || ''}
                 onChange={(e) => renameRow('spellcasting.spells', index, e.target.value)}
-                placeholder="Spell Name"
-                aria-label={`Name of spell ${index + 1}`}
+                placeholder={t('sheet5eEditor.spellNamePlaceholder')}
+                aria-label={t('sheet5eEditor.nameOfSpell', { n: index + 1 })}
                 maxLength={SHEET_SHORT_TEXT_MAX}
                 aria-invalid={!!errors[`spellcasting.spells.${index}.name`]}
                 // Below sm the name fills the line beside the level box
                 // (3.5 rem and the 0.75 rem gap), so the tick boxes go under.
                 className="min-w-0 flex-1 basis-[calc(100%-4.25rem)] sm:basis-0 px-2 py-1 border border-ink/20 rounded-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-brand"
               />
-              <label className="flex items-center space-x-1 cursor-pointer" title="Prepared">
+              <label className="flex items-center space-x-1 cursor-pointer" title={t('sheet5eEditor.preparedTitle')}>
                 <input
                   type="checkbox"
                   checked={spell.prepared || false}
                   onChange={(e) => updateField(`spellcasting.spells.${index}.prepared`, e.target.checked)}
                   className="w-4 h-4 accent-accent border-ink/20 rounded-sm focus:ring-2 focus:ring-brand"
                 />
-                <span className="text-xs text-ink-secondary">Prep</span>
+                <span className="text-xs text-ink-secondary">{t('sheet5eEditor.prep')}</span>
               </label>
-              <label className="flex items-center space-x-1 cursor-pointer" title="Ritual">
+              <label className="flex items-center space-x-1 cursor-pointer" title={t('sheet5eEditor.ritualTitle')}>
                 <input
                   type="checkbox"
                   checked={spell.ritual || false}
                   onChange={(e) => updateField(`spellcasting.spells.${index}.ritual`, e.target.checked)}
                   className="w-4 h-4 accent-info border-ink/20 rounded-sm focus:ring-2 focus:ring-brand"
                 />
-                <span className="text-xs text-ink-secondary">Rit</span>
+                <span className="text-xs text-ink-secondary">{t('sheet5eEditor.rit')}</span>
               </label>
-              <label className="flex items-center space-x-1 cursor-pointer" title="Concentration">
+              <label className="flex items-center space-x-1 cursor-pointer" title={t('sheet5eEditor.concentrationTitle')}>
                 <input
                   type="checkbox"
                   checked={spell.concentration || false}
                   onChange={(e) => updateField(`spellcasting.spells.${index}.concentration`, e.target.checked)}
                   className="w-4 h-4 accent-spirit border-ink/20 rounded-sm focus:ring-2 focus:ring-brand"
                 />
-                <span className="text-xs text-ink-secondary">Con</span>
+                <span className="text-xs text-ink-secondary">{t('sheet5eEditor.con')}</span>
               </label>
               <button
                 onClick={() => {
                   const newSpells = (formData.spellcasting?.spells ?? []).filter((_, i) => i !== index);
                   updateField('spellcasting.spells', newSpells);
                 }}
-                aria-label={`Remove ${spell.name || 'spell'}`}
+                aria-label={t('sheet5eEditor.removeNamed', { name: spell.name || t('sheet5eEditor.spellWord') })}
                 className="touch-target inline-flex items-center justify-center px-2 py-1 text-danger-ink hover:bg-danger/10 font-bold"
               >
                 ×
@@ -2784,7 +2775,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             </React.Fragment>
           ))}
           {(!formData.spellcasting?.spells || formData.spellcasting.spells.length === 0) && (
-            <div className="text-sm text-ink-muted italic">No spells added yet</div>
+            <div className="text-sm text-ink-muted italic">{t('sheet5eEditor.noSpellsYet')}</div>
           )}
         </div>
       </div>
@@ -2796,14 +2787,14 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
     <div className="space-y-6">
       {/* Currency */}
       <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-3">Currency</h3>
+        <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.currency')}</h3>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
           {([
-            { key: 'cp', label: 'Copper (CP)' },
-            { key: 'sp', label: 'Silver (SP)' },
-            { key: 'ep', label: 'Electrum (EP)' },
-            { key: 'gp', label: 'Gold (GP)' },
-            { key: 'pp', label: 'Platinum (PP)' },
+            { key: 'cp', label: t('sheet5eEditor.coins.cp') },
+            { key: 'sp', label: t('sheet5eEditor.coins.sp') },
+            { key: 'ep', label: t('sheet5eEditor.coins.ep') },
+            { key: 'gp', label: t('sheet5eEditor.coins.gp') },
+            { key: 'pp', label: t('sheet5eEditor.coins.pp') },
           ] as const).map((currency) => (
             <div key={currency.key}>
               <label htmlFor={`currency-${currency.key}`} className="block text-xs font-semibold text-ink mb-1">
@@ -2825,7 +2816,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       {/* Inventory Items */}
       <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap mb-3">
-          <h3 className="text-lg font-semibold text-ink">Inventory</h3>
+          <h3 className="text-lg font-semibold text-ink">{t('sheet5e.tabs.inventory')}</h3>
           <Button
             variant="primary"
             size="sm"
@@ -2847,7 +2838,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             }}
             disabled={listIsFull(formData.inventory)}
           >
-            + Add Item
+            {t('sheet5eEditor.addItem')}
           </Button>
         </div>
         <ListLimitNote full={listIsFull(formData.inventory)} />
@@ -2860,8 +2851,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                   type="text"
                   value={item.name || ''}
                   onChange={(e) => renameRow('inventory', index, e.target.value)}
-                  placeholder="Item Name"
-                  aria-label={`Name of item ${index + 1}`}
+                  placeholder={t('sheet5eEditor.itemNamePlaceholder')}
+                  aria-label={t('sheet5eEditor.nameOfItem', { n: index + 1 })}
                   maxLength={SHEET_SHORT_TEXT_MAX}
                   aria-invalid={!!errors[`inventory.${index}.name`]}
                   className="min-w-0 flex-1 px-2 py-1 border border-ink/20 rounded-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-brand"
@@ -2871,7 +2862,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                     const newInventory = formData.inventory!.filter((_, i) => i !== index);
                     updateField('inventory', newInventory);
                   }}
-                  aria-label={`Remove ${item.name || 'item'}`}
+                  aria-label={t('sheet5eEditor.removeNamed', { name: item.name || t('sheet5eEditor.itemWord') })}
                   className="touch-target inline-flex items-center justify-center ml-2 px-2 py-1 text-danger-ink hover:bg-danger/10 font-bold"
                 >
                   ×
@@ -2880,7 +2871,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
               {fieldError(`inventory.${index}.name`)}
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label htmlFor={`item-${index}-quantity`} className="block text-xs font-semibold text-ink-secondary mb-1">Quantity</label>
+                  <label htmlFor={`item-${index}-quantity`} className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.quantity')}</label>
                   <NumberField
                     id={`item-${index}-quantity`}
                     min={0}
@@ -2891,7 +2882,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                   />
                 </div>
                 <div>
-                  <label htmlFor={`item-${index}-weight`} className="block text-xs font-semibold text-ink-secondary mb-1">Weight (lb)</label>
+                  <label htmlFor={`item-${index}-weight`} className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.weightLb')}</label>
                   <NumberField
                     id={`item-${index}-weight`}
                     min={0}
@@ -2906,7 +2897,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                   />
                 </div>
                 <div>
-                  <label htmlFor={`item-${index}-value`} className="block text-xs font-semibold text-ink-secondary mb-1">Value (gp)</label>
+                  <label htmlFor={`item-${index}-value`} className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.valueGp')}</label>
                   <NumberField
                     id={`item-${index}-value`}
                     min={0}
@@ -2921,13 +2912,13 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                 </div>
               </div>
               <div>
-                <label htmlFor={`item-${index}-notes`} className="block text-xs font-semibold text-ink-secondary mb-1">Notes</label>
+                <label htmlFor={`item-${index}-notes`} className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.notes')}</label>
                 <input
                   id={`item-${index}-notes`}
                   type="text"
                   value={item.notes || ''}
                   onChange={(e) => updateField(`inventory.${index}.notes`, e.target.value)}
-                  placeholder="Item description or notes"
+                  placeholder={t('sheet5eEditor.itemNotesPlaceholder')}
                   className="w-full px-2 py-1 border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
                 />
               </div>
@@ -2944,7 +2935,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                     }}
                     className="w-4 h-4 accent-spirit border-ink/20 rounded-sm focus:ring-2 focus:ring-brand"
                   />
-                  <span className="text-ink-secondary">Requires Attunement</span>
+                  <span className="text-ink-secondary">{t('sheet5e.requiresAttunement')}</span>
                 </label>
                 {/* Also on an item stored attuned without requiring it, so
                     that can be cleared. */}
@@ -2956,14 +2947,14 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                       onChange={(e) => updateField(`inventory.${index}.attuned`, e.target.checked)}
                       className="w-4 h-4 accent-spirit border-ink/20 rounded-sm focus:ring-2 focus:ring-brand"
                     />
-                    <span className="text-ink-secondary">Attuned</span>
+                    <span className="text-ink-secondary">{t('sheet5e.attuned')}</span>
                   </label>
                 )}
               </div>
             </div>
           ))}
           {(!formData.inventory || formData.inventory.length === 0) && (
-            <div className="text-sm text-ink-muted italic">No items in inventory yet</div>
+            <div className="text-sm text-ink-muted italic">{t('sheet5eEditor.noItemsYet')}</div>
           )}
         </div>
       </div>
@@ -2989,18 +2980,18 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       <div className="space-y-6">
         {/* Proficiencies */}
         <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-ink mb-4">Proficiencies & Training</h3>
+          <h3 className="text-lg font-semibold text-ink mb-4">{t('sheet5e.proficienciesAndTraining')}</h3>
 
           <div className="space-y-4">
             {/* Armor */}
             <div>
-              <label htmlFor="fifth-edition-proficiencies-armor" className="block text-sm font-bold text-ink-secondary mb-2 uppercase tracking-wide">Armor</label>
+              <label htmlFor="fifth-edition-proficiencies-armor" className="block text-sm font-bold text-ink-secondary mb-2 uppercase tracking-wide">{t('sheet5e.armor')}</label>
               <textarea
                 id="fifth-edition-proficiencies-armor"
                 maxLength={FIFTH_EDITION_PROFICIENCY_BOX_MAX}
                 value={profs.armor}
                 onChange={(e) => updateField('proficiencies.armor', e.target.value)}
-                placeholder="Light Armor, Medium Armor, Shields"
+                placeholder={t('sheet5eEditor.armorPlaceholder')}
                 rows={2}
                 className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand text-sm"
               />
@@ -3008,13 +2999,13 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
 
             {/* Weapons */}
             <div>
-              <label htmlFor="fifth-edition-proficiencies-weapons" className="block text-sm font-bold text-ink-secondary mb-2 uppercase tracking-wide">Weapons</label>
+              <label htmlFor="fifth-edition-proficiencies-weapons" className="block text-sm font-bold text-ink-secondary mb-2 uppercase tracking-wide">{t('sheet5e.weapons')}</label>
               <textarea
                 id="fifth-edition-proficiencies-weapons"
                 maxLength={FIFTH_EDITION_PROFICIENCY_BOX_MAX}
                 value={profs.weapons}
                 onChange={(e) => updateField('proficiencies.weapons', e.target.value)}
-                placeholder="Simple Weapons, Martial Weapons, or specific weapons (Daggers, Longswords, Shortbows)"
+                placeholder={t('sheet5eEditor.weaponsPlaceholder')}
                 rows={2}
                 className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand text-sm"
               />
@@ -3022,13 +3013,13 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
 
             {/* Tools */}
             <div>
-              <label htmlFor="fifth-edition-proficiencies-tools" className="block text-sm font-bold text-ink-secondary mb-2 uppercase tracking-wide">Tools</label>
+              <label htmlFor="fifth-edition-proficiencies-tools" className="block text-sm font-bold text-ink-secondary mb-2 uppercase tracking-wide">{t('sheet5e.tools')}</label>
               <textarea
                 id="fifth-edition-proficiencies-tools"
                 maxLength={FIFTH_EDITION_PROFICIENCY_BOX_MAX}
                 value={profs.tools}
                 onChange={(e) => updateField('proficiencies.tools', e.target.value)}
-                placeholder="Thieves' Tools, Smith's Tools, Calligrapher's Supplies, Musical Instruments, Vehicles (Land/Water)"
+                placeholder={t('sheet5eEditor.toolsPlaceholder')}
                 rows={2}
                 className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand text-sm"
               />
@@ -3036,13 +3027,13 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
 
             {/* Languages */}
             <div>
-              <label htmlFor="fifth-edition-proficiencies-languages" className="block text-sm font-bold text-ink-secondary mb-2 uppercase tracking-wide">Languages</label>
+              <label htmlFor="fifth-edition-proficiencies-languages" className="block text-sm font-bold text-ink-secondary mb-2 uppercase tracking-wide">{t('sheet5e.languages')}</label>
               <textarea
                 id="fifth-edition-proficiencies-languages"
                 maxLength={FIFTH_EDITION_PROFICIENCY_BOX_MAX}
                 value={profs.languages}
                 onChange={(e) => updateField('proficiencies.languages', e.target.value)}
-                placeholder="Common, Elvish, Dwarvish, Draconic"
+                placeholder={t('sheet5eEditor.languagesPlaceholder')}
                 rows={2}
                 className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand text-sm"
               />
@@ -3053,7 +3044,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
         {/* Features & Traits */}
         <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
           <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap mb-3">
-            <h3 className="text-lg font-semibold text-ink">Features &amp; Traits</h3>
+            <h3 className="text-lg font-semibold text-ink">{t('sheet5e.featuresAndTraits')}</h3>
             <Button
               variant="primary"
               size="sm"
@@ -3062,16 +3053,15 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
               }
               disabled={listIsFull(featureRows)}
             >
-              + Add Feature
+              {t('sheet5eEditor.addFeature')}
             </Button>
           </div>
           <ListLimitNote full={listIsFull(featureRows)} />
           <p className="text-xs text-ink-secondary mb-3">
-            Class features, racial traits and feats. A description is optional — leave it blank
-            for anything that is just a name.
+            {t('sheet5eEditor.featuresHint')}
           </p>
           {featureRows.length === 0 ? (
-            <p className="text-sm text-ink-muted italic">No features added yet</p>
+            <p className="text-sm text-ink-muted italic">{t('sheet5eEditor.noFeaturesYet')}</p>
           ) : (
             <div className="space-y-3">
               {featureRows.map((feature, index) => (
@@ -3088,8 +3078,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                           )
                         )
                       }
-                      placeholder="Feature name, e.g. Darkvision"
-                      aria-label={`Feature ${index + 1} name`}
+                      placeholder={t('sheet5eEditor.featureNamePlaceholder')}
+                      aria-label={t('sheet5eEditor.featureNameAria', { n: index + 1 })}
                       className="min-w-0 flex-1 px-2 py-1 border border-ink/20 rounded-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-brand"
                     />
                     <button
@@ -3099,7 +3089,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                           featureRows.filter((_, i) => i !== index)
                         )
                       }
-                      aria-label={`Remove ${feature.name || 'feature'}`}
+                      aria-label={t('sheet5eEditor.removeNamed', { name: feature.name || t('sheet5eEditor.featureWord') })}
                       className="touch-target inline-flex items-center justify-center ml-2 px-2 py-1 text-danger-ink hover:bg-danger/10 font-bold"
                     >
                       ×
@@ -3115,8 +3105,8 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
                         )
                       )
                     }
-                    placeholder="Description (optional)"
-                    aria-label={`Feature ${index + 1} description`}
+                    placeholder={t('sheet5eEditor.descriptionOptional')}
+                    aria-label={t('sheet5eEditor.featureDescriptionAria', { n: index + 1 })}
                     rows={2}
                     className="w-full px-2 py-1 text-sm border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
                   />
@@ -3129,14 +3119,14 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
         {/* Additional Features & Traits */}
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
           <h3 className="text-lg font-semibold text-ink mb-3">
-            <label htmlFor="fifth-edition-additional-features">Additional Features & Traits</label>
+            <label htmlFor="fifth-edition-additional-features">{t('sheet5eEditor.additionalFeaturesHeading')}</label>
           </h3>
-          <p className="text-xs text-ink-secondary mb-3">Detailed descriptions of features, special abilities, or notes</p>
+          <p className="text-xs text-ink-secondary mb-3">{t('sheet5eEditor.additionalFeaturesHint')}</p>
           <textarea
             id="fifth-edition-additional-features"
             value={formData.additionalFeaturesAndTraits || ''}
             onChange={(e) => updateField('additionalFeaturesAndTraits', e.target.value)}
-            placeholder="Describe any additional features, traits, or special abilities in detail..."
+            placeholder={t('sheet5eEditor.additionalFeaturesPlaceholder')}
             rows={8}
             className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
           />
@@ -3150,10 +3140,10 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
     <div className="space-y-6">
       {/* Appearance */}
       <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-3">Appearance</h3>
+        <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.appearance')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div>
-            <label htmlFor="fifth-edition-appearance-age" className="block text-xs font-semibold text-ink-secondary mb-1">Age</label>
+            <label htmlFor="fifth-edition-appearance-age" className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5e.age')}</label>
             <input
               id="fifth-edition-appearance-age"
               maxLength={SHEET_SHORT_TEXT_MAX}
@@ -3164,31 +3154,31 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             />
           </div>
           <div>
-            <label htmlFor="fifth-edition-appearance-height" className="block text-xs font-semibold text-ink-secondary mb-1">Height</label>
+            <label htmlFor="fifth-edition-appearance-height" className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5e.height')}</label>
             <input
               id="fifth-edition-appearance-height"
               maxLength={SHEET_SHORT_TEXT_MAX}
               type="text"
               value={formData.appearance?.height || ''}
               onChange={(e) => updateField('appearance.height', e.target.value)}
-              placeholder="e.g., 5'7&quot;"
+              placeholder={t('sheet5eEditor.heightPlaceholder')}
               className="w-full px-2 py-1 border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
             />
           </div>
           <div>
-            <label htmlFor="fifth-edition-appearance-weight" className="block text-xs font-semibold text-ink-secondary mb-1">Weight</label>
+            <label htmlFor="fifth-edition-appearance-weight" className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5e.weight')}</label>
             <input
               id="fifth-edition-appearance-weight"
               maxLength={SHEET_SHORT_TEXT_MAX}
               type="text"
               value={formData.appearance?.weight || ''}
               onChange={(e) => updateField('appearance.weight', e.target.value)}
-              placeholder="e.g., 130 lbs"
+              placeholder={t('sheet5eEditor.weightPlaceholder')}
               className="w-full px-2 py-1 border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
             />
           </div>
           <div>
-            <label htmlFor="fifth-edition-appearance-eyes" className="block text-xs font-semibold text-ink-secondary mb-1">Eyes</label>
+            <label htmlFor="fifth-edition-appearance-eyes" className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5e.eyes')}</label>
             <input
               id="fifth-edition-appearance-eyes"
               maxLength={SHEET_SHORT_TEXT_MAX}
@@ -3199,7 +3189,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             />
           </div>
           <div>
-            <label htmlFor="fifth-edition-appearance-skin" className="block text-xs font-semibold text-ink-secondary mb-1">Skin</label>
+            <label htmlFor="fifth-edition-appearance-skin" className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5e.skin')}</label>
             <input
               id="fifth-edition-appearance-skin"
               maxLength={SHEET_SHORT_TEXT_MAX}
@@ -3210,7 +3200,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
             />
           </div>
           <div>
-            <label htmlFor="fifth-edition-appearance-hair" className="block text-xs font-semibold text-ink-secondary mb-1">Hair</label>
+            <label htmlFor="fifth-edition-appearance-hair" className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5e.hair')}</label>
             <input
               id="fifth-edition-appearance-hair"
               maxLength={SHEET_SHORT_TEXT_MAX}
@@ -3225,48 +3215,48 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
 
       {/* Personality */}
       <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-3">Personality</h3>
+        <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.personality')}</h3>
         <div className="space-y-3">
           <div>
-            <label htmlFor="fifth-edition-personality-traits" className="block text-sm font-semibold text-ink-secondary mb-1">Personality Traits</label>
+            <label htmlFor="fifth-edition-personality-traits" className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.personalityTraits')}</label>
             <textarea
               id="fifth-edition-personality-traits"
               value={formData.personality?.traits || ''}
               onChange={(e) => updateField('personality.traits', e.target.value)}
-              placeholder="Describe your character's personality traits..."
+              placeholder={t('sheet5eEditor.traitsPlaceholder')}
               rows={2}
               className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
             />
           </div>
           <div>
-            <label htmlFor="fifth-edition-personality-ideals" className="block text-sm font-semibold text-ink-secondary mb-1">Ideals</label>
+            <label htmlFor="fifth-edition-personality-ideals" className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5e.ideals')}</label>
             <textarea
               id="fifth-edition-personality-ideals"
               value={formData.personality?.ideals || ''}
               onChange={(e) => updateField('personality.ideals', e.target.value)}
-              placeholder="What drives your character? What do they believe in?"
+              placeholder={t('sheet5eEditor.idealsPlaceholder')}
               rows={2}
               className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
             />
           </div>
           <div>
-            <label htmlFor="fifth-edition-personality-bonds" className="block text-sm font-semibold text-ink-secondary mb-1">Bonds</label>
+            <label htmlFor="fifth-edition-personality-bonds" className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5e.bonds')}</label>
             <textarea
               id="fifth-edition-personality-bonds"
               value={formData.personality?.bonds || ''}
               onChange={(e) => updateField('personality.bonds', e.target.value)}
-              placeholder="What connections does your character have?"
+              placeholder={t('sheet5eEditor.bondsPlaceholder')}
               rows={2}
               className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
             />
           </div>
           <div>
-            <label htmlFor="fifth-edition-personality-flaws" className="block text-sm font-semibold text-ink-secondary mb-1">Flaws</label>
+            <label htmlFor="fifth-edition-personality-flaws" className="block text-sm font-semibold text-ink-secondary mb-1">{t('sheet5e.flaws')}</label>
             <textarea
               id="fifth-edition-personality-flaws"
               value={formData.personality?.flaws || ''}
               onChange={(e) => updateField('personality.flaws', e.target.value)}
-              placeholder="What are your character's weaknesses or flaws?"
+              placeholder={t('sheet5eEditor.flawsPlaceholder')}
               rows={2}
               className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
             />
@@ -3277,13 +3267,13 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       {/* Backstory */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
         <h3 className="text-lg font-semibold text-ink mb-3">
-          <label htmlFor="fifth-edition-backstory">Backstory</label>
+          <label htmlFor="fifth-edition-backstory">{t('sheet5e.backstory')}</label>
         </h3>
         <textarea
           id="fifth-edition-backstory"
           value={formData.backstory || ''}
           onChange={(e) => updateField('backstory', e.target.value)}
-          placeholder="Tell your character's story..."
+          placeholder={t('sheet5eEditor.backstoryPlaceholder')}
           rows={6}
           className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
         />
@@ -3291,26 +3281,26 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
 
       {/* Allies & Organizations */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-ink mb-3">Allies & Organizations</h3>
+        <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.alliesAndOrganizations')}</h3>
         <div className="space-y-2">
           <div>
-            <label htmlFor="fifth-edition-allies-name" className="block text-xs font-semibold text-ink-secondary mb-1">Name</label>
+            <label htmlFor="fifth-edition-allies-name" className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.name')}</label>
             <input
               id="fifth-edition-allies-name"
               type="text"
               value={formData.alliesAndOrganizations?.name || ''}
               onChange={(e) => updateField('alliesAndOrganizations.name', e.target.value)}
-              placeholder="e.g., The Riverside Guild"
+              placeholder={t('sheet5eEditor.alliesNamePlaceholder')}
               className="w-full px-2 py-1 border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
             />
           </div>
           <div>
-            <label htmlFor="fifth-edition-allies-description" className="block text-xs font-semibold text-ink-secondary mb-1">Description</label>
+            <label htmlFor="fifth-edition-allies-description" className="block text-xs font-semibold text-ink-secondary mb-1">{t('sheet5eEditor.description')}</label>
             <textarea
               id="fifth-edition-allies-description"
               value={formData.alliesAndOrganizations?.description || ''}
               onChange={(e) => updateField('alliesAndOrganizations.description', e.target.value)}
-              placeholder="Describe your allies and organizations..."
+              placeholder={t('sheet5eEditor.alliesDescriptionPlaceholder')}
               rows={3}
               className="w-full px-2 py-1 border border-ink/20 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-brand"
             />
@@ -3321,13 +3311,13 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       {/* Treasure */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
         <h3 className="text-lg font-semibold text-ink mb-3">
-          <label htmlFor="fifth-edition-treasure">Treasure & Other Notes</label>
+          <label htmlFor="fifth-edition-treasure">{t('sheet5eEditor.treasureHeading')}</label>
         </h3>
         <textarea
           id="fifth-edition-treasure"
           value={formData.treasure || ''}
           onChange={(e) => updateField('treasure', e.target.value)}
-          placeholder="Special items, treasure, or other important notes..."
+          placeholder={t('sheet5eEditor.treasurePlaceholder')}
           rows={4}
           className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
         />
@@ -3346,10 +3336,10 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       onPointerDownCapture={noteInteraction}
     >
       {renderHeader()}
-      <SheetTabs id={sheetTabsId} tabs={TABS} active={activeTab} onSelect={setActiveTab} underline={isCustomColor ? customColorHex : selectedColor.hex} />
+      <SheetTabs id={sheetTabsId} tabs={TABS.map((tab) => ({ ...tab, label: t(`sheet5e.tabs.${tab.id}`) }))} active={activeTab} onSelect={setActiveTab} underline={isCustomColor ? customColorHex : selectedColor.hex} />
       {refusals.length > 0 && (
         <div role="alert" className="mx-3 sm:mx-6 mt-4 px-3 py-2 text-sm text-danger-ink bg-danger/10 border border-danger/30 rounded-lg">
-          <p className="font-semibold">This sheet can&apos;t be saved yet:</p>
+          <p className="font-semibold">{t('sheet5eEditor.cantSave')}</p>
           <ul className="list-disc pl-5">
             {refusals.map((message) => (
               <li key={message}>{message}</li>
@@ -3359,8 +3349,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
       )}
       {broughtWithinRange.length > 0 && (
         <p role="status" className="mx-3 sm:mx-6 mt-4 px-3 py-2 text-sm text-warning-ink bg-warning/10 border border-warning/30 rounded-lg">
-          Some numbers were outside what a sheet can store and now show within it:{' '}
-          {broughtWithinRange.join(', ')}. Saving keeps the new values.
+          {t('sheet5eEditor.outOfRange', { changes: broughtWithinRange.join(', ') })}
         </p>
       )}
       <div data-sheet-body {...sheetTabPanel(sheetTabsId, activeTab)} className="p-3 sm:p-6">

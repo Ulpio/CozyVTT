@@ -26,7 +26,7 @@ export const SWEEP_EVERY_MS = 60_000;
 export const STORE_CHECK_EVERY = 5;
 
 /** What a socket is told when its session has ended some other way than the limit. */
-export const SIGN_IN_ENDED_MESSAGE = 'Your sign-in has ended. Sign in again.';
+export const SIGN_IN_ENDED_MESSAGE = 'Sua sessão foi encerrada. Entre de novo.';
 
 /**
  * One sweep over the sockets on this instance. `checkStore` reads each

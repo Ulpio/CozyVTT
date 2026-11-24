@@ -21,16 +21,17 @@
 
 import { Ghost, Grid3x3, Maximize2, Paintbrush, Palette, Ruler, Wrench, Zap } from 'lucide-react';
 import type { MenuAction, MenuItem } from '@/components/ui/menu';
+import i18n from '@/i18n';
 
 export type GridColor = 'black' | 'white';
 export type RulerColor = 'amber' | 'purple' | 'black';
 
 /** The grid colour button's name and tooltip: the colour it shows now. */
-export const gridColorLabel = (color: GridColor) => `Grid Color: ${color === 'black' ? 'Black' : 'White'}`;
+export const gridColorLabel = (color: GridColor) => i18n.t('mapControls.gridColor', { color: i18n.t(`mapControls.colors.${color}`) });
 
 /** The ruler colour button's name and tooltip: the colour it shows now. */
 export const rulerColorLabel = (color: RulerColor) =>
-  `Ruler color: ${color === 'amber' ? 'Amber' : color === 'purple' ? 'Purple' : 'Black'}`;
+  i18n.t('mapControls.rulerColor', { color: i18n.t(`mapControls.colors.${color}`) });
 
 /** What the viewer sees of the map's controls now. */
 export interface MapControlsView {
@@ -70,38 +71,44 @@ const row = (id: string, label: string, icon: MenuAction['icon'], run: () => voi
 /** The rows of the Map controls sheet, in order, for what the viewer sees now. */
 export function mapControlItems(view: MapControlsView, actions: MapControlsActions): MenuItem[] {
   const items: MenuItem[] = [
-    row('fit', 'Fit to Screen', Maximize2, actions.fit),
-    row('grid', view.showGrid ? 'Hide grid' : 'Show grid', Grid3x3, actions.toggleGrid),
+    row('fit', i18n.t('mapControls.fit'), Maximize2, actions.fit),
+    row('grid', view.showGrid ? i18n.t('mapControls.hideGrid') : i18n.t('mapControls.showGrid'), Grid3x3, actions.toggleGrid),
   ];
   if (view.showGrid) items.push(row('grid-color', gridColorLabel(view.gridColor), Palette, actions.nextGridColor, { keepsOpen: true }));
 
   if (view.hasMap) {
     items.push({ kind: 'separator', id: 'measuring' });
-    items.push(row('ruler', view.showRuler ? 'Put the ruler away' : 'Ruler', Ruler, actions.toggleRuler, { title: 'Measure distance' }));
+    items.push(row('ruler', view.showRuler ? i18n.t('mapControls.putRulerAway') : i18n.t('mapControls.ruler'), Ruler, actions.toggleRuler, { title: i18n.t('mapControls.measure') }));
     if (view.showRuler) items.push(row('ruler-color', rulerColorLabel(view.rulerColor), Palette, actions.nextRulerColor, { keepsOpen: true }));
-    items.push(row('aoe', view.showAoE ? 'Put the AoE shape away' : 'AoE Shape', Zap, actions.toggleAoE, { title: 'Area of effect overlay' }));
+    items.push(row('aoe', view.showAoE ? i18n.t('mapControls.putAoeAway') : i18n.t('mapControls.aoe'), Zap, actions.toggleAoE, { title: i18n.t('mapControls.aoeHint') }));
   }
 
   if (view.isGM) {
     items.push({ kind: 'separator', id: 'gm' });
     if (view.hasMap && view.paint) {
-      items.push(row('paint', view.paint === 'on' ? 'Put Mapmaker away' : 'Mapmaker', Paintbrush, actions.togglePaint, { title: 'Draw on the map\'s picture, on your screen until it is saved' }));
+      items.push(row('paint', view.paint === 'on' ? i18n.t('mapControls.putMapmakerAway') : i18n.t('mapControls.mapmaker'), Paintbrush, actions.togglePaint, { title: i18n.t('mapControls.mapmakerHint') }));
     }
     // The stack is drawn only on a map.
-    if (view.hasMap) items.push(row('tools', view.toolsShown ? 'Hide tools' : 'Show tools', Wrench, actions.toggleTools, { title: 'Fog, Walls and Lights' }));
-    items.push(row('spirit-tokens', view.spiritTokensShown ? 'Hide spirit tokens' : 'Show spirit tokens', Ghost, actions.toggleSpiritTokens, { tone: 'spirit' }));
+    if (view.hasMap) items.push(row('tools', view.toolsShown ? i18n.t('mapControls.hideTools') : i18n.t('mapControls.showTools'), Wrench, actions.toggleTools, { title: i18n.t('mapControls.toolsHint') }));
+    items.push(row('spirit-tokens', view.spiritTokensShown ? i18n.t('mapControls.hideSpirit') : i18n.t('mapControls.showSpirit'), Ghost, actions.toggleSpiritTokens, { tone: 'spirit' }));
   }
   return items;
 }
 
-/** What each row is about, as Map controls' tooltip names it; the colours' rows go with theirs. */
-const TOPICS: Record<string, string> = {
-  fit: 'fit', grid: 'grid', ruler: 'ruler', aoe: 'AoE shape', paint: 'Mapmaker', tools: 'tools', 'spirit-tokens': 'spirit tokens',
-};
+/**
+ * The rows Map controls' tooltip names, by id; the name is the locale's
+ * `mapControls.topics.<id>`, so it follows the app's language. The colours'
+ * rows go with theirs.
+ */
+const TOPIC_IDS = ['fit', 'grid', 'ruler', 'aoe', 'paint', 'tools', 'spirit-tokens'] as const;
+type TopicId = (typeof TOPIC_IDS)[number];
+const isTopic = (id: string): id is TopicId => (TOPIC_IDS as readonly string[]).includes(id);
 
 /** Map controls' tooltip: what its rows are about, in their order. */
 export function mapControlsTitle(items: MenuItem[]): string {
-  const topics = items.flatMap((item) => (item.kind === 'command' && TOPICS[item.id] ? [TOPICS[item.id]] : []));
-  const list = topics.length > 1 ? `${topics.slice(0, -1).join(', ')} and ${topics[topics.length - 1]}` : topics.join('');
-  return `Map controls: ${list}`;
+  const topics = items.flatMap((item) => (item.kind === 'command' && isTopic(item.id) ? [i18n.t(`mapControls.topics.${item.id}`)] : []));
+  const list = topics.length > 1
+    ? i18n.t('mapControls.and', { head: topics.slice(0, -1).join(', '), last: topics[topics.length - 1] })
+    : topics.join('');
+  return i18n.t('mapControls.title', { list });
 }

@@ -37,7 +37,7 @@ export const ARMOUR_IN_COMBAT = 'Leva minutos para vestir ou tirar armadura.';
 export const NO_PACK_CONTENTS = 'Esse pacote não tem conteúdo conhecido.';
 export const ITEM_NOT_FOUND = 'Item não encontrado.';
 export const WRONG_SLOT = 'Esse item não vai nesse espaço.';
-const NOT_FOUND_CHARACTER = 'Character not found';
+const NOT_FOUND_CHARACTER = 'Personagem não encontrado.';
 const NOT_FIFTH_EDITION = 'Só fichas de D&D 5e têm inventário com espaços.';
 
 /** The entry types an inventory item can point at, in the order a slug shared by two is read. */

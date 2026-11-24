@@ -1,6 +1,8 @@
 import { useState, KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import { diceExpressionProblem } from '@/utils/diceExpression';
+import { customRollPurpose } from '@/utils/rollText';
 
 interface CustomRollFooterProps {
   /**
@@ -24,6 +26,7 @@ interface CustomRollFooterProps {
  * rather than their character's.
  */
 export default function CustomRollFooter({ onRoll, compact = false }: CustomRollFooterProps) {
+  const { t } = useTranslation();
   const tall = compact ? ' min-h-11' : '';
   const [expression, setExpression] = useState('');
   const [label, setLabel] = useState('');
@@ -31,10 +34,10 @@ export default function CustomRollFooter({ onRoll, compact = false }: CustomRoll
 
   const submit = () => {
     const expr = expression.trim();
-    if (!expr) { setError('Enter a dice expression'); return; }
+    if (!expr) { setError(t('rollPicker.enterExpression')); return; }
     const problem = diceExpressionProblem(expr);
     if (problem) { setError(problem); return; }
-    onRoll(expr, label.trim() || 'Custom Roll');
+    onRoll(expr, label.trim() || customRollPurpose());
   };
 
   const onEnter = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -45,7 +48,7 @@ export default function CustomRollFooter({ onRoll, compact = false }: CustomRoll
   return (
     <div className="shrink-0 border-t border-moss-green/20 bg-parchment/30 px-3 py-2 space-y-1.5">
       <div className="text-xs font-semibold uppercase tracking-wider text-warm-gray">
-        Custom Roll
+        {t('rollPicker.customRoll')}
       </div>
       <div className="flex gap-1.5">
         <input
@@ -53,15 +56,15 @@ export default function CustomRollFooter({ onRoll, compact = false }: CustomRoll
           value={expression}
           onChange={(e) => { setExpression(e.target.value); setError(null); }}
           onKeyDown={onEnter}
-          placeholder="e.g. 2d6+3"
+          placeholder={t('rollPicker.expressionPlaceholder')}
           className={`input-cozy flex-1 text-xs py-1${tall}`}
         />
         <button
           onClick={submit}
           className={`flex items-center gap-1 px-2 py-1 text-xs rounded-cozy bg-moss-green/10 text-brand-ink border border-moss-green/30 hover:bg-moss-green/15 transition-colors${tall}`}
-          title="Roll"
+          title={t('rollPicker.roll')}
         >
-          <Plus className="w-3 h-3" /> Roll
+          <Plus className="w-3 h-3" /> {t('rollPicker.roll')}
         </button>
       </div>
       <input
@@ -69,7 +72,7 @@ export default function CustomRollFooter({ onRoll, compact = false }: CustomRoll
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         onKeyDown={onEnter}
-        placeholder="Label (optional, e.g. Fireball Damage)"
+        placeholder={t('rollPicker.labelPlaceholder')}
         className={`input-cozy w-full text-xs py-1${tall}`}
       />
       {error && <div className="text-[10px] text-danger-ink">{error}</div>}

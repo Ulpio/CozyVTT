@@ -13,10 +13,10 @@
 // ============================================
 
 import type { ReactNode, Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, PauseCircle } from 'lucide-react';
 import ConnectionStatus from '@/components/ConnectionStatus';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-import { SESSION_STATUS_LABELS } from '@/components/campaign/sessionStatus';
 import { CampaignStatus } from '@/types';
 import type { Campaign } from '@/types';
 import { cn } from '@/utils/cn';
@@ -31,8 +31,9 @@ export interface CompactHeaderProps {
 
 /** The session's state, as a chip, or a dot beside the bar's buttons. */
 function SessionState({ status, small }: { status: Campaign['status']; small: boolean }) {
-  const label = SESSION_STATUS_LABELS[status];
-  if (!label) return null;
+  const { t } = useTranslation();
+  if (status !== CampaignStatus.ACTIVE && status !== CampaignStatus.PAUSED && status !== CampaignStatus.INACTIVE) return null;
+  const label = t(`session.status.${status}`);
   const looks =
     status === CampaignStatus.ACTIVE
       ? { chip: 'bg-success/10 text-success-ink', dot: 'bg-success' }
@@ -57,6 +58,7 @@ function SessionState({ status, small }: { status: Campaign['status']; small: bo
 }
 
 export default function CompactHeader({ campaign, bar, ref }: CompactHeaderProps) {
+  const { t } = useTranslation();
   const leavePage = useLeavePage();
   const { status } = useWebSocket();
 
@@ -74,8 +76,8 @@ export default function CompactHeader({ campaign, bar, ref }: CompactHeaderProps
         // and in place of an open sheet's history entry, so Back from the
         // dashboard comes straight back here (useLeavePage).
         onClick={() => leavePage('/dashboard')}
-        aria-label="Back to the dashboard"
-        title="Dashboard"
+        aria-label={t('compact.backToDashboard')}
+        title={t('session.back')}
         className="inline-flex size-11 shrink-0 items-center justify-center rounded-cozy text-ink transition-colors hover:bg-ink/10 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand"
       >
         <ChevronLeft className="h-5.5 w-5.5" aria-hidden="true" />

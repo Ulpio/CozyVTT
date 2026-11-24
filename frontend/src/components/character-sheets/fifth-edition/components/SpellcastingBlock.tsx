@@ -8,6 +8,8 @@ import React from 'react';
 import { Sparkles, Circle, CircleDot, BookOpen, Zap } from 'lucide-react';
 import { fifthEditionSpellSaveDC, fifthEditionSpellAttackBonus } from '@/utils/rules/fifthEdition';
 import { SPELL_SLOTS_MAX } from '@/constants/sheetLimits';
+import { useTranslation } from 'react-i18next';
+import { sheetWord } from '../sheetWords';
 
 import type {
   FifthEditionSpellcasting as Spellcasting,
@@ -67,6 +69,7 @@ function readSlot(value: unknown): SpellSlot | null {
  * SpellRow - Single spell display
  */
 const SpellRow: React.FC<{ spell: Spell }> = ({ spell }) => {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between py-1 px-2 hover:bg-ink/5 rounded-sm">
       <div className="flex items-center space-x-2">
@@ -80,12 +83,12 @@ const SpellRow: React.FC<{ spell: Spell }> = ({ spell }) => {
         </span>
         {spell.ritual && (
           <span className="px-1.5 py-0.5 text-xs bg-spirit/15 text-spirit-ink rounded-sm">
-            R
+            {t('sheet5e.ritualMark')}
           </span>
         )}
         {spell.concentration && (
           <span className="px-1.5 py-0.5 text-xs bg-warning/15 text-warning-ink rounded-sm">
-            C
+            {t('sheet5e.concentrationMark')}
           </span>
         )}
       </div>
@@ -100,6 +103,7 @@ export const SpellcastingBlock: React.FC<SpellcastingBlockProps> = ({
   spellcasting,
   character,
 }) => {
+  const { t, i18n } = useTranslation();
   const formatBonus = (bonus: number): string => {
     return bonus >= 0 ? `+${bonus}` : `${bonus}`;
   };
@@ -140,20 +144,20 @@ export const SpellcastingBlock: React.FC<SpellcastingBlockProps> = ({
             {/* Without a class recorded this used to render " Spellcasting"
                 with a leading gap — or, from the templates, "Wizard" on a sheet
                 belonging to anything but a wizard. */}
-            {spellcasting.class ? `${spellcasting.class} Spellcasting` : 'Spellcasting'}
+            {spellcasting.class ? t('sheet5e.classSpellcasting', { class: spellcasting.class }) : t('sheet5e.spellcasting')}
           </h4>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
           <div>
-            <div className="text-xs text-ink-muted">Spellcasting Ability</div>
-            <div className="text-lg font-bold text-info-ink">{spellcasting.ability}</div>
+            <div className="text-xs text-ink-muted">{t('sheet5e.spellcastingAbility')}</div>
+            <div className="text-lg font-bold text-info-ink">{sheetWord(i18n, 'abilities', spellcasting.ability ?? '')}</div>
           </div>
           <div>
-            <div className="text-xs text-ink-muted">Spell Save DC</div>
+            <div className="text-xs text-ink-muted">{t('sheet5e.spellSaveDc')}</div>
             <div className="text-lg font-bold text-info-ink">{saveDC}</div>
           </div>
           <div>
-            <div className="text-xs text-ink-muted">Spell Attack</div>
+            <div className="text-xs text-ink-muted">{t('sheet5e.spellAttack')}</div>
             <div className="text-lg font-bold text-info-ink">
               {formatBonus(attackBonus)}
             </div>
@@ -166,7 +170,7 @@ export const SpellcastingBlock: React.FC<SpellcastingBlockProps> = ({
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
           <div className="flex items-center space-x-2 mb-2">
             <Zap className="w-4 h-4 text-warning-ink" />
-            <h5 className="font-semibold text-ink">Cantrips</h5>
+            <h5 className="font-semibold text-ink">{t('sheet5e.cantrips')}</h5>
           </div>
           <div className="flex flex-wrap gap-2">
             {cantrips.map((cantrip, idx) => (
@@ -183,11 +187,11 @@ export const SpellcastingBlock: React.FC<SpellcastingBlockProps> = ({
 
       {/* Spell Slots */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-        <h5 className="font-semibold text-ink mb-3">Spell Slots</h5>
+        <h5 className="font-semibold text-ink mb-3">{t('sheet5e.spellSlots')}</h5>
         <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
           {slots.map(([level, slot]) => (
             <div key={level} className="text-center">
-              <div className="text-xs text-ink-muted mb-1">Level {level}</div>
+              <div className="text-xs text-ink-muted mb-1">{t('sheet5e.level', { level })}</div>
               <SpellSlotIndicator slot={slot} />
             </div>
           ))}
@@ -197,7 +201,7 @@ export const SpellcastingBlock: React.FC<SpellcastingBlockProps> = ({
       {/* Spells by Level */}
       <div className="bg-ink/5 border border-ink/10 rounded-lg overflow-hidden">
         <div className="p-3 bg-ink/10 border-b border-ink/10">
-          <h5 className="font-semibold text-ink">Spell List</h5>
+          <h5 className="font-semibold text-ink">{t('sheet5e.spellList')}</h5>
         </div>
         <div className="divide-y divide-ink/10">
           {Object.keys(spellsByLevel)
@@ -206,7 +210,7 @@ export const SpellcastingBlock: React.FC<SpellcastingBlockProps> = ({
             .map((level) => (
               <div key={level} className="p-3">
                 <h6 className="text-sm font-semibold text-ink-secondary mb-2">
-                  {level === 0 ? 'Cantrips' : `Level ${level}`}
+                  {level === 0 ? t('sheet5e.cantrips') : t('sheet5e.level', { level })}
                 </h6>
                 <div className="space-y-1">
                   {spellsByLevel[level].map((spell, idx) => (
@@ -222,15 +226,15 @@ export const SpellcastingBlock: React.FC<SpellcastingBlockProps> = ({
       <div className="text-xs text-ink-secondary space-y-1 px-2">
         <div className="flex items-center space-x-2">
           <BookOpen className="w-3 h-3 text-info-ink" />
-          <span>Prepared spell</span>
+          <span>{t('sheet5e.preparedSpell')}</span>
         </div>
         <div className="flex items-center space-x-2">
-          <span className="px-1.5 py-0.5 bg-spirit/15 text-spirit-ink rounded-sm">R</span>
-          <span>Ritual</span>
+          <span className="px-1.5 py-0.5 bg-spirit/15 text-spirit-ink rounded-sm">{t('sheet5e.ritualMark')}</span>
+          <span>{t('sheet5e.ritual')}</span>
         </div>
         <div className="flex items-center space-x-2">
-          <span className="px-1.5 py-0.5 bg-warning/15 text-warning-ink rounded-sm">C</span>
-          <span>Concentration</span>
+          <span className="px-1.5 py-0.5 bg-warning/15 text-warning-ink rounded-sm">{t('sheet5e.concentrationMark')}</span>
+          <span>{t('sheet5e.concentration')}</span>
         </div>
       </div>
     </div>

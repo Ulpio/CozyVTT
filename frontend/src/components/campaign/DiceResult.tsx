@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Dices, User, Target } from 'lucide-react';
 import type { DiceRollDetail, DiceRolledEvent } from '@/types';
 import { cn } from '@/utils/cn';
+import { useTranslation } from 'react-i18next';
 
 interface DiceResultProps {
   roll: DiceRolledEvent;
@@ -21,6 +22,7 @@ interface DiceResultProps {
  * Display a single dice roll result with breakdown and animations
  */
 export default function DiceResult({ roll, isCurrentUser, rollerIsGM, dense = false }: DiceResultProps) {
+  const { t, i18n } = useTranslation();
   const { userName, characterName, expression, result, breakdown, purpose, timestamp, secret } = roll;
 
   /**
@@ -33,20 +35,20 @@ export default function DiceResult({ roll, isCurrentUser, rollerIsGM, dense = fa
    * that answers "who is this roll for?" first.
    */
   // A deleted account's rolls stay in the history with no one attached.
-  const roller = userName ?? 'a deleted account';
-  const subject = characterName || userName || 'A deleted account';
+  const roller = userName ?? t('diceResult.deletedAccount');
+  const subject = characterName || userName || t('diceResult.deletedAccountCap');
   const attribution = characterName
     // Once the heading is a character, "(You)" would read as *being* them, so
     // the tag names the action instead: who pressed the button, not who it is.
     ? isCurrentUser
-      ? '(you rolled)'
+      ? t('diceResult.youRolled')
       : rollerIsGM
-        ? '(GM rolled)'
-        : `(rolled by ${roller})`
+        ? t('diceResult.gmRolled')
+        : t('diceResult.rolledBy', { name: roller })
     // A plain dice-panel roll still heads with the person, where "(You)" is
     // about identity and reads correctly.
     : isCurrentUser
-      ? '(You)'
+      ? t('diceResult.you')
       : null;
 
   /**
@@ -100,9 +102,9 @@ export default function DiceResult({ roll, isCurrentUser, rollerIsGM, dense = fa
   // players, when you are the GM, who has no GM to see it), and the one you
   // are reading as GM is somebody else's.
   const secretTitle = isCurrentUser
-    ? rollerIsGM ? 'Hidden from the players' : 'Hidden from the other players — your GM can still see it'
-    : 'A player rolled this secretly; you see it as GM';
-  const secretWhose = isCurrentUser ? '' : ' (GM view)';
+    ? rollerIsGM ? t('diceResult.hiddenFromPlayers') : t('diceResult.hiddenFromOthers')
+    : t('diceResult.secretByPlayer');
+  const secretWhose = isCurrentUser ? '' : t('diceResult.gmView');
 
   // Format timestamp
   const formatTimestamp = (ts: string) => {
@@ -112,10 +114,10 @@ export default function DiceResult({ roll, isCurrentUser, rollerIsGM, dense = fa
     const diffSecs = Math.floor(diffMs / 1000);
     const diffMins = Math.floor(diffSecs / 60);
 
-    if (diffSecs < 10) return 'just now';
-    if (diffSecs < 60) return `${diffSecs}s ago`;
-    if (diffMins < 60) return `${diffMins}m ago`;
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (diffSecs < 10) return t('diceResult.justNow');
+    if (diffSecs < 60) return t('diceResult.secondsAgo', { count: diffSecs });
+    if (diffMins < 60) return t('diceResult.minutesAgo', { count: diffMins });
+    return date.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
   };
 
   /**
@@ -127,8 +129,8 @@ export default function DiceResult({ roll, isCurrentUser, rollerIsGM, dense = fa
    */
   if (dense) {
     const crits = [
-      ...(isCriticalSuccess ? [{ shown: '🎉 Crit!', said: 'Critical success!', ink: 'text-success-ink' }] : []),
-      ...(isCriticalFail ? [{ shown: '💥 Fumble!', said: 'Critical fail!', ink: 'text-danger-ink' }] : []),
+      ...(isCriticalSuccess ? [{ shown: t('diceResult.crit'), said: t('diceResult.critSaid'), ink: 'text-success-ink' }] : []),
+      ...(isCriticalFail ? [{ shown: t('diceResult.fumble'), said: t('diceResult.fumbleSaid'), ink: 'text-danger-ink' }] : []),
     ];
     return (
       <motion.div
@@ -150,7 +152,7 @@ export default function DiceResult({ roll, isCurrentUser, rollerIsGM, dense = fa
             </span>
             {secret && (
               <span className="shrink-0 rounded-sm bg-ink/10 px-1 text-ink-muted" title={secretTitle}>
-                🔒 Secret
+                {t('diceResult.secretMark')}
                 {secretWhose && <span className="sr-only">{secretWhose}</span>}
               </span>
             )}
@@ -206,7 +208,7 @@ export default function DiceResult({ roll, isCurrentUser, rollerIsGM, dense = fa
                   className="ml-2 text-xs bg-ink/10 text-ink-muted px-2 py-0.5 rounded-sm"
                   title={secretTitle}
                 >
-                  🔒 Secret{secretWhose}
+                  {t('diceResult.secretMark')}{secretWhose}
                 </span>
               )}
             </span>
@@ -257,7 +259,7 @@ export default function DiceResult({ roll, isCurrentUser, rollerIsGM, dense = fa
           {/* Formula */}
           {breakdown?.formula && (
             <div className="font-mono">
-              <span className="opacity-60">Formula: </span>
+              <span className="opacity-60">{t('diceResult.formula')}</span>
               {breakdown.formula}
             </div>
           )}
@@ -323,8 +325,8 @@ export default function DiceResult({ roll, isCurrentUser, rollerIsGM, dense = fa
             ${isCriticalFail ? 'text-danger-ink border-danger/20' : ''}
           `}
         >
-          {isCriticalSuccess && '🎉 CRITICAL SUCCESS!'}
-          {isCriticalFail && '💥 CRITICAL FAIL!'}
+          {isCriticalSuccess && t('diceResult.critBanner')}
+          {isCriticalFail && t('diceResult.fumbleBanner')}
         </motion.div>
       )}
     </motion.div>

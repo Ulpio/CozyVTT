@@ -16,6 +16,7 @@ import request from 'supertest';
 import { createTestApp } from '../../__tests__/helpers/test-app';
 import { readTokens, toJson } from '../../utils/prisma-json';
 import { MAX_TEMPORARY_HIT_POINTS } from '../../utils/rules/hitPoints';
+import { GM_ONLY } from '../../services/gmNotice';
 import { prisma, createTestUser, createTestCampaign, cleanupUsers, cleanupCampaigns, TEST_PASSWORD } from '../../__tests__/helpers/db';
 
 const app = createTestApp();
@@ -81,7 +82,7 @@ describe("a creature token's temporary hit points", () => {
   it('are refused to a player, even the one the token names as its controller', async () => {
     const res = await player.put(tokenUrl()).send({ hp: hp(30) });
     expect(res.status).toBe(403);
-    expect(res.body.message).toBe('Only the GM can update token field: hp');
+    expect(res.body.message).toBe(GM_ONLY);
     expect((await storedHp())?.temp).not.toBe(30);
   });
 
@@ -98,6 +99,6 @@ describe("a creature token's layer", () => {
   it('is refused to the player who controls it, naming the GM', async () => {
     const res = await player.put(tokenUrl()).send({ layer: 'spirit' });
     expect(res.status).toBe(403);
-    expect(res.body.message).toBe('Only the GM can change token layer');
+    expect(res.body.message).toBe(GM_ONLY);
   });
 });

@@ -196,7 +196,7 @@ describe('a leave racing a hand-over', () => {
 
     expect(handover?.status).toBe(200);
     expect(leave.status).toBe(409);
-    expect(leave.body.message).toMatch(/Hand the GM seat/);
+    expect(leave.body.message).toMatch(/Passe o posto de mestre/);
     expect(await gms(t.campaignId)).toEqual([{ userId: t.bob.id }]);
   });
 });
@@ -220,7 +220,7 @@ describe('a leave racing a removal', () => {
 
     expect(removal?.status).toBe(200);
     expect(leave.status).toBe(403);
-    expect(leave.body.message).toBe('You are not a member of this campaign');
+    expect(leave.body.message).toBe('Você não é membro desta campanha.');
     expect(await gms(t.campaignId)).toEqual([{ userId: t.dan.id }]);
   });
 });

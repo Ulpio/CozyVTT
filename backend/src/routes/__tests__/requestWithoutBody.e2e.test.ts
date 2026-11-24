@@ -40,19 +40,19 @@ it('says a new map needs a name when a POST has no body', async () => {
   const res = await gm.post(`/api/campaigns/${campaignId}/maps`);
 
   expect(res.status).toBe(400);
-  expect(res.body.message).toBe('Map name is required');
+  expect(res.body.message).toBe('O nome do mapa é obrigatório.');
 });
 
 it('says the vibe settings are missing when a PUT has no body', async () => {
   const res = await gm.put(`/api/campaigns/${campaignId}/vibe`);
 
   expect(res.status).toBe(400);
-  expect(res.body.message).toBe('vibeSettings is required');
+  expect(res.body.message).toBe('As configurações de ambiente são obrigatórias.');
 });
 
 it('treats a body sent as something other than JSON as empty', async () => {
   const res = await gm.post(`/api/campaigns/${campaignId}/maps`).set('Content-Type', 'text/plain').send('name=Cellar');
 
   expect(res.status).toBe(400);
-  expect(res.body.message).toBe('Map name is required');
+  expect(res.body.message).toBe('O nome do mapa é obrigatório.');
 });

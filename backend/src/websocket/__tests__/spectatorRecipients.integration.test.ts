@@ -122,7 +122,7 @@ it("never tells a spectator a hidden creature's initiative roll", async () => {
   const quiet = expectNoEvent(spectator, 'dice.rolled', 800);
   const logged = waitForEvent<{ purpose: string }>(gm, 'dice.rolled');
   gm.emit('initiative.roll', { tokenId: HIDDEN, mapId });
-  expect((await logged).purpose).toMatch(/Initiative/);
+  expect((await logged).purpose).toMatch(/Iniciativa de/);
   await expect(quiet).resolves.toBeUndefined();
 });
 

@@ -75,7 +75,7 @@ describe('tokens per map', () => {
     const res = await add(mapId);
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/1,000 tokens/);
+    expect(res.body.message).toMatch(/1.000 tokens/);
     expect(await count(mapId)).toBe(1000);
   });
 
@@ -98,7 +98,7 @@ describe('tokens per map', () => {
       .send({ tokenIds: sourceTokens.slice(0, 3).map((t) => t.id), targetMapId: target });
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/1,000 tokens/);
+    expect(res.body.message).toMatch(/1.000 tokens/);
     expect(await count(source)).toBe(5);
     expect(await count(target)).toBe(998);
   });

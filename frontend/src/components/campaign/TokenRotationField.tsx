@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { facing } from '@/utils/tokenRotation';
 
 interface TokenRotationFieldProps {
@@ -16,6 +17,7 @@ interface TokenRotationFieldProps {
 }
 
 export default function TokenRotationField({ value, onCommit }: TokenRotationFieldProps) {
+  const { t } = useTranslation();
   const shown = facing(value);
   const [draft, setDraft] = useState(String(shown));
   useEffect(() => { setDraft(String(shown)); }, [shown]);
@@ -31,7 +33,7 @@ export default function TokenRotationField({ value, onCommit }: TokenRotationFie
   return (
     <div>
       <label className="text-xs text-stone-gray font-medium block mb-1">
-        Facing <span className="font-normal opacity-60">(degrees)</span>
+        {t('tokenFacing.label')} <span className="font-normal opacity-60">{t('tokenFacing.unit')}</span>
       </label>
       <input
         type="number"
@@ -40,11 +42,11 @@ export default function TokenRotationField({ value, onCommit }: TokenRotationFie
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
-        aria-label="Facing in degrees clockwise"
+        aria-label={t('tokenFacing.ariaLabel')}
         className="input-cozy input-cozy-number w-full text-sm"
       />
       <p className="text-[10px] text-stone-gray/60 mt-1">
-        Turns the token's picture clockwise: 0 is as uploaded, 90 a quarter turn right. Right-click the token on the map to turn it in steps of 45.
+        {t('tokenFacing.hint')}
       </p>
     </div>
   );

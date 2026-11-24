@@ -7,11 +7,12 @@
  * here. Anything else, from a bare `#` to five digits, is not a colour yet.
  */
 
+import i18n from '@/i18n';
 import { isHexColor } from './styleAllowlists';
 import { parseRgb, readableTextOn, relativeLuminance, toChannels } from './color';
 
 /** What the editors say when the hex box holds something that is not a colour. */
-export const HEX_COLOUR_HINT = 'Enter a colour as #rgb or #rrggbb';
+export const hexColourHint = (): string => i18n.t('sheetShared.hexHint');
 
 /** `value` as `#rrggbb`, or null when it is not a hex colour. */
 export function toStoredHexColor(value: string): string | null {

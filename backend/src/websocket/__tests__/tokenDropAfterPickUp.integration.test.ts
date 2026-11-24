@@ -136,8 +136,8 @@ describe('a drop sent right behind its pick-up', () => {
     await pause(300);
 
     expect(heard.filter((h) => h.event === 'error').map((h) => h.message)).toEqual([
-      'You do not have permission to move this token',
-      'You do not have permission to move this token',
+      'Você não tem permissão para mover este token.',
+      'Você não tem permissão para mover este token.',
     ]);
     expect(heard[heard.length - 1]).toEqual({ event: 'token.moved', tokenId: LANTERN, x: 1, y: 1, movedBy: null });
     expect(await storedAt(LANTERN)).toEqual({ x: 1, y: 1 });
@@ -169,7 +169,7 @@ describe('a drop sent right behind its pick-up', () => {
       { event: 'token.moved', tokenId: LANTERN, x: 1, y: 1, movedBy: null },
     ]);
     expect(moverHeard).toEqual([
-      { event: 'error', message: 'You do not have permission to move this token' },
+      { event: 'error', message: 'Você não tem permissão para mover este token.' },
       { event: 'token.moved', tokenId: LANTERN, x: 1, y: 1, movedBy: null },
     ]);
     expect(await storedAt(LANTERN)).toEqual({ x: 1, y: 1 });

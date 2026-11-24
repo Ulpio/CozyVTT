@@ -158,7 +158,7 @@ export const mapEditLimiter = new RateLimiter();   // Max MAP_EDITS_PER_SECOND w
 /** Wall and light edits one user may send a second, the eight edit events together. */
 export const MAP_EDITS_PER_SECOND = 40;
 /** What an edit past that ceiling is answered, when it came with an acknowledgement. */
-export const TOO_MANY_MAP_EDITS_MESSAGE = 'Too many wall and light edits at once. Wait a moment, then try again.';
+export const TOO_MANY_MAP_EDITS_MESSAGE = 'Muitas edições de parede e luz de uma vez. Espere um momento e tente de novo.';
 // Map pings are a deliberate human gesture, so the ceiling is low compared to
 // the drag/edit streams above. Over-limit pings are dropped silently — an error
 // toast for pressing the ping key too often is worse than nothing happening.
@@ -208,21 +208,21 @@ const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const tokenMoves: SocketCeiling = {
   windows: [{ limit: 30, windowMs: SECOND }],
-  refusal: 'Too many token moves at once. Wait a moment, then move it again.',
+  refusal: 'Muitos movimentos de token de uma vez. Espere um momento e mova de novo.',
 };
 /** The GM's events, each its own budget: a click apiece in the web client, a tool call apiece from the bridge. */
 const gmEvent = (what: string): SocketCeiling => ({
   windows: [{ limit: 50, windowMs: SECOND }],
-  refusal: `Too many ${what} at once. Wait a moment, then try again.`,
+  refusal: `${what} de uma vez. Espere um momento e tente de novo.`,
 });
 /** Clearing drawings: a click and a confirmation each. */
 const drawingClears: SocketCeiling = {
   windows: [{ limit: 5, windowMs: 10 * SECOND }],
-  refusal: 'Too many clears of the drawings at once. Wait a few seconds, then try again.',
+  refusal: 'Muitas limpezas de desenhos de uma vez. Espere alguns segundos e tente de novo.',
 };
-const atmosphere = gmEvent('atmosphere changes');
-const spiritLayer = gmEvent('spirit layer changes');
-const initiative = gmEvent('initiative changes');
+const atmosphere = gmEvent('Muitas mudanças de atmosfera');
+const spiritLayer = gmEvent('Muitas mudanças do plano espiritual');
+const initiative = gmEvent('Muitas mudanças de iniciativa');
 
 /**
  * Abuse ceilings on the events a member sends by hand, each its own budget
@@ -239,7 +239,7 @@ const initiative = gmEvent('initiative changes');
 export const SOCKET_CEILINGS = {
   'chat.message': {
     windows: [{ limit: 50, windowMs: SECOND }, { limit: 300, windowMs: MINUTE }],
-    refusal: 'Too many chat messages at once. Wait a few seconds, then send yours again.',
+    refusal: 'Muitas mensagens de uma vez. Espere alguns segundos e envie a sua de novo.',
   },
   // A player's initiative.roll counts against the same budget. The web
   // client's dice panel waits a short while after a refusal that starts
@@ -252,77 +252,77 @@ export const SOCKET_CEILINGS = {
   // lock; a list per token the bar opens.
   'action.list': {
     windows: [{ limit: 20, windowMs: SECOND }, { limit: 300, windowMs: MINUTE }],
-    refusal: 'Too many action requests at once. Wait a moment, then try again.',
+    refusal: 'Muitos pedidos de ação de uma vez. Espere um momento e tente de novo.',
   },
   'action.resolve': {
     windows: [{ limit: 10, windowMs: SECOND }, { limit: 200, windowMs: MINUTE }],
-    refusal: 'Too many actions at once. Wait a moment, then try again.',
+    refusal: 'Muitas ações de uma vez. Espere um momento e tente de novo.',
   },
   'action.undo': {
     windows: [{ limit: 10, windowMs: SECOND }],
-    refusal: 'Too many undo requests at once. Wait a moment, then try again.',
+    refusal: 'Muitos pedidos de desfazer de uma vez. Espere um momento e tente de novo.',
   },
   'action.concentration': {
     windows: [{ limit: 10, windowMs: SECOND }],
-    refusal: 'Too many concentration rolls at once. Wait a moment, then try again.',
+    refusal: 'Muitas rolagens de concentração de uma vez. Espere um momento e tente de novo.',
   },
   // A pending save is one click per target; the GM's "roll the rest" and a
   // per-target undo are writes under the map's lock like a resolve.
   'action.save': {
     windows: [{ limit: 10, windowMs: SECOND }, { limit: 200, windowMs: MINUTE }],
-    refusal: 'Too many saving throws at once. Wait a moment, then try again.',
+    refusal: 'Muitas salvaguardas de uma vez. Espere um momento e tente de novo.',
   },
   'action.saveRemaining': {
     windows: [{ limit: 10, windowMs: SECOND }, { limit: 200, windowMs: MINUTE }],
-    refusal: 'Too many saving throws at once. Wait a moment, then try again.',
+    refusal: 'Muitas salvaguardas de uma vez. Espere um momento e tente de novo.',
   },
   'action.undoTarget': {
     windows: [{ limit: 10, windowMs: SECOND }, { limit: 200, windowMs: MINUTE }],
-    refusal: 'Too many undo requests at once. Wait a moment, then try again.',
+    refusal: 'Muitos pedidos de desfazer de uma vez. Espere um momento e tente de novo.',
   },
   // Asked once per join and reconnect; a recharge is one click.
   'action.pendingSaves': {
     windows: [{ limit: 20, windowMs: SECOND }, { limit: 300, windowMs: MINUTE }],
-    refusal: 'Too many requests for pending saving throws at once. Wait a moment, then try again.',
+    refusal: 'Muitos pedidos de salvaguardas pendentes de uma vez. Espere um momento e tente de novo.',
   },
   'action.recharge': {
     windows: [{ limit: 20, windowMs: SECOND }, { limit: 300, windowMs: MINUTE }],
-    refusal: 'Too many recharge rolls at once. Wait a moment, then try again.',
+    refusal: 'Muitas rolagens de recarga de uma vez. Espere um momento e tente de novo.',
   },
   'action.rechargeReset': {
     windows: [{ limit: 20, windowMs: SECOND }, { limit: 300, windowMs: MINUTE }],
-    refusal: 'Too many recharge changes at once. Wait a moment, then try again.',
+    refusal: 'Muitas mudanças de recarga de uma vez. Espere um momento e tente de novo.',
   },
   'character.hp.update': {
     windows: [{ limit: 50, windowMs: SECOND }],
-    refusal: 'Too many hit point changes at once. Wait a moment, then try again.',
+    refusal: 'Muitas mudanças de pontos de vida de uma vez. Espere um momento e tente de novo.',
   },
   'character.hp.temporary': {
     windows: [{ limit: 20, windowMs: SECOND }],
-    refusal: 'Too many temporary hit point changes at once. Wait a moment, then try again.',
+    refusal: 'Muitas mudanças de PV temporários de uma vez. Espere um momento e tente de novo.',
   },
   'character.hitdice.spend': {
     windows: [{ limit: 50, windowMs: SECOND }],
-    refusal: 'Too many hit dice spent at once. Wait a moment, then try again.',
+    refusal: 'Muitos dados de vida gastos de uma vez. Espere um momento e tente de novo.',
   },
   // A rest is a write under the characters' row locks and the current map's.
   'character.rest': {
     windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
-    refusal: 'Too many rests at once. Wait a moment, then try again.',
+    refusal: 'Muitos descansos de uma vez. Espere um momento e tente de novo.',
   },
   // Each is a write under the character's row lock; a player swapping
   // weapons clicks two or three in a second at most.
   'character.equip': {
     windows: [{ limit: 15, windowMs: SECOND }, { limit: 300, windowMs: MINUTE }],
-    refusal: 'Too many equipment changes at once. Wait a moment, then try again.',
+    refusal: 'Muitas mudanças de equipamento de uma vez. Espere um momento e tente de novo.',
   },
   'character.pack.open': {
     windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
-    refusal: 'Too many packs opened at once. Wait a moment, then try again.',
+    refusal: 'Muitos pacotes abertos de uma vez. Espere um momento e tente de novo.',
   },
   'character.ammo.recover': {
     windows: [{ limit: 5, windowMs: SECOND }, { limit: 60, windowMs: MINUTE }],
-    refusal: 'Too many ammunition pick-ups at once. Wait a moment, then try again.',
+    refusal: 'Muitos recolhimentos de munição de uma vez. Espere um momento e tente de novo.',
   },
   // A write under the character's row and a stored chat message, and one a GM
   // does a few of in a row at most.
@@ -355,12 +355,12 @@ export const SOCKET_CEILINGS = {
   // restoring its tabs joins with all of them at once.
   authenticate: {
     windows: [{ limit: 50, windowMs: 10 * SECOND }],
-    refusal: 'Too many attempts to join a campaign at once. Wait a few seconds, then reload the page.',
+    refusal: 'Muitas tentativas de entrar na campanha de uma vez. Espere alguns segundos e recarregue a página.',
   },
   // The GM's. Any user can run a campaign of their own, so these are as open
   // to a script as the players' events. map.change is the costly one: the
   // whole map, rebuilt for and sent to every member.
-  'map.change': gmEvent('map updates'),
+  'map.change': gmEvent('Muitas atualizações de mapa'),
   'atmosphere.effect.set': atmosphere,
   'atmosphere.audio.set': atmosphere,
   'vibe.update': atmosphere,
@@ -377,17 +377,17 @@ export const SOCKET_CEILINGS = {
   'combat.restore': initiative,
   // The GM's own rolls; a player's count against their dice rolls.
   'initiative.roll': initiative,
-  'dice.clearHistory': gmEvent('requests to clear the dice log'),
-  'exploration:reset': gmEvent('explored-area resets'),
+  'dice.clearHistory': gmEvent('Muitos pedidos para limpar o histórico de dados'),
+  'exploration:reset': gmEvent('Muitas redefinições de áreas exploradas'),
   // Drawing on the map: one add per stroke, shape or label, which is a
   // write under the map's lock, and one remove per tap of the eraser.
   'drawing:add': {
     windows: [{ limit: 20, windowMs: SECOND }, { limit: 300, windowMs: MINUTE }],
-    refusal: 'Too many drawings at once. Wait a moment, then draw again.',
+    refusal: 'Muitos desenhos de uma vez. Espere um momento e desenhe de novo.',
   },
   'drawing:remove': {
     windows: [{ limit: 20, windowMs: SECOND }],
-    refusal: 'Too many drawings erased at once. Wait a moment, then try again.',
+    refusal: 'Muitos desenhos apagados de uma vez. Espere um momento e tente de novo.',
   },
   'drawing:clear_mine': drawingClears,
   'drawing:clear': drawingClears,
@@ -395,7 +395,7 @@ export const SOCKET_CEILINGS = {
   // sends; each is answered with a `pong` to the sender.
   ping: {
     windows: [{ limit: 10, windowMs: SECOND }],
-    refusal: 'Too many connection checks (ping) at once. Wait a moment, then try again.',
+    refusal: 'Muitas verificações de conexão (ping) de uma vez. Espere um momento e tente de novo.',
   },
 } satisfies Record<string, SocketCeiling>;
 
@@ -410,7 +410,7 @@ export type CeilingEvent = keyof typeof SOCKET_CEILINGS;
  */
 export const MAX_SOCKETS_PER_USER = 40;
 export const TOO_MANY_SOCKETS =
-  `Too many CozyVTT tabs or devices are open on this account at once (the most is ${MAX_SOCKETS_PER_USER}). Close one, then reload this page.`;
+  `Há abas ou dispositivos demais abertos de uma vez nesta conta (no máximo ${MAX_SOCKETS_PER_USER}). Feche um e recarregue esta página.`;
 
 /**
  * The most events one socket may send in a second, every event together.
@@ -433,7 +433,7 @@ export const REJOIN_EVENTS: ReadonlySet<string> = new Set([
 ]);
 /** What a socket past it is told, once in REFUSAL_NOTICE_MS. */
 export const TOO_MANY_SOCKET_EVENTS =
-  'Too many messages at once from this page, so some were dropped. Reload the page if the table stops keeping up.';
+  'Muitas mensagens de uma vez desta página, então algumas foram descartadas. Recarregue a página se a mesa não acompanhar.';
 
 /** One socket's events in the current second, for SOCKET_EVENTS_PER_SECOND. */
 export interface EventBudget {
@@ -506,10 +506,10 @@ setInterval(() => {
 export class FogTooLargeError extends Error {
   constructor(width: number, height: number) {
     super(
-      `This map is too big for fog of war and explored areas: it is ${width} by ${height} squares, ` +
-      `and they work on maps of up to ${MAX_FOG_CELLS.toLocaleString('en-US')} squares ` +
-      `(${MAP_LIMITS.maxSide} by ${MAP_LIMITS.maxSide}). ` +
-      `Make the map smaller in Edit Map to use them.`
+      `Este mapa é grande demais para a névoa e as áreas exploradas: tem ${width} por ${height} quadrados, ` +
+      `e elas funcionam em mapas de até ${MAX_FOG_CELLS.toLocaleString('pt-BR')} quadrados ` +
+      `(${MAP_LIMITS.maxSide} por ${MAP_LIMITS.maxSide}). ` +
+      `Diminua o mapa em Editar mapa para usá-las.`
     );
     this.name = 'FogTooLargeError';
   }

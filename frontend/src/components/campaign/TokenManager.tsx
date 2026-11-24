@@ -5,6 +5,7 @@
 
 import { DISPOSITION_PICKED } from '@/utils/tokenColours';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Swords,
   Loader2,
@@ -39,10 +40,10 @@ import { assetNameFrom } from '@/utils/assetName';
 // ============================================
 
 const SIZE_OPTIONS = [
-  { label: 'Small/Med', sublabel: '1×1', value: { width: 1, height: 1 } },
-  { label: 'Large',     sublabel: '2×2', value: { width: 2, height: 2 } },
-  { label: 'Huge',      sublabel: '3×3', value: { width: 3, height: 3 } },
-];
+  { labelKey: 'tokenManager.sizes.small', sublabel: '1×1', value: { width: 1, height: 1 } },
+  { labelKey: 'tokenManager.sizes.large', sublabel: '2×2', value: { width: 2, height: 2 } },
+  { labelKey: 'tokenManager.sizes.huge',  sublabel: '3×3', value: { width: 3, height: 3 } },
+] as const;
 
 // ============================================
 // Props
@@ -58,6 +59,7 @@ interface TokenManagerProps {
 // ============================================
 
 export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
+  const { t } = useTranslation();
   const { campaign, viewedMap } = useCampaign();
   // Manager lists tokens by name/flags — no need to re-render on moves.
   const tokens = useTokenListIgnoringMovement();
@@ -118,7 +120,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
   const players = campaign?.memberships?.filter((m) => m.role === 'PLAYER') ?? [];
   const characters = [...(campaign?.characters ?? [])].sort((a, b) => a.name.localeCompare(b.name));
   const ownerName = (userId: string) =>
-    campaign?.memberships?.find((m) => m.userId === userId)?.user?.displayName ?? 'unknown owner';
+    campaign?.memberships?.find((m) => m.userId === userId)?.user?.displayName ?? t('tokenManager.unknownOwner');
   const pickedCharacter = tokenType === TokenType.PLAYER ? characters.find((c) => c.id === characterId) : undefined;
 
   // Picking a character names the token after it, unless a name is typed or
@@ -168,11 +170,11 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
       setSelectedAsset(asset);
       setTokenName((prev) => prev || asset.name || baseName);
     } catch (err) {
-      setUploadError(apiErrorMessage(err) || 'Upload failed — check file type and size');
+      setUploadError(apiErrorMessage(err) || t('tokenManager.uploadFailed'));
     } finally {
       setIsUploading(false);
     }
-  }, [campaign]);
+  }, [campaign, t]);
 
   const handleAddToken = useCallback(async () => {
     if (!campaign || !viewedMap || !tokenName.trim()) return;
@@ -260,11 +262,11 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
       setSightRadius(0);
       setPlaceHidden(tokenType === TokenType.OBJECT);
     } catch (err) {
-      setError(apiErrorMessage(err) || 'Failed to add token to map');
+      setError(apiErrorMessage(err) || t('tokenManager.addFailed'));
     } finally {
       setIsAdding(false);
     }
-  }, [campaign, viewedMap, selectedAsset, pickedCharacter, tokenName, tokenSize, tokenLayer, assignTo, tokenType, displayMode, disposition, hpMax, tokenNotes, showHpBar, initiative, sightRadius, placeHidden]);
+  }, [campaign, viewedMap, selectedAsset, pickedCharacter, tokenName, tokenSize, tokenLayer, assignTo, tokenType, displayMode, disposition, hpMax, tokenNotes, showHpBar, initiative, sightRadius, placeHidden, t]);
 
   // ============================================
   // Token List Actions
@@ -276,7 +278,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
     try {
       await setTokenFlag(campaign.id, viewedMap.id, token, 'visible', !token.visible);
     } catch (err) {
-      setError(apiErrorMessage(err) || 'Failed to toggle token visibility');
+      setError(apiErrorMessage(err) || t('tokenManager.visibilityFailed'));
     } finally {
       setTogglingVisibilityId(null);
     }
@@ -288,7 +290,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
     try {
       await setTokenFlag(campaign.id, viewedMap.id, token, 'obscured', !token.obscured);
     } catch (err) {
-      setError(apiErrorMessage(err) || 'Failed to toggle token identity');
+      setError(apiErrorMessage(err) || t('tokenManager.identityFailed'));
     } finally {
       setTogglingVisibilityId(null);
     }
@@ -302,7 +304,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
       await api.updateToken(campaign.id, viewedMap.id, token.id, { layer: newLayer });
       useGameStore.getState().patchToken(token.id, { layer: newLayer }, viewedMap.id);
     } catch (err) {
-      setError(apiErrorMessage(err) || 'Failed to move token between layers');
+      setError(apiErrorMessage(err) || t('tokenManager.layerFailed'));
     } finally {
       setTogglingLayerId(null);
     }
@@ -324,7 +326,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
       useGameStore.getState().removeToken(token.id, viewedMap.id);
       setMovingTokenId(null);
     } catch (err) {
-      setError(apiErrorMessage(err) || 'Failed to move token to map');
+      setError(apiErrorMessage(err) || t('tokenManager.moveFailed'));
     } finally {
       setIsMovingTokenMap(false);
     }
@@ -338,7 +340,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
       await api.deleteToken(campaign.id, viewedMap.id, token.id);
       useGameStore.getState().removeToken(token.id, viewedMap.id);
     } catch (err) {
-      setError(apiErrorMessage(err) || 'Failed to remove token from map');
+      setError(apiErrorMessage(err) || t('tokenManager.removeFailed'));
     } finally {
       setDeletingId(null);
     }
@@ -359,9 +361,9 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
       <div className="flex items-center justify-between px-5 py-4 border-b border-moss-green/20 bg-parchment/60 sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <Swords className="w-5 h-5 text-brand-ink" />
-          <SlideOverTitle className="text-lg font-bold text-brand-ink">Token Manager</SlideOverTitle>
+          <SlideOverTitle className="text-lg font-bold text-brand-ink">{t('tokenManager.title')}</SlideOverTitle>
         </div>
-        <SlideOverClose className="btn-secondary p-1.5" iconClassName="w-4 h-4" title="Close" />
+        <SlideOverClose className="btn-secondary p-1.5" iconClassName="w-4 h-4" title={t('tokenManager.close')} />
       </div>
 
       {/* Body */}
@@ -376,20 +378,20 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
         {/* ── Section 1: Add Token ── */}
         <section>
           <h3 className="text-sm font-semibold text-stone-gray uppercase tracking-wide mb-3">
-            Add Token
+            {t('tokenManager.addToken')}
           </h3>
 
           {/* Token Type Selector */}
           <div className="mb-3">
             <label className="text-xs text-stone-gray font-medium block mb-1">
-              Token Type
+              {t('tokenManager.tokenType')}
             </label>
             <div className="flex gap-2">
               {([
-                { type: TokenType.PLAYER, label: 'Player' },
-                { type: TokenType.NPC,    label: 'NPC / Creature' },
-                { type: TokenType.OBJECT, label: 'Object' },
-              ] as const).map(({ type, label }) => (
+                { type: TokenType.PLAYER, labelKey: 'tokenManager.types.player' },
+                { type: TokenType.NPC,    labelKey: 'tokenManager.types.npc' },
+                { type: TokenType.OBJECT, labelKey: 'tokenManager.types.object' },
+              ] as const).map(({ type, labelKey }) => (
                 <button
                   key={type}
                   onClick={() => { setTokenType(type); setPlaceHidden(type === TokenType.OBJECT); }}
@@ -399,13 +401,13 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                       : 'border-moss-green/20 hover:border-moss-green/40 text-stone-gray'
                   }`}
                 >
-                  {label}
+                  {t(labelKey)}
                 </button>
               ))}
             </div>
             {tokenType === TokenType.PLAYER && (
               <p className="text-[10px] text-stone-gray/60 mt-1">
-                A player token stands for a character: the token opens its sheet and rolls with its numbers. For summoned creatures, use NPC type and assign a player as controller.
+                {t('tokenManager.playerHint')}
               </p>
             )}
           </div>
@@ -416,7 +418,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
               {characters.length > 0 ? (
                 <>
                   <label htmlFor="token-manager-character" className="text-xs text-stone-gray font-medium block mb-1">
-                    Character
+                    {t('tokenManager.character')}
                   </label>
                   <select
                     id="token-manager-character"
@@ -424,7 +426,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                     onChange={(e) => pickCharacter(e.target.value)}
                     className="input-cozy w-full text-sm"
                   >
-                    <option value="">No character</option>
+                    <option value="">{t('tokenManager.noCharacter')}</option>
                     {characters.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name} ({ownerName(c.userId)})
@@ -434,7 +436,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                 </>
               ) : (
                 <p className="text-[10px] text-stone-gray/60">
-                  No characters are in this campaign yet. A player brings one from their Characters page.
+                  {t('tokenManager.noCharacters')}
                 </p>
               )}
             </div>
@@ -452,11 +454,11 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
             />
 
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-stone-gray">Token image <span className="opacity-50">(optional — uses placeholder if empty)</span>:</p>
+              <p className="text-xs text-stone-gray">{t('tokenManager.imageLabel')} <span className="opacity-50">{t('tokenManager.imageOptional')}</span>:</p>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                title="Upload a new token image"
+                title={t('tokenManager.uploadTitle')}
                 className="flex items-center gap-1 text-xs text-brand-ink hover:text-brand-ink/80 disabled:opacity-40 transition-colors"
               >
                 {isUploading ? (
@@ -464,7 +466,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                 ) : (
                   <Upload className="w-3 h-3" />
                 )}
-                {isUploading ? 'Uploading…' : 'Upload'}
+                {isUploading ? t('tokenManager.uploading') : t('tokenManager.upload')}
               </button>
             </div>
             {uploadError && (
@@ -474,16 +476,16 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
               type="search"
               value={pictureSearch}
               onChange={(e) => setPictureSearch(e.target.value)}
-              aria-label="Search token pictures"
-              placeholder="Search by name or tag"
+              aria-label={t('tokenManager.searchLabel')}
+              placeholder={t('tokenManager.searchPlaceholder')}
               className="input-cozy w-full text-sm mb-1.5"
             />
             <AssetGrid
               type={AssetType.TOKEN}
               search={pictureSearch}
               prepend={uploadedPictures}
-              onLoadError={() => setError('Failed to load token assets')}
-              emptyMessage="No token pictures yet. Upload one above, or add some in the Asset Library."
+              onLoadError={() => setError(t('tokenManager.assetsFailed'))}
+              emptyMessage={t('tokenManager.noPictures')}
               selectedId={selectedAsset?.id ?? null}
               onSelect={(asset) => (asset ? handleSelectAsset(asset) : setSelectedAsset(null))}
               columns={4}
@@ -492,7 +494,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                 <button
                   type="button"
                   onClick={() => setSelectedAsset(null)}
-                  title="Use colored-letter placeholder"
+                  title={t('tokenManager.placeholderTitle')}
                   className={`relative rounded-cozy overflow-hidden border-2 aspect-square transition-all flex items-center justify-center ${
                     !selectedAsset
                       ? 'border-moss-green ring-2 ring-moss-green/30 bg-ink-muted/25'
@@ -500,7 +502,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                   }`}
                 >
                   <span className="text-lg font-bold text-ink-secondary">?</span>
-                  <span className="absolute bottom-0.5 text-[8px] text-ink-muted">None</span>
+                  <span className="absolute bottom-0.5 text-[8px] text-ink-muted">{t('tokenManager.none')}</span>
                 </button>
               }
             />
@@ -509,13 +511,13 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
           {/* Token Name */}
           <div className="mb-3">
             <label className="text-xs text-stone-gray font-medium block mb-1">
-              Token Name
+              {t('tokenManager.tokenName')}
             </label>
             <input
               type="text"
               value={tokenName}
               onChange={(e) => setTokenName(e.target.value)}
-              placeholder="e.g. Goblin, Party Wizard…"
+              placeholder={t('tokenManager.namePlaceholder')}
               className="input-cozy w-full text-sm"
             />
           </div>
@@ -523,32 +525,30 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
           {/* Display Mode Selector — all token types */}
           <div className="mb-3">
             <label className="text-xs text-stone-gray font-medium block mb-1">
-              Display Mode
+              {t('tokenManager.displayMode')}
             </label>
             <div className="flex gap-2">
               {([
-                { mode: 'pog' as TokenDisplayMode,      label: 'Pog',      desc: 'Circular with border' },
-                { mode: 'top-down' as TokenDisplayMode,  label: 'Top-Down', desc: 'Circular, no border' },
-                { mode: 'full-art' as TokenDisplayMode,  label: 'Full Art', desc: 'Rectangular with alpha' },
-              ] as const).map(({ mode, label, desc }) => (
+                { mode: 'pog' as TokenDisplayMode },
+                { mode: 'top-down' as TokenDisplayMode },
+                { mode: 'full-art' as TokenDisplayMode },
+              ] as const).map(({ mode }) => (
                 <button
                   key={mode}
                   onClick={() => setDisplayMode(mode)}
-                  title={desc}
+                  title={t(`tokenManager.modes.${mode}.desc`)}
                   className={`flex-1 py-1.5 text-xs rounded-cozy border transition-all ${
                     displayMode === mode
                       ? 'border-moss-green bg-moss-green/10 text-brand-ink font-semibold'
                       : 'border-moss-green/20 hover:border-moss-green/40 text-stone-gray'
                   }`}
                 >
-                  {label}
+                  {t(`tokenManager.modes.${mode}.label`)}
                 </button>
               ))}
             </div>
             <p className="text-[10px] text-stone-gray/50 mt-1">
-              {displayMode === 'pog' && 'Classic round token with a colored disposition ring.'}
-              {displayMode === 'top-down' && 'Circular crop, ideal for overhead/bird\u2019s-eye art.'}
-              {displayMode === 'full-art' && 'Shows full image including transparency — great for standees and monsters.'}
+              {t(`tokenManager.modes.${displayMode}.hint`)}
             </p>
           </div>
 
@@ -558,14 +558,14 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
               {/* Disposition */}
               <div className="mb-3">
                 <label className="text-xs text-stone-gray font-medium block mb-1">
-                  Disposition
+                  {t('tokenManager.disposition')}
                 </label>
                 <div className="flex gap-2">
                   {([
-                    { d: TokenDisposition.FRIENDLY, label: 'Friendly', color: 'teal' },
-                    { d: TokenDisposition.NEUTRAL,  label: 'Neutral',  color: 'amber' },
-                    { d: TokenDisposition.HOSTILE,  label: 'Hostile',  color: 'red' },
-                  ] as const).map(({ d, label, color }) => (
+                    { d: TokenDisposition.FRIENDLY, labelKey: 'tokenManager.dispositions.friendly', color: 'teal' },
+                    { d: TokenDisposition.NEUTRAL,  labelKey: 'tokenManager.dispositions.neutral',  color: 'amber' },
+                    { d: TokenDisposition.HOSTILE,  labelKey: 'tokenManager.dispositions.hostile',  color: 'red' },
+                  ] as const).map(({ d, labelKey, color }) => (
                     <button
                       key={d}
                       onClick={() => setDisposition(d)}
@@ -577,7 +577,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                           : 'border-moss-green/20 hover:border-moss-green/40 text-stone-gray'
                       }`}
                     >
-                      {label}
+                      {t(labelKey)}
                     </button>
                   ))}
                 </div>
@@ -586,7 +586,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
               {/* HP Max */}
               <div className="mb-3">
                 <label className="text-xs text-stone-gray font-medium block mb-1">
-                  HP Max <span className="font-normal opacity-60">(0 = no HP bar)</span>
+                  {t('tokenManager.hpMax')} <span className="font-normal opacity-60">{t('tokenManager.hpMaxHint')}</span>
                 </label>
                 <input
                   type="number"
@@ -603,7 +603,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                       onChange={(e) => setShowHpBar(e.target.checked)}
                       className="rounded-sm"
                     />
-                    <span className="text-xs text-stone-gray">Show HP bar to players</span>
+                    <span className="text-xs text-stone-gray">{t('tokenManager.showHpBar')}</span>
                   </label>
                 )}
               </div>
@@ -611,13 +611,13 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
               {/* Initiative */}
               <div className="mb-3">
                 <label className="text-xs text-stone-gray font-medium block mb-1">
-                  Initiative <span className="font-normal opacity-60">(optional)</span>
+                  {t('tokenManager.initiative')} <span className="font-normal opacity-60">{t('tokenManager.optional')}</span>
                 </label>
                 <input
                   type="number"
                   value={initiative}
                   onChange={(e) => setInitiative(e.target.value)}
-                  placeholder="e.g. 14"
+                  placeholder={t('tokenManager.initiativePlaceholder')}
                   className="input-cozy w-full text-sm"
                 />
               </div>
@@ -625,12 +625,12 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
               {/* GM Notes */}
               <div className="mb-3">
                 <label className="text-xs text-stone-gray font-medium block mb-1">
-                  GM Notes <span className="font-normal opacity-60">(not shown to players)</span>
+                  {t('tokenManager.gmNotes')} <span className="font-normal opacity-60">{t('tokenManager.gmNotesHint')}</span>
                 </label>
                 <textarea
                   value={tokenNotes}
                   onChange={(e) => setTokenNotes(e.target.value)}
-                  placeholder="Guard post, key holder…"
+                  placeholder={t('tokenManager.npcNotesPlaceholder')}
                   rows={2}
                   className="input-cozy w-full text-sm resize-none"
                 />
@@ -648,10 +648,10 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                   onChange={(e) => setPlaceHidden(e.target.checked)}
                   className="rounded-sm"
                 />
-                <span className="text-xs text-stone-gray">Hidden from players on placement</span>
+                <span className="text-xs text-stone-gray">{t('tokenManager.placeHidden')}</span>
               </label>
               <p className="text-[10px] text-stone-gray/50 mt-0.5">
-                Reveal later by right-clicking it — useful for a monster waiting in a room, a secret door, a trapped chest.
+                {t('tokenManager.placeHiddenHint')}
               </p>
             </div>
           )}
@@ -662,12 +662,12 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
               {/* GM Notes */}
               <div className="mb-3">
                 <label className="text-xs text-stone-gray font-medium block mb-1">
-                  GM Notes <span className="font-normal opacity-60">(not shown to players)</span>
+                  {t('tokenManager.gmNotes')} <span className="font-normal opacity-60">{t('tokenManager.gmNotesHint')}</span>
                 </label>
                 <textarea
                   value={tokenNotes}
                   onChange={(e) => setTokenNotes(e.target.value)}
-                  placeholder="Locked with iron key…"
+                  placeholder={t('tokenManager.objectNotesPlaceholder')}
                   rows={2}
                   className="input-cozy w-full text-sm resize-none"
                 />
@@ -678,14 +678,14 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
           {/* Size */}
           <div className="mb-3">
             <label className="text-xs text-stone-gray font-medium block mb-1">
-              Size (grid cells)
+              {t('tokenManager.size')}
             </label>
             <div className="flex gap-2">
               {SIZE_OPTIONS.map((opt) => {
                 const isSelected = tokenSize.width === opt.value.width;
                 return (
                   <button
-                    key={opt.label}
+                    key={opt.labelKey}
                     onClick={() => setTokenSize(opt.value)}
                     className={`flex-1 py-1.5 text-center text-xs rounded-cozy border transition-all ${
                       isSelected
@@ -693,7 +693,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                         : 'border-moss-green/20 hover:border-moss-green/40 text-stone-gray'
                     }`}
                   >
-                    <span className="block">{opt.label}</span>
+                    <span className="block">{t(opt.labelKey)}</span>
                     <span className="block text-[10px] opacity-60">{opt.sublabel}</span>
                   </button>
                 );
@@ -705,7 +705,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
           {tokenType !== TokenType.OBJECT && (
             <div className="mb-3">
               <label className="text-xs text-stone-gray font-medium block mb-1">
-                Place on Layer
+                {t('tokenManager.layer')}
               </label>
               <div className="flex gap-2">
                 <button
@@ -716,7 +716,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                       : 'border-moss-green/20 hover:border-moss-green/40 text-stone-gray'
                   }`}
                 >
-                  Material Plane
+                  {t('tokenManager.materialPlane')}
                 </button>
                 <button
                   onClick={() => setTokenLayer(TokenLayer.SPIRIT)}
@@ -726,7 +726,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                       : 'border-moss-green/20 hover:border-moss-green/40 text-stone-gray'
                   }`}
                 >
-                  Spirit Realm
+                  {t('tokenManager.spiritRealm')}
                 </button>
               </div>
             </div>
@@ -741,7 +741,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
           {tokenType !== TokenType.OBJECT && players.length > 0 && (
             <div className="mb-3">
               <label htmlFor="token-manager-controller" className="text-xs text-stone-gray font-medium block mb-1">
-                Controlled by
+                {t('tokenManager.controlledBy')}
               </label>
               <select
                 id="token-manager-controller"
@@ -749,7 +749,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                 onChange={(e) => setAssignTo(e.target.value)}
                 className="input-cozy w-full text-sm"
               >
-                <option value="none">Nobody (GM controls)</option>
+                <option value="none">{t('tokenManager.nobody')}</option>
                 {players.map((m) => (
                   <option key={m.userId} value={m.userId}>
                     {m.user?.displayName ?? m.userId}
@@ -761,7 +761,7 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
 
           {!viewedMap && (
             <p className="text-xs text-warning-ink mb-2">
-              No map is currently loaded — load a map first.
+              {t('tokenManager.noMapLoadFirst')}
             </p>
           )}
 
@@ -775,17 +775,17 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
             ) : (
               <Plus className="w-4 h-4" />
             )}
-            {isAdding ? 'Placing…' : 'Place on Map'}
+            {isAdding ? t('tokenManager.placing') : t('tokenManager.place')}
           </Button>
           <p className="text-[10px] text-stone-gray/50 mt-1.5 text-center">
-            Token is placed at the map center — drag it into position afterwards.
+            {t('tokenManager.placeHint')}
           </p>
         </section>
 
         {/* ── Section 2: Tokens on This Map ── */}
         <section>
           <h3 className="text-sm font-semibold text-stone-gray uppercase tracking-wide mb-1">
-            Tokens on Map
+            {t('tokenManager.tokensOnMap')}
             {tokens.length > 0 && (
               <span className="ml-2 text-xs font-normal normal-case text-stone-gray/60">
                 ({tokens.length})
@@ -794,10 +794,10 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
           </h3>
 
           {!viewedMap ? (
-            <p className="text-sm text-stone-gray/70 italic">No map loaded.</p>
+            <p className="text-sm text-stone-gray/70 italic">{t('tokenManager.noMap')}</p>
           ) : tokens.length === 0 ? (
             <p className="text-sm text-stone-gray/70 italic">
-              No tokens on this map yet. Add one above.
+              {t('tokenManager.noTokens')}
             </p>
           ) : (
             <div className="space-y-2">
@@ -838,11 +838,11 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                                 : 'bg-moss-green/10 text-brand-ink'
                             }`}
                           >
-                            {isSpirit ? 'Spirit' : 'Material'}
+                            {isSpirit ? t('tokenManager.spirit') : t('tokenManager.material')}
                           </span>
                           {!token.visible && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded-sm font-medium bg-stone-gray/10 text-stone-gray">
-                              Hidden
+                              {t('tokenManager.hiddenBadge')}
                             </span>
                           )}
                           {controller.kind === 'player' && (
@@ -853,9 +853,9 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                           {controller.kind === 'not a player' && (
                             <span
                               className="text-[10px] px-1.5 py-0.5 rounded-sm font-medium bg-stone-gray/10 text-stone-gray"
-                              title="No longer a player in this campaign, so they cannot move this token. Choose who controls it in Edit Token."
+                              title={t('tokenManager.notAPlayerTitle')}
                             >
-                              {controller.name ?? 'Former member'}, not a player
+                              {t('tokenManager.notAPlayer', { name: controller.name ?? t('tokenManager.formerMember') })}
                             </span>
                           )}
                         </div>
@@ -868,8 +868,8 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                           onClick={() => handleToggleObscured(token)}
                           disabled={isTogglingVis}
                           className="p-1.5 rounded-sm hover:bg-moss-green/10 transition-colors"
-                          title={token.obscured ? 'Reveal identity' : 'Obscure identity'}
-                          aria-label={token.obscured ? 'Reveal identity' : 'Obscure identity'}
+                          title={token.obscured ? t('tokenRoster.reveal') : t('tokenRoster.obscure')}
+                          aria-label={token.obscured ? t('tokenRoster.reveal') : t('tokenRoster.obscure')}
                         >
                           <HelpCircle className={`w-3.5 h-3.5 ${token.obscured ? 'text-brand-ink' : 'text-stone-gray'}`} />
                         </button>
@@ -879,8 +879,8 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                           onClick={() => handleToggleVisibility(token)}
                           disabled={isTogglingVis}
                           className="p-1.5 rounded-sm hover:bg-moss-green/10 transition-colors"
-                          title={token.visible ? 'Hide from players' : 'Show to players'}
-                          aria-label={token.visible ? 'Hide from players' : 'Show to players'}
+                          title={token.visible ? t('tokenRoster.hide') : t('tokenRoster.show')}
+                          aria-label={token.visible ? t('tokenRoster.hide') : t('tokenRoster.show')}
                         >
                           {isTogglingVis ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin text-stone-gray" />
@@ -899,8 +899,8 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                             onClick={() => handleToggleLayer(token)}
                             disabled={isTogglingLyr}
                             className="p-1.5 rounded-sm hover:bg-spirit-purple/10 transition-colors"
-                            title={isSpirit ? 'Return to Material Plane' : 'Send to Spirit Realm'}
-                            aria-label={isSpirit ? 'Return to Material Plane' : 'Send to Spirit Realm'}
+                            title={isSpirit ? t('tokenMenu.toMaterial') : t('tokenMenu.toSpirit')}
+                            aria-label={isSpirit ? t('tokenMenu.toMaterial') : t('tokenMenu.toSpirit')}
                           >
                             {isTogglingLyr ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin text-stone-gray" />
@@ -925,8 +925,8 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                                 ? 'bg-warm-amber/15 text-accent-ink'
                                 : 'hover:bg-warm-amber/10 text-stone-gray/30 hover:text-accent-ink'
                             }`}
-                            title="Move to another map"
-                            aria-label="Move to another map"
+                            title={t('tokenManager.moveTitle')}
+                            aria-label={t('tokenManager.moveTitle')}
                           >
                             <MapIcon className="w-3.5 h-3.5" />
                           </button>
@@ -937,8 +937,8 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                           onClick={() => setTokenToRemove(token)}
                           disabled={isDeleting}
                           className="p-1.5 rounded-sm hover:bg-danger/10 transition-colors"
-                          title="Remove from map"
-                          aria-label={`Remove ${token.name} from map`}
+                          title={t('tokenRoster.removeTitle')}
+                          aria-label={t('tokenRoster.removeLabel', { name: token.name })}
                         >
                           {isDeleting ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin text-stone-gray" />
@@ -953,12 +953,12 @@ export default function TokenManager({ isOpen, onClose }: TokenManagerProps) {
                     {isShowingMapPicker && (
                       <div className="mt-2 pt-2 border-t border-moss-green/10">
                         <p className="text-[11px] text-stone-gray mb-1.5">
-                          Move to which map?
+                          {t('tokenManager.moveWhich')}
                         </p>
                         {isMovingTokenMap ? (
                           <div className="flex items-center gap-2 text-stone-gray text-xs py-1">
                             <Loader2 className="w-3 h-3 animate-spin" />
-                            Moving token…
+                            {t('tokenManager.movingToken')}
                           </div>
                         ) : (
                           <div className="space-y-0.5">

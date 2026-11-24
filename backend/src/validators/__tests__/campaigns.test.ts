@@ -29,7 +29,7 @@ describe('an atmosphere period filter', () => {
     const result = VibePeriodSchema.safeParse(period(filter));
     expect(result.success).toBe(false);
     expect(result.error?.issues[0].message).toBe(
-      'A period filter may only use brightness(), saturate(), contrast() and hue-rotate()',
+      'O filtro de um período só pode usar brightness(), saturate(), contrast() e hue-rotate().',
     );
   });
 

@@ -104,13 +104,13 @@ export const draftsFailedMessage = (err: unknown) => (err instanceof DraftsUnava
 
 export const draftKey = (userId: string, campaignId: string, mapId: string, tabId: string) => `${userId}|${campaignId}|${mapId}|${tabId}`;
 
-/** When a draft was written, for the question offering it back: the time, and the day if not today. */
-export function draftTime(savedAt: number, now: number = Date.now()): string {
+/** When a draft was written, for the question offering it back: the time, and the day if not today, in `locale` (the app's language; the browser's when none is given). */
+export function draftTime(savedAt: number, now: number = Date.now(), locale?: string): string {
   const at = new Date(savedAt);
-  const time = at.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const time = at.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   return at.toDateString() === new Date(now).toDateString()
     ? time
-    : `${at.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}, ${time}`;
+    : `${at.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}, ${time}`;
 }
 
 /** A picture's size, in pixels. */

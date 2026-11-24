@@ -6,6 +6,8 @@
 
 import React from 'react';
 import { Sword, Zap, Dices } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { sheetWord } from '../sheetWords';
 import type { FifthEditionAttack } from '@/types/game-systems/fifthEdition';
 import { diceExpressionProblem } from '@/utils/diceExpression';
 import { attackPurpose, damagePurpose } from '@/utils/rollPurposes';
@@ -37,6 +39,7 @@ const AttackRow: React.FC<{
   onRollAttack?: (expression: string, purpose: string) => void;
   onRollDamage?: (expression: string, purpose: string) => void;
 }> = ({ attack, onRollAttack, onRollDamage }) => {
+  const { t, i18n } = useTranslation();
   const formatBonus = (bonus: number): string => {
     return bonus >= 0 ? `+${bonus}` : `${bonus}`;
   };
@@ -92,7 +95,7 @@ const AttackRow: React.FC<{
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
         {/* Attack Bonus */}
         <div>
-          <span className="text-xs text-ink-muted">Attack</span>
+          <span className="text-xs text-ink-muted">{t('sheet5e.attack')}</span>
           <div className="font-semibold text-accent-ink">
             {formatBonus(attack.attackBonus)}
           </div>
@@ -102,11 +105,11 @@ const AttackRow: React.FC<{
         <div
           className={rollsDamage ? 'cursor-pointer hover:text-danger-ink' : damageProblem ? 'cursor-default' : ''}
           onClick={onRollDamage && attack.damageRoll ? handleDamageClick : undefined}
-          title={rollsDamage ? `Click to roll damage: ${attack.damageRoll}` : undefined}
+          title={rollsDamage ? t('sheet5e.rollDamage', { roll: attack.damageRoll }) : undefined}
           {...(rollsDamage ? sheetRoll : undefined)}
           {...(damageProblem ? notARoll(damageProblem) : undefined)}
         >
-          <span className="text-xs text-ink-muted">Damage</span>
+          <span className="text-xs text-ink-muted">{t('sheet5e.damage')}</span>
           <div className="font-semibold text-ink-secondary">
             {attack.damageRoll}
           </div>
@@ -114,17 +117,17 @@ const AttackRow: React.FC<{
 
         {/* Damage Type */}
         <div>
-          <span className="text-xs text-ink-muted">Type</span>
+          <span className="text-xs text-ink-muted">{t('sheet5e.damageType')}</span>
           <div className="font-semibold text-ink-secondary capitalize">
-            {attack.damageType}
+            {sheetWord(i18n, 'damageTypes', attack.damageType ?? '')}
           </div>
         </div>
 
         {/* Range */}
         <div>
-          <span className="text-xs text-ink-muted">Range</span>
+          <span className="text-xs text-ink-muted">{t('sheet5e.range')}</span>
           <div className="font-semibold text-ink-secondary">
-            {attack.range != null ? `${attack.range} ft` : '—'}
+            {attack.range != null ? t('sheet5e.feet', { feet: attack.range }) : '—'}
           </div>
         </div>
       </div>
@@ -137,7 +140,8 @@ const AttackRow: React.FC<{
             .filter((entry) => entry.damageRoll?.trim())
             .map((entry, idx) => {
               const roll = (entry.damageRoll ?? '').trim();
-              const label = entry.label?.trim() || 'Alternate';
+              const rollLabel = entry.label?.trim() || 'Alternate';
+              const label = entry.label?.trim() || t('sheet5e.alternate');
               const problem = onRollDamage ? diceExpressionProblem(roll) : null;
               const rollable = !!onRollDamage && problem === null;
               return (
@@ -150,18 +154,18 @@ const AttackRow: React.FC<{
                     onRollDamage
                       ? (e) => {
                           e.stopPropagation();
-                          onRollDamage(roll, damagePurpose(attack.name, label));
+                          onRollDamage(roll, damagePurpose(attack.name, rollLabel));
                         }
                       : undefined
                   }
-                  title={rollable ? `Click to roll ${label}: ${roll}` : undefined}
+                  title={rollable ? t('sheet5e.rollLabelled', { label, roll }) : undefined}
                   {...(problem ? notARoll(problem) : undefined)}
                   {...(rollable ? sheetRoll : undefined)}
                 >
                   <span className="text-xs text-ink-muted">{label}</span>
                   <span className="font-semibold text-ink-secondary">{roll}</span>
                   {entry.damageType && (
-                    <span className="text-xs text-ink-muted capitalize">{entry.damageType}</span>
+                    <span className="text-xs text-ink-muted capitalize">{sheetWord(i18n, 'damageTypes', entry.damageType)}</span>
                   )}
                 </div>
               );
@@ -178,7 +182,7 @@ const AttackRow: React.FC<{
                 key={idx}
                 className="px-2 py-0.5 text-xs bg-ink/15 text-ink-secondary rounded-full capitalize"
               >
-                {prop}
+                {sheetWord(i18n, 'weaponProperties', prop)}
               </span>
             ))}
           </div>
@@ -199,10 +203,11 @@ const AttackRow: React.FC<{
  * AttacksList - Displays all attacks
  */
 export const AttacksList: React.FC<AttacksListProps> = ({ attacks, onRollAttack, onRollDamage }) => {
+  const { t } = useTranslation();
   if (!attacks || attacks.length === 0) {
     return (
       <div className="text-center py-8 text-ink-muted">
-        No attacks configured
+        {t('sheet5e.noAttacks')}
       </div>
     );
   }

@@ -24,9 +24,9 @@ import { featuresFor } from './actionResolver/catalogueFor';
 import { setCondition, stateNameOf } from './actionResolver/features';
 
 export const COMBAT_REFUSAL = 'Não dá para descansar durante o combate.';
-const NOT_FOUND_CHARACTER = 'Character not found';
+const NOT_FOUND_CHARACTER = 'Personagem não encontrado.';
 const NOT_FIFTH_EDITION = 'Só fichas de D&D 5e descansam aqui.';
-const SPECTATOR = 'Spectators cannot use actions';
+const SPECTATOR = 'Espectadores não podem usar ações.';
 
 export type RestOutcome = { ok: true; messageId: string; card: ActionCard } | Refusal;
 

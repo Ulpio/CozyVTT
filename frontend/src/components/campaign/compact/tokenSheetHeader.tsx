@@ -3,6 +3,7 @@
 // whose it is and the hit points this viewer may see
 // ============================================
 
+import i18n from '@/i18n';
 import type { CampaignMembership, Token } from '@/types';
 import type { CharacterHpInfo } from '@/utils/characterHp';
 import { tokenControllerStanding } from '@/utils/tokenCopy';
@@ -23,8 +24,8 @@ export function tokenSheetLine(
 ): string | undefined {
   const parts: string[] = [];
   const standing = tokenControllerStanding(token.controlledBy, memberships);
-  if (standing.kind === 'player') parts.push(token.controlledBy === viewerId ? 'Yours' : `${standing.name}'s`);
-  if (hp) parts.push(`${hp.current} / ${hp.max} HP${hp.temp > 0 ? ` +${hp.temp}` : ''}`);
+  if (standing.kind === 'player') parts.push(token.controlledBy === viewerId ? i18n.t('compact.yours') : i18n.t('compact.theirs', { name: standing.name }));
+  if (hp) parts.push(`${i18n.t('compact.hp', { current: hp.current, max: hp.max })}${hp.temp > 0 ? ` +${hp.temp}` : ''}`);
   return parts.length > 0 ? parts.join(' · ') : undefined;
 }
 

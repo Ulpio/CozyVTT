@@ -60,7 +60,7 @@ describe('token.move.start', () => {
 
     gm.emit('token.move.start', { tokenId: badId, mapId });
 
-    expect((await error).message).toBe('tokenId and mapId required');
+    expect((await error).message).toBe('Informe o token e o mapa.');
     gm.disconnect();
   });
 
@@ -70,7 +70,7 @@ describe('token.move.start', () => {
 
     gm.emit('token.move.start', { tokenId, mapId: badId });
 
-    expect((await error).message).toBe('tokenId and mapId required');
+    expect((await error).message).toBe('Informe o token e o mapa.');
     gm.disconnect();
   });
 });
@@ -85,7 +85,7 @@ describe('token.move.end', () => {
 
     gm.emit('token.move.end', { tokenId: badId, mapId, x: 3, y: 3 });
 
-    expect((await error).message).toBe('Invalid token move data');
+    expect((await error).message).toBe('Dados de movimento do token inválidos.');
     expect(await storedPosition()).toEqual({ x: 1, y: 1 });
     gm.disconnect();
   });
@@ -96,7 +96,7 @@ describe('token.move.end', () => {
 
     gm.emit('token.move.end', { tokenId, mapId: badId, x: 3, y: 3 });
 
-    expect((await error).message).toBe('Invalid token move data');
+    expect((await error).message).toBe('Dados de movimento do token inválidos.');
     expect(await storedPosition()).toEqual({ x: 1, y: 1 });
     gm.disconnect();
   });

@@ -45,15 +45,15 @@ export async function setCampaignAmbientAudio(
     const asset = await prisma.asset.findUnique({ where: { id: assetId } });
 
     if (!asset || asset.type !== 'AUDIO') {
-      return { ok: false, message: 'Audio asset not found' };
+      return { ok: false, message: 'Áudio não encontrado.' };
     }
 
     if (asset.scope === 'CAMPAIGN' && asset.campaignId !== campaignId) {
-      return { ok: false, message: 'Asset does not belong to this campaign' };
+      return { ok: false, message: 'Esse arquivo não pertence a esta campanha.' };
     }
 
     if (!(await canReadAsset(asset, actingUserId, false))) {
-      return { ok: false, message: 'Audio asset not found' };
+      return { ok: false, message: 'Áudio não encontrado.' };
     }
 
     audioUrl = `/api/assets/audio/${assetId}`;

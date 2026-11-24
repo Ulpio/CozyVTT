@@ -132,14 +132,14 @@ describe('the character\'s owner', () => {
 
   it('is told a Horror d100 sheet keeps none, and a sheet with no hit points has nothing to add them to', async () => {
     await as('owner', async (owner) => {
-      expect(await refused(owner, { characterId: horrorId, temporary: 3 })).toBe('Horror d100 sheets keep no temporary hit points');
-      expect(await refused(owner, { characterId: blankId, temporary: 3 })).toBe('Character does not have HP tracking');
+      expect(await refused(owner, { characterId: horrorId, temporary: 3 })).toBe('Fichas de Horror d100 não têm PV temporários.');
+      expect(await refused(owner, { characterId: blankId, temporary: 3 })).toBe('Esse personagem não controla PV.');
     });
   });
 
   it('cannot reach a character of another campaign', async () => {
     await as('owner', async (owner) => {
-      expect(await refused(owner, { characterId: strangerId, temporary: 3 })).toBe('Character is not in this campaign');
+      expect(await refused(owner, { characterId: strangerId, temporary: 3 })).toBe('Esse personagem não está nesta campanha.');
     });
   });
 
@@ -153,7 +153,7 @@ describe('the character\'s owner', () => {
       const error = waitForEvent<{ message: string }>(owner, 'error');
       const silence = expectNoEvent(owner, 'character.hp.updated', 500);
       owner.emit('character.hp.temporary', sent);
-      expect((await error).message).toBe('characterId (string) and temporary (number) are required');
+      expect((await error).message).toBe('characterId (texto) e temporary (número) são obrigatórios.');
       await silence;
     });
     expect((await storedHp(fighterId)).temporary).toBe(10);
@@ -163,7 +163,7 @@ describe('the character\'s owner', () => {
     ['none', 0], ['a negative number', -5], ['part of a hit point', 2.5], ['more than 99,999', 100_000], ['text', 'ten'], ['nothing', undefined],
   ])('is refused %s, and the character keeps what it had', async (_what, temporary) => {
     await as('owner', async (owner) => {
-      expect(await refused(owner, { characterId: fighterId, temporary })).toBe('temporary must be a whole number of hit points from 1 to 99,999');
+      expect(await refused(owner, { characterId: fighterId, temporary })).toBe('temporary deve ser um número inteiro de pontos de vida, de 1 a 99.999.');
     });
     expect((await storedHp(fighterId)).temporary).toBe(10);
   });
@@ -180,14 +180,14 @@ describe('who else may grant them', () => {
 
   it('is not another player', async () => {
     await as('other', async (other) => {
-      expect(await refused(other, { characterId: fighterId, temporary: 15 })).toBe("You do not have permission to update this character's HP");
+      expect(await refused(other, { characterId: fighterId, temporary: 15 })).toBe('Você não tem permissão para alterar os PV deste personagem.');
     });
     expect((await storedHp(fighterId)).temporary).toBe(10);
   });
 
   it('is not a spectator, even on a character of their own', async () => {
     await as('spectator', async (spectator) => {
-      expect(await refused(spectator, { characterId: watcherId, temporary: 5 })).toBe('Spectators cannot change a character');
+      expect(await refused(spectator, { characterId: watcherId, temporary: 5 })).toBe('Espectadores não podem alterar personagens.');
     });
     expect((await storedHp(watcherId)).temporary).toBe(0);
   });

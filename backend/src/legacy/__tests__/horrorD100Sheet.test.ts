@@ -645,8 +645,8 @@ describe('a row over today\'s limits', () => {
     expect(isFields(sheet) && Array.isArray(sheet.story) && sheet.story[0]).toEqual({ title: 'Background & History', text: long });
     expect(isFields(sheet) && Array.isArray(sheet.spells) && sheet.spells.length).toBe(SHEET_LIST_MAX + 1);
     expect(kept).toEqual([
-      'spells: Can hold at most 500 entries',
-      'story.0.text: Can be at most 100,000 characters',
+      'spells: Pode ter no máximo 500 itens.',
+      'story.0.text: Pode ter no máximo 100.000 caracteres.',
     ]);
     expect(isFields(sheet) && sheet.converted).toMatchObject({ kept });
   });

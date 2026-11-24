@@ -59,7 +59,7 @@ describe('a spectator', () => {
     const nothing = expectNoEvent(gm, 'dice.rolled', 500);
     const denial = waitForEvent<{ message: string }>(watcher, 'error');
     watcher.emit('dice.roll', { expression: '1d20', purpose: 'a try' });
-    expect((await denial).message).toMatch(/pectator/);
+    expect((await denial).message).toMatch(/Espectadores/);
     await nothing;
     expect(await prisma.diceRoll.count({ where: { campaignId, userId: watcherId } })).toBe(0);
     gm.disconnect();

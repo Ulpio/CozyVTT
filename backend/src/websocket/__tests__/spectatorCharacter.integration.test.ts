@@ -77,7 +77,7 @@ describe('a spectator and the character they own', () => {
     const denial = waitForEvent<{ message: string }>(spectator, 'error');
     const silence = expectNoEvent(gm, 'character.hp.updated');
     spectator.emit('character.hp.update', { characterId, delta: -5 });
-    expect((await denial).message).toMatch(/spectator/i);
+    expect((await denial).message).toMatch(/Espectadores/);
     await silence;
     expect((await stored()).hp.current).toBe(10);
 
@@ -90,7 +90,7 @@ describe('a spectator and the character they own', () => {
 
     const denial = waitForEvent<{ message: string }>(spectator, 'error');
     spectator.emit('character.hitdice.spend', { characterId, index: 0 });
-    expect((await denial).message).toMatch(/spectator/i);
+    expect((await denial).message).toMatch(/Espectadores/);
     expect((await stored()).hitDice[0].remaining).toBe(3);
 
     spectator.disconnect();

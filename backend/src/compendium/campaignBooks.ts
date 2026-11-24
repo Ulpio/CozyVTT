@@ -33,7 +33,7 @@ export async function defaultBookIds(gameSystem: GameSystem | null, db: Db = pri
 /** Replace the campaign's books. Refuses an unknown book or one of another system. */
 export async function setCampaignBooks(campaignId: string, bookIds: string[], db: Db = prisma): Promise<void> {
   const campaign = await db.campaign.findUnique({ where: { id: campaignId }, select: { gameSystem: true } });
-  if (!campaign) throw new CampaignBooksError('No such campaign');
+  if (!campaign) throw new CampaignBooksError('Campanha não encontrada.');
   const wanted = [...new Set(bookIds)];
   const valid = campaign.gameSystem
     ? new Set(
@@ -42,7 +42,7 @@ export async function setCampaignBooks(campaignId: string, bookIds: string[], db
     : new Set<string>();
   const refused = wanted.filter((id) => !valid.has(id));
   if (refused.length > 0) {
-    throw new CampaignBooksError(`This campaign cannot use the book ${refused.join(', ')}`);
+    throw new CampaignBooksError(`Esta campanha não pode usar o livro ${refused.join(', ')}.`);
   }
   const write = async (tx: Prisma.TransactionClient) => {
     await tx.campaignBook.deleteMany({ where: { campaignId } });

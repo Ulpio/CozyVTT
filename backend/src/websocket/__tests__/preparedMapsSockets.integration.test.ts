@@ -185,7 +185,7 @@ describe('a player writing to a prepared map', () => {
     const player = await server.connectAndAuth(playerCookie, campaignId);
     const refused = waitForEvent<{ message: string }>(player, 'error');
     player.emit(event, { tokenId: SCOUT, mapId: preparedId, x: 4, y: 4 });
-    expect((await refused).message).toBe('Map not found');
+    expect((await refused).message).toBe('Mapa não encontrado.');
     const tokens = (await stored()).tokens as Array<{ id: string; position: { x: number } }>;
     expect(tokens.find((t) => t.id === SCOUT)?.position.x).toBe(1);
     player.disconnect();
@@ -224,7 +224,7 @@ describe('a player writing to a prepared map', () => {
     const player = await server.connectAndAuth(playerCookie, campaignId);
     const refused = waitForEvent<{ message: string }>(player, 'error');
     player.emit('initiative.roll', { tokenId: SCOUT, mapId: preparedId });
-    expect((await refused).message).toBe('Map not found');
+    expect((await refused).message).toBe('Mapa não encontrado.');
     expect(getState(campaignId).combatants[0].initiative).toBeNull();
     clearState(campaignId);
     player.disconnect();
@@ -236,7 +236,7 @@ describe('a player writing to a prepared map', () => {
     const answer = await player.timeout(5000).emitWithAck('drawing:add', {
       mapId: preparedId, drawing: { kind: 'line', color: '#1a1a1a', width: 2, points: [[0, 0], [10, 10]] },
     });
-    expect(answer).toEqual({ ok: false, error: 'Map not found' });
+    expect(answer).toEqual({ ok: false, error: 'Mapa não encontrado.' });
     expect(await prisma.mapDrawing.count({ where: { mapId: preparedId } })).toBe(0);
     const quiet = expectNoEvent(gm, 'drawing:previewed', 600);
     player.emit('drawing:preview', { mapId: preparedId, preview: { previewId: 'p1', kind: 'pen', color: '#1a1a1a', width: 2, points: [[1, 1]] } });
@@ -249,7 +249,7 @@ describe('a player writing to a prepared map', () => {
     const player = await server.connectAndAuth(playerCookie, campaignId);
     const refused = waitForEvent<{ message: string }>(player, 'error');
     player.emit('wall:update', { mapId: preparedId, segment: { ...door, type: 'door-open' } });
-    expect((await refused).message).toBe('Map not found');
+    expect((await refused).message).toBe('Mapa não encontrado.');
     const walls = (await stored()).wallSegments as Array<{ id: string; type: string }>;
     expect(walls.find((w) => w.id === door.id)?.type).toBe('door-closed');
     player.disconnect();

@@ -16,6 +16,8 @@
 
 import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
 import { Dices, Plus, Pencil, Trash2, Loader2, Check, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { Button, Modal, Input } from '@/components/ui';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import api from '@/services/api';
@@ -41,6 +43,7 @@ export default function DiceMacroManager({
   initialExpression = '',
   onMacrosChanged,
 }: DiceMacroManagerProps) {
+  const { t } = useTranslation();
   const [macros, setMacros] = useState<DiceMacro[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +78,7 @@ export default function DiceMacroManager({
       const { macros: fetched } = await api.listDiceMacros(campaignId);
       publish(fetched);
     } catch (err) {
-      setError(apiErrorMessage(err) ?? 'Could not load your macros.');
+      setError(apiErrorMessage(err) ?? i18n.t('savedRolls.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -114,7 +117,7 @@ export default function DiceMacroManager({
     } catch (err) {
       // The server's wording explains itself — "Too many dice. Maximum 100 per
       // expression." — so it is shown rather than replaced with something vague.
-      setError(apiErrorMessage(err) ?? 'Could not save that macro.');
+      setError(apiErrorMessage(err) ?? i18n.t('savedRolls.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -146,7 +149,7 @@ export default function DiceMacroManager({
       publish(macros.map((m) => (m.id === macro.id ? macro : m)));
       setEditingId(null);
     } catch (err) {
-      setError(apiErrorMessage(err) ?? 'Could not save that change.');
+      setError(apiErrorMessage(err) ?? i18n.t('savedRolls.saveChangeFailed'));
     } finally {
       setSaving(false);
     }
@@ -162,7 +165,7 @@ export default function DiceMacroManager({
       await api.deleteDiceMacro(campaignId, doomed.id);
       publish(macros.filter((m) => m.id !== doomed.id));
     } catch (err) {
-      setError(apiErrorMessage(err) ?? 'Could not delete that macro.');
+      setError(apiErrorMessage(err) ?? i18n.t('savedRolls.deleteFailed'));
     } finally {
       setDeletingId(null);
     }
@@ -179,13 +182,10 @@ export default function DiceMacroManager({
 
   return (
     <>
-      <Modal open={isOpen} onClose={onClose} title="Saved rolls" icon={Dices} size="md">
+      <Modal open={isOpen} onClose={onClose} title={t('savedRolls.title')} icon={Dices} size="md">
         <div className="space-y-4">
           <p className="text-xs text-ink-secondary">
-            Rolls you save here become buttons in the dice panel. They are yours alone
-            and stay with this campaign. A roll with a character of its own is made as
-            that character while the panel's Character box is empty, and a roll goes out
-            with its purpose, or its name when it has none.
+            {t('savedRolls.intro')}
           </p>
 
           {error && (
@@ -198,11 +198,11 @@ export default function DiceMacroManager({
           {loading ? (
             <div className="flex items-center gap-2 text-xs text-ink-secondary">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Loading your macros…
+              {t('savedRolls.loading')}
             </div>
           ) : macros.length === 0 ? (
             <p className="text-xs text-ink-secondary italic">
-              Nothing saved yet. Add a roll below and it will appear in the dice panel.
+              {t('savedRolls.none')}
             </p>
           ) : (
             // Edit, Delete, Save and Cancel are a 16 px icon each: 44 by 44 on a touch screen.
@@ -218,28 +218,28 @@ export default function DiceMacroManager({
                         <Input
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          aria-label={`Name for ${macro.name}`}
+                          aria-label={t('savedRolls.nameFor', { name: macro.name })}
                           className="min-w-0"
                         />
                         <Input
                           value={editExpression}
                           onChange={(e) => setEditExpression(e.target.value)}
-                          aria-label={`Expression for ${macro.name}`}
+                          aria-label={t('savedRolls.expressionFor', { name: macro.name })}
                           className="min-w-0 font-mono"
                         />
                         <Input
                           value={editCharacter}
                           onChange={(e) => setEditCharacter(e.target.value)}
-                          placeholder="Character (optional)"
-                          aria-label={`Character for ${macro.name}`}
+                          placeholder={t('savedRolls.characterOptional')}
+                          aria-label={t('savedRolls.characterFor', { name: macro.name })}
                           maxLength={MAX_MACRO_CHARACTER_NAME_LENGTH}
                           className="min-w-0"
                         />
                         <Input
                           value={editPurpose}
                           onChange={(e) => setEditPurpose(e.target.value)}
-                          placeholder="Purpose (optional)"
-                          aria-label={`Purpose for ${macro.name}`}
+                          placeholder={t('savedRolls.purposeOptional')}
+                          aria-label={t('savedRolls.purposeFor', { name: macro.name })}
                           maxLength={MAX_MACRO_PURPOSE_LENGTH}
                           className="min-w-0"
                         />
@@ -248,7 +248,7 @@ export default function DiceMacroManager({
                         type="button"
                         onClick={handleSaveEdit}
                         disabled={saving}
-                        aria-label={`Save changes to ${macro.name}`}
+                        aria-label={t('savedRolls.saveChanges', { name: macro.name })}
                         className="touch-target inline-flex items-center justify-center p-1.5 rounded-lg text-success-ink hover:bg-success/10 disabled:opacity-40"
                       >
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -256,7 +256,7 @@ export default function DiceMacroManager({
                       <button
                         type="button"
                         onClick={() => setEditingId(null)}
-                        aria-label="Cancel editing"
+                        aria-label={t('savedRolls.cancelEditing')}
                         className="touch-target inline-flex items-center justify-center p-1.5 rounded-lg text-ink-secondary hover:bg-surface"
                       >
                         <X className="w-4 h-4" />
@@ -276,7 +276,7 @@ export default function DiceMacroManager({
                       <button
                         type="button"
                         onClick={() => startEditing(macro)}
-                        aria-label={`Edit ${macro.name}`}
+                        aria-label={t('savedRolls.edit', { name: macro.name })}
                         className="touch-target inline-flex items-center justify-center p-1.5 rounded-lg text-ink-secondary hover:bg-surface"
                       >
                         <Pencil className="w-4 h-4" />
@@ -285,7 +285,7 @@ export default function DiceMacroManager({
                         type="button"
                         onClick={() => setMacroToDelete(macro)}
                         disabled={deletingId === macro.id}
-                        aria-label={`Delete ${macro.name}`}
+                        aria-label={t('savedRolls.delete', { name: macro.name })}
                         className="touch-target inline-flex items-center justify-center p-1.5 rounded-lg text-danger-ink hover:bg-danger/10 disabled:opacity-40"
                       >
                         {deletingId === macro.id ? (
@@ -303,29 +303,29 @@ export default function DiceMacroManager({
 
           {/* Add a new one */}
           <div className="pt-3 border-t border-moss-green/20 space-y-2">
-            <div className="text-xs text-ink-secondary">Add a roll</div>
+            <div className="text-xs text-ink-secondary">{t('savedRolls.addTitle')}</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Name, e.g. Random weather"
-                aria-label="Macro name"
+                placeholder={t('savedRolls.namePlaceholder')}
+                aria-label={t('savedRolls.macroName')}
                 className="min-w-0"
                 onKeyDown={addOnEnter}
               />
               <Input
                 value={newExpression}
                 onChange={(e) => setNewExpression(e.target.value)}
-                placeholder="e.g. 4d6kh3"
-                aria-label="Macro expression"
+                placeholder={t('savedRolls.expressionPlaceholder')}
+                aria-label={t('savedRolls.macroExpression')}
                 className="min-w-0 font-mono"
                 onKeyDown={addOnEnter}
               />
               <Input
                 value={newCharacter}
                 onChange={(e) => setNewCharacter(e.target.value)}
-                placeholder="Character (optional)"
-                aria-label="Macro character"
+                placeholder={t('savedRolls.characterOptional')}
+                aria-label={t('savedRolls.macroCharacter')}
                 maxLength={MAX_MACRO_CHARACTER_NAME_LENGTH}
                 className="min-w-0"
                 onKeyDown={addOnEnter}
@@ -333,8 +333,8 @@ export default function DiceMacroManager({
               <Input
                 value={newPurpose}
                 onChange={(e) => setNewPurpose(e.target.value)}
-                placeholder="Purpose (optional)"
-                aria-label="Macro purpose"
+                placeholder={t('savedRolls.purposeOptional')}
+                aria-label={t('savedRolls.macroPurpose')}
                 maxLength={MAX_MACRO_PURPOSE_LENGTH}
                 className="min-w-0"
                 onKeyDown={addOnEnter}
@@ -349,7 +349,7 @@ export default function DiceMacroManager({
                 className="flex items-center gap-2 shrink-0"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                Add
+                {t('savedRolls.add')}
               </Button>
             </div>
           </div>
@@ -358,10 +358,10 @@ export default function DiceMacroManager({
 
       <ConfirmDialog
         isOpen={!!macroToDelete}
-        title="Delete saved roll"
-        message={`Delete "${macroToDelete?.name ?? 'this roll'}"? Its button disappears from the dice panel. Nothing you have already rolled is affected.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('savedRolls.deleteTitle')}
+        message={t('savedRolls.deleteMessage', { name: macroToDelete?.name ?? t('savedRolls.thisRoll') })}
+        confirmLabel={t('savedRolls.deleteConfirm')}
+        cancelLabel={t('savedRolls.cancel')}
         variant="danger"
         onConfirm={handleDelete}
         onCancel={() => setMacroToDelete(null)}

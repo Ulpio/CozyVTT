@@ -279,7 +279,7 @@ describe('a move while the GM shrinks the map', () => {
     await holder;
     await writing;
     expect(res?.status).toBe(400);
-    expect(res?.body.message).toBe('Position must be within map bounds (0-4, 0-9)');
+    expect(res?.body.message).toBe('A posição deve ficar dentro do mapa (0-4, 0-9).');
     expect((await storedHero())?.position).toEqual({ x: 1, y: 1 });
   });
 });
@@ -330,7 +330,7 @@ describe('a drop whose token the GM deletes while it waits', () => {
       await writeWaitingForLock();
       release();
       await holder;
-      expect(await answer).toEqual({ event: 'error', data: { message: 'Token not found' } });
+      expect(await answer).toEqual({ event: 'error', data: { message: 'Token não encontrado.' } });
       expect(await storedHero()).toBeUndefined();
     } finally {
       page.disconnect();

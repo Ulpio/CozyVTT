@@ -234,7 +234,7 @@ describe('a request that is not a list of walls', () => {
     const mapId = await newMap();
     const res = await gm.post(batchUrl(mapId)).send({ segments: [wall(), { ...wall(), type: 'lava' }] });
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/^Wall 1: /);
+    expect(res.body.message).toMatch(/^Parede 1: /);
   });
 });
 
@@ -393,7 +393,7 @@ describe('a map deleted while the request waits for its lock', () => {
       await holder;
       const res = await answer;
       expect(res.status).toBe(404);
-      expect(res.body).toEqual({ error: 'Not Found', message: 'Map not found' });
+      expect(res.body).toEqual({ error: 'Not Found', message: 'Mapa não encontrado.' });
       await quiet;
       expect(resend).not.toHaveBeenCalled();
     } finally {

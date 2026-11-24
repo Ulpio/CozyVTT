@@ -35,7 +35,6 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import type { Character, RosterMember, User, CampaignMembership } from '@/types';
 import type { FlatMenuItem } from '@/components/ui/menu';
 import { CampaignRole, TokenLayer } from '@/types';
-import { CAMPAIGN_ROLE_LABEL } from '@/utils/campaignRoles';
 
 /** A character's menu, open at a point. */
 interface CharacterMenu { x: number; y: number; characterId: string; characterUserId: string; opening: number }
@@ -97,7 +96,7 @@ export default function CampaignRoster() {
     } catch (error) {
       if (seq !== rosterSeq.current) return;
       setLoadFailed(true);
-      showToast(apiErrorMessage(error) || 'Could not load the roster', 'error');
+      showToast(apiErrorMessage(error) || t('roster.loadFailedToast'), 'error');
     } finally {
       if (seq === rosterSeq.current) setLoading(false);
     }
@@ -134,7 +133,7 @@ export default function CampaignRoster() {
       const { character } = await api.getCharacter(characterId);
       setSelectedCharacter(character);
     } catch (error) {
-      showToast(apiErrorMessage(error) || 'Could not open that character sheet', 'error');
+      showToast(apiErrorMessage(error) || t('roster.openSheetFailed'), 'error');
     } finally {
       setViewerLoading(false);
     }
@@ -181,7 +180,7 @@ export default function CampaignRoster() {
         const { character } = await api.getCharacter(contextMenu.characterId);
         setEditorCharacter(character);
       } catch (error) {
-        showToast(apiErrorMessage(error) || 'Failed to load character for editing', 'error');
+        showToast(apiErrorMessage(error) || t('roster.editLoadFailed'), 'error');
       }
     }
   };
@@ -238,9 +237,9 @@ export default function CampaignRoster() {
         ),
       );
       useGameStore.getState().addToken(result.token, viewedMap.id);
-      showToast(`${character.name} placed on the map`, 'success');
+      showToast(t('roster.placed', { name: character.name }), 'success');
     } catch (error) {
-      showToast(apiErrorMessage(error) || 'Could not place that character on the map', 'error');
+      showToast(apiErrorMessage(error) || t('roster.placeFailed'), 'error');
     }
   };
 
@@ -257,13 +256,13 @@ export default function CampaignRoster() {
   /** What a character's menu offers this viewer, in order. */
   const characterMenuItems = (menu: CharacterMenu, viewer: User, membership: CampaignMembership): FlatMenuItem[] => {
     const owner = { userId: menu.characterUserId };
-    const items: FlatMenuItem[] = [{ kind: 'command', id: 'view-sheet', icon: Eye, label: 'View Character Sheet', run: handleViewCharacterSheet }];
+    const items: FlatMenuItem[] = [{ kind: 'command', id: 'view-sheet', icon: Eye, label: t('roster.viewSheet'), run: handleViewCharacterSheet }];
     // Rolling uses the sheet's modifiers, so it follows character
     // ownership, like Edit and Remove below — not `true`, which let
     // any member roll anyone's character.
     if (canRollAsCharacter(viewer, owner, membership)) {
       items.push({
-        kind: 'command', id: 'roll', icon: Dices, label: 'Roll...',
+        kind: 'command', id: 'roll', icon: Dices, label: t('roster.roll'),
         run: () => {
           setRollPicker({ x: menu.x, y: menu.y, characterId: menu.characterId });
           handleCloseContextMenu();
@@ -272,7 +271,7 @@ export default function CampaignRoster() {
     }
     if (temporaryHpOf(menu.characterId, viewer, membership)) {
       items.push({
-        kind: 'command', id: 'temporary-hp', icon: ShieldPlus, label: 'Temporary HP...',
+        kind: 'command', id: 'temporary-hp', icon: ShieldPlus, label: t('roster.temporaryHp'),
         run: () => {
           setTemporaryHpFor(menu.characterId);
           handleCloseContextMenu();
@@ -280,10 +279,10 @@ export default function CampaignRoster() {
       });
     }
     if (canEditCharacter(viewer, owner, membership)) {
-      items.push({ kind: 'command', id: 'edit-sheet', icon: Edit, label: 'Edit Character Sheet', run: handleEditCharacterSheet });
+      items.push({ kind: 'command', id: 'edit-sheet', icon: Edit, label: t('roster.editSheet'), run: handleEditCharacterSheet });
     }
     if (membership.role === 'GM' && viewedMap) {
-      items.push({ kind: 'command', id: 'add-to-map', icon: MapPin, label: 'Add to Map', run: handleAddTokenToMap });
+      items.push({ kind: 'command', id: 'add-to-map', icon: MapPin, label: t('roster.addToMap'), run: handleAddTokenToMap });
     }
     // The GM gives any character an item, whoever plays it (or nobody does).
     // Only a 5e sheet has the inventory it goes into; the server refuses the others.
@@ -303,7 +302,7 @@ export default function CampaignRoster() {
     // *campaigns*, not between owners. Better absent than advertised.
     // It comes back when the endpoint does.
     if (canRemoveCharacterFromCampaign(viewer, owner, membership)) {
-      items.push({ kind: 'command', id: 'remove', icon: X, label: 'Remove from Campaign', tone: 'danger', run: handleRemoveFromCampaign });
+      items.push({ kind: 'command', id: 'remove', icon: X, label: t('roster.removeFromCampaign'), tone: 'danger', run: handleRemoveFromCampaign });
     }
     return items;
   };
@@ -313,7 +312,7 @@ export default function CampaignRoster() {
     setConfirmRemove(contextMenu.characterId);
   };
 
-  const removingName = roster.flatMap((m) => m.characters).find((c) => c.id === confirmRemove)?.name ?? 'this character';
+  const removingName = roster.flatMap((m) => m.characters).find((c) => c.id === confirmRemove)?.name ?? t('roster.thisCharacter');
 
   const handleConfirmRemove = async () => {
     const characterId = confirmRemove;
@@ -324,7 +323,7 @@ export default function CampaignRoster() {
       await fetchRoster();
     } catch (error) {
       console.error('Error removing character from campaign:', errorSummary(error));
-      showToast(apiErrorMessage(error) || 'Failed to remove character from campaign', 'error');
+      showToast(apiErrorMessage(error) || t('roster.removeFailed'), 'error');
     }
   };
 
@@ -355,27 +354,27 @@ export default function CampaignRoster() {
       {/* Header */}
       <div className="flex items-center gap-2 pb-2 border-b border-moss-green/20">
         <Users className="w-5 h-5 text-brand-ink" />
-        <h3 className="text-lg font-semibold text-brand-ink">Campaign Roster</h3>
+        <h3 className="text-lg font-semibold text-brand-ink">{t('roster.title')}</h3>
       </div>
 
       {loading ? (
         <div className="text-center py-4">
-          <p className="text-sm text-warm-gray">Loading roster...</p>
+          <p className="text-sm text-warm-gray">{t('roster.loading')}</p>
         </div>
       ) : roster.length === 0 && loadFailed ? (
         <div className="text-center py-4 space-y-2">
-          <p className="text-sm text-warm-gray">The roster could not be loaded.</p>
+          <p className="text-sm text-warm-gray">{t('roster.loadFailed')}</p>
           <button
             type="button"
             onClick={() => { void fetchRoster(); }}
             className="text-xs text-brand-ink underline hover:text-brand-ink/80"
           >
-            Try again
+            {t('roster.tryAgain')}
           </button>
         </div>
       ) : roster.length === 0 ? (
         <div className="text-center py-4">
-          <p className="text-sm text-warm-gray">No members yet</p>
+          <p className="text-sm text-warm-gray">{t('roster.noMembers')}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -383,7 +382,7 @@ export default function CampaignRoster() {
           {groupedRoster.GM.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold text-brand-ink/60 uppercase tracking-wider mb-2">
-                {CAMPAIGN_ROLE_LABEL[CampaignRole.GM]}
+                {t('roles.GM')}
               </h4>
               <div className="space-y-2">
                 {groupedRoster.GM.map((member) => (
@@ -397,7 +396,7 @@ export default function CampaignRoster() {
           {groupedRoster.PLAYER.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold text-brand-ink/60 uppercase tracking-wider mb-2">
-                Players
+                {t('roster.players')}
               </h4>
               <div className="space-y-2">
                 {groupedRoster.PLAYER.map((member) => (
@@ -411,7 +410,7 @@ export default function CampaignRoster() {
           {groupedRoster.SPECTATOR.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold text-brand-ink/60 uppercase tracking-wider mb-2">
-                Spectators
+                {t('roster.spectators')}
               </h4>
               <div className="space-y-2">
                 {groupedRoster.SPECTATOR.map((member) => (
@@ -505,9 +504,9 @@ export default function CampaignRoster() {
       {/* Named, so a menu opened on the wrong row cannot remove someone unseen. */}
       <ConfirmDialog
         isOpen={confirmRemove !== null}
-        title="Remove from Campaign"
-        message={`Remove ${removingName} from the campaign? They go back to their player's own list.`}
-        confirmLabel="Remove"
+        title={t('roster.removeFromCampaign')}
+        message={t('roster.removeMessage', { name: removingName })}
+        confirmLabel={t('roster.remove')}
         variant="danger"
         onConfirm={handleConfirmRemove}
         onCancel={() => setConfirmRemove(null)}
@@ -535,6 +534,7 @@ interface MemberCardProps {
 }
 
 function MemberCard({ member, getRoleIcon, onCharacterClick, onCharacterMenu, coarsePointer, isGM, currentUserId, canAdjustOwn, characterHpCache, onHpDelta, isOnline }: MemberCardProps) {
+  const { t } = useTranslation();
   const RoleIcon = getRoleIcon(member.role);
 
   return (
@@ -564,8 +564,8 @@ function MemberCard({ member, getRoleIcon, onCharacterClick, onCharacterMenu, co
           </div>
           <span
             role="img"
-            aria-label={`${member.userName} is ${isOnline ? 'in session' : 'not in session'}`}
-            title={isOnline ? 'In session' : 'Not in session'}
+            aria-label={t(isOnline ? 'roster.inSessionLabel' : 'roster.notInSessionLabel', { name: member.userName })}
+            title={isOnline ? t('chat.inSession') : t('chat.notInSession')}
             className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-parchment ${
               isOnline ? 'bg-success' : 'bg-stone-gray/50'
             }`}
@@ -577,7 +577,7 @@ function MemberCard({ member, getRoleIcon, onCharacterClick, onCharacterMenu, co
           </p>
           {member.characters.length > 0 && (
             <p className="text-xs text-warm-gray">
-              {member.characters.length} {member.characters.length === 1 ? 'character' : 'characters'}
+              {t('roster.characters', { count: member.characters.length })}
             </p>
           )}
         </div>
@@ -642,12 +642,12 @@ function MemberCard({ member, getRoleIcon, onCharacterClick, onCharacterMenu, co
                         <button
                           onClick={() => onHpDelta(character.id, -5)}
                           className="flex items-center justify-center w-5 h-5 touch-target rounded-sm text-xs font-bold text-stone-gray bg-black/10 hover:bg-danger/10 hover:text-danger-ink transition-colors"
-                          title="−5 HP"
+                          title={t('roster.hpTitle', { delta: '−5' })}
                         >−5</button>
                         <button
                           onClick={() => onHpDelta(character.id, -1)}
                           className="flex items-center justify-center w-5 h-5 touch-target rounded-sm text-stone-gray bg-black/10 hover:bg-danger/10 hover:text-danger-ink transition-colors"
-                          title="−1 HP"
+                          title={t('roster.hpTitle', { delta: '−1' })}
                         ><Minus className="w-3 h-3" /></button>
                       </div>
                       <span className="flex-1 text-center text-xs font-semibold text-stone-gray">
@@ -658,12 +658,12 @@ function MemberCard({ member, getRoleIcon, onCharacterClick, onCharacterMenu, co
                         <button
                           onClick={() => onHpDelta(character.id, 1)}
                           className="flex items-center justify-center w-5 h-5 touch-target rounded-sm text-stone-gray bg-black/10 hover:bg-success/10 hover:text-success-ink transition-colors"
-                          title="+1 HP"
+                          title={t('roster.hpTitle', { delta: '+1' })}
                         ><Plus className="w-3 h-3" /></button>
                         <button
                           onClick={() => onHpDelta(character.id, 5)}
                           className="flex items-center justify-center w-5 h-5 touch-target rounded-sm text-xs font-bold text-stone-gray bg-black/10 hover:bg-success/10 hover:text-success-ink transition-colors"
-                          title="+5 HP"
+                          title={t('roster.hpTitle', { delta: '+5' })}
                         >+5</button>
                       </div>
                     </div>
@@ -703,8 +703,9 @@ interface CharacterRowProps {
  * drag would otherwise lift the line at about the time the menu opens.
  */
 function CharacterRow({ character, canDrag, coarsePointer, onClick, onMenu }: CharacterRowProps) {
+  const { t } = useTranslation();
   const longPress = useLongPress(onMenu);
-  const dragTitle = `Drag ${character.name} onto the map`;
+  const dragTitle = t('roster.dragTitle', { name: character.name });
   // A code this build does not know is shown as Unsupported system, untinted.
   const system = isGameSystem(character.gameSystem) ? character.gameSystem : null;
   const systemTint = system ? `${GAME_SYSTEM_TINTS[system].bg} ${GAME_SYSTEM_TINTS[system].text}` : 'bg-ink/10 text-ink';

@@ -196,7 +196,7 @@ describe('an obscured combatant', () => {
     const roll = await rolled;
     expect(roll.characterName).not.toContain('Something Large');
     expect(roll.purpose).not.toContain('Something Large');
-    expect(roll.purpose).toMatch(/Initiative/);
+    expect(roll.purpose).toMatch(/Iniciativa de/);
     gm.disconnect();
     p1.disconnect();
   });
@@ -225,7 +225,7 @@ describe("an initiative roll's dice log entry", () => {
     gm.emit('initiative.roll', { tokenId, mapId });
     const roll = await toGm;
     expect(roll.characterName).toBe(name);
-    expect(roll.purpose).toBe(`${name} Initiative`);
+    expect(roll.purpose).toBe(`Iniciativa de ${name}`);
     await expect(silence).resolves.toBeUndefined();
 
     gm.disconnect();
@@ -243,7 +243,7 @@ describe("an initiative roll's dice log entry", () => {
     gm.emit('initiative.roll', { tokenId: GOBLIN, mapId, characterName: 'Definitely a Friend' });
     const roll = await toP1;
     expect(roll.characterName).toBe('Goblin');
-    expect(roll.purpose).toBe('Goblin Initiative');
+    expect(roll.purpose).toBe('Iniciativa de Goblin');
 
     gm.disconnect();
     p1.disconnect();

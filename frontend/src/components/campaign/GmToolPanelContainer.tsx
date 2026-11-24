@@ -12,6 +12,7 @@
 
 import { useState, useRef, useCallback, useEffect, type ReactNode, type RefObject } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { stackCornerTop, type TopBand } from './map/toolbarLayout';
 
 interface GmToolPanelContainerProps {
@@ -57,6 +58,7 @@ const ROOM_BELOW = '8rem';
 const SHORTEST = '6rem';
 
 export default function GmToolPanelContainer({ children, containerRef, band = null, hidden = false, onHide, topLimit = 0, roomBelow }: GmToolPanelContainerProps) {
+  const { t } = useTranslation();
   // Where the stack was dropped, in pixels from the map container's top left
   // corner; null for its place in the top right corner. It was fixed to the
   // window, so it stayed put when the map moved or shrank and could be left
@@ -155,7 +157,7 @@ export default function GmToolPanelContainer({ children, containerRef, band = nu
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         onDoubleClick={() => setPosition(null)}
-        title="Drag to move the panels; double-click to put them back in the corner"
+        title={t('gmToolPanel.drag')}
       >
         <svg width="16" height="6" viewBox="0 0 16 6" className="opacity-40 mx-auto">
           <circle cx="4" cy="1.5" r="1.2" fill="currentColor" className="text-stone-400" />
@@ -171,10 +173,10 @@ export default function GmToolPanelContainer({ children, containerRef, band = nu
             // A press here is the button's, not the start of a move.
             onPointerDown={(e) => e.stopPropagation()}
             onClick={() => setPosition(null)}
-            title="Put the panels back in the corner"
+            title={t('gmToolPanel.putBack')}
             className="touch-target shrink-0 px-1.5 py-0.5 rounded-sm text-[10px] leading-none text-stone-300 hover:text-white hover:bg-stone-500/60 transition-colors"
           >
-            Reset position
+            {t('gmToolPanel.reset')}
           </button>
         )}
         {/* The compact layout's way to put the stack away, beside Map
@@ -184,8 +186,8 @@ export default function GmToolPanelContainer({ children, containerRef, band = nu
             type="button"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onHide}
-            aria-label="Hide tools"
-            title="Hide tools"
+            aria-label={t('mapControls.hideTools')}
+            title={t('mapControls.hideTools')}
             className="inline-flex size-11 shrink-0 items-center justify-center rounded-sm text-stone-300 hover:text-white hover:bg-stone-500/60 transition-colors"
           >
             <X className="w-4 h-4" aria-hidden="true" />

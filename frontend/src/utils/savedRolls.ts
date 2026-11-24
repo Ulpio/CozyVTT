@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type { DiceMacro } from '@/types';
 
 /** What a saved roll keeps besides its dice. */
@@ -29,7 +30,7 @@ export function rollLabels(
  * for one with neither.
  */
 export function savedRollDetail(macro: Pick<DiceMacro, 'characterName' | 'purpose'>): string {
-  return [macro.characterName && `as ${macro.characterName}`, macro.purpose && `for ${macro.purpose}`]
+  return [macro.characterName && i18n.t('savedRolls.detailAs', { name: macro.characterName }), macro.purpose && i18n.t('savedRolls.detailFor', { purpose: macro.purpose })]
     .filter(Boolean)
     .join(', ');
 }

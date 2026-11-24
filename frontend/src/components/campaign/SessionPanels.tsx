@@ -18,6 +18,7 @@
 // name.
 // ============================================
 
+import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -59,6 +60,7 @@ function useUnreadChatCount() {
 }
 
 export default function SessionPanels() {
+  const { t } = useTranslation();
   const activeTab = useGameStore((s) => s.sessionTab);
   const compact = useCompactLayout();
   useUnreadChatCount();
@@ -66,7 +68,7 @@ export default function SessionPanels() {
   /** What a panel is: a tab panel named by its tab in the rail, or on the compact layout a group with its own name. */
   const panel = (tab: SessionTab) =>
     compact
-      ? { role: 'group', 'aria-label': SESSION_TAB_LOOKS[tab].label }
+      ? { role: 'group', 'aria-label': t(SESSION_TAB_LOOKS[tab].labelKey) }
       : { role: 'tabpanel', 'aria-labelledby': `session-tab-${tab}` };
 
   // In a sheet, under the sheet's own heading, the panels need no space above.

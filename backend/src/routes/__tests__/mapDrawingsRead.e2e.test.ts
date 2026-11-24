@@ -110,7 +110,7 @@ it('answers a player about a prepared map as about a map that is not there', asy
 it('answers about another campaign\'s map as about a map that is not there', async () => {
   const res = await read('gm', mine, theirMap);
   expect(res.status).toBe(404);
-  expect(res.body).toEqual({ error: 'Not Found', message: 'Map not found' });
+  expect(res.body).toEqual({ error: 'Not Found', message: 'Mapa não encontrado.' });
 });
 
 it('refuses someone who is not in the campaign', async () => {

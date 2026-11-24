@@ -24,6 +24,7 @@ import { echoedOpId } from '../opId';
 import { campaignSockets, emitToMapReadersAs } from '../utils';
 import { withinCeiling, stateRequestAllowed, drawingPreviewLimiter, DRAWING_PREVIEWS_PER_SECOND, limiterKey } from '../shared';
 import { emitNewestState } from '../outgoingQueue';
+import { GM_ONLY } from '../../services/gmNotice';
 import {
   canReadMap, canDraw, drawRefusal, canDrawOnLayer, canEraseDrawing, eraseRefusal, drawingSentTo, DRAW_LAYER_REFUSAL,
 } from '../../services/permissions';
@@ -62,9 +63,9 @@ export function currentMapChanged(campaignId: string): void {
   currentMapChanges.set(campaignId, (currentMapChanges.get(campaignId) ?? 0) + 1);
 }
 
-const MAP_NOT_FOUND = 'Map not found';
-const DRAWING_NOT_FOUND = 'Drawing not found';
-const CLEAR_GM_ONLY = 'Only the GM can clear the drawings';
+const MAP_NOT_FOUND = 'Mapa não encontrado.';
+const DRAWING_NOT_FOUND = 'Desenho não encontrado.';
+const CLEAR_GM_ONLY = GM_ONLY;
 
 /**
  * How long a preview's decision, whether its sender may draw there and the
@@ -105,13 +106,13 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     try {
       if (!socket.campaignId) {
-        refuse('Not authenticated to a campaign');
+        refuse('Você não está em uma campanha.');
         return;
       }
       if (!withinCeiling(socket, 'drawing:add', ack)) return;
       const parsed = DrawingAddEventSchema.safeParse(data);
       if (!parsed.success) {
-        refuse(parsed.error.issues[0]?.message ?? 'Invalid drawing');
+        refuse(parsed.error.issues[0]?.message ?? 'Desenho inválido.');
         return;
       }
       const { mapId, drawing, previewId } = parsed.data;
@@ -167,7 +168,7 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
       ack?.({ ok: true, id: row.id, ...echoedOpId(data) });
     } catch (error) {
       logger.error('drawing:add failed', { err: error, userId: socket.userId });
-      refuse('Failed to add the drawing');
+      refuse('Não foi possível adicionar o desenho.');
     }
   });
 
@@ -181,7 +182,7 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     try {
       if (!socket.campaignId) {
-        refuse('Not authenticated to a campaign');
+        refuse('Você não está em uma campanha.');
         return;
       }
       if (!withinCeiling(socket, 'drawing:remove', ack)) return;
@@ -214,7 +215,7 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
       ack?.({ ok: true, ...echoedOpId(data) });
     } catch (error) {
       logger.error('drawing:remove failed', { err: error, userId: socket.userId });
-      refuse('Failed to erase the drawing');
+      refuse('Não foi possível apagar o desenho.');
     }
   });
 
@@ -230,7 +231,7 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     try {
       if (!socket.campaignId) {
-        refuse('Not authenticated to a campaign');
+        refuse('Você não está em uma campanha.');
         return;
       }
       if (!withinCeiling(socket, 'drawing:clear_mine', ack)) return;
@@ -265,7 +266,7 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
       ack?.({ ok: true, ...echoedOpId(data) });
     } catch (error) {
       logger.error('drawing:clear_mine failed', { err: error, userId: socket.userId });
-      refuse('Failed to clear your drawings');
+      refuse('Não foi possível limpar os seus desenhos.');
     }
   });
 
@@ -282,7 +283,7 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     try {
       if (!socket.campaignId) {
-        refuse('Not authenticated to a campaign');
+        refuse('Você não está em uma campanha.');
         return;
       }
       if (!withinCeiling(socket, 'drawing:clear', ack)) return;
@@ -318,7 +319,7 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
       ack?.({ ok: true, ...echoedOpId(data) });
     } catch (error) {
       logger.error('drawing:clear failed', { err: error, userId: socket.userId });
-      refuse('Failed to clear the drawings');
+      refuse('Não foi possível limpar os desenhos.');
     }
   });
 

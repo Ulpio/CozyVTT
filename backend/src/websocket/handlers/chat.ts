@@ -75,7 +75,7 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket): v
     let rememberedKey: string | null = null;
     try {
       if (!socket.campaignId) {
-        refuse('Not authenticated to a campaign');
+        refuse('Você não está em uma campanha.');
         return;
       }
       const campaignId = socket.campaignId;
@@ -136,7 +136,7 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket): v
       if (campaignSettings?.chatCooldownEnabled) {
         const windowMs = (campaignSettings.chatCooldownSeconds ?? 5) * 1000;
         if (!chatMessageLimiter.check(`${socket.userId}:${campaignId}`, 1, windowMs)) {
-          refuse(`Rate limit: wait ${campaignSettings.chatCooldownSeconds}s between messages.`);
+          refuse(`Espere ${campaignSettings.chatCooldownSeconds} s entre uma mensagem e outra.`);
           return;
         }
       }
@@ -164,7 +164,7 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket): v
       } catch (error) {
         if (rememberedKey) sentByClientId.delete(rememberedKey);
         if (error instanceof UserGoneError) {
-          refuse('User not found');
+          refuse('Usuário não encontrado.');
           return;
         }
         // The recipient's account was deleted after they were looked up. Any
@@ -206,7 +206,7 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket): v
     } catch (error) {
       if (rememberedKey) sentByClientId.delete(rememberedKey);
       logger.error('chat.message failed', { err: error });
-      refuse('Failed to send chat message');
+      refuse('Não foi possível enviar a mensagem.');
     }
   });
 }

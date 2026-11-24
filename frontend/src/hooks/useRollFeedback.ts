@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useRef, type SyntheticEvent } from 'react';
 import { useToast } from '@/contexts/ToastContext';
+import i18n from '@/i18n';
 import { diceLogOnScreen } from '@/utils/diceLogOnScreen';
 import type { DiceRolledEvent } from '@/types';
 import type socketClient from '@/services/socket';
@@ -53,7 +54,7 @@ export function useRollFeedback(socket: typeof socketClient | null | undefined):
 
   const say = useCallback((label: string, roll: DiceRolledEvent) => {
     if (diceLogOnScreen()) return;
-    showToast(`${label}: ${roll.result}${roll.secret ? ' (secret)' : ''}`, 'info', ROLL_MESSAGE_MS);
+    showToast(`${label}: ${roll.result}${roll.secret ? ` ${i18n.t('mapView.rollSecret')}` : ''}`, 'info', ROLL_MESSAGE_MS);
   }, [showToast]);
 
   useEffect(() => {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import socketClient from '@/services/socket';
 import { useToast } from '@/contexts/ToastContext';
+import i18n from '@/i18n';
 import { handleUnauthorized, hasUnsavedWork } from '@/services/unsavedWork';
 import { rememberSignInNotice } from '@/services/signInNotice';
 import { loadPage } from '@/services/pageLoad';
@@ -52,7 +53,7 @@ export function useAccessRevoked(): (revoked: AccessRevoked) => void {
     // just before would still show the campaign's card.
     refreshAfterLeavingCampaign(queryClient);
     if (hasUnsavedWork()) {
-      showToast(`${revoked.message} Your unsaved changes are still open: save them before you leave this page.`, 'warning', NOTICE_MS);
+      showToast(`${revoked.message} ${i18n.t('mapView.unsavedKept')}`, 'warning', NOTICE_MS);
       return;
     }
     showToast(revoked.message, revoked.reason === 'left' ? 'success' : 'warning', NOTICE_MS);

@@ -160,7 +160,7 @@ describe('clearCampaignFromLiveSockets', () => {
     const notTold = expectNoEvent(elsewhere, 'campaign.access.revoked', 500);
     await clearCampaignFromLiveSockets(playerId, campaignId);
 
-    await expect(told).resolves.toEqual({ campaignId, reason: 'removed', message: 'You were removed from this campaign.' });
+    await expect(told).resolves.toEqual({ campaignId, reason: 'removed', message: 'Você foi removido desta campanha.' });
     await expect(notTold).resolves.toBeUndefined();
 
     playerClient.disconnect();
@@ -201,7 +201,7 @@ describe('a refused join', () => {
     client.emit('authenticate', { campaignId });
 
     const revoked = await told;
-    expect(revoked).toEqual({ campaignId, reason: 'not-member', message: 'You are not a member of this campaign.' });
+    expect(revoked).toEqual({ campaignId, reason: 'not-member', message: 'Você não é membro desta campanha.' });
     expect(JSON.stringify(revoked)).not.toContain('Revoked Campaign');
     await expect(noError).resolves.toBeUndefined();
     expect(campaignRooms(client, outsiderId)).toEqual([]);
@@ -219,7 +219,7 @@ describe('a refused join', () => {
     await expect(told).resolves.toEqual({
       campaignId: gone,
       reason: 'campaign-deleted',
-      message: 'This campaign does not exist. It may have been deleted.',
+      message: 'Esta campanha não existe. Ela pode ter sido excluída.',
     });
     await expect(noError).resolves.toBeUndefined();
     expect(campaignRooms(client, outsiderId)).toEqual([]);
@@ -266,7 +266,7 @@ describe('a refused join', () => {
       const told = waitForEvent<AccessRevoked>(client, 'campaign.access.revoked');
       client.emit('authenticate', { campaignId });
 
-      await expect(told).resolves.toEqual({ campaignId, reason: 'removed', message: 'You were removed from this campaign.' });
+      await expect(told).resolves.toEqual({ campaignId, reason: 'removed', message: 'Você foi removido desta campanha.' });
       expect(campaignRooms(client, playerId)).toEqual([]);
       client.disconnect();
     });
@@ -278,7 +278,7 @@ describe('a refused join', () => {
       const told = waitForEvent<AccessRevoked>(client, 'campaign.access.revoked');
       client.emit('authenticate', { campaignId });
 
-      await expect(told).resolves.toEqual({ campaignId, reason: 'not-member', message: 'You are not a member of this campaign.' });
+      await expect(told).resolves.toEqual({ campaignId, reason: 'not-member', message: 'Você não é membro desta campanha.' });
       expect(campaignRooms(client, playerId)).toEqual([]);
       client.disconnect();
     });
