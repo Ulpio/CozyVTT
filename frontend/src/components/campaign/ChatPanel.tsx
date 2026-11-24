@@ -7,6 +7,8 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } fr
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import { MessageCircle, Send, Loader, AlertCircle, Eraser, X, Lock, Shield } from 'lucide-react';
 import { useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOnRejoin } from '@/hooks/useOnRejoin';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,7 +23,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ChatMessage from './ChatMessage';
 import JumpToNewest from './JumpToNewest';
 import ChatMessageSkeleton from '@/components/skeletons/ChatMessageSkeleton';
-import { CampaignRole, MessageType } from '@/types';
+import { MessageType } from '@/types';
 import type { Message, ChatMessageBroadcast, ChatMessageUpdated, ChatMessageEvent, MessageHistoryPage } from '@/types';
 import Button from '@/components/ui/Button';
 import { errorMessage, errorSummary } from '@/utils/errors';
@@ -30,7 +32,6 @@ import { MAX_CHAT_MESSAGE_LENGTH } from '@/constants/chatLimits';
 import { DISPLAY_NAME_MAX_LENGTH } from '@/constants/accountLimits';
 import { useOnlineUserIds } from '@/stores/gameStore';
 import { whisperTargets, readSlashWhisper, isSlashWhisper, slashWhisperRefusal, byLabel } from '@/utils/chatWhisper';
-import { CAMPAIGN_ROLE_LABEL } from '@/utils/campaignRoles';
 
 /** Messages per page. The server caps this at MAX_CHAT_HISTORY_PAGE (constants/chatLimits.ts). */
 const PAGE_SIZE = 50;
@@ -126,6 +127,7 @@ function withinCap(held: Held, atNewest: boolean): Held {
 }
 
 export default function ChatPanel() {
+  const { t } = useTranslation();
   const { id: campaignId } = useParams<{ id: string }>();
   const { socket, joinedEpoch } = useWebSocket();
   const { user } = useAuth();
@@ -145,7 +147,7 @@ export default function ChatPanel() {
     () => whisperTargets(campaign?.memberships ?? [], campaign?.characters ?? []),
     [campaign?.memberships, campaign?.characters]
   );
-  const others = useMemo(() => [...targets.values()].filter((t) => t.userId !== user?.id).sort(byLabel), [targets, user?.id]);
+  const others = useMemo(() => [...targets.values()].filter((target) => target.userId !== user?.id).sort(byLabel), [targets, user?.id]);
   const gmUserId = campaign?.memberships?.find((m) => m.role === 'GM')?.userId;
 
   /**
@@ -358,7 +360,7 @@ export default function ChatPanel() {
         setTimeout(() => scrollToBottom(false), 100);
       } catch (err) {
         console.error('[ChatPanel] Failed to load messages:', errorSummary(err));
-        setError(errorMessage(err) || 'Failed to load messages');
+        setError(errorMessage(err) || i18n.t('chat.loadFailed'));
       } finally {
         setIsLoading(false);
       }
@@ -472,7 +474,7 @@ export default function ChatPanel() {
       });
     } catch (err) {
       console.error('[ChatPanel] Failed to load more messages:', errorSummary(err));
-      setError(errorMessage(err) || 'Failed to load more messages');
+      setError(errorMessage(err) || i18n.t('chat.loadMoreFailed'));
     } finally {
       setIsLoadingMore(false);
     }
@@ -740,8 +742,8 @@ export default function ChatPanel() {
     const mine = message.userId === user?.id;
     const peerId = mine ? message.recipientId : message.userId;
     const fallback = mine ? message.recipient?.displayName : message.user?.displayName;
-    const peer = (peerId ? targets.get(peerId)?.label : undefined) || fallback || 'Unknown User';
-    return { label: mine ? `Whisper to ${peer}` : `Whisper from ${peer}`, peer, canReply: !!peerId && targets.has(peerId) && peerId !== user?.id };
+    const peer = (peerId ? targets.get(peerId)?.label : undefined) || fallback || t('chat.unknownUser');
+    return { label: mine ? t('chat.whisperTo', { name: peer }) : t('chat.whisperFrom', { name: peer }), peer, canReply: !!peerId && targets.has(peerId) && peerId !== user?.id };
   };
 
   // A whisper typed as `/w <name> ` has its message counted alone, as the
@@ -761,8 +763,8 @@ export default function ChatPanel() {
     : typingRefusal
       ? null
       : recipient && { id: recipient.id, name: recipientName ?? recipient.name, gone: recipientGone };
-  const gmTarget = others.find((t) => t.userId === gmUserId);
-  const players = others.filter((t) => t.userId !== gmUserId);
+  const gmTarget = others.find((target) => target.userId === gmUserId);
+  const players = others.filter((target) => target.userId !== gmUserId);
 
   // ============================================
   // Render
@@ -795,7 +797,7 @@ export default function ChatPanel() {
   // The composer's parts, which the two arrangements lay out differently.
   // Each has a key, so a change of arrangement keeps the box and its focus.
   const toLabel = (
-    <label htmlFor="chat-recipient" key="to-label" className={compact ? 'sr-only' : 'text-xs font-medium text-stone-gray'}>To</label>
+    <label htmlFor="chat-recipient" key="to-label" className={compact ? 'sr-only' : 'text-xs font-medium text-stone-gray'}>{t('chat.to')}</label>
   );
   // Who the message goes to, keyed by user id: display names are not unique.
   const toList = (
@@ -806,22 +808,22 @@ export default function ChatPanel() {
       onChange={chooseRecipient}
       className={`input-cozy min-w-0 text-sm py-1${compact ? ' w-32 px-2.5 shrink-0 min-h-11' : ' flex-1'}`}
     >
-      <option value="">Everyone</option>
-      {recipientGone && recipient && <option value={recipient.id}>{recipient.name} (no longer in the campaign)</option>}
+      <option value="">{t('chat.everyone')}</option>
+      {recipientGone && recipient && <option value={recipient.id}>{t('chat.noLongerInCampaignOption', { name: recipient.name })}</option>}
       {/* The GM in a group the app names, which nothing a member writes can copy. */}
       {gmTarget && (
-        <optgroup label={onlineUserIds.has(gmTarget.userId) ? CAMPAIGN_ROLE_LABEL[CampaignRole.GM] : `${CAMPAIGN_ROLE_LABEL[CampaignRole.GM]}, not in session`}>
+        <optgroup label={onlineUserIds.has(gmTarget.userId) ? t('roles.GM') : t('chat.gmNotInSession', { role: t('roles.GM') })}>
           <option value={gmTarget.userId}>{gmTarget.label}</option>
         </optgroup>
       )}
-      {players.some((t) => onlineUserIds.has(t.userId)) && (
-        <optgroup label="In session">
-          {players.filter((t) => onlineUserIds.has(t.userId)).map((t) => <option key={t.userId} value={t.userId}>{t.label}</option>)}
+      {players.some((target) => onlineUserIds.has(target.userId)) && (
+        <optgroup label={t('chat.inSession')}>
+          {players.filter((target) => onlineUserIds.has(target.userId)).map((target) => <option key={target.userId} value={target.userId}>{target.label}</option>)}
         </optgroup>
       )}
-      {players.some((t) => !onlineUserIds.has(t.userId)) && (
-        <optgroup label="Not in session">
-          {players.filter((t) => !onlineUserIds.has(t.userId)).map((t) => <option key={t.userId} value={t.userId}>{t.label}</option>)}
+      {players.some((target) => !onlineUserIds.has(target.userId)) && (
+        <optgroup label={t('chat.notInSession')}>
+          {players.filter((target) => !onlineUserIds.has(target.userId)).map((target) => <option key={target.userId} value={target.userId}>{target.label}</option>)}
         </optgroup>
       )}
     </select>
@@ -836,8 +838,8 @@ export default function ChatPanel() {
         setBoxRefusal(null);
       }}
       onKeyDown={handleKeyDown}
-      placeholder={compact ? (recipient ? 'Whisper…' : 'Message…') : recipient ? 'Type a whisper…' : 'Type a message…'}
-      aria-label="Chat message"
+      placeholder={compact ? (recipient ? t('chat.placeholderWhisperShort') : t('chat.placeholderMessageShort')) : recipient ? t('chat.placeholderWhisper') : t('chat.placeholderMessage')}
+      aria-label={t('chat.boxLabel')}
       aria-describedby="chat-hint"
       className={`input-cozy flex-1 text-sm resize-none ${compact ? 'min-w-0 min-h-11 px-2.5' : 'min-h-[60px]'} ${canSend ? '' : 'opacity-50 cursor-not-allowed'}`}
       rows={compact ? 1 : 2}
@@ -854,7 +856,7 @@ export default function ChatPanel() {
       type="submit"
       className={`${compact ? 'px-3 min-h-11 shrink-0' : 'px-4'} py-2 flex items-center gap-2`}
       disabled={!messageInput.trim() || !canSend}
-      aria-label={!canSend ? `Rate limited — wait ${cooldownSeconds} seconds` : 'Send message'}
+      aria-label={!canSend ? t('chat.rateLimitedWait', { seconds: cooldownSeconds }) : t('chat.sendMessage')}
     >
       {!canSend && cooldownSeconds > 0 ? (
         <span className="text-sm font-mono" aria-hidden="true">{cooldownSeconds}s</span>
@@ -867,15 +869,15 @@ export default function ChatPanel() {
   // What the panel holds, which in a long session is not all there is.
   const shownCount = messages.length > 0 && (
     <span className="text-xs text-stone-gray/70 ml-auto">
-      {messages.length} shown
+      {t('chat.shown', { count: messages.length })}
     </span>
   );
   const clearJoinsButton = userRole === 'GM' && (
     <button
       onClick={() => setConfirmClearJoins(true)}
       disabled={clearingJoins}
-      aria-label="Clear old join and leave messages"
-      title="Clear old join and leave messages"
+      aria-label={t('chat.clearJoinsLabel')}
+      title={t('chat.clearJoinsLabel')}
       className={`p-1.5 rounded-lg text-stone-gray hover:text-brand-ink hover:bg-moss-green/10 transition-colors disabled:opacity-50 ${
         messages.length > 0 ? '' : 'ml-auto'
       }${compact ? ' touch-target inline-flex items-center justify-center' : ''}`}
@@ -892,10 +894,10 @@ export default function ChatPanel() {
       {isLoadingMore ? (
         <>
           <Loader className="w-3 h-3 animate-spin mr-2" />
-          Loading...
+          {t('chat.loading')}
         </>
       ) : (
-        'Load More'
+        t('chat.loadMore')
       )}
     </Button>
   );
@@ -908,11 +910,11 @@ export default function ChatPanel() {
           GM's eraser go at the top of the log beside Load More, where they
           scroll away with the history. */}
       {compact ? (
-        <h3 className="sr-only">Chat</h3>
+        <h3 className="sr-only">{t('chat.title')}</h3>
       ) : (
       <div className="flex items-center gap-2 border-b border-moss-green/20 p-4">
         <MessageCircle className="w-5 h-5 text-brand-ink" />
-        <h3 className="text-lg font-semibold text-brand-ink">Chat</h3>
+        <h3 className="text-lg font-semibold text-brand-ink">{t('chat.title')}</h3>
         {shownCount}
         {clearJoinsButton}
       </div>
@@ -920,10 +922,10 @@ export default function ChatPanel() {
 
       <ConfirmDialog
         isOpen={confirmClearJoins}
-        title="Clear join and leave messages?"
-        message="Removes the old “has joined” and “has left” notices from this campaign's chat for everyone. The rest of the conversation is untouched, and no new ones are created."
-        confirmLabel="Clear"
-        cancelLabel="Keep"
+        title={t('chat.clearJoinsTitle')}
+        message={t('chat.clearJoinsMessage')}
+        confirmLabel={t('chat.clear')}
+        cancelLabel={t('chat.keep')}
         variant="warning"
         onConfirm={handleClearJoinLeave}
         onCancel={() => setConfirmClearJoins(false)}
@@ -937,7 +939,7 @@ export default function ChatPanel() {
           <button
             type="button"
             onClick={() => setError(null)}
-            aria-label="Dismiss"
+            aria-label={t('chat.dismiss')}
             className="p-1 rounded-sm text-danger-ink hover:bg-danger/10"
           >
             <X className="w-4 h-4" aria-hidden="true" />
@@ -952,7 +954,7 @@ export default function ChatPanel() {
         onScroll={handleScroll}
         role="log"
         aria-live={historyReads > 0 ? 'off' : 'polite'}
-        aria-label="Chat messages"
+        aria-label={t('chat.log')}
         aria-relevant="additions"
         className={compact ? 'flex-1 overflow-y-auto px-2 py-1.5 space-y-1.5' : 'flex-1 overflow-y-auto p-4 space-y-3'}
       >
@@ -977,9 +979,9 @@ export default function ChatPanel() {
         {messages.length === 0 ? (
           <div className="text-center py-8">
             <MessageCircle className="w-12 h-12 text-brand-ink/30 mx-auto mb-3" />
-            <p className="text-sm text-warm-gray mb-2">No messages yet</p>
+            <p className="text-sm text-warm-gray mb-2">{t('chat.empty')}</p>
             <p className="text-xs text-stone-gray/70">
-              Start a conversation with your party
+              {t('chat.emptyHint')}
             </p>
           </div>
         ) : (
@@ -1046,8 +1048,8 @@ export default function ChatPanel() {
               <Lock className="w-3 h-3 shrink-0" aria-hidden="true" />
               {/* The shield the log shows beside a GM's message, for the campaign's GM by user id. */}
               {goesTo.id === gmUserId && <Shield className="w-3 h-3 shrink-0 text-warning-ink" aria-hidden="true" />}
-              <span>{goesTo.gone ? `${goesTo.name} is no longer in the campaign.` : `Only you and ${goesTo.name} can see this.`}</span>
-              {goesTo.id === gmUserId && <span className="sr-only">{goesTo.name} is the GM.</span>}
+              <span>{goesTo.gone ? t('chat.noLongerInCampaign', { name: goesTo.name }) : t('chat.onlyYouAnd', { name: goesTo.name })}</span>
+              {goesTo.id === gmUserId && <span className="sr-only">{t('chat.isTheGM', { name: goesTo.name })}</span>}
             </p>
           )}
           {boxRefusal ? (
@@ -1059,17 +1061,17 @@ export default function ChatPanel() {
           {/* Rate Limiting Feedback */}
           {!canSend && cooldownSeconds > 0 && (
             <p className="text-xs text-warning-ink text-center">
-              Wait {cooldownSeconds}s before sending another message
+              {t('chat.waitBeforeSending', { seconds: cooldownSeconds })}
             </p>
           )}
           {canSend && countedLength >= LENGTH_WARNING_AT && (
             <p className="text-xs text-warning-ink text-center" aria-live="polite">
-              {countedLength} of {MAX_CHAT_MESSAGE_LENGTH} characters
+              {t('chat.charactersCount', { count: countedLength, max: MAX_CHAT_MESSAGE_LENGTH })}
             </p>
           )}
           {canSend && countedLength < LENGTH_WARNING_AT && (
             <p id="chat-hint" className={compact ? 'sr-only' : 'text-xs text-stone-gray/70 text-center'}>
-              Press Enter to send, Shift+Enter for new line
+              {t('chat.hint')}
             </p>
           )}
         </form>

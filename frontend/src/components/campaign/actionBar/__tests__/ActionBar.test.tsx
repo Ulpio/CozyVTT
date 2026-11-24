@@ -295,7 +295,7 @@ describe('the rest of the bar', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Testes' }));
       fireEvent.click(await screen.findByRole('button', { name: /^Atletismo/ }));
       await waitFor(() => expect(h.roll).toHaveBeenCalled());
-      expect((h.roll.mock.calls[0][0] as { purpose: string }).purpose).toBe('Athletics Check');
+      expect((h.roll.mock.calls[0][0] as { purpose: string }).purpose).toBe('Teste de Atletismo');
     } finally {
       await act(async () => { await i18n.changeLanguage('en'); });
     }

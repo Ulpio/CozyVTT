@@ -23,6 +23,7 @@ import {
   Dices,
 } from 'lucide-react';
 import { hitDieExpression, hitDiceMaximum, spendRoll, canSpendHitDie } from '@/utils/hitDice';
+import { abilityName, checkPurpose, saveShortPurpose, hitDiePurpose } from '@/utils/rollText';
 import type { CampaignDetailLevel, Character } from '../../../types';
 import { useOptionalCampaign } from '@/contexts/CampaignContext';
 import { useOptionalAuth } from '@/contexts/AuthContext';
@@ -233,7 +234,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
             return statEntries.map(([key, fullName]) => {
               const stat = data.stats[key];
               const expr = stat.modifier >= 0 ? `1d20+${stat.modifier}` : `1d20${stat.modifier}`;
-              const purpose = `${fullName} Check`;
+              const purpose = checkPurpose(abilityName(fullName));
               return (
                 <StatBlock
                   key={key as string}
@@ -267,7 +268,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
               // roll it, so a stored total that has gone stale is not shown.
               const bonus = fifthEditionSaveBonus(data, key);
               const expr = bonus >= 0 ? `1d20+${bonus}` : `1d20${bonus}`;
-              const purpose = `${key.charAt(0).toUpperCase() + key.slice(1)} Save`;
+              const purpose = saveShortPurpose(abilityName(key.charAt(0).toUpperCase() + key.slice(1)));
               return (
                 <div
                   key={key}
@@ -423,7 +424,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
               const max = hitDiceMaximum(hd);
               const spendable = !!onRoll && canSpendHitDie(hd, con);
               const expr = die === null ? '' : spendRoll(die, con);
-              const purpose = `Spend a Hit Die${hd.class ? ` (${hd.class})` : ''}`;
+              const purpose = hitDiePurpose(hd.class);
               return (
                 <div
                   key={idx}

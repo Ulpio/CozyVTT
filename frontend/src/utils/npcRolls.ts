@@ -30,6 +30,8 @@ import {
   formatModifier,
   skillLabel,
 } from './rules/fifthEdition';
+import { abilityMark, abilityName, skillName, checkPurpose, savePurpose, saveLabel, attackLabel, npcDamageLabel, damageNth } from './rollText';
+import { attackPurpose, damagePurpose } from './rollPurposes';
 
 // A creature's stat block carries a `hitDice` string for working out its hit
 // points, not a pool it spends on a short rest, so there is nothing to offer.
@@ -71,7 +73,7 @@ type ActionEntry = { name: string; description: string };
 function buildCombatRolls(statBlock: NpcStatBlock): RollOption[] {
   const combat: RollOption[] = [];
 
-  const sources: Array<{ list: ActionEntry[] | undefined; label: string }> = [
+  const sources: Array<{ list: ActionEntry[] | undefined; label: 'Action' | 'Bonus Action' | 'Reaction' | 'Legendary' }> = [
     { list: statBlock.actions,          label: 'Action' },
     { list: statBlock.bonusActions,     label: 'Bonus Action' },
     { list: statBlock.reactions,        label: 'Reaction' },
@@ -89,9 +91,9 @@ function buildCombatRolls(statBlock: NpcStatBlock): RollOption[] {
       const atkBonus = extractAttackBonus(description);
       if (atkBonus !== null) {
         combat.push({
-          label:             `${name} (Attack ${formatModifier(atkBonus)})`,
+          label:             attackLabel(name, formatModifier(atkBonus)),
           expression:        `1d20${formatModifier(atkBonus)}`,
-          purpose:           `${name} Attack`,
+          purpose:           attackPurpose(name),
           supportsAdvantage: true,
         });
       }
@@ -106,9 +108,9 @@ function buildCombatRolls(statBlock: NpcStatBlock): RollOption[] {
         if (!isValidDiceExpression(expr)) return;
         const suffix = dice.length > 1 ? ` ${idx + 1}` : '';
         combat.push({
-          label:             `${name} (${label === 'Action' ? 'Damage' : `${label} Damage`}${suffix} ${expr})`,
+          label:             npcDamageLabel(name, label, suffix, expr),
           expression:        expr,
-          purpose:           `${name} Damage${suffix}`,
+          purpose:           dice.length > 1 ? damageNth(name, idx + 1) : damagePurpose(name),
           supportsAdvantage: false,
         });
       });
@@ -134,9 +136,9 @@ function buildFifthEditionRolls(statBlock: NpcStatBlock): CharacterRolls {
   for (const ability of ABILITY_KEYS) {
     const mod = abilityModifier(statBlock.abilities?.[ability] ?? 10);
     abilities.push({
-      label:             `${ability.toUpperCase()} ${formatModifier(mod)}`,
+      label:             `${abilityMark(ability)} ${formatModifier(mod)}`,
       expression:        `1d20${formatModifier(mod)}`,
-      purpose:           `${ABILITY_LABELS[ability]} Check`,
+      purpose:           checkPurpose(abilityName(ABILITY_LABELS[ability])),
       supportsAdvantage: true,
     });
   }
@@ -153,9 +155,9 @@ function buildFifthEditionRolls(statBlock: NpcStatBlock): CharacterRolls {
     const marker = level === 'expertise' ? ' ◆' : hasBonus ? ' ●' : '';
 
     savingThrows.push({
-      label:             `${ABILITY_LABELS[ability]} Save ${formatModifier(bonus)}${marker}`,
+      label:             `${saveLabel(abilityName(ABILITY_LABELS[ability]), formatModifier(bonus))}${marker}`,
       expression:        `1d20${formatModifier(bonus)}`,
-      purpose:           `${ABILITY_LABELS[ability]} Saving Throw`,
+      purpose:           savePurpose(abilityName(ABILITY_LABELS[ability])),
       supportsAdvantage: true,
     });
   }
@@ -169,12 +171,12 @@ function buildFifthEditionRolls(statBlock: NpcStatBlock): CharacterRolls {
     const display = skillLabel(rawKey);
     const level = proficientSkills[rawKey];
     const marker = level === 'expertise' ? ' ◆' : '';
-    const abilitySuffix = definition ? ` (${definition.ability.toUpperCase()})` : '';
+    const abilitySuffix = definition ? ` (${abilityMark(definition.ability)})` : '';
 
     skills.push({
-      label:             `${display} ${formatModifier(bonus)}${abilitySuffix}${marker}`,
+      label:             `${skillName(display)} ${formatModifier(bonus)}${abilitySuffix}${marker}`,
       expression:        `1d20${formatModifier(bonus)}`,
-      purpose:           `${display} Check`,
+      purpose:           checkPurpose(skillName(display)),
       supportsAdvantage: true,
     });
   }

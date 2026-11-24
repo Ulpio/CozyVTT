@@ -11,6 +11,7 @@
 
 import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { Dices, X, ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { Token } from '@/types';
 import type { RollOption, CharacterRolls } from '@/utils/characterRolls';
 import { buildNpcRolls } from '@/utils/npcRolls';
@@ -92,6 +93,7 @@ export default function NpcRollPicker({
   anchorX,
   anchorY,
 }: NpcRollPickerProps) {
+  const { t } = useTranslation();
   const compact = useCompactLayout();
   const pickerRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
@@ -174,7 +176,7 @@ export default function NpcRollPicker({
       {/* Roll Mode Selector (d20 systems only) */}
       {hasAdvantage && hasAnyRolls && (
         <div className="shrink-0 px-3 py-2 border-b border-moss-green/10 bg-parchment/30">
-          <div className="text-xs text-warm-gray mb-1">Roll mode</div>
+          <div className="text-xs text-warm-gray mb-1">{t('rollPicker.rollMode')}</div>
           <div className="relative">
             <button
               onClick={() => setModeOpen((o) => !o)}
@@ -208,21 +210,21 @@ export default function NpcRollPicker({
       <div className={`flex-1 min-h-0 overflow-y-auto${compact ? ' overscroll-contain' : ''}`}>
         {!hasAnyRolls && (
           <div className="px-3 py-4 text-sm text-warm-gray text-center">
-            No stat block on this token.
+            {t('rollPicker.noStatBlock')}
             <br />
-            <span className="text-xs">Add one via Edit Token, or use a custom roll below.</span>
+            <span className="text-xs">{t('rollPicker.addStatBlock')}</span>
           </div>
         )}
 
         {hasAnyRolls && (
           <div className="divide-y divide-moss-green/10">
-            <Section title="Abilities"     rolls={rolls.abilities}    onRoll={handleRollOption} compact={compact} />
-            <Section title="Saving Throws" rolls={rolls.savingThrows} onRoll={handleRollOption} compact={compact} />
-            <Section title="Skills"        rolls={rolls.skills}       onRoll={handleRollOption} compact={compact} />
-            <Section title="Combat"        rolls={rolls.combat}       onRoll={handleRollOption} compact={compact} />
+            <Section title={t('rollPicker.abilities')} rolls={rolls.abilities}    onRoll={handleRollOption} compact={compact} />
+            <Section title={t('rollPicker.savingThrows')} rolls={rolls.savingThrows} onRoll={handleRollOption} compact={compact} />
+            <Section title={t('rollPicker.skills')} rolls={rolls.skills}       onRoll={handleRollOption} compact={compact} />
+            <Section title={t('rollPicker.combat')}        rolls={rolls.combat}       onRoll={handleRollOption} compact={compact} />
             {/* Always empty for a creature — a stat block has no pool to spend —
                 but listed so the two pickers show the same categories. */}
-            <Section title="Hit Dice"      rolls={rolls.hitDice}      onRoll={handleRollOption} compact={compact} />
+            <Section title={t('rollPicker.hitDice')}      rolls={rolls.hitDice}      onRoll={handleRollOption} compact={compact} />
           </div>
         )}
       </div>
@@ -236,7 +238,7 @@ export default function NpcRollPicker({
 
   if (compact) {
     return (
-      <BottomSheet open title={`Roll for ${token.name}`} height="full" onClose={onClose}>
+      <BottomSheet open title={t('rollPicker.rollFor', { name: token.name })} height="full" onClose={onClose}>
         <div className="flex h-full min-h-0 flex-col">{body}</div>
       </BottomSheet>
     );
@@ -261,10 +263,10 @@ export default function NpcRollPicker({
           <div className="flex items-center gap-2">
             <Dices className="w-4 h-4 text-brand-ink" />
             <span className="text-sm font-semibold text-stone-gray truncate">
-              Roll for {token.name}
+              {t('rollPicker.rollFor', { name: token.name })}
             </span>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="p-0.5 touch-target inline-flex items-center justify-center rounded-sm hover:bg-moss-green/10 transition-colors">
+          <button type="button" onClick={onClose} aria-label={t('rollPicker.close')} className="p-0.5 touch-target inline-flex items-center justify-center rounded-sm hover:bg-moss-green/10 transition-colors">
             <X className="w-4 h-4 text-warm-gray" aria-hidden="true" />
           </button>
         </div>

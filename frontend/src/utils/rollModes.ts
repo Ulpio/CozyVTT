@@ -8,6 +8,7 @@
  * `applyRollMode`.
  */
 
+import i18n from '@/i18n';
 import { withAdvantage, withDisadvantage } from './characterRolls';
 
 export type RollMode = 'normal' | 'advantage' | 'disadvantage';
@@ -15,17 +16,16 @@ export type RollMode = 'normal' | 'advantage' | 'disadvantage';
 /** The three, in the order every selector lists them. */
 export const ROLL_MODES: readonly RollMode[] = ['normal', 'advantage', 'disadvantage'];
 
-const DEFAULT_LABELS: Record<RollMode, string> = { normal: 'Normal', advantage: 'Advantage', disadvantage: 'Disadvantage' };
 
 // The selector is hidden for Horror d100 (systemSupportsAdvantage), so a
 // roll there is always Normal, and it takes the default names.
-const MODE_LABELS: Record<string, Record<RollMode, string>> = {
-  FIFTH_EDITION: DEFAULT_LABELS,
-  FANTASY_D20: { normal: 'Normal', advantage: 'Fortune', disadvantage: 'Misfortune' },
-};
-
+// The names are read when asked for, in the app's language (the purpose of a
+// roll in a mode carries one, written for the table when the roll is made).
 export function getModeLabels(gameSystem: string | null): Record<RollMode, string> {
-  return MODE_LABELS[gameSystem ?? ''] ?? DEFAULT_LABELS;
+  if (gameSystem === 'FANTASY_D20') {
+    return { normal: i18n.t('rollPicker.modeNormal'), advantage: i18n.t('rollPicker.modeFortune'), disadvantage: i18n.t('rollPicker.modeMisfortune') };
+  }
+  return { normal: i18n.t('rollPicker.modeNormal'), advantage: i18n.t('rollPicker.modeAdvantage'), disadvantage: i18n.t('rollPicker.modeDisadvantage') };
 }
 
 /** Whether the system rolls a d20 twice for advantage or disadvantage, so the selector is shown. */

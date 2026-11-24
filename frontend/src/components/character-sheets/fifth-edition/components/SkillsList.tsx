@@ -9,6 +9,7 @@ import { Circle, CheckCircle2, CircleDot, Dices } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { i18n as I18n } from 'i18next';
 import { rollTarget } from '../../useSheetRolls';
+import { checkPurpose, skillNameForRoll } from '@/utils/rollText';
 
 interface Skill {
   proficient: boolean;
@@ -113,7 +114,7 @@ const SkillRow: React.FC<{
   };
 
   const expression = `1d20${formatBonus(skill.bonus)}`;
-  const purpose = `${rollName} Check`;
+  const purpose = checkPurpose(skillNameForRoll(rollName));
   const isClickable = !!onRoll;
 
   return (

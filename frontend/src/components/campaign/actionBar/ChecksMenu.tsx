@@ -62,7 +62,7 @@ export function checkName(section: (typeof SECTIONS)[number], english: string, t
 export function checkLabel(section: (typeof SECTIONS)[number], option: RollOption, t: Translate): string {
   const bonus = /\s([+-]\d+)$/.exec(option.label)?.[1];
   if (!bonus) return option.label;
-  const english = option.purpose.replace(/ (Saving Throw|Check)$/, '');
+  const english = option.testName ?? option.purpose.replace(/ (Saving Throw|Check)$/, '');
   const key = section === 'skills' ? SKILL_KEYS[english as keyof typeof SKILL_KEYS] : ABILITY_KEYS[english as keyof typeof ABILITY_KEYS];
   if (!key) return option.label;
   const name = t(key as never);

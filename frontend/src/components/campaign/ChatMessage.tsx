@@ -5,11 +5,11 @@
 
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useMinuteClock } from '@/hooks/useMinuteClock';
 import { useCompactLayout } from '@/contexts/LayoutContext';
 import { Bot, Lock, Shield } from 'lucide-react';
 import type { Message, MessageType } from '@/types';
-import { formatRelativeTime } from '@/utils/format';
 import type { ActionCardView, ConcentrationCard, RechargeCard } from '@/types/actions';
 import ActionCardMessage, { ConcentrationLine, RechargeLine } from './ActionCardMessage';
 
@@ -35,19 +35,27 @@ interface ChatMessageProps {
 /**
  * How long ago a message was sent ("2 minutes ago"), or the date past a week.
  */
-function messageAge(timestamp: string, now: number): string {
+function messageAge(timestamp: string, now: number, t: TFunction, language: string): string {
   // Handle undefined, null, or empty timestamps
   if (!timestamp) {
-    return 'unknown time';
+    return t('chat.unknownTime');
   }
 
   // Check if date is invalid
-  if (isNaN(new Date(timestamp).getTime())) {
+  const sent = new Date(timestamp);
+  if (isNaN(sent.getTime())) {
     console.warn('[ChatMessage] Invalid timestamp:', timestamp);
-    return 'unknown time';
+    return t('chat.unknownTime');
   }
 
-  return formatRelativeTime(timestamp, { now, words: true, dateAfterDays: 7 });
+  const minutes = Math.floor(Math.floor((now - sent.getTime()) / 1000) / 60);
+  if (minutes < 1) return t('chat.justNow');
+  if (minutes < 60) return t('chat.minutesAgo', { count: minutes });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return t('chat.hoursAgo', { count: hours });
+  const days = Math.floor(hours / 24);
+  if (days >= 7) return sent.toLocaleDateString(language === 'en' ? 'en-US' : language, { year: 'numeric', month: 'short', day: 'numeric' });
+  return t('chat.daysAgo', { count: days });
 }
 
 /**
@@ -94,6 +102,8 @@ const WHISPER_STYLE = { bg: 'bg-accent/10', textColor: 'text-stone-gray', border
 function ChatMessageInner({ message, isCurrentUser = false, isPending = false, notSentReason, onRetry, onDiscard, whisperLabel, whisperPeer, sentByGM = false, onWhisperBack }: ChatMessageProps) {
   // The row is memoised, so without this its "just now" never moved on.
   const now = useMinuteClock();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language;
   const isWhisper = whisperLabel !== undefined;
   const { bg, textColor, borderColor } = isWhisper ? WHISPER_STYLE : getMessageStyle(message.type);
   const isSystem = message.type === 'SYSTEM';
@@ -102,24 +112,23 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
 
   // Get display name
   const displayName = isSystem
-    ? 'System'
-    : message.user?.displayName || 'Unknown User';
+    ? t('chat.system')
+    : message.user?.displayName || t('chat.unknownUser');
 
   const compact = useCompactLayout();
-  const { t } = useTranslation();
 
   const nameColor = isGM ? 'text-warning-ink' : isSystem || isCurrentUser ? 'text-brand-ink' : 'text-stone-gray';
-  const onlyYou = `Only you and ${whisperPeer} can see this.`;
-  const sentAt = message.createdAt ? new Date(message.createdAt).toLocaleString() : 'Unknown time';
+  const onlyYou = t('chat.onlyYouAnd', { name: whisperPeer });
+  const sentAt = message.createdAt ? new Date(message.createdAt).toLocaleString(language === 'en' ? undefined : language) : t('chat.unknownTimeCap');
 
   const notSentRow = notSentReason && (
     <div className={`${compact ? 'mt-1' : 'mt-2'} flex flex-wrap items-center gap-2 text-xs`} role="status">
-      <span className="text-danger-ink">Not sent: {notSentReason}</span>
+      <span className="text-danger-ink">{t('chat.notSent', { reason: notSentReason })}</span>
       <button type="button" onClick={() => onRetry?.(message)} className="font-medium text-brand-ink underline hover:no-underline">
-        Retry
+        {t('chat.retry')}
       </button>
       <button type="button" onClick={() => onDiscard?.(message)} className="font-medium text-stone-gray underline hover:no-underline">
-        Discard
+        {t('chat.discard')}
       </button>
     </div>
   );
@@ -163,9 +172,9 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
     return (
       <div data-message-id={message.id} className="px-2 py-0.5 text-center text-xs text-ink-muted">
         <Bot className="mr-1 inline h-3 w-3 align-[-0.1em]" aria-hidden="true" />
-        <span className="sr-only">System: </span>
+        <span className="sr-only">{t('chat.systemSr')}</span>
         <span className="whitespace-pre-wrap wrap-break-word">{message.content}</span>
-        <span className="whitespace-nowrap" title={sentAt}> · {messageAge(message.createdAt, now)}</span>
+        <span className="whitespace-nowrap" title={sentAt}> · {messageAge(message.createdAt, now, t, language)}</span>
         {metadataBlock}
       </div>
     );
@@ -200,7 +209,7 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
                 <button
                   type="button"
                   onClick={() => onWhisperBack(message)}
-                  title={`Whisper to ${whisperPeer}`}
+                  title={t('chat.whisperTo', { name: whisperPeer })}
                   className="-my-3 inline-flex items-center align-middle text-xs font-semibold text-accent-ink underline-offset-2 hover:underline"
                 >
                   {shownWhisperLabel}
@@ -213,20 +222,20 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
           ) : (
             <span className={`text-xs font-semibold ${nameColor}`}>
               {displayName}
-              {isCurrentUser && !isSystem && ' (You)'}
+              {isCurrentUser && !isSystem && t('chat.you')}
             </span>
           )}
           {/* The text keeps its own spaces and line breaks, so one space each. */}
           {notSentReason ? null : isPending ? (
             <>
               {' '}
-              <span className="whitespace-nowrap text-xs text-stone-gray/50 italic">sending…</span>
+              <span className="whitespace-nowrap text-xs text-stone-gray/50 italic">{t('chat.sending')}</span>
             </>
           ) : (
             <>
               {' '}
               <span className="whitespace-nowrap text-xs text-stone-gray/70" title={sentAt}>
-                {messageAge(message.createdAt, now)}
+                {messageAge(message.createdAt, now, t, language)}
               </span>
             </>
           )}
@@ -263,7 +272,7 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
               <button
                 type="button"
                 onClick={() => onWhisperBack(message)}
-                title={`Whisper to ${whisperPeer}`}
+                title={t('chat.whisperTo', { name: whisperPeer })}
                 className="min-w-0 text-left text-xs font-semibold text-accent-ink underline-offset-2 hover:underline"
               >
                 {shownWhisperLabel}
@@ -277,16 +286,16 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
         /* Username */
         <span className={`text-xs font-semibold ${nameColor}`}>
           {displayName}
-          {isCurrentUser && !isSystem && ' (You)'}
+          {isCurrentUser && !isSystem && t('chat.you')}
         </span>
         )}
 
         {/* Timestamp / pending indicator */}
         {notSentReason ? null : isPending ? (
-          <span className="shrink-0 whitespace-nowrap text-xs text-stone-gray/50 italic">sending…</span>
+          <span className="shrink-0 whitespace-nowrap text-xs text-stone-gray/50 italic">{t('chat.sending')}</span>
         ) : (
           <span className="shrink-0 whitespace-nowrap text-xs text-stone-gray/70" title={sentAt}>
-            {messageAge(message.createdAt, now)}
+            {messageAge(message.createdAt, now, t, language)}
           </span>
         )}
       </div>

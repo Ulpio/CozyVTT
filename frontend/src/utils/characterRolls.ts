@@ -5,6 +5,7 @@ import type { CharacterData } from '@/types';
 import { hitDieExpression, hitDiceMaximum, spendRoll, canSpendHitDie } from './hitDice';
 import { isValidDiceExpression } from './diceExpression';
 import { attackPurpose, damagePurpose, strikePurpose } from './rollPurposes';
+import { abilityMark, abilityName, skillName, checkPurpose, savePurpose, saveLabel, attackLabel, damageLabel, alternateLabel, hitDiePurpose, hitDiceLeft } from './rollText';
 
 // Re-exported so the many callers that reach for it here keep working.
 export { isValidDiceExpression };
@@ -46,6 +47,12 @@ export interface RollOption {
   expression: string;
   /** Human-readable purpose shown in the dice roller history */
   purpose: string;
+  /**
+   * On a 5E ability check, saving throw or skill, the English name of what is
+   * rolled ("Strength", "Sleight of Hand"), which the action bar's Checks
+   * menu names in the app's language; the purpose is in the roller's.
+   */
+  testName?: string;
   /**
    * true for d20-based systems (5E, Fantasy d20): the caller may substitute
    * "2d20kh1" (advantage) or "2d20kl1" (disadvantage) in place of "1d20".
@@ -146,9 +153,10 @@ function extractFifthEditionRolls(data: FifthEditionCharacterData): CharacterRol
       const mod = data.stats[key as keyof FifthEditionStats]?.modifier ?? 0;
       const expr = `1d20${fmt(mod)}`;
       abilities.push({
-        label:             `${name.slice(0, 3).toUpperCase()} ${fmt(mod)}`,
+        label:             `${abilityMark(name.slice(0, 3))} ${fmt(mod)}`,
         expression:        expr,
-        purpose:           `${name} Check`,
+        purpose:           checkPurpose(abilityName(name)),
+        testName:          name,
         supportsAdvantage: true,
       });
     }
@@ -164,9 +172,10 @@ function extractFifthEditionRolls(data: FifthEditionCharacterData): CharacterRol
       const bonus = fifthEditionSaveBonus(data, key);
       const expr = `1d20${fmt(bonus)}`;
       saves.push({
-        label:             `${name} Save ${fmt(bonus)}`,
+        label:             saveLabel(abilityName(name), fmt(bonus)),
         expression:        expr,
-        purpose:           `${name} Saving Throw`,
+        purpose:           savePurpose(abilityName(name)),
+        testName:          name,
         supportsAdvantage: true,
       });
     }
@@ -180,9 +189,10 @@ function extractFifthEditionRolls(data: FifthEditionCharacterData): CharacterRol
       const bonus = fifthEditionSkillBonus(data, key);
       const expr = `1d20${fmt(bonus)}`;
       skills.push({
-        label:             `${name} ${fmt(bonus)}`,
+        label:             `${skillName(name)} ${fmt(bonus)}`,
         expression:        expr,
-        purpose:           `${name} Check`,
+        purpose:           checkPurpose(skillName(name)),
+        testName:          name,
         supportsAdvantage: true,
       });
     }
@@ -196,7 +206,8 @@ function extractFifthEditionRolls(data: FifthEditionCharacterData): CharacterRol
     skills.push({
       label:             `${custom.name} ${fmt(bonus)}`,
       expression:        `1d20${fmt(bonus)}`,
-      purpose:           `${custom.name} Check`,
+      purpose:           checkPurpose(custom.name),
+      testName:          custom.name,
       supportsAdvantage: true,
     });
   }
@@ -209,7 +220,7 @@ function extractFifthEditionRolls(data: FifthEditionCharacterData): CharacterRol
       const atkBonus = atk.attackBonus ?? 0;
       const atkExpr = `1d20${fmt(atkBonus)}`;
       combat.push({
-        label:             `${atk.name} (Attack ${fmt(atkBonus)})`,
+        label:             attackLabel(atk.name, fmt(atkBonus)),
         expression:        atkExpr,
         purpose:           attackPurpose(atk.name),
         supportsAdvantage: true,
@@ -217,7 +228,7 @@ function extractFifthEditionRolls(data: FifthEditionCharacterData): CharacterRol
       // Damage roll — only if the field is a valid dice expression
       if (atk.damageRoll && isValidDiceExpression(atk.damageRoll)) {
         combat.push({
-          label:             `${atk.name} (Damage ${atk.damageRoll})`,
+          label:             damageLabel(atk.name, atk.damageRoll),
           expression:        atk.damageRoll,
           purpose:           damagePurpose(atk.name),
           supportsAdvantage: false,
@@ -230,7 +241,7 @@ function extractFifthEditionRolls(data: FifthEditionCharacterData): CharacterRol
       for (const extra of atk.additionalDamage ?? []) {
         const roll = extra.damageRoll?.trim();
         if (!roll || !isValidDiceExpression(roll)) continue;
-        const label = extra.label?.trim() || 'Alternate';
+        const label = extra.label?.trim() || alternateLabel();
         combat.push({
           label:             `${atk.name} — ${label} (${roll})`,
           expression:        roll,
@@ -254,11 +265,11 @@ function extractFifthEditionRolls(data: FifthEditionCharacterData): CharacterRol
       const die = hitDieExpression(hd, con);
       if (die === null) return;
       const max = hitDiceMaximum(hd);
-      const left = max === null ? `${hd.remaining} left` : `${hd.remaining}/${max}`;
+      const left = max === null ? hitDiceLeft(hd.remaining) : `${hd.remaining}/${max}`;
       hitDice.push({
         label:             `${hd.class ? `${hd.class} ` : ''}${die} (${left})`,
         expression:        spendRoll(die, con),
-        purpose:           `Spend a Hit Die${hd.class ? ` (${hd.class})` : ''}`,
+        purpose:           hitDiePurpose(hd.class),
         supportsAdvantage: false,
         hitDiceIndex:      index,
       });
