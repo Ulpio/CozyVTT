@@ -22,6 +22,7 @@ import type { Campaign, CampaignRole, CampaignStatus, CampaignMap, VibeSettings,
 import socketClient from '@/services/socket';
 import { apiErrorMessage, apiErrorStatus, errorSummary } from '@/utils/errors';
 import { withMemberRole } from '@/utils/campaignRoles';
+import i18n from '@/i18n';
 import { optionalSessionStorage } from '@/utils/optionalStorage';
 
 // ============================================
@@ -464,13 +465,13 @@ export function CampaignProvider({ children }: CampaignProviderProps) {
 
       // Handle specific errors
       if (apiErrorStatus(err) === 403) {
-        setError('You do not have permission to view this campaign');
+        setError(i18n.t('campaignPage.noPermission'));
         redirectTimer.current = setTimeout(() => navigate('/dashboard'), 2000);
       } else if (apiErrorStatus(err) === 404) {
-        setError('Campaign not found');
+        setError(i18n.t('campaignPage.notFound'));
         redirectTimer.current = setTimeout(() => navigate('/dashboard'), 2000);
       } else {
-        setError(apiErrorMessage(err) || 'Failed to load campaign');
+        setError(apiErrorMessage(err) || i18n.t('campaignPage.loadFailed'));
       }
     } finally {
       if (isNewest()) setLoading(false);

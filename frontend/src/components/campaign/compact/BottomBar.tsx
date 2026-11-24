@@ -18,6 +18,7 @@
 
 import { Ellipsis, Map as MapIcon, Swords, Users, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useGameStore } from '@/stores/gameStore';
 import { cn } from '@/utils/cn';
 import { SESSION_TAB_LOOKS, unreadBadge, type SessionTab } from '@/components/campaign/sessionTabs';
@@ -49,18 +50,18 @@ export const COMPACT_TABS_WITH_ACTIONS: readonly CompactTab[] = ['map', 'actions
 export const BOTTOM_BAR_HEIGHT = 'calc(3.5rem + 1px + env(safe-area-inset-bottom, 0px))';
 
 /** A button's name and icon; a session panel's are the rail's tab's. */
-function tabLook(tab: CompactTab, actionsLabel: string): { label: string; icon: LucideIcon } {
+function tabLook(tab: CompactTab, t: TFunction): { label: string; icon: LucideIcon } {
   switch (tab) {
     case 'map':
-      return { label: 'Map', icon: MapIcon };
+      return { label: t('compact.map'), icon: MapIcon };
     case 'actions':
-      return { label: actionsLabel, icon: Swords };
+      return { label: t('actionBar.title'), icon: Swords };
     case 'party':
-      return { label: 'Party', icon: Users };
+      return { label: t('session.party.button'), icon: Users };
     case 'more':
-      return { label: 'More', icon: Ellipsis };
+      return { label: t('compact.more'), icon: Ellipsis };
     default:
-      return SESSION_TAB_LOOKS[tab];
+      return { label: t(SESSION_TAB_LOOKS[tab].labelKey), icon: SESSION_TAB_LOOKS[tab].icon };
   }
 }
 
@@ -90,14 +91,14 @@ export default function BottomBar({ active, expanded = active, onSelect, sheetId
 
   return (
     <nav
-      aria-label="Table"
+      aria-label={t('compact.table')}
       // In the header the buttons give up width down to 44 px before the
       // row runs past a narrow, short window's edge.
       className={inHeader ? 'min-w-0' : 'shrink-0 border-t border-brand/20 bg-parchment pb-[env(safe-area-inset-bottom)]'}
     >
       <div className={inHeader ? 'flex items-center gap-0.5' : cn(SHEET_WIDTH, 'grid h-14', withActions ? 'grid-cols-7' : 'grid-cols-6')}>
         {tabs.map((tab) => {
-          const { label, icon: Icon } = tabLook(tab, t('actionBar.title'));
+          const { label, icon: Icon } = tabLook(tab, t);
           const open = active === tab;
           const badge = tab === 'chat' && unreadChat > 0 ? unreadBadge(unreadChat) : null;
           return (

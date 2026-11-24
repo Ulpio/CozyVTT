@@ -8,14 +8,6 @@
 
 import { PauseCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { CampaignStatus } from '@/types';
-
-/** The header's word for each state of a session it shows one for. */
-export const SESSION_STATUS_LABELS: Partial<Record<CampaignStatus, string>> = {
-  [CampaignStatus.ACTIVE]: 'Live',
-  [CampaignStatus.PAUSED]: 'Paused',
-  [CampaignStatus.INACTIVE]: 'Inactive',
-};
 
 /** Under the header while the session is paused, for players: what a pause stops. */
 export function SessionPausedBanner() {

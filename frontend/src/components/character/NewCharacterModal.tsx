@@ -5,6 +5,7 @@
 
 import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ParseKeys } from 'i18next';
 import { Loader2, User, Sparkles } from 'lucide-react';
 import { Modal } from '@/components/ui';
 import { Character, GameSystem, Campaign } from '@/types';
@@ -39,8 +40,8 @@ interface NewCharacterModalProps {
 
 interface TemplateOption {
   value: string;
-  label: string;
-  description: string;
+  labelKey: ParseKeys;
+  descriptionKey: ParseKeys;
 }
 
 /** The 5e option that opens the guided creation instead of making a sheet. */
@@ -50,43 +51,42 @@ const TEMPLATE_OPTIONS_BY_SYSTEM: Record<string, TemplateOption[]> = {
   [GameSystem.FIFTH_EDITION]: [
     {
       value: 'blank',
-      label: 'Blank Character Sheet',
-      description: 'Start with an empty Level 1 character',
+      labelKey: 'newCharacter.templates.blank',
+      descriptionKey: 'newCharacter.templates.blankL1',
     },
     {
       value: 'fighter',
-      label: 'Level 1 Fighter (Example)',
-      description: 'A pre-built Fighter with standard array stats',
+      labelKey: 'newCharacter.templates.fighter',
+      descriptionKey: 'newCharacter.templates.fighter5e',
     },
     {
       value: GUIDED_TEMPLATE,
-      // Shown through i18n (guidedCreation.entry), as the rest of the guided creation is.
-      label: 'Guided creation',
-      description: 'Build a 3rd-level character step by step from the compendium',
+      labelKey: 'guidedCreation.entry.label',
+      descriptionKey: 'guidedCreation.entry.description',
     },
   ],
   [GameSystem.FANTASY_D20]: [
     {
       value: 'blank',
-      label: 'Blank Character Sheet',
-      description: 'Start with an empty Level 1 character',
+      labelKey: 'newCharacter.templates.blank',
+      descriptionKey: 'newCharacter.templates.blankL1',
     },
     {
       value: 'fighter',
-      label: 'Level 1 Fighter (Example)',
-      description: 'A pre-built Dwarf Fighter',
+      labelKey: 'newCharacter.templates.fighter',
+      descriptionKey: 'newCharacter.templates.fighterD20',
     },
   ],
   [GameSystem.HORROR_D100]: [
     {
       value: 'blank',
-      label: 'Blank Character Sheet',
-      description: 'Start with an empty character',
+      labelKey: 'newCharacter.templates.blank',
+      descriptionKey: 'newCharacter.templates.blankHorror',
     },
     {
       value: 'privateinvestigator',
-      label: 'Private Detective (Example)',
-      description: 'A gritty private eye ready for mysteries',
+      labelKey: 'newCharacter.templates.detective',
+      descriptionKey: 'newCharacter.templates.detectiveDesc',
     },
   ],
 };
@@ -170,13 +170,13 @@ export default function NewCharacterModal({
       return [
         {
           value: 'blank',
-          label: 'Blank Character',
-          description: 'Start with an empty flexible character sheet',
+          labelKey: 'newCharacter.templates.flexBlank',
+          descriptionKey: 'newCharacter.templates.flexBlankDesc',
         },
         {
           value: 'basic',
-          label: 'Basic Template',
-          description: 'Attributes, Skills, Inventory, and Background sections',
+          labelKey: 'newCharacter.templates.basic',
+          descriptionKey: 'newCharacter.templates.basicDesc',
         },
       ];
     }
@@ -208,13 +208,13 @@ export default function NewCharacterModal({
 
     // Validation
     if (name.trim().length < 2) {
-      setError('Character name must be at least 2 characters');
+      setError(t('newCharacter.nameTooShort'));
       return;
     }
 
     // The server and the sheet editors take names up to SHEET_NAME_MAX.
     if (name.trim().length > SHEET_NAME_MAX) {
-      setError(`Character name can be at most ${SHEET_NAME_MAX} characters`);
+      setError(t('newCharacter.nameTooLong', { max: SHEET_NAME_MAX }));
       return;
     }
 
@@ -283,7 +283,7 @@ export default function NewCharacterModal({
         setError(`${apiErrorMessage(err)}\n\n${errorList}`);
         console.error('Validation errors:', issues);
       } else {
-        setError(apiErrorMessage(err) || errorMessage(err) || 'Failed to create character');
+        setError(apiErrorMessage(err) || errorMessage(err) || t('newCharacter.createFailed'));
       }
     } finally {
       setLoading(false);
@@ -323,7 +323,7 @@ export default function NewCharacterModal({
       onCreated={handleGuidedCreated}
       campaign={guidedCampaign}
     />
-    <Modal open={isOpen && !guidedOpen} onClose={handleClose} title="Create New Character" icon={User} size="lg" closeDisabled={loading}>
+    <Modal open={isOpen && !guidedOpen} onClose={handleClose} title={t('newCharacter.title')} icon={User} size="lg" closeDisabled={loading}>
       {/* Error Alert */}
       {error && (
                 <div className="mb-4 bg-spirit-red/10 border border-spirit-red/30 rounded-lg p-4 max-h-60 overflow-y-auto">
@@ -342,14 +342,14 @@ export default function NewCharacterModal({
                       htmlFor="characterName"
                       className="block text-sm font-semibold text-ink mb-2"
                     >
-                      Character Name <span className="text-danger-ink">*</span>
+                      {t('newCharacter.name')} <span className="text-danger-ink">*</span>
                     </label>
                     <input
                       type="text"
                       id="characterName"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Aria Moonshadow"
+                      placeholder={t('newCharacter.namePlaceholder')}
                       disabled={loading}
                       maxLength={SHEET_NAME_MAX}
                       className="input-cozy w-full disabled:opacity-50 disabled:cursor-not-allowed"
@@ -357,7 +357,7 @@ export default function NewCharacterModal({
                       required
                     />
                     <p className="mt-1 text-xs text-ink-muted">
-                      Give your character a memorable name (2-{SHEET_NAME_MAX} characters)
+                      {t('newCharacter.nameHint', { max: SHEET_NAME_MAX })}
                     </p>
                   </div>
                 )}
@@ -369,7 +369,7 @@ export default function NewCharacterModal({
                       htmlFor="campaign"
                       className="block text-sm font-semibold text-ink mb-2"
                     >
-                      Campaign <span className="text-ink-muted">(optional)</span>
+                      {t('newCharacter.campaign')} <span className="text-ink-muted">{t('newCharacter.optional')}</span>
                     </label>
                     <select
                       id="campaign"
@@ -378,7 +378,7 @@ export default function NewCharacterModal({
                       disabled={loading || loadingCampaigns}
                       className="input-cozy w-full disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <option value="">Unassigned Character</option>
+                      <option value="">{t('newCharacter.unassigned')}</option>
                       {availableCampaigns.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
@@ -387,7 +387,7 @@ export default function NewCharacterModal({
                       ))}
                     </select>
                     <p className="mt-1 text-xs text-ink-muted">
-                      Assign to a campaign now, or leave unassigned for later
+                      {t('newCharacter.campaignHint')}
                     </p>
                   </div>
                 )}
@@ -398,11 +398,11 @@ export default function NewCharacterModal({
                     htmlFor="gameSystem"
                     className="block text-sm font-semibold text-ink mb-2"
                   >
-                    Game System{' '}
+                    {t('newCharacter.gameSystem')}{' '}
                     {isGameSystemLocked() ? (
-                      <span className="text-ink-muted">(from campaign)</span>
+                      <span className="text-ink-muted">{t('newCharacter.fromCampaign')}</span>
                     ) : (
-                      <span className="text-ink-muted">(optional)</span>
+                      <span className="text-ink-muted">{t('newCharacter.optional')}</span>
                     )}
                   </label>
                   <select
@@ -415,7 +415,7 @@ export default function NewCharacterModal({
                     disabled={loading || isGameSystemLocked()}
                     className="input-cozy w-full disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <option value="">Flexible (No System)</option>
+                    <option value="">{t('newCharacter.flexible')}</option>
                     {GAME_SYSTEM_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
@@ -424,8 +424,8 @@ export default function NewCharacterModal({
                   </select>
                   <p className="mt-1 text-xs text-ink-muted">
                     {isGameSystemLocked()
-                      ? 'Game system is inherited from the selected campaign'
-                      : 'Select a game system to use pre-built templates'}
+                      ? t('newCharacter.systemInherited')
+                      : t('newCharacter.systemHint')}
                   </p>
                 </div>
 
@@ -436,7 +436,7 @@ export default function NewCharacterModal({
                       htmlFor="template"
                       className="block text-sm font-semibold text-ink mb-2"
                     >
-                      Character Template
+                      {t('newCharacter.template')}
                     </label>
                     <div className="space-y-3">
                       {getTemplateOptions().map((template) => (
@@ -460,21 +460,21 @@ export default function NewCharacterModal({
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-ink">
-                                {template.value === GUIDED_TEMPLATE ? t('guidedCreation.entry.label') : template.label}
+                                {t(template.labelKey)}
                               </span>
                               {template.value !== 'blank' && (
                                 <Sparkles className="w-4 h-4 text-accent-ink" />
                               )}
                             </div>
                             <p className="text-sm text-ink-muted mt-1">
-                              {template.value === GUIDED_TEMPLATE ? t('guidedCreation.entry.description') : template.description}
+                              {t(template.descriptionKey)}
                             </p>
                           </div>
                         </label>
                       ))}
                     </div>
                     <p className="mt-2 text-xs text-ink-muted">
-                      Templates pre-fill the character sheet with example data
+                      {t('newCharacter.templateHint')}
                     </p>
                   </div>
                 )}
@@ -483,10 +483,7 @@ export default function NewCharacterModal({
                 {!isGuided && (
                   <div className="rounded-lg p-4 bg-moss-green/10 border border-moss-green/30">
                     <p className="text-sm text-ink">
-                      <strong className="text-brand-ink">Note:</strong> After
-                      creation, the character appears in your list. Choose Edit
-                      Character from its card&apos;s menu to fill in the rest of
-                      its sheet.
+                      <strong className="text-brand-ink">{t('newCharacter.noteLabel')}</strong> {t('newCharacter.note')}
                     </p>
                   </div>
                 )}
@@ -499,7 +496,7 @@ export default function NewCharacterModal({
                     disabled={loading}
                     variant="secondary" className="flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
 
                   <Button
@@ -510,12 +507,12 @@ export default function NewCharacterModal({
                     {loading ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin inline-block mr-2" />
-                        Creating...
+                        {t('newCharacter.creating')}
                       </>
                     ) : (
                       <>
                         <User className="w-4 h-4 inline-block mr-2" />
-                        {isGuided ? t('guidedCreation.entry.start') : 'Create Character'}
+                        {isGuided ? t('guidedCreation.entry.start') : t('newCharacter.create')}
                       </>
                     )}
                   </Button>
@@ -529,10 +526,10 @@ export default function NewCharacterModal({
                       variant="secondary"
                       disabled={loading || !isFormValid}
                       onClick={() => { alsoPublishTemplate.current = true; }}
-                      title="Create this character and also publish it as a template others can copy"
+                      title={t('newCharacter.publishHint')}
                       className="w-full disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Create &amp; Publish as Template
+                      {t('newCharacter.createAndPublish')}
                     </Button>
                   </div>
                 )}

@@ -17,6 +17,7 @@
 // ============================================
 
 import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, Keyboard, Settings } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import type { MenuAction } from '@/components/ui/menu';
@@ -77,26 +78,27 @@ export default function MoreSheet({
   edges,
   id,
 }: MoreSheetProps) {
+  const { t } = useTranslation();
   const { userRole } = useCampaign();
 
   const atTheTable = [
-    ...MORE_PANELS.map((panel) => action(panel, SESSION_TAB_LOOKS[panel].label, SESSION_TAB_LOOKS[panel].icon, () => onOpenPanel(panel))),
-    action('documents', 'Documents', BookOpen, onOpenDocuments),
-    action('shortcuts', 'Shortcuts', Keyboard, onOpenShortcuts),
+    ...MORE_PANELS.map((panel) => action(panel, t(SESSION_TAB_LOOKS[panel].labelKey), SESSION_TAB_LOOKS[panel].icon, () => onOpenPanel(panel))),
+    action('documents', t('compact.documents'), BookOpen, onOpenDocuments),
+    action('shortcuts', t('compact.shortcuts'), Keyboard, onOpenShortcuts),
   ];
-  const gmTools = TOOL_GROUPS.flat().map(({ key, label, icon }) =>
-    action(key, label, icon, () => onOpenTool(key), key === 'spirit' ? { tone: 'spirit' } : {})
+  const gmTools = TOOL_GROUPS.flat().map(({ key, labelKey, icon }) =>
+    action(key, t(labelKey), icon, () => onOpenTool(key), key === 'spirit' ? { tone: 'spirit' } : {})
   );
   // The settings an owner keeps after handing the GM's seat over: deleting
   // the campaign and taking the seat back.
-  const ownerSettings = [action('owner-settings', 'Owner Settings', Settings, () => onOpenTool('settings'))];
+  const ownerSettings = [action('owner-settings', t('session.ownerSettings'), Settings, () => onOpenTool('settings'))];
 
   return (
-    <BottomSheet open={open} title="More" height="full" onClose={onClose} edges={edges} id={id}>
+    <BottomSheet open={open} title={t('compact.more')} height="full" onClose={onClose} edges={edges} id={id}>
       <div className="px-3 pb-3">
-        <Group heading="At the table" items={atTheTable} onClose={onClose} />
-        {userRole === 'GM' && <Group heading="GM tools" items={gmTools} onClose={onClose} />}
-        {isOwner && userRole !== 'GM' && <Group heading="Owner" items={ownerSettings} onClose={onClose} />}
+        <Group heading={t('compact.atTheTable')} items={atTheTable} onClose={onClose} />
+        {userRole === 'GM' && <Group heading={t('session.menus.label')} items={gmTools} onClose={onClose} />}
+        {isOwner && userRole !== 'GM' && <Group heading={t('compact.owner')} items={ownerSettings} onClose={onClose} />}
       </div>
     </BottomSheet>
   );

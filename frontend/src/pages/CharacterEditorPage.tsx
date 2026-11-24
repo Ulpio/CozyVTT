@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { canEditCharacterIn, characterEditRefusal } from '@/services/permissions';
 import { useParams, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, AlertCircle, Loader2, Lock, Download, FileText } from 'lucide-react';
 import NewCharacterTemplateModal from '@/components/character/NewCharacterTemplateModal';
@@ -31,6 +32,7 @@ import { isSignedOutSave, SIGNED_OUT_NOT_SAVED } from '@/utils/signedOut';
 import type { CharacterData } from '@/types';
 
 export default function CharacterEditorPage() {
+  const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -100,7 +102,7 @@ export default function CharacterEditorPage() {
         }
       } catch (err: unknown) {
         console.error('Failed to fetch character:', errorSummary(err));
-        setError(errorMessage(err) || 'Failed to load character');
+        setError(errorMessage(err) || t('characterEditor.loadFailed'));
       } finally {
         setLoading(false);
       }
@@ -202,7 +204,7 @@ export default function CharacterEditorPage() {
         setLastSaved(new Date());
 
         if (doShowToast) {
-          showToast('Character saved!', 'success');
+          showToast(t('characterEditor.saved'), 'success');
         }
       } catch (err: unknown) {
         console.error('Failed to save character:', errorSummary(err));
@@ -228,7 +230,7 @@ export default function CharacterEditorPage() {
           refusedSaveMessage(
             validationErrors ?? [],
             apiErrorMessage(err) || errorMessage(err),
-            'Failed to save character'
+            t('characterEditor.saveFailed')
           ),
           'error'
         );
@@ -237,7 +239,7 @@ export default function CharacterEditorPage() {
         setSaving(false);
       }
     },
-    [character, showToast, queryClient, reapplyStaleSave]
+    [character, showToast, queryClient, reapplyStaleSave, t]
   );
 
   // ============================================
@@ -326,11 +328,11 @@ export default function CharacterEditorPage() {
         <div className="glass-panel p-8 max-w-md w-full text-center">
           <AlertCircle className="w-12 h-12 text-danger-ink mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-brand-ink mb-2">
-            Failed to Load Character
+            {t('characterEditor.failedTitle')}
           </h2>
-          <p className="text-stone-gray mb-6">{error || 'Character not found'}</p>
+          <p className="text-stone-gray mb-6">{error || t('characterEditor.notFound')}</p>
           <Button onClick={() => navigate('/characters')}>
-            Back to Characters
+            {t('characterEditor.backToCharacters')}
           </Button>
         </div>
       </div>
@@ -344,11 +346,11 @@ export default function CharacterEditorPage() {
         <div className="glass-panel p-8 max-w-md w-full text-center">
           <Lock className="w-12 h-12 text-accent-ink mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-brand-ink mb-2">
-            Permission Denied
+            {t('characterEditor.permissionDenied')}
           </h2>
           <p className="text-stone-gray mb-6">{permissionError}</p>
           <Button onClick={() => navigate('/characters')}>
-            Back to Characters
+            {t('characterEditor.backToCharacters')}
           </Button>
         </div>
       </div>
@@ -360,10 +362,10 @@ export default function CharacterEditorPage() {
     <>
     <ConfirmDialog
       isOpen={confirmLeave}
-      title="Unsaved Changes"
-      message="You have unsaved changes. Are you sure you want to leave? Your changes will be lost."
-      confirmLabel="Leave"
-      cancelLabel="Stay"
+      title={t('characterEditor.unsavedTitle')}
+      message={t('characterEditor.unsavedMessage')}
+      confirmLabel={t('characterEditor.leave')}
+      cancelLabel={t('characterEditor.stay')}
       variant="warning"
       onConfirm={() => navigate('/characters')}
       onCancel={() => setConfirmLeave(false)}
@@ -378,17 +380,17 @@ export default function CharacterEditorPage() {
             <button
               onClick={handleBack}
               className="p-2 rounded-lg hover:bg-moss-green/10 transition-colors"
-              aria-label="Back to characters"
+              aria-label={t('characterEditor.backLabel')}
             >
               <ArrowLeft className="w-5 h-5 text-brand-ink" />
             </button>
             <div>
               <h1 className="text-2xl font-bold text-brand-ink">
-                Editing: {character.name}
+                {t('characterEditor.editing', { name: character.name })}
               </h1>
               {campaign && (
                 <p className="text-sm text-stone-gray">
-                  Campaign: {campaign.name}
+                  {t('characterEditor.campaign', { name: campaign.name })}
                 </p>
               )}
             </div>
@@ -403,12 +405,12 @@ export default function CharacterEditorPage() {
             {saving && (
               <span className="text-sm text-brand-ink flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Saving...
+                {t('characterEditor.savingNow')}
               </span>
             )}
             {lastSaved && !hasUnsavedChanges && (
               <span className="text-sm text-stone-gray">
-                Saved {lastSaved.toLocaleTimeString()}
+                {t('characterEditor.savedAt', { time: lastSaved.toLocaleTimeString(i18n.language) })}
               </span>
             )}
 
@@ -424,10 +426,10 @@ export default function CharacterEditorPage() {
               <Button
                 onClick={() => setShowSaveAsTemplate(true)}
                 variant="secondary" className="flex items-center gap-2"
-                title="Publish this sheet as a template others can copy"
+                title={t('characterEditor.templateHint')}
               >
                 <FileText className="w-4 h-4" />
-                <span className="hidden sm:inline">Save as Template</span>
+                <span className="hidden sm:inline">{t('characterEditor.saveAsTemplate')}</span>
               </Button>
             )}
 
@@ -435,10 +437,10 @@ export default function CharacterEditorPage() {
             <Button
               onClick={() => characterService.exportCharacterJSON(character)}
               variant="secondary" className="flex items-center gap-2"
-              title="Export character as JSON"
+              title={t('characterEditor.exportHint')}
             >
               <Download className="w-4 h-4" />
-              Export
+              {t('characterEditor.export')}
             </Button>
           </div>
         </div>

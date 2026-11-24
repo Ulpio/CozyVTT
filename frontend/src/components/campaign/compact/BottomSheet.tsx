@@ -68,6 +68,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { SIDEWAYS_QUERY } from '@/constants/layout';
 import { TAP_SLOP_PX } from '@/components/campaign/map/gestures';
 import { isTypingInto } from '@/components/campaign/map/typingTarget';
+import { useTranslation } from 'react-i18next';
 import { useMotionExit } from '@/utils/motion';
 import { cn } from '@/utils/cn';
 import { sheetOpened, type SheetEntry } from './sheetHistory';
@@ -238,6 +239,7 @@ export interface BottomSheetProps {
 }
 
 export function BottomSheet({ open, title, height, onClose, onHeightChange, edges, id, children }: BottomSheetProps) {
+  const { t } = useTranslation();
   const sideways = useMediaQuery(SIDEWAYS_QUERY);
   const modal = height === 'full';
   const rootRef = useSheet(open, modal, onClose);
@@ -360,8 +362,8 @@ export function BottomSheet({ open, title, height, onClose, onHeightChange, edge
                   }
                   onHeightChange(height === 'half' ? 'full' : 'half');
                 }}
-                aria-label={height === 'half' ? `Make ${title} full height` : `Make ${title} half height`}
-                title="Drag down to close"
+                aria-label={height === 'half' ? t('compact.makeFull', { title }) : t('compact.makeHalf', { title })}
+                title={t('compact.dragToClose')}
                 className={cn(handleClass, 'focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand')}
               >
                 {handleBar}
@@ -385,7 +387,7 @@ export function BottomSheet({ open, title, height, onClose, onHeightChange, edge
             <button
               type="button"
               onClick={onClose}
-              aria-label={`Close ${title}`}
+              aria-label={t('compact.close', { title })}
               className="inline-flex size-11 shrink-0 items-center justify-center rounded-cozy text-ink-muted transition-colors hover:bg-ink/10 hover:text-ink focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand"
             >
               <X className="h-5 w-5" aria-hidden="true" />

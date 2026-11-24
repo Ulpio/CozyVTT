@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { MessageCircle, Dices, ListOrdered, PlayCircle, NotebookPen, type LucideIcon } from 'lucide-react';
 
 /**
@@ -13,14 +14,14 @@ export type SessionTab = (typeof SESSION_TABS)[number];
  * Each panel's name and icon, as the rail's tabs show them; the compact
  * layout's bar and its More list name them the same.
  */
-export const SESSION_TAB_LOOKS: Record<SessionTab, { label: string; icon: LucideIcon }> = {
-  chat: { label: 'Chat', icon: MessageCircle },
-  dice: { label: 'Dice', icon: Dices },
-  initiative: { label: 'Initiative', icon: ListOrdered },
+export const SESSION_TAB_LOOKS: Record<SessionTab, { labelKey: `session.tabs.${SessionTab}`; icon: LucideIcon }> = {
+  chat: { labelKey: 'session.tabs.chat', icon: MessageCircle },
+  dice: { labelKey: 'session.tabs.dice', icon: Dices },
+  initiative: { labelKey: 'session.tabs.initiative', icon: ListOrdered },
   // Its own tab rather than a widget under Session: long-form writing needs the
   // full height of the rail, and people come back to it constantly during play.
-  notes: { label: 'Notes', icon: NotebookPen },
-  session: { label: 'Session', icon: PlayCircle },
+  notes: { labelKey: 'session.tabs.notes', icon: NotebookPen },
+  session: { labelKey: 'session.tabs.session', icon: PlayCircle },
 };
 
 /**
@@ -29,7 +30,7 @@ export const SESSION_TAB_LOOKS: Record<SessionTab, { label: string; icon: Lucide
  * both show it.
  */
 export function unreadBadge(count: number): { text: string; label: string } {
-  return { text: count > 9 ? '9+' : String(count), label: `${count} unread messages` };
+  return { text: count > 9 ? '9+' : String(count), label: i18n.t('session.unread', { count }) };
 }
 
 /** Whether a stored value names a session panel. */

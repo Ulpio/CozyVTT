@@ -2,6 +2,7 @@
  * Permission Utilities
  */
 
+import i18n from '@/i18n';
 import type { User, Character, CampaignMembership, Campaign } from '../types';
 
 /**
@@ -59,8 +60,8 @@ export function canEditCharacterIn(
  */
 export function characterEditRefusal(user: Pick<User, 'id'>, character: Pick<Character, 'userId'>): string {
   return character.userId === user.id
-    ? "You watch this character's campaign as a spectator, so you cannot edit the character there. Ask its GM to make you a player."
-    : 'You do not have permission to edit this character. Only its owner or the GM of its campaign can edit it.';
+    ? i18n.t('characterEditor.spectatorRefusal')
+    : i18n.t('characterEditor.noPermission');
 }
 
 /**

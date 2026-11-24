@@ -15,6 +15,7 @@ import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react';
 import { isCampaignOwner } from '@/utils/campaignRoles';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { COMPACT_LAYOUT_QUERY } from '@/constants/layout';
 import { CampaignProvider, useCampaign } from '@/contexts/CampaignContext';
@@ -63,6 +64,7 @@ import { useAccessRevoked } from '@/hooks/useAccessRevoked';
 // ============================================
 
 function CampaignPageContent() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { campaign, viewedMap, loading, error, userRole, updateCampaignStatus, setActiveSession, refreshCurrentMap, catchUpAfterReconnect } = useCampaign();
   const { user } = useAuth();
@@ -206,7 +208,7 @@ function CampaignPageContent() {
       <div className="min-h-page flex items-center justify-center bg-linear-to-br/srgb from-soft-cream via-parchment to-warm-amber/20">
         <div className="text-center space-y-4">
           <Loader2 className="w-12 h-12 text-brand-ink animate-spin mx-auto" />
-          <p className="text-stone-gray">Loading campaign...</p>
+          <p className="text-stone-gray">{t('campaignPage.loading')}</p>
         </div>
       </div>
     );
@@ -220,7 +222,7 @@ function CampaignPageContent() {
           <p className="text-danger-ink font-medium">{error}</p>
           <Button onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="w-4 h-4 inline mr-2" />
-            Back to Dashboard
+            {t('campaignPage.backToDashboard')}
           </Button>
         </div>
       </div>
@@ -232,10 +234,10 @@ function CampaignPageContent() {
     return (
       <div className="min-h-page flex items-center justify-center bg-linear-to-br/srgb from-soft-cream via-parchment to-warm-amber/20">
         <div className="card-cozy max-w-md text-center space-y-4">
-          <p className="text-stone-gray">Campaign not found</p>
+          <p className="text-stone-gray">{t('campaignPage.notFound')}</p>
           <Button onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="w-4 h-4 inline mr-2" />
-            Back to Dashboard
+            {t('campaignPage.backToDashboard')}
           </Button>
         </div>
       </div>
@@ -253,7 +255,7 @@ function CampaignPageContent() {
         <div className="min-h-0 flex-1">
           <Suspense
             fallback={
-              <div className="w-full h-full flex items-center justify-center" aria-live="polite" aria-label="Loading map">
+              <div className="w-full h-full flex items-center justify-center" aria-live="polite" aria-label={t('campaignPage.loadingMap')}>
                 <Loader2 className="w-8 h-8 text-brand-ink animate-spin" aria-hidden="true" />
               </div>
             }

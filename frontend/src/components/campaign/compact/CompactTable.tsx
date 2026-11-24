@@ -212,7 +212,7 @@ export default function CompactTable({ campaign, isOwner, onOpenTool, onOpenDocu
       <BottomSheet
         id={sessionSheetId}
         open={sheet === 'session'}
-        title={SESSION_TAB_LOOKS[sessionTab].label}
+        title={t(SESSION_TAB_LOOKS[sessionTab].labelKey)}
         height={sessionHeight}
         onHeightChange={setSessionHeight}
         onClose={() => setSheet(null)}
@@ -225,7 +225,7 @@ export default function CompactTable({ campaign, isOwner, onOpenTool, onOpenDocu
       <BottomSheet
         id={partySheetId}
         open={sheet === 'party'}
-        title="Party"
+        title={t('session.party.button')}
         height={partyHeight}
         onHeightChange={setPartyHeight}
         onClose={() => setSheet(null)}
