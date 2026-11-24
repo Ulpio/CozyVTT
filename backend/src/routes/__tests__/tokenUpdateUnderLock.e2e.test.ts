@@ -330,7 +330,7 @@ describe('a drop whose token the GM deletes while it waits', () => {
       await writeWaitingForLock();
       release();
       await holder;
-      expect(await answer).toEqual({ event: 'error', data: { message: 'Token not found' } });
+      expect(await answer).toEqual({ event: 'error', data: { message: 'Token não encontrado.' } });
       expect(await storedHero()).toBeUndefined();
     } finally {
       page.disconnect();

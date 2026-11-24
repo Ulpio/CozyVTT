@@ -52,7 +52,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     try {
       if (!socket.campaignId) {
-        refuse('Not authenticated to a campaign');
+        refuse('Você não está em uma campanha.');
         return;
       }
 
@@ -63,7 +63,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
 
       // Spectators watch: they may talk in chat, and they may not roll.
       if (!canRollDice(socket.role)) {
-        refuse('Spectators cannot roll dice');
+        refuse('Espectadores não rolam dados.');
         return;
       }
 
@@ -71,7 +71,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
       // they are bounded here (validators/dice.ts).
       const parsed = DiceRollSchema.safeParse(data);
       if (!parsed.success) {
-        refuse(parsed.error.issues[0]?.message ?? 'Dice expression required');
+        refuse(parsed.error.issues[0]?.message ?? 'Digite uma expressão de dados.');
         return;
       }
       const { expression, characterName, purpose, secret } = parsed.data;
@@ -81,7 +81,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
         parseDiceExpression(expression);
       } catch (error) {
         if (error instanceof DiceParserError) {
-          refuse(`Invalid dice expression: ${error.message}`);
+          refuse(`Expressão de dados inválida: ${error.message}`);
           return;
         }
         throw error;
@@ -97,7 +97,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
       });
 
       if (!user) {
-        refuse('User not found');
+        refuse('Usuário não encontrado.');
         return;
       }
 
@@ -160,7 +160,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
       logger.debug('dice.roll', { expression, result: rollResult.total, userId: socket.userId, secret: secret || false, campaignId: socket.campaignId });
     } catch (error) {
       logger.error('dice.roll failed', { err: error });
-      refuse(error instanceof DiceParserError ? `Dice roll failed: ${error.message}` : 'Failed to roll dice');
+      refuse(error instanceof DiceParserError ? `A rolagem falhou: ${error.message}` : 'Não foi possível rolar os dados.');
     }
   });
 
@@ -175,7 +175,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     try {
       if (!socket.campaignId || !socket.userId) {
-        refuse('Not authenticated to a campaign');
+        refuse('Você não está em uma campanha.');
         return;
       }
       // One event, however many rolls it carries (a 20-roll call counts once).
@@ -224,7 +224,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
       }
       const user = await prisma.user.findUnique({ where: { id: socket.userId }, select: { displayName: true } });
       if (!user) {
-        refuse('User not found');
+        refuse('Usuário não encontrado.');
         return;
       }
 
@@ -278,7 +278,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     try {
       if (!socket.campaignId) {
-        refuse('Not authenticated to a campaign');
+        refuse('Você não está em uma campanha.');
         return;
       }
       if (!withinCeiling(socket, 'dice.clearHistory', ack)) return;
@@ -289,7 +289,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
       // ownership here refused the actual GM after a handover and let the former
       // GM, now a player, keep clearing the panel for everyone.
       if (socket.role !== 'GM') {
-        refuse('Only the GM can clear roll history');
+        refuse(GM_ONLY);
         return;
       }
 
@@ -312,7 +312,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
       logger.info('dice.clearHistory', { campaignId: socket.campaignId, userId: socket.userId });
     } catch (error) {
       logger.error('dice.clearHistory failed', { err: error });
-      refuse('Failed to clear dice history');
+      refuse('Não foi possível limpar o histórico de dados.');
     }
   });
 }

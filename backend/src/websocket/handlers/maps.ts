@@ -9,6 +9,7 @@ import { broadcastMapData, withinCeiling } from '../shared';
 import logger from '../../utils/logger';
 import { getState as getCombatState } from '../initiativeState';
 import { resendInitiativeState } from './initiative';
+import { GM_ONLY } from '../../services/gmNotice';
 
 export function registerMapHandlers(io: Server, socket: AuthenticatedSocket): void {
   /**
@@ -22,20 +23,20 @@ export function registerMapHandlers(io: Server, socket: AuthenticatedSocket): vo
 
       // GM only
       if (socket.role !== 'GM') {
-        socket.emit('error', { message: 'Only GMs can change the map' });
+        socket.emit('error', { message: GM_ONLY });
         return;
       }
 
       const { mapId } = data;
       if (!mapId) {
-        socket.emit('error', { message: 'mapId required' });
+        socket.emit('error', { message: 'Informe o mapa.' });
         return;
       }
 
       // Verify map belongs to this campaign
       const map = await prisma.map.findUnique({ where: { id: mapId } });
       if (!map || map.campaignId !== socket.campaignId) {
-        socket.emit('error', { message: 'Map not found' });
+        socket.emit('error', { message: 'Mapa não encontrado.' });
         return;
       }
 
@@ -44,7 +45,7 @@ export function registerMapHandlers(io: Server, socket: AuthenticatedSocket): vo
       // map used to switch the whole table onto that map.
       const campaign = await prisma.campaign.findUnique({ where: { id: socket.campaignId }, select: { currentMapId: true } });
       if (campaign?.currentMapId !== mapId) {
-        socket.emit('error', { message: 'Only the current map can be sent to the table; set it current first' });
+        socket.emit('error', { message: 'Só o mapa atual pode ser enviado à mesa. Defina-o como atual primeiro.' });
         return;
       }
 
@@ -60,7 +61,7 @@ export function registerMapHandlers(io: Server, socket: AuthenticatedSocket): vo
       logger.info('map.change', { mapId, userId: socket.userId, campaignId: socket.campaignId });
     } catch (error) {
       logger.error('map.change failed', { err: error });
-      socket.emit('error', { message: 'Failed to broadcast map change' });
+      socket.emit('error', { message: 'Não foi possível enviar a mudança de mapa.' });
     }
   });
 }

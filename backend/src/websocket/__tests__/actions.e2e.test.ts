@@ -177,7 +177,7 @@ describe('action.resolve', () => {
 
   it('refuses a spectator, and a token that is not the player\'s', async () => {
     const [spec, p2] = await Promise.all([connect('spec'), connect('p2')]);
-    expect(await spec.timeout(3000).emitWithAck('action.resolve', attack())).toMatchObject({ ok: false, error: 'Spectators cannot use actions' });
+    expect(await spec.timeout(3000).emitWithAck('action.resolve', attack())).toMatchObject({ ok: false, error: 'Espectadores não podem usar ações.' });
     expect(await p2.timeout(3000).emitWithAck('action.resolve', attack())).toMatchObject({ ok: false, error: 'Not your token' });
   });
 });
@@ -463,7 +463,7 @@ describe('saves, areas and recharge', () => {
   it('refuses spectators the save events', async () => {
     const spec = await connect('spec');
     for (const event of ['action.save', 'action.saveRemaining', 'action.undoTarget', 'action.pendingSaves', 'action.recharge', 'action.rechargeReset']) {
-      expect(await spec.timeout(3000).emitWithAck(event, {})).toMatchObject({ ok: false, error: 'Spectators cannot use actions' });
+      expect(await spec.timeout(3000).emitWithAck(event, {})).toMatchObject({ ok: false, error: 'Espectadores não podem usar ações.' });
     }
   });
 });

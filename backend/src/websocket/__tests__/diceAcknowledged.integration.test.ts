@@ -75,9 +75,9 @@ describe('dice.roll with an acknowledgement', () => {
   });
 
   it.each([
-    ['an expression the parser refuses', 'player', { expression: '1d20 +' }, /Invalid dice expression/],
+    ['an expression the parser refuses', 'player', { expression: '1d20 +' }, /Expressão de dados inválida/],
     ['a purpose over 300 characters', 'player', { expression: '1d20', purpose: 'P'.repeat(301) }, /Purpose/],
-    ['a spectator\'s roll', 'watcher', { expression: '1d20' }, /Spectators cannot roll dice/],
+    ['a spectator\'s roll', 'watcher', { expression: '1d20' }, /Espectadores não rolam dados./],
   ])('refuses %s through the acknowledgement alone', async (_what, who, payload, reason) => {
     const socket = await server.connectAndAuth(cookies[who], campaignId);
     const noError = expectNoEvent(socket, 'error');
@@ -114,7 +114,7 @@ describe('dice.clearHistory with an acknowledgement', () => {
     const player = await server.connectAndAuth(cookies.player, campaignId);
     const noError = expectNoEvent(player, 'error');
 
-    expect(await player.timeout(3000).emitWithAck('dice.clearHistory')).toEqual({ ok: false, error: 'Only the GM can clear roll history' });
+    expect(await player.timeout(3000).emitWithAck('dice.clearHistory')).toEqual({ ok: false, error: 'Só o mestre pode fazer isso.' });
     await noError;
   });
 });

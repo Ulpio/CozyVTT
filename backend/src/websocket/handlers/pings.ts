@@ -35,7 +35,7 @@ export function registerPingHandlers(io: Server, socket: AuthenticatedSocket): v
   socket.on('map.ping', async (data: { mapId: string; x: number; y: number }) => {
     try {
       if (!socket.campaignId) {
-        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        socket.emit('error', { message: 'Você não está em uma campanha.' });
         return;
       }
 

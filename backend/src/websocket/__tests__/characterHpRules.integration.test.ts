@@ -120,7 +120,7 @@ describe('damage and healing', () => {
     const gm = await server.connectAndAuth(gmCookie, campaignId);
     const refused = waitForEvent<{ message: string }>(gm, 'error');
     gm.emit('character.hp.update', { characterId, delta });
-    expect((await refused).message).toMatch(/whole number/);
+    expect((await refused).message).toMatch(/número inteiro/);
     expect(await storedHp()).toEqual({ current: 20, maximum: 30, temporary: 8 });
   });
 });
@@ -189,7 +189,7 @@ describe('which characters are the campaign\'s', () => {
     for (const [event, payload] of [['character.hp.update', { characterId: strayId, delta: -1 }], ['character.hitdice.spend', { characterId: strayId, index: 0 }]] as const) {
       const refused = waitForEvent<{ message: string }>(gm, 'error');
       gm.emit(event, payload);
-      expect((await refused).message).toBe('Character is not in this campaign');
+      expect((await refused).message).toBe('Esse personagem não está nesta campanha.');
     }
     expect(await storedHp(strayId)).toEqual({ current: 10, maximum: 10, temporary: 0 });
   });

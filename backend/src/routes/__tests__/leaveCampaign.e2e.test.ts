@@ -104,7 +104,7 @@ describe('a player', () => {
     const res = await leave(player, campaignId);
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ message: 'You left this campaign.' });
+    expect(res.body).toEqual({ message: 'Você saiu desta campanha.' });
     expect(await membership(player.id, campaignId)).toBeNull();
     expect((await prisma.character.findUniqueOrThrow({ where: { id: character.id } })).campaignId).toBeNull();
     expect((await stayer.agent.get(`/api/characters/${character.id}`)).status).toBe(404);
@@ -246,7 +246,7 @@ describe('what everyone is told', () => {
     const notTold = expectNoEvent(elsewhere, 'campaign.access.revoked', 500);
     expect((await leave(player, campaignId)).status).toBe(200);
 
-    expect(await told).toEqual({ campaignId, reason: 'left', message: 'You left this campaign.' });
+    expect(await told).toEqual({ campaignId, reason: 'left', message: 'Você saiu desta campanha.' });
     await notTold;
 
     // The same connection, never reconnected, hears the table no more and

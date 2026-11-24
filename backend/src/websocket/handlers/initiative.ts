@@ -45,6 +45,7 @@ import { bestEffort, campaignSockets, getSocketInstance, stillInCampaign } from 
 import { stateRequestAllowed, withinCeiling } from '../shared';
 import { sheetAsRead } from '../../legacy/sheetConversion';
 import { endAllStates } from '../../services/actionResolver/features';
+import { GM_ONLY } from '../../services/gmNotice';
 
 /** The parts of a turn the GM can give back with combat.restore. */
 const RESTORABLE = ['action', 'bonus', 'reaction', 'movement', 'attack', 'interaction'] as const;
@@ -179,7 +180,7 @@ export async function sendInitiativeState(io: Server, campaignId: string, only?:
 /**
  * Send the order again after something changed, and never let that fail the
  * change: the state or the token is already saved by the time this runs, so
- * a database blip here used to tell the GM "Failed to add to initiative"
+ * a database blip here used to tell the GM "Não foi possível adicionar à iniciativa."
  * for an addition that had been made, and a retry was refused as a
  * duplicate. The next change, or a client's request on reconnect, catches
  * everyone up.
@@ -254,25 +255,25 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
    */
   socket.on('initiative.add', async (data: { tokenId: string; mapId: string }) => {
     try {
-      if (!socket.campaignId) { socket.emit('error', { message: 'Not authenticated to a campaign' }); return; }
+      if (!socket.campaignId) { socket.emit('error', { message: 'Você não está em uma campanha.' }); return; }
       if (!withinCeiling(socket, 'initiative.add')) return;
-      if (socket.role !== 'GM') { socket.emit('error', { message: 'Only the GM can modify initiative' }); return; }
+      if (socket.role !== 'GM') { socket.emit('error', { message: GM_ONLY }); return; }
 
       const { tokenId, mapId } = data;
-      if (!tokenId || !mapId) { socket.emit('error', { message: 'tokenId and mapId required' }); return; }
+      if (!tokenId || !mapId) { socket.emit('error', { message: 'Informe o token e o mapa.' }); return; }
 
       const map = await prisma.map.findUnique({ where: { id: mapId } });
-      if (!map || map.campaignId !== socket.campaignId) { socket.emit('error', { message: 'Map not found' }); return; }
+      if (!map || map.campaignId !== socket.campaignId) { socket.emit('error', { message: 'Mapa não encontrado.' }); return; }
 
       const tokens = readTokens(map.tokens);
       const token = tokens.find((t) => t.id === tokenId);
-      if (!token) { socket.emit('error', { message: 'Token not found' }); return; }
+      if (!token) { socket.emit('error', { message: 'Token não encontrado.' }); return; }
 
       const state = getCombatState(socket.campaignId);
 
       // Idempotent — don't add duplicates
       if (state.combatants.some((c) => c.tokenId === tokenId)) {
-        socket.emit('error', { message: 'Token is already in initiative' });
+        socket.emit('error', { message: 'Esse token já está na iniciativa.' });
         return;
       }
 
@@ -305,7 +306,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       logger.debug('initiative.add', { name: token.name, campaignId: socket.campaignId });
     } catch (error) {
       logger.error('initiative.add failed', { err: error });
-      socket.emit('error', { message: 'Failed to add to initiative' });
+      socket.emit('error', { message: 'Não foi possível adicionar à iniciativa.' });
     }
   });
 
@@ -314,12 +315,12 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
    */
   socket.on('initiative.remove', async (data: { tokenId: string }) => {
     try {
-      if (!socket.campaignId) { socket.emit('error', { message: 'Not authenticated to a campaign' }); return; }
+      if (!socket.campaignId) { socket.emit('error', { message: 'Você não está em uma campanha.' }); return; }
       if (!withinCeiling(socket, 'initiative.remove')) return;
-      if (socket.role !== 'GM') { socket.emit('error', { message: 'Only the GM can modify initiative' }); return; }
+      if (socket.role !== 'GM') { socket.emit('error', { message: GM_ONLY }); return; }
 
       const { tokenId } = data;
-      if (!tokenId) { socket.emit('error', { message: 'tokenId required' }); return; }
+      if (!tokenId) { socket.emit('error', { message: 'Informe o token.' }); return; }
 
       // The turn passes on, and an emptied order ends the fight, as when a
       // combatant's token is deleted (withoutCombatants).
@@ -328,7 +329,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       await broadcastInitiativeState(socket.campaignId);
     } catch (error) {
       logger.error('initiative.remove failed', { err: error });
-      socket.emit('error', { message: 'Failed to remove from initiative' });
+      socket.emit('error', { message: 'Não foi possível remover da iniciativa.' });
     }
   });
 
@@ -337,17 +338,17 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
    */
   socket.on('initiative.set', async (data: { tokenId: string; mapId: string; value: number | null }) => {
     try {
-      if (!socket.campaignId) { socket.emit('error', { message: 'Not authenticated to a campaign' }); return; }
+      if (!socket.campaignId) { socket.emit('error', { message: 'Você não está em uma campanha.' }); return; }
       if (!withinCeiling(socket, 'initiative.set')) return;
-      if (socket.role !== 'GM') { socket.emit('error', { message: 'Only the GM can modify initiative' }); return; }
+      if (socket.role !== 'GM') { socket.emit('error', { message: GM_ONLY }); return; }
 
       const { tokenId, mapId, value } = data;
-      if (!tokenId || !mapId) { socket.emit('error', { message: 'tokenId and mapId required' }); return; }
-      if (value !== null && typeof value !== 'number') { socket.emit('error', { message: 'value must be a number or null' }); return; }
+      if (!tokenId || !mapId) { socket.emit('error', { message: 'Informe o token e o mapa.' }); return; }
+      if (value !== null && typeof value !== 'number') { socket.emit('error', { message: 'O valor precisa ser um número ou nulo.' }); return; }
 
       // Persist to DB token record
       const map = await prisma.map.findUnique({ where: { id: mapId } });
-      if (!map || map.campaignId !== socket.campaignId) { socket.emit('error', { message: 'Map not found' }); return; }
+      if (!map || map.campaignId !== socket.campaignId) { socket.emit('error', { message: 'Mapa não encontrado.' }); return; }
 
       await setTokenInitiative(mapId, tokenId, value);
 
@@ -364,7 +365,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       logger.debug('initiative.set', { tokenId, value, campaignId: socket.campaignId });
     } catch (error) {
       logger.error('initiative.set failed', { err: error });
-      socket.emit('error', { message: 'Failed to set initiative value' });
+      socket.emit('error', { message: 'Não foi possível definir o valor da iniciativa.' });
     }
   });
 
@@ -383,7 +384,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
   socket.on('initiative.roll', async (data: { tokenId: string; mapId: string; expression?: unknown; characterName?: string }) => {
     // `characterName` is what older clients sent along; the server names the token itself now.
     try {
-      if (!socket.campaignId) { socket.emit('error', { message: 'Not authenticated to a campaign' }); return; }
+      if (!socket.campaignId) { socket.emit('error', { message: 'Você não está em uma campanha.' }); return; }
       // The GM rolls for a whole encounter, so the GM's rolls have a ceiling
       // of their own. Everyone else's is a dice roll: it writes the map, tells
       // the table and re-sends the order, and is counted against the dice
@@ -395,14 +396,14 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       // anything is read. The token check below refuses one too, for a role
       // that changes while this handler waits on the database.
       if (!canRollDice(socket.role)) {
-        socket.emit('error', { message: 'Spectators cannot roll initiative' });
+        socket.emit('error', { message: 'Espectadores não rolam iniciativa.' });
         return;
       }
 
       const { tokenId, mapId, expression } = data;
-      if (!tokenId || !mapId) { socket.emit('error', { message: 'tokenId and mapId required' }); return; }
+      if (!tokenId || !mapId) { socket.emit('error', { message: 'Informe o token e o mapa.' }); return; }
       if (expression !== undefined && typeof expression !== 'string') {
-        socket.emit('error', { message: 'Invalid expression: it must be text, like 1d20+2' });
+        socket.emit('error', { message: 'Expressão inválida: use um texto, como 1d20+2.' });
         return;
       }
 
@@ -411,7 +412,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       // when one is sent, since it still reaches the dice roller in that case.
       if (expression !== undefined) {
         try { parseDiceExpression(expression); } catch (err) {
-          if (err instanceof DiceParserError) { socket.emit('error', { message: `Invalid expression: ${err.message}` }); return; }
+          if (err instanceof DiceParserError) { socket.emit('error', { message: `Expressão inválida: ${err.message}` }); return; }
           throw err;
         }
       }
@@ -420,13 +421,13 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       // a prepared map is the GM's until they switch to it (canReadMap).
       const map = await prisma.map.findUnique({ where: { id: mapId }, include: { campaign: { select: { currentMapId: true } } } });
       if (!map || map.campaignId !== socket.campaignId || !canReadMap(socket.role, mapId, map.campaign.currentMapId)) {
-        socket.emit('error', { message: 'Map not found' });
+        socket.emit('error', { message: 'Mapa não encontrado.' });
         return;
       }
 
       const tokens = readTokens(map.tokens);
       const tokenIndex = tokens.findIndex((t) => t.id === tokenId);
-      if (tokenIndex === -1) { socket.emit('error', { message: 'Token not found' }); return; }
+      if (tokenIndex === -1) { socket.emit('error', { message: 'Token não encontrado.' }); return; }
 
       const token = tokens[tokenIndex];
       const state = getCombatState(socket.campaignId);
@@ -441,13 +442,13 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
         if (!canControlToken(socket.role, token.controlledBy, socket.userId)) {
           socket.emit('error', {
             message: socket.role === 'SPECTATOR'
-              ? 'Spectators cannot roll initiative'
-              : 'You can only roll initiative for your own token',
+              ? 'Espectadores não rolam iniciativa.'
+              : 'Você só pode rolar iniciativa do seu próprio token.',
           });
           return;
         }
         if (existingIndex === -1) {
-          socket.emit('error', { message: 'That token is not in the initiative order yet' });
+          socket.emit('error', { message: 'Esse token ainda não está na ordem de iniciativa.' });
           return;
         }
         // Initiative is rolled to establish the order, not to renegotiate it
@@ -457,13 +458,13 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
         // them. It would also be spammable until a good number came up. A GM can
         // still re-roll anyone, which is the case where it is a deliberate call.
         if (state.active) {
-          socket.emit('error', { message: 'Combat has started — ask your GM to change your initiative' });
+          socket.emit('error', { message: 'O combate já começou. Peça ao mestre para mudar a sua iniciativa.' });
           return;
         }
         // Once each time the token joins the order, recorded now so a second
         // roll sent at the same moment is refused too.
         if (playerHasRolled(socket.campaignId, tokenId)) {
-          socket.emit('error', { message: 'You have rolled initiative for this fight already. Ask your GM to change it.' });
+          socket.emit('error', { message: 'Você já rolou iniciativa neste combate. Peça ao mestre para mudá-la.' });
           return;
         }
         markPlayerRolled(socket.campaignId, tokenId);
@@ -539,7 +540,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       // to add it to the order anyway.
       if (!(await setTokenInitiative(mapId, tokenId, rolledValue))) {
         if (socket.role !== 'GM') markPlayerRolled(socket.campaignId, tokenId, false);
-        socket.emit('error', { message: 'Token not found' });
+        socket.emit('error', { message: 'Token não encontrado.' });
         return;
       }
 
@@ -603,7 +604,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
             result: rolledValue,
             breakdown: toJson(roll),
             characterName: publicName,
-            purpose: `${publicName} Initiative`,
+            purpose: `Iniciativa de ${publicName}`,
             secret,
           },
         });
@@ -615,11 +616,11 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
           expression: usedExpression,
           result: rolledValue,
           breakdown: roll,
-          purpose: `${publicName} Initiative`,
+          purpose: `Iniciativa de ${publicName}`,
           timestamp: stored.rolledAt.toISOString(),
           secret,
         };
-        const named = { ...rollData, characterName: token.name, purpose: `${token.name} Initiative` };
+        const named = { ...rollData, characterName: token.name, purpose: `Iniciativa de ${token.name}` };
         const recipients = await recipientsSentToken(io, campaignId, token, mapId);
         for (const r of recipients) {
           const isRoller = r.userId === socket.userId;
@@ -638,7 +639,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       });
     } catch (error) {
       logger.error('initiative.roll failed', { err: error });
-      socket.emit('error', { message: 'Failed to roll initiative' });
+      socket.emit('error', { message: 'Não foi possível rolar a iniciativa.' });
     }
   });
 
@@ -647,12 +648,12 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
    */
   socket.on('initiative.reorder', async (data: { orderedTokenIds: string[] }) => {
     try {
-      if (!socket.campaignId) { socket.emit('error', { message: 'Not authenticated to a campaign' }); return; }
+      if (!socket.campaignId) { socket.emit('error', { message: 'Você não está em uma campanha.' }); return; }
       if (!withinCeiling(socket, 'initiative.reorder')) return;
-      if (socket.role !== 'GM') { socket.emit('error', { message: 'Only the GM can reorder initiative' }); return; }
+      if (socket.role !== 'GM') { socket.emit('error', { message: GM_ONLY }); return; }
 
       const { orderedTokenIds } = data;
-      if (!Array.isArray(orderedTokenIds)) { socket.emit('error', { message: 'orderedTokenIds must be an array' }); return; }
+      if (!Array.isArray(orderedTokenIds)) { socket.emit('error', { message: 'A ordem dos tokens precisa ser uma lista.' }); return; }
 
       const state = getCombatState(socket.campaignId);
       const combatantMap = new Map(state.combatants.map((c) => [c.tokenId, c]));
@@ -670,7 +671,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       await broadcastInitiativeState(socket.campaignId);
     } catch (error) {
       logger.error('initiative.reorder failed', { err: error });
-      socket.emit('error', { message: 'Failed to reorder initiative' });
+      socket.emit('error', { message: 'Não foi possível reordenar a iniciativa.' });
     }
   });
 
@@ -679,12 +680,12 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
    */
   socket.on('initiative.start', async () => {
     try {
-      if (!socket.campaignId) { socket.emit('error', { message: 'Not authenticated to a campaign' }); return; }
+      if (!socket.campaignId) { socket.emit('error', { message: 'Você não está em uma campanha.' }); return; }
       if (!withinCeiling(socket, 'initiative.start')) return;
-      if (socket.role !== 'GM') { socket.emit('error', { message: 'Only the GM can start combat' }); return; }
+      if (socket.role !== 'GM') { socket.emit('error', { message: GM_ONLY }); return; }
 
       const state = getCombatState(socket.campaignId);
-      if (state.combatants.length === 0) { socket.emit('error', { message: 'Add combatants before starting combat' }); return; }
+      if (state.combatants.length === 0) { socket.emit('error', { message: 'Adicione combatentes antes de iniciar o combate.' }); return; }
 
       const started = beginTurn({ ...state, active: true, round: 1 }, state.combatants[0].tokenId);
       setCombatState(socket.campaignId, started);
@@ -692,7 +693,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       logger.info('initiative.start', { campaignId: socket.campaignId, first: state.combatants[0].name });
     } catch (error) {
       logger.error('initiative.start failed', { err: error });
-      socket.emit('error', { message: 'Failed to start combat' });
+      socket.emit('error', { message: 'Não foi possível iniciar o combate.' });
     }
   });
 
@@ -701,12 +702,12 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
    */
   socket.on('initiative.next', async () => {
     try {
-      if (!socket.campaignId) { socket.emit('error', { message: 'Not authenticated to a campaign' }); return; }
+      if (!socket.campaignId) { socket.emit('error', { message: 'Você não está em uma campanha.' }); return; }
       if (!withinCeiling(socket, 'initiative.next')) return;
-      if (socket.role !== 'GM') { socket.emit('error', { message: 'Only the GM can advance the turn' }); return; }
+      if (socket.role !== 'GM') { socket.emit('error', { message: GM_ONLY }); return; }
 
       const state = getCombatState(socket.campaignId);
-      if (!state.active || state.combatants.length === 0) { socket.emit('error', { message: 'Combat is not active' }); return; }
+      if (!state.active || state.combatants.length === 0) { socket.emit('error', { message: 'Não há combate em andamento.' }); return; }
 
       const currentIndex = state.combatants.findIndex((c) => c.tokenId === state.currentTokenId);
       const nextIndex = currentIndex + 1;
@@ -722,7 +723,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       logger.debug('initiative.next', { round: moved.round, current: moved.currentTokenId, campaignId: socket.campaignId });
     } catch (error) {
       logger.error('initiative.next failed', { err: error });
-      socket.emit('error', { message: 'Failed to advance initiative' });
+      socket.emit('error', { message: 'Não foi possível avançar a iniciativa.' });
     }
   });
 
@@ -731,9 +732,9 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
    */
   socket.on('initiative.end', async () => {
     try {
-      if (!socket.campaignId) { socket.emit('error', { message: 'Not authenticated to a campaign' }); return; }
+      if (!socket.campaignId) { socket.emit('error', { message: 'Você não está em uma campanha.' }); return; }
       if (!withinCeiling(socket, 'initiative.end')) return;
-      if (socket.role !== 'GM') { socket.emit('error', { message: 'Only the GM can end combat' }); return; }
+      if (socket.role !== 'GM') { socket.emit('error', { message: GM_ONLY }); return; }
 
       clearCombatState(socket.campaignId);
       await broadcastInitiativeState(socket.campaignId);
@@ -742,7 +743,7 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       logger.info('initiative.end', { campaignId: socket.campaignId });
     } catch (error) {
       logger.error('initiative.end failed', { err: error });
-      socket.emit('error', { message: 'Failed to end combat' });
+      socket.emit('error', { message: 'Não foi possível encerrar o combate.' });
     }
   });
 
@@ -751,13 +752,13 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
    */
   socket.on('combat.restore', async (data: { tokenId: string; what: string }) => {
     try {
-      if (!socket.campaignId) { socket.emit('error', { message: 'Not authenticated to a campaign' }); return; }
+      if (!socket.campaignId) { socket.emit('error', { message: 'Você não está em uma campanha.' }); return; }
       if (!withinCeiling(socket, 'combat.restore')) return;
-      if (socket.role !== 'GM') { socket.emit('error', { message: 'Only the GM can restore what a combatant has spent' }); return; }
+      if (socket.role !== 'GM') { socket.emit('error', { message: GM_ONLY }); return; }
 
       const { tokenId, what } = data ?? ({} as { tokenId?: string; what?: string });
-      if (typeof tokenId !== 'string' || !tokenId) { socket.emit('error', { message: 'tokenId required' }); return; }
-      if (!(RESTORABLE as readonly unknown[]).includes(what)) { socket.emit('error', { message: 'Unknown part to restore' }); return; }
+      if (typeof tokenId !== 'string' || !tokenId) { socket.emit('error', { message: 'Informe o token.' }); return; }
+      if (!(RESTORABLE as readonly unknown[]).includes(what)) { socket.emit('error', { message: 'Parte desconhecida para restaurar.' }); return; }
 
       const campaignId = socket.campaignId;
       const restored = await withCombatLock(campaignId, (state) => {
@@ -776,11 +777,11 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
         setCombatState(campaignId, state);
         return true;
       });
-      if (!restored) { socket.emit('error', { message: 'Token is not in initiative' }); return; }
+      if (!restored) { socket.emit('error', { message: 'Esse token não está na iniciativa.' }); return; }
       await broadcastInitiativeState(campaignId);
     } catch (error) {
       logger.error('combat.restore failed', { err: error });
-      socket.emit('error', { message: 'Failed to restore' });
+      socket.emit('error', { message: 'Não foi possível restaurar.' });
     }
   });
 

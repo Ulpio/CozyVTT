@@ -124,7 +124,7 @@ describe('initiative.roll', () => {
     const refused = waitForEvent<{ message: string }>(gm, 'error');
     gm.emit('initiative.roll', { tokenId: 'goblin', mapId, expression: { dice: 20 } });
 
-    expect((await refused).message).toMatch(/expression/i);
+    expect((await refused).message).toMatch(/Expressão inválida/);
     expect(reads).not.toHaveBeenCalled();
     reads.mockRestore();
     gm.disconnect();

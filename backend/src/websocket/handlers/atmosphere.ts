@@ -7,6 +7,7 @@ import { AuthenticatedSocket } from '../auth';
 import logger from '../../utils/logger';
 import { setCampaignAmbientAudio, setCampaignAtmosphereEffect } from '../../services/atmosphereAudio';
 import { withinCeiling } from '../shared';
+import { GM_ONLY } from '../../services/gmNotice';
 
 export function registerAtmosphereHandlers(io: Server, socket: AuthenticatedSocket): void {
   /**
@@ -19,7 +20,7 @@ export function registerAtmosphereHandlers(io: Server, socket: AuthenticatedSock
       if (!withinCeiling(socket, 'atmosphere.effect.set')) return;
 
       if (socket.role !== 'GM') {
-        socket.emit('error', { message: 'Only the GM can set atmosphere effects' });
+        socket.emit('error', { message: GM_ONLY });
         return;
       }
 
@@ -39,7 +40,7 @@ export function registerAtmosphereHandlers(io: Server, socket: AuthenticatedSock
       logger.info('atmosphere.effect.set', { effect: effect ?? 'none', userId: socket.userId, campaignId: socket.campaignId });
     } catch (error) {
       logger.error('atmosphere.effect.set failed', { err: error });
-      socket.emit('error', { message: 'Failed to set atmosphere effect' });
+      socket.emit('error', { message: 'Não foi possível definir o efeito de atmosfera.' });
     }
   });
 
@@ -60,7 +61,7 @@ export function registerAtmosphereHandlers(io: Server, socket: AuthenticatedSock
       if (!withinCeiling(socket, 'atmosphere.audio.set')) return;
 
       if (socket.role !== 'GM') {
-        socket.emit('error', { message: 'Only the GM can control ambient audio' });
+        socket.emit('error', { message: GM_ONLY });
         return;
       }
 
@@ -69,11 +70,11 @@ export function registerAtmosphereHandlers(io: Server, socket: AuthenticatedSock
         loop: data.loop,
       });
       if (!result.ok) {
-        socket.emit('error', { message: result.message ?? 'Failed to set atmosphere audio' });
+        socket.emit('error', { message: result.message ?? 'Não foi possível definir o áudio de atmosfera.' });
       }
     } catch (error) {
       logger.error('atmosphere.audio.set failed', { err: error });
-      socket.emit('error', { message: 'Failed to set atmosphere audio' });
+      socket.emit('error', { message: 'Não foi possível definir o áudio de atmosfera.' });
     }
   });
 }

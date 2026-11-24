@@ -63,7 +63,7 @@ it('refuses a drop between squares, and the token stays where it was', async () 
 
   gm.emit('token.move.end', { tokenId: token.id, mapId, x: 3.5, y: 2 });
 
-  expect((await error).message).toMatch(/Invalid token move data/);
+  expect((await error).message).toMatch(/Dados de movimento do token inválidos./);
   expect(await storedPosition(mapId)).toEqual({ x: 1, y: 1 });
   gm.disconnect();
 });

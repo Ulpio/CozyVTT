@@ -188,7 +188,7 @@ describe('a whisper', () => {
     const ash = await connect('ash');
     expect(await send(ash, { content: 'First' })).toMatchObject({ ok: true });
 
-    expect(await whisper(ash, ids.mara, 'Second')).toEqual({ ok: false, error: 'Rate limit: wait 30s between messages.' });
+    expect(await whisper(ash, ids.mara, 'Second')).toEqual({ ok: false, error: 'Espere 30 s entre uma mensagem e outra.' });
     expect(await stored()).toHaveLength(1);
   });
 });
@@ -255,7 +255,7 @@ describe('a whisper that is refused, and not stored', () => {
     const answer = await whisper(ash, ids.mara, 'Last words');
     read.mockRestore();
 
-    expect(answer).toEqual({ ok: false, error: 'Failed to send chat message' });
+    expect(answer).toEqual({ ok: false, error: 'Não foi possível enviar a mensagem.' });
     expect(await prisma.message.count({ where: { campaignId: doomedId } })).toBe(0);
   });
 

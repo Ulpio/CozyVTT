@@ -26,6 +26,7 @@ import { emitNewestState } from '../outgoingQueue';
 import { toJson } from '../../utils/prisma-json';
 import { canReadMap } from '../../services/permissions';
 import { inBackgroundAfter, type WaitingWork } from '../../utils/backgroundWork';
+import { GM_ONLY } from '../../services/gmNotice';
 
 const MAP_SELECT = {
   campaignId: true, explorationEnabled: true, width: true, height: true, gridSize: true,
@@ -169,7 +170,7 @@ export function registerExplorationHandlers(io: Server, socket: AuthenticatedSoc
 
       const parsed = ExplorationRevealSchema.safeParse(data);
       if (!parsed.success) {
-        socket.emit('error', { message: parsed.error.issues[0]?.message ?? 'Invalid exploration data' });
+        socket.emit('error', { message: parsed.error.issues[0]?.message ?? 'Dados de exploração inválidos.' });
         return;
       }
       const { mapId, cells, userId: named } = parsed.data;
@@ -196,7 +197,7 @@ export function registerExplorationHandlers(io: Server, socket: AuthenticatedSoc
       let userId = socket.userId;
       if (named !== undefined && named !== socket.userId) {
         if (!isGM) {
-          socket.emit('error', { message: 'You can only record your own explored memory' });
+          socket.emit('error', { message: 'Você só pode registrar a sua própria memória explorada.' });
           return;
         }
         const member = await prisma.campaignMembership.findUnique({
@@ -204,7 +205,7 @@ export function registerExplorationHandlers(io: Server, socket: AuthenticatedSoc
           select: { userId: true },
         });
         if (!member) {
-          socket.emit('error', { message: 'That user is not a member of this campaign' });
+          socket.emit('error', { message: 'Esse usuário não é membro desta campanha.' });
           return;
         }
         // Player Preview shows the table's map, so a report for someone else
@@ -267,17 +268,17 @@ export function registerExplorationHandlers(io: Server, socket: AuthenticatedSoc
       if (!socket.campaignId) return;
       if (!withinCeiling(socket, 'exploration:reset')) return;
       if (socket.role !== 'GM') {
-        socket.emit('error', { message: 'Only GMs can reset explored areas' });
+        socket.emit('error', { message: GM_ONLY });
         return;
       }
       const mapId = typeof data?.mapId === 'string' ? data.mapId : null;
       if (!mapId) {
-        socket.emit('error', { message: 'mapId required' });
+        socket.emit('error', { message: 'Informe o mapa.' });
         return;
       }
       const map = await prisma.map.findUnique({ where: { id: mapId }, select: { campaignId: true } });
       if (!map || map.campaignId !== socket.campaignId) {
-        socket.emit('error', { message: 'Map not found' });
+        socket.emit('error', { message: 'Mapa não encontrado.' });
         return;
       }
       forgetQueuedReveals(mapId);
@@ -295,7 +296,7 @@ export function registerExplorationHandlers(io: Server, socket: AuthenticatedSoc
       await emitToMapReaders(io, socket.campaignId, mapId, 'exploration:state', { mapId, userId: null, cells: [] });
     } catch (error) {
       logger.error('exploration:reset failed', { err: error });
-      socket.emit('error', { message: 'Failed to reset explored areas' });
+      socket.emit('error', { message: 'Não foi possível redefinir as áreas exploradas.' });
     }
   });
 }

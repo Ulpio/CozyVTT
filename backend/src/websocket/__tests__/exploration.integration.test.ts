@@ -258,7 +258,7 @@ describe('exploration:reveal, seen by the GM and on a player\'s behalf', () => {
     const p2 = await server.connectAndAuth(p2Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(p2, 'error');
     p2.emit('exploration:reveal', { mapId, cells: [1], userId: p1Id });
-    expect((await denial).message).toMatch(/own/);
+    expect((await denial).message).toMatch(/própria memória/);
     expect(await prisma.mapExploration.count({ where: { mapId } })).toBe(0);
     p2.disconnect();
   });
@@ -267,7 +267,7 @@ describe('exploration:reveal, seen by the GM and on a player\'s behalf', () => {
     const gm = await server.connectAndAuth(gmCookie, campaignId);
     const denial = waitForEvent<{ message: string }>(gm, 'error');
     gm.emit('exploration:reveal', { mapId, cells: [1], userId: randomUUID() });
-    expect((await denial).message).toMatch(/member/);
+    expect((await denial).message).toMatch(/não é membro/);
     expect(await prisma.mapExploration.count({ where: { mapId } })).toBe(0);
     gm.disconnect();
   });
@@ -279,7 +279,7 @@ describe('exploration:reveal, seen by the GM and on a player\'s behalf', () => {
     const spectator = await server.connectAndAuth(specCookie, campaignId);
     const denial = waitForEvent<{ message: string }>(spectator, 'error');
     spectator.emit('exploration:reveal', { mapId, cells: [1], userId: p1Id });
-    expect((await denial).message).toMatch(/own/);
+    expect((await denial).message).toMatch(/própria memória/);
     expect(await prisma.mapExploration.count({ where: { mapId, userId: p1Id } })).toBe(0);
 
     const nothing = expectNoEvent(spectator, 'exploration:state', 400);
@@ -365,7 +365,7 @@ describe('exploration:reset', () => {
     const p1 = await server.connectAndAuth(p1Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(p1, 'error');
     p1.emit('exploration:reset', { mapId });
-    expect((await denial).message).toMatch(/GM/);
+    expect((await denial).message).toMatch(/Só o mestre/);
     p1.disconnect();
   });
 });

@@ -288,24 +288,24 @@ export function archiveShare(entry: unknown, audience: 'ALL' | 'GM'): MarkupShar
 // ── The live table's drawing events ─────────────────────────────────────────
 
 /** A map id: one that is not an id is answered as a map that is not there. */
-const MapIdSchema = z.uuid({ error: 'Map not found' });
+const MapIdSchema = z.uuid({ error: 'Mapa não encontrado.' });
 /** A short label a client gives its own stroke; anything else is left off. */
 const LabelSchema = z.string().regex(CLIENT_LABEL).optional().catch(undefined);
 
 /** `drawing:add`: a drawing for a map, with the preview it ends, if any. */
 export const DrawingAddEventSchema = z.object(
   { mapId: MapIdSchema, drawing: NewDrawingSchema, previewId: LabelSchema },
-  { error: 'Map not found' }
+  { error: 'Mapa não encontrado.' }
 );
 
 /** `drawing:remove`: one drawing, by its id. */
 export const DrawingRemoveEventSchema = z.object(
   { mapId: MapIdSchema, drawingId: z.uuid({ error: 'Drawing not found' }) },
-  { error: 'Map not found' }
+  { error: 'Mapa não encontrado.' }
 );
 
 /** `drawing:clear_mine`: the sender's drawings on a map's markup layer. */
-export const DrawingClearMineEventSchema = z.object({ mapId: MapIdSchema }, { error: 'Map not found' });
+export const DrawingClearMineEventSchema = z.object({ mapId: MapIdSchema }, { error: 'Mapa não encontrado.' });
 
 /** What `drawing:clear` answers an `authorId` that is not a member's id. */
 export const CLEAR_MEMBER_REFUSAL = 'authorId must be a member\'s id';
@@ -321,7 +321,7 @@ export const DrawingClearEventSchema = z.object(
     layer: z.enum(['MARKUP'], { error: DRAWING_LAYER_REFUSAL }).default('MARKUP'),
     authorId: z.uuid({ error: CLEAR_MEMBER_REFUSAL }).optional(),
   },
-  { error: 'Map not found' }
+  { error: 'Mapa não encontrado.' }
 );
 
 /** `drawing:preview`: one frame of a stroke on its way, for a map. */

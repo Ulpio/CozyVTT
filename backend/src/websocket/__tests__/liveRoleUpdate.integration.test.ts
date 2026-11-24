@@ -362,7 +362,7 @@ describe('a change while a connection switches campaigns', () => {
     const revoked = waitForEvent<AccessRevoked>(client, 'campaign.access.revoked');
     const socket = await switchToB(client);
     expect(socket.rooms.has(campaignB)).toBe(false);
-    await expect(revoked).resolves.toEqual({ campaignId: campaignB, reason: 'left', message: 'You left this campaign.' });
+    await expect(revoked).resolves.toEqual({ campaignId: campaignB, reason: 'left', message: 'Você saiu desta campanha.' });
     client.disconnect();
   });
 
@@ -380,7 +380,7 @@ describe('a change while a connection switches campaigns', () => {
     const revoked = waitForEvent<AccessRevoked>(client, 'campaign.access.revoked');
     const socket = await switchToB(client);
     expect(socket.rooms.has(campaignB)).toBe(false);
-    await expect(revoked).resolves.toEqual({ campaignId: campaignB, reason: 'not-member', message: 'You are not a member of this campaign.' });
+    await expect(revoked).resolves.toEqual({ campaignId: campaignB, reason: 'not-member', message: 'Você não é membro desta campanha.' });
     client.disconnect();
   });
 });

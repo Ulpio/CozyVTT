@@ -132,14 +132,14 @@ describe('the character\'s owner', () => {
 
   it('is told a Horror d100 sheet keeps none, and a sheet with no hit points has nothing to add them to', async () => {
     await as('owner', async (owner) => {
-      expect(await refused(owner, { characterId: horrorId, temporary: 3 })).toBe('Horror d100 sheets keep no temporary hit points');
-      expect(await refused(owner, { characterId: blankId, temporary: 3 })).toBe('Character does not have HP tracking');
+      expect(await refused(owner, { characterId: horrorId, temporary: 3 })).toBe('Fichas de Horror d100 não têm PV temporários.');
+      expect(await refused(owner, { characterId: blankId, temporary: 3 })).toBe('Esse personagem não controla PV.');
     });
   });
 
   it('cannot reach a character of another campaign', async () => {
     await as('owner', async (owner) => {
-      expect(await refused(owner, { characterId: strangerId, temporary: 3 })).toBe('Character is not in this campaign');
+      expect(await refused(owner, { characterId: strangerId, temporary: 3 })).toBe('Esse personagem não está nesta campanha.');
     });
   });
 
@@ -180,14 +180,14 @@ describe('who else may grant them', () => {
 
   it('is not another player', async () => {
     await as('other', async (other) => {
-      expect(await refused(other, { characterId: fighterId, temporary: 15 })).toBe("You do not have permission to update this character's HP");
+      expect(await refused(other, { characterId: fighterId, temporary: 15 })).toBe('Você não tem permissão para alterar os PV deste personagem.');
     });
     expect((await storedHp(fighterId)).temporary).toBe(10);
   });
 
   it('is not a spectator, even on a character of their own', async () => {
     await as('spectator', async (spectator) => {
-      expect(await refused(spectator, { characterId: watcherId, temporary: 5 })).toBe('Spectators cannot change a character');
+      expect(await refused(spectator, { characterId: watcherId, temporary: 5 })).toBe('Espectadores não podem alterar personagens.');
     });
     expect((await storedHp(watcherId)).temporary).toBe(0);
   });

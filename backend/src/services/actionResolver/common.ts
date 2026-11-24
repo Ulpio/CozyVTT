@@ -37,11 +37,11 @@ export const NO_SLOT = 'No spell slot of that level';
 export const CANNOT_RESOLVE = 'This action cannot be resolved';
 export const ALREADY_UNDONE = 'Already undone';
 export const GM_ONLY = 'GM only';
-export const NEEDS_CONCENTRATION_CONFIRM = 'Already concentrating on another spell';
+export const NEEDS_CONCENTRATION_CONFIRM = 'Você já está concentrado em outra magia.';
 export const ALREADY_ROLLED = 'Already rolled';
 export const RECHARGE_SPENT = 'This action is spent until it recharges';
 export const NOT_SPENT = 'This action is not spent';
-export const NOT_FOUND = 'Action not found';
+export const NOT_FOUND = 'Ação não encontrada.';
 /** A class feature's pool has too little left for what it spends. */
 export const NO_USES = 'Sem usos restantes.';
 

@@ -180,7 +180,7 @@ it('sends the token back, and tells the table, when its carrier asks to join a c
   player.emit('authenticate', { campaignId: strangerCampaignId });
 
   await expect(revoked).resolves.toEqual({
-    campaignId: strangerCampaignId, reason: 'not-member', message: 'You are not a member of this campaign.',
+    campaignId: strangerCampaignId, reason: 'not-member', message: 'Você não é membro desta campanha.',
   });
   expect((await left).userId).toBe(playerId);
   expect(await offline).toEqual([gmId]);

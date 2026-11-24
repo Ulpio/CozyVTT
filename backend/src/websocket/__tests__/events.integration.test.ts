@@ -208,7 +208,7 @@ describe('connection & authentication', () => {
     const client = await server.connectClient(outsiderCookie);
     const revoked = waitForEvent<{ reason: string; message: string }>(client, 'campaign.access.revoked');
     client.emit('authenticate', { campaignId });
-    expect(await revoked).toMatchObject({ reason: 'not-member', message: 'You are not a member of this campaign.' });
+    expect(await revoked).toMatchObject({ reason: 'not-member', message: 'Você não é membro desta campanha.' });
     client.disconnect();
   });
 
@@ -255,7 +255,7 @@ describe('token movement', () => {
     const silence = expectNoEvent(gm, 'token.moved');
     player.emit('token.move.end', { tokenId: GM_TOKEN_ID, mapId, x: 12, y: 12 });
 
-    expect((await denial).message).toBe('You do not have permission to move this token');
+    expect((await denial).message).toBe('Você não tem permissão para mover este token.');
     await silence;
 
     const map = await prisma.map.findUniqueOrThrow({ where: { id: mapId }, select: { tokens: true } });
@@ -270,7 +270,7 @@ describe('token movement', () => {
     const player = await server.connectAndAuth(player1Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('token.move.end', { tokenId: PLAYER_TOKEN_ID, mapId, x: 999, y: 5 });
-    expect((await denial).message).toBe('Token position out of bounds');
+    expect((await denial).message).toBe('A posição do token está fora do mapa.');
     player.disconnect();
   });
 
@@ -280,7 +280,7 @@ describe('token movement', () => {
     const player = await server.connectAndAuth(player1Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('token.move', { tokenId: GM_TOKEN_ID, mapId, x: 999, y: 5 });
-    expect((await denial).message).toBe('Token position out of bounds');
+    expect((await denial).message).toBe('A posição do token está fora do mapa.');
     player.disconnect();
   });
 
@@ -338,7 +338,7 @@ describe('walls & doors', () => {
     const player = await server.connectAndAuth(player1Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('wall:add', { mapId, segment: { id: randomUUID(), x1: 1, y1: 1, x2: 2, y2: 2, type: 'wall' } });
-    expect((await denial).message).toBe('Only GMs can add wall segments');
+    expect((await denial).message).toBe('Só o mestre pode fazer isso.');
     player.disconnect();
   });
 
@@ -359,7 +359,7 @@ describe('walls & doors', () => {
     const player = await server.connectAndAuth(player1Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('wall:update', { mapId, segment: { ...seedWalls()[2], type: 'door-open' } });
-    expect((await denial).message).toBe('That door is locked');
+    expect((await denial).message).toBe('Essa porta está trancada.');
     player.disconnect();
   });
 
@@ -367,7 +367,7 @@ describe('walls & doors', () => {
     const player = await server.connectAndAuth(player1Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('wall:update', { mapId, segment: { ...seedWalls()[0], type: 'door-open' } });
-    expect((await denial).message).toBe('Players may only toggle doors');
+    expect((await denial).message).toBe('Os jogadores só podem abrir e fechar portas.');
     player.disconnect();
   });
 
@@ -403,7 +403,7 @@ describe('walls & doors', () => {
       const spectator = await server.connectAndAuth(player1Cookie, campaignId);
       const denial = waitForEvent<{ message: string }>(spectator, 'error');
       spectator.emit('wall:update', { mapId, segment: { ...seedWalls()[1], type: 'door-open' } });
-      expect((await denial).message).toBe('Spectators cannot open or close doors');
+      expect((await denial).message).toBe('Espectadores não podem abrir nem fechar portas.');
       spectator.disconnect();
     } finally {
       await prisma.campaignMembership.updateMany({
@@ -447,7 +447,7 @@ describe('fog of war', () => {
     const denial = waitForEvent<{ message: string }>(gm, 'error');
     const playerSeesNothing = expectNoEvent(player, 'fog:cells');
     gm.emit('fog:operation', { mapId, operation: { op: 'reveal', cells: [0, 1, 2] } });
-    expect((await denial).message).toBe('Fog of war is off for this map');
+    expect((await denial).message).toBe('A névoa está desligada neste mapa.');
     await playerSeesNothing;
 
     const noState = expectNoEvent(player, 'fog:cells');
@@ -465,7 +465,7 @@ describe('fog of war', () => {
     const player = await server.connectAndAuth(player1Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('fog:operation', { mapId, operation: { op: 'reveal_all' } });
-    expect((await denial).message).toBe('Only GMs can modify fog of war');
+    expect((await denial).message).toBe('Só o mestre pode fazer isso.');
     player.disconnect();
   });
 });
@@ -511,7 +511,7 @@ describe('lights', () => {
     const player = await server.connectAndAuth(player1Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('light:add', { mapId, light: validLight() });
-    expect((await denial).message).toBe('Only GMs can add light sources');
+    expect((await denial).message).toBe('Só o mestre pode fazer isso.');
     player.disconnect();
   });
 });
@@ -523,7 +523,7 @@ describe('initiative', () => {
     const player = await server.connectAndAuth(player1Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('initiative.add', { tokenId: PLAYER_TOKEN_ID, mapId });
-    expect((await denial).message).toBe('Only the GM can modify initiative');
+    expect((await denial).message).toBe('Só o mestre pode fazer isso.');
     player.disconnect();
   });
 
@@ -608,7 +608,7 @@ describe('initiative', () => {
       // The roll is public — it reaches the GM's dice log, attributed to the
       // player rather than to the GM.
       const roll = await diceLogged;
-      expect(roll.purpose).toBe('Hero Initiative');
+      expect(roll.purpose).toBe('Iniciativa de Hero');
       expect(roll.userId).toBe(player1Id);
 
       // And it is persisted on the token, not just held in memory.
@@ -624,7 +624,7 @@ describe('initiative', () => {
       const player = await server.connectAndAuth(player1Cookie, campaignId);
       const denial = waitForEvent<{ message: string }>(player, 'error');
       player.emit('initiative.roll', { tokenId: PLAYER_TOKEN_ID, mapId, expression: '1d20' });
-      expect((await denial).message).toBe('That token is not in the initiative order yet');
+      expect((await denial).message).toBe('Esse token ainda não está na ordem de iniciativa.');
       player.disconnect();
     });
 
@@ -638,7 +638,7 @@ describe('initiative', () => {
 
       const denial = waitForEvent<{ message: string }>(player, 'error');
       player.emit('initiative.roll', { tokenId: GM_TOKEN_ID, mapId, expression: '1d20' });
-      expect((await denial).message).toBe('You can only roll initiative for your own token');
+      expect((await denial).message).toBe('Você só pode rolar iniciativa do seu próprio token.');
 
       // Nothing was rolled for it.
       const map = await prisma.map.findUniqueOrThrow({ where: { id: mapId }, select: { tokens: true } });
@@ -659,7 +659,7 @@ describe('initiative', () => {
 
       const denial = waitForEvent<{ message: string }>(player2, 'error');
       player2.emit('initiative.roll', { tokenId: PLAYER_TOKEN_ID, mapId, expression: '1d20' });
-      expect((await denial).message).toBe('You can only roll initiative for your own token');
+      expect((await denial).message).toBe('Você só pode rolar iniciativa do seu próprio token.');
 
       gm.disconnect();
       player2.disconnect();
@@ -682,7 +682,7 @@ describe('initiative', () => {
 
       const denial = waitForEvent<{ message: string }>(player, 'error');
       player.emit('initiative.roll', { tokenId: PLAYER_TOKEN_ID, mapId });
-      expect((await denial).message).toMatch(/Combat has started/);
+      expect((await denial).message).toMatch(/O combate já começou/);
 
       gm.disconnect();
       player.disconnect();
@@ -704,7 +704,7 @@ describe('initiative', () => {
         const spectator = await server.connectAndAuth(player1Cookie, campaignId);
         const denial = waitForEvent<{ message: string }>(spectator, 'error');
         spectator.emit('initiative.roll', { tokenId: PLAYER_TOKEN_ID, mapId });
-        expect((await denial).message).toBe('Spectators cannot roll initiative');
+        expect((await denial).message).toBe('Espectadores não rolam iniciativa.');
         spectator.disconnect();
       } finally {
         await prisma.campaignMembership.updateMany({
@@ -1068,7 +1068,7 @@ describe('chat', () => {
 
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('chat.message', { content: 'second too fast', type: 'PLAYER' });
-    expect((await denial).message).toContain('Rate limit');
+    expect((await denial).message).toContain('Espere 30 s');
     player.disconnect();
   });
 });
@@ -1100,7 +1100,7 @@ describe('dice', () => {
     const player = await server.connectAndAuth(player1Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('dice.roll', { expression: 'not-dice' });
-    expect((await denial).message).toContain('Invalid dice expression');
+    expect((await denial).message).toContain('Expressão de dados inválida');
     player.disconnect();
   });
 });
@@ -1116,7 +1116,7 @@ describe('spirit layer filtering', () => {
     const nothing = expectNoEvent(player, 'spirit_layer.style_changed');
     gm.emit('spirit_layer.style_change', { style: 'custom:url(https://evil.example/x.svg):wispy' });
 
-    expect((await denial).message).toMatch(/style/i);
+    expect((await denial).message).toMatch(/Estilo do plano espiritual inválido/);
     await nothing;
     gm.disconnect();
     player.disconnect();
@@ -1222,7 +1222,7 @@ describe('spirit layer filtering', () => {
     const player = await server.connectAndAuth(player1Cookie, campaignId);
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('token.move.end', { tokenId: SPIRIT_TOKEN_ID, mapId, x: 19, y: 19 });
-    expect((await denial).message).toBe('You do not have permission to move this token');
+    expect((await denial).message).toBe('Você não tem permissão para mover este token.');
     player.disconnect();
   });
 });
@@ -1289,7 +1289,7 @@ describe('hit dice', () => {
 
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('character.hitdice.spend', { characterId, index: 0 });
-    expect((await denial).message).toMatch(/no hit dice remaining/i);
+    expect((await denial).message).toMatch(/Não restam dados de vida/);
 
     const row = await prisma.character.findUniqueOrThrow({ where: { id: characterId } });
     expect(hitDiceOf(row.data)[0].remaining).toBe(0);
@@ -1303,7 +1303,7 @@ describe('hit dice', () => {
 
     const denial = waitForEvent<{ message: string }>(other, 'error');
     other.emit('character.hitdice.spend', { characterId, index: 0 });
-    expect((await denial).message).toMatch(/permission/i);
+    expect((await denial).message).toMatch(/Você não tem permissão/);
 
     const row = await prisma.character.findUniqueOrThrow({ where: { id: characterId } });
     expect(hitDiceOf(row.data)[0].remaining).toBe(3);
@@ -1328,7 +1328,7 @@ describe('hit dice', () => {
 
     const denial = waitForEvent<{ message: string }>(player, 'error');
     player.emit('character.hitdice.spend', { characterId, index: 7 });
-    expect((await denial).message).toMatch(/hit dice/i);
+    expect((await denial).message).toMatch(/Não há reserva de dados de vida/);
 
     player.disconnect();
   });

@@ -114,7 +114,7 @@ export function applyHpDelta(
     case 'FIFTH_EDITION':
     case 'FANTASY_D20': {
       if (!charData?.hp || typeof charData.hp.maximum !== 'number') {
-        return { error: 'Character does not have HP tracking' };
+        return { error: 'Esse personagem não controla PV.' };
       }
       const max = charData.hp.maximum;
       const heldTemp = typeof charData.hp.temporary === 'number' ? Math.max(0, charData.hp.temporary) : 0;
@@ -127,7 +127,7 @@ export function applyHpDelta(
     }
     case 'HORROR_D100': {
       if (!charData?.hitPoints || typeof charData.hitPoints.maximum !== 'number') {
-        return { error: 'Character does not have HP tracking' };
+        return { error: 'Esse personagem não controla PV.' };
       }
       const max = charData.hitPoints.maximum;
       // No lowest: a character can lose more hit points than they have, and
@@ -140,7 +140,7 @@ export function applyHpDelta(
       };
     }
     default:
-      return { error: 'HP tracking not supported for this game system' };
+      return { error: 'Este sistema de jogo não controla PV.' };
   }
 }
 
@@ -148,9 +148,9 @@ export function applyHpDelta(
 function spendHitDie(stored: unknown, index: number): { data: CharacterHitDiceData } | Refusal {
   const charData = stored as CharacterHitDiceData;
   const pools = Array.isArray(charData?.hitDice) ? (charData.hitDice as HitDiceEntry[]) : null;
-  if (!pools || !pools[index]) return { error: 'No hit dice pool at that position' };
+  if (!pools || !pools[index]) return { error: 'Não há reserva de dados de vida nessa posição.' };
   const remaining = typeof pools[index].remaining === 'number' ? (pools[index].remaining as number) : 0;
-  if (remaining <= 0) return { error: 'No hit dice remaining to spend' };
+  if (remaining <= 0) return { error: 'Não restam dados de vida para gastar.' };
   const hitDice = pools.map((entry, at) => (at === index ? { ...entry, remaining: remaining - 1 } : entry));
   return { data: { ...charData, hitDice } };
 }
@@ -165,13 +165,13 @@ function takeTemporaryHp(
   stored: unknown,
   temporary: number
 ): { data: CharacterHpData; hp: { current: number; max: number; temp: number } } | Refusal {
-  if (gameSystem === 'HORROR_D100') return { error: 'Horror d100 sheets keep no temporary hit points' };
+  if (gameSystem === 'HORROR_D100') return { error: 'Fichas de Horror d100 não têm PV temporários.' };
   const charData = stored as CharacterHpData;
   const heldTemp = typeof charData?.hp?.temporary === 'number' ? charData.hp.temporary : 0;
   const grant = grantTemporaryHitPoints(heldTemp, temporary, gameSystem);
-  if (!grant) return { error: 'Temporary hit points are not tracked for this game system' };
+  if (!grant) return { error: 'Este sistema de jogo não controla PV temporários.' };
   if (!charData?.hp || typeof charData.hp.maximum !== 'number') {
-    return { error: 'Character does not have HP tracking' };
+    return { error: 'Esse personagem não controla PV.' };
   }
   const max = charData.hp.maximum;
   const current = typeof charData.hp.current === 'number' ? charData.hp.current : max;
@@ -187,18 +187,18 @@ function takeTemporaryHp(
 async function characterToChange(socket: AuthenticatedSocket, campaignId: string, characterId: string, notYours: string): Promise<Character | null> {
   const character = await prisma.character.findUnique({ where: { id: characterId } });
   if (!character) {
-    socket.emit('error', { message: 'Character not found' });
+    socket.emit('error', { message: 'Personagem não encontrado.' });
     return null;
   }
   if (!(await characterInCampaign(character, campaignId))) {
-    socket.emit('error', { message: 'Character is not in this campaign' });
+    socket.emit('error', { message: 'Esse personagem não está nesta campanha.' });
     return null;
   }
   // A spectator is watching, not playing: not even a character they own,
   // since a token bound to it follows the sheet on every screen. The GM
   // can still cover for them.
   if (socket.role === 'SPECTATOR') {
-    socket.emit('error', { message: 'Spectators cannot change a character' });
+    socket.emit('error', { message: 'Espectadores não podem alterar personagens.' });
     return null;
   }
   if (character.userId !== socket.userId && socket.role !== 'GM') {
@@ -212,7 +212,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
   socket.on('character.hp.update', async (data: { characterId: string; delta: number }) => {
     try {
       if (!socket.campaignId) {
-        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        socket.emit('error', { message: 'Você não está em uma campanha.' });
         return;
       }
 
@@ -223,18 +223,18 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       const { characterId, delta } = data;
 
       if (!characterId || typeof delta !== 'number' || !Number.isFinite(delta)) {
-        socket.emit('error', { message: 'characterId (string) and delta (number) are required' });
+        socket.emit('error', { message: 'Informe o personagem e a variação (um número).' });
         return;
       }
       // Sheets store whole hit points: half a point was stored as 7.5, which
       // the sheet's schema then refused on every save.
       if (!Number.isInteger(delta) || Math.abs(delta) > MAX_HP_DELTA) {
-        socket.emit('error', { message: `delta must be a whole number of hit points from -${MAX_HP_DELTA} to ${MAX_HP_DELTA}` });
+        socket.emit('error', { message: `A variação precisa ser um número inteiro de pontos de vida, de -${MAX_HP_DELTA} a ${MAX_HP_DELTA}.` });
         return;
       }
 
       // The character's owner, or the GM.
-      const character = await characterToChange(socket, socket.campaignId, characterId, 'You do not have permission to update this character\'s HP');
+      const character = await characterToChange(socket, socket.campaignId, characterId, 'Você não tem permissão para alterar os PV deste personagem.');
       if (!character) return;
 
       // Read and written under the row's lock, afresh. Reading before the
@@ -243,7 +243,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       const outcome = await prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM "Character" WHERE id = ${characterId} FOR UPDATE`;
         const fresh = await tx.character.findUnique({ where: { id: characterId }, select: { data: true } });
-        if (!fresh) return { error: 'Character not found' } as const;
+        if (!fresh) return { error: 'Personagem não encontrado.' } as const;
         // A Horror d100 sheet still in the shape before 1.7.0 is converted,
         // and stored converted with its hit points changed.
         const applied = applyHpDelta(character.gameSystem, sheetAsRead(character.gameSystem, fresh.data), delta);
@@ -265,7 +265,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
 
     } catch (error) {
       logger.error('character.hp.update failed', { err: error });
-      socket.emit('error', { message: 'Failed to update character HP' });
+      socket.emit('error', { message: 'Não foi possível atualizar os PV do personagem.' });
     }
   });
 
@@ -279,7 +279,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
   socket.on('character.hp.temporary', async (data: unknown) => {
     try {
       if (!socket.campaignId) {
-        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        socket.emit('error', { message: 'Você não está em uma campanha.' });
         return;
       }
 
@@ -292,7 +292,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       }
       const { characterId, temporary } = parsed.data;
 
-      const character = await characterToChange(socket, socket.campaignId, characterId, 'You do not have permission to update this character\'s HP');
+      const character = await characterToChange(socket, socket.campaignId, characterId, 'Você não tem permissão para alterar os PV deste personagem.');
       if (!character) return;
 
       // Under the row's lock and read afresh, for the reason given for hit
@@ -300,7 +300,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       const outcome = await prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM "Character" WHERE id = ${characterId} FOR UPDATE`;
         const fresh = await tx.character.findUnique({ where: { id: characterId }, select: { data: true } });
-        if (!fresh) return { error: 'Character not found' } as const;
+        if (!fresh) return { error: 'Personagem não encontrado.' } as const;
         const taken = takeTemporaryHp(character.gameSystem, fresh.data, temporary);
         if ('error' in taken) return taken;
         await tx.character.update({ where: { id: characterId }, data: { data: toJson(taken.data) } });
@@ -314,7 +314,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       io.to(socket.campaignId).emit('character.hp.updated', { characterId, hp: outcome.hp });
     } catch (error) {
       logger.error('character.hp.temporary failed', { err: error });
-      socket.emit('error', { message: 'Failed to update character HP' });
+      socket.emit('error', { message: 'Não foi possível atualizar os PV do personagem.' });
     }
   });
 
@@ -329,7 +329,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
   socket.on('character.hitdice.spend', async (data: { characterId: string; index: number }) => {
     try {
       if (!socket.campaignId) {
-        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        socket.emit('error', { message: 'Você não está em uma campanha.' });
         return;
       }
 
@@ -338,16 +338,16 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       const { characterId, index } = data ?? {};
 
       if (!characterId || typeof index !== 'number' || !Number.isInteger(index) || index < 0) {
-        socket.emit('error', { message: 'characterId (string) and index (integer) are required' });
+        socket.emit('error', { message: 'Informe o personagem e a posição (um número inteiro).' });
         return;
       }
 
       // As for hit points: the character's owner, or the GM.
-      const character = await characterToChange(socket, socket.campaignId, characterId, 'You do not have permission to spend this character\'s hit dice');
+      const character = await characterToChange(socket, socket.campaignId, characterId, 'Você não tem permissão para gastar os dados de vida deste personagem.');
       if (!character) return;
 
       if (character.gameSystem !== 'FIFTH_EDITION') {
-        socket.emit('error', { message: 'Hit dice are not tracked for this game system' });
+        socket.emit('error', { message: 'Este sistema de jogo não controla dados de vida.' });
         return;
       }
 
@@ -356,7 +356,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       const outcome = await prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM "Character" WHERE id = ${characterId} FOR UPDATE`;
         const fresh = await tx.character.findUnique({ where: { id: characterId }, select: { data: true } });
-        if (!fresh) return { error: 'Character not found' } as const;
+        if (!fresh) return { error: 'Personagem não encontrado.' } as const;
         const spent = spendHitDie(fresh.data, index);
         if ('error' in spent) return spent;
         return { updated: await tx.character.update({ where: { id: characterId }, data: { data: toJson(spent.data) } }) };
@@ -380,7 +380,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
 
     } catch (error) {
       logger.error('character.hitdice.spend failed', { err: error });
-      socket.emit('error', { message: 'Failed to spend hit die' });
+      socket.emit('error', { message: 'Não foi possível gastar o dado de vida.' });
     }
   });
 
@@ -393,13 +393,13 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
     const ack = ackFrom(ackArg);
     try {
       if (!socket.campaignId || !socket.userId) {
-        refuseRequest(socket, ack, 'Not authenticated to a campaign');
+        refuseRequest(socket, ack, 'Você não está em uma campanha.');
         return;
       }
       if (!withinCeiling(socket, 'character.rest', ack)) return;
       const parsed = CharacterRestSchema.safeParse(data);
       if (!parsed.success) {
-        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Invalid request');
+        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Pedido inválido.');
         return;
       }
       const outcome = await takeRest(socket.campaignId, viewerOf(socket.role, socket.userId), parsed.data.characterIds, parsed.data.kind);
@@ -416,7 +416,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       (ack as ((a: unknown) => void) | null)?.({ ok: true, messageId: outcome.messageId });
     } catch (error) {
       logger.error('character.rest failed', { err: error });
-      refuseRequest(socket, ack, 'Failed to take the rest');
+      refuseRequest(socket, ack, 'Não foi possível fazer o descanso.');
     }
   });
 
@@ -428,13 +428,13 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
     const ack = ackFrom(ackArg);
     try {
       if (!socket.campaignId || !socket.userId) {
-        refuseRequest(socket, ack, 'Not authenticated to a campaign');
+        refuseRequest(socket, ack, 'Você não está em uma campanha.');
         return;
       }
       if (!withinCeiling(socket, 'character.equip', ack)) return;
       const parsed = CharacterEquipSchema.safeParse(data);
       if (!parsed.success) {
-        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Invalid request');
+        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Pedido inválido.');
         return;
       }
       const { characterId, itemId, slot } = parsed.data;
@@ -447,7 +447,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       (ack as ((a: unknown) => void) | null)?.({ ok: true, ac: outcome.ac, acUnknown: outcome.acUnknown });
     } catch (error) {
       logger.error('character.equip failed', { err: error });
-      refuseRequest(socket, ack, 'Failed to equip the item');
+      refuseRequest(socket, ack, 'Não foi possível equipar o item.');
     }
   });
 
@@ -458,13 +458,13 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
     const ack = ackFrom(ackArg);
     try {
       if (!socket.campaignId || !socket.userId) {
-        refuseRequest(socket, ack, 'Not authenticated to a campaign');
+        refuseRequest(socket, ack, 'Você não está em uma campanha.');
         return;
       }
       if (!withinCeiling(socket, 'character.pack.open', ack)) return;
       const parsed = CharacterPackOpenSchema.safeParse(data);
       if (!parsed.success) {
-        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Invalid request');
+        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Pedido inválido.');
         return;
       }
       const { characterId, itemId } = parsed.data;
@@ -477,7 +477,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       (ack as ((a: unknown) => void) | null)?.({ ok: true });
     } catch (error) {
       logger.error('character.pack.open failed', { err: error });
-      refuseRequest(socket, ack, 'Failed to open the pack');
+      refuseRequest(socket, ack, 'Não foi possível abrir o pacote.');
     }
   });
 
@@ -489,13 +489,13 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
     const ack = ackFrom(ackArg);
     try {
       if (!socket.campaignId || !socket.userId) {
-        refuseRequest(socket, ack, 'Not authenticated to a campaign');
+        refuseRequest(socket, ack, 'Você não está em uma campanha.');
         return;
       }
       if (!withinCeiling(socket, 'character.ammo.recover', ack)) return;
       const parsed = CharacterAmmoRecoverSchema.safeParse(data);
       if (!parsed.success) {
-        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Invalid request');
+        refuseRequest(socket, ack, parsed.error.issues[0]?.message ?? 'Pedido inválido.');
         return;
       }
       const { characterId } = parsed.data;
@@ -515,7 +515,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       (ack as ((a: unknown) => void) | null)?.({ ok: true, recovered: outcome.recovered });
     } catch (error) {
       logger.error('character.ammo.recover failed', { err: error });
-      refuseRequest(socket, ack, 'Failed to recover the ammunition');
+      refuseRequest(socket, ack, 'Não foi possível recolher a munição.');
     }
   });
 
@@ -529,7 +529,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
     const ack = ackFrom(ackArg);
     try {
       if (!socket.campaignId || !socket.userId) {
-        refuseRequest(socket, ack, 'Not authenticated to a campaign');
+        refuseRequest(socket, ack, 'Você não está em uma campanha.');
         return;
       }
       if (!withinCeiling(socket, 'character.item.give', ack)) return;
@@ -596,7 +596,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
     const ack = ackFrom(ackArg);
     try {
       if (!socket.campaignId || !socket.userId) {
-        refuseRequest(socket, ack, 'Not authenticated to a campaign');
+        refuseRequest(socket, ack, 'Você não está em uma campanha.');
         return;
       }
       if (!withinCeiling(socket, 'gm.notice', ack)) return;

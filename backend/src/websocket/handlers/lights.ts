@@ -22,6 +22,7 @@ import { lightOutsideMap, LIGHT_OUTSIDE_MAP_MESSAGE } from '../../validators/map
 import { withMapsLocked } from '../../utils/mapTokens';
 import { echoedOpId } from '../opId';
 import { ackFrom, refuseRequest } from '../ack';
+import { GM_ONLY } from '../../services/gmNotice';
 
 /** What a light edit reads of the map to check it: whose it is, and its extent. */
 const EXTENT = { campaignId: true, width: true, height: true, gridSize: true } as const;
@@ -50,16 +51,16 @@ export function registerLightHandlers(io: Server, socket: AuthenticatedSocket): 
         return;
       }
       if (socket.role !== 'GM') {
-        refuse('Only GMs can add light sources');
+        refuse(GM_ONLY);
         return;
       }
 
       const { mapId, light } = data;
-      if (!mapId) { refuse('mapId required'); return; }
+      if (!mapId) { refuse('Informe o mapa.'); return; }
 
       const parsed = LightSourceSchema.safeParse(light);
       if (!parsed.success) {
-        refuse(parsed.error.issues[0]?.message ?? 'Invalid light source');
+        refuse(parsed.error.issues[0]?.message ?? 'Fonte de luz inválida.');
         return;
       }
 
@@ -67,7 +68,7 @@ export function registerLightHandlers(io: Server, socket: AuthenticatedSocket): 
       const added = parsed.data;
       const outcome = await withMapsLocked([mapId], async (tx): Promise<Locked> => {
         const map = await tx.map.findUnique({ where: { id: mapId }, select: { ...EXTENT, lights: true } });
-        if (!map || map.campaignId !== campaignId) return { refused: 'Map not found' };
+        if (!map || map.campaignId !== campaignId) return { refused: 'Mapa não encontrado.' };
         if (lightOutsideMap([added], map)) return { refused: LIGHT_OUTSIDE_MAP_MESSAGE };
 
         const existing = (Array.isArray(map.lights) ? map.lights : []) as unknown as LightSource[];
@@ -91,7 +92,7 @@ export function registerLightHandlers(io: Server, socket: AuthenticatedSocket): 
       if (lightReachesPlayers(added)) resendSightAfterChange(io, campaignId, mapId);
     } catch (error) {
       logger.error('light:add failed', { err: error });
-      refuse('Failed to add light source');
+      refuse('Não foi possível adicionar a fonte de luz.');
     }
   });
 
@@ -103,17 +104,17 @@ export function registerLightHandlers(io: Server, socket: AuthenticatedSocket): 
       if (!socket.campaignId) return;
       if (!mapEditLimiter.check(limiterKey(socket), MAP_EDITS_PER_SECOND, 1000)) return; // flood ceiling, per user
       if (socket.role !== 'GM') {
-        socket.emit('error', { message: 'Only GMs can remove light sources' });
+        socket.emit('error', { message: GM_ONLY });
         return;
       }
 
       const { mapId, lightId } = data;
-      if (!mapId || !lightId) { socket.emit('error', { message: 'mapId and lightId required' }); return; }
+      if (!mapId || !lightId) { socket.emit('error', { message: 'Informe o mapa e a luz.' }); return; }
 
       const campaignId = socket.campaignId;
       const outcome = await withMapsLocked([mapId], async (tx): Promise<{ refused: string } | { done: LightSource | undefined }> => {
         const map = await tx.map.findUnique({ where: { id: mapId }, select: { campaignId: true, lights: true } });
-        if (!map || map.campaignId !== campaignId) return { refused: 'Map not found' };
+        if (!map || map.campaignId !== campaignId) return { refused: 'Mapa não encontrado.' };
 
         const existing = (Array.isArray(map.lights) ? map.lights : []) as unknown as LightSource[];
         const filtered = existing.filter((l) => l.id !== lightId);
@@ -133,7 +134,7 @@ export function registerLightHandlers(io: Server, socket: AuthenticatedSocket): 
       if (lightReachesPlayers(removed)) resendSightAfterChange(io, campaignId, mapId);
     } catch (error) {
       logger.error('light:remove failed', { err: error });
-      socket.emit('error', { message: 'Failed to remove light source' });
+      socket.emit('error', { message: 'Não foi possível remover a fonte de luz.' });
     }
   });
 
@@ -145,16 +146,16 @@ export function registerLightHandlers(io: Server, socket: AuthenticatedSocket): 
       if (!socket.campaignId) return;
       if (!mapEditLimiter.check(limiterKey(socket), MAP_EDITS_PER_SECOND, 1000)) return; // flood ceiling, per user
       if (socket.role !== 'GM') {
-        socket.emit('error', { message: 'Only GMs can update light sources' });
+        socket.emit('error', { message: GM_ONLY });
         return;
       }
 
       const { mapId, light } = data;
-      if (!mapId) { socket.emit('error', { message: 'mapId required' }); return; }
+      if (!mapId) { socket.emit('error', { message: 'Informe o mapa.' }); return; }
 
       const parsed = LightSourceSchema.safeParse(light);
       if (!parsed.success) {
-        socket.emit('error', { message: parsed.error.issues[0]?.message ?? 'Invalid light source' });
+        socket.emit('error', { message: parsed.error.issues[0]?.message ?? 'Fonte de luz inválida.' });
         return;
       }
 
@@ -162,11 +163,11 @@ export function registerLightHandlers(io: Server, socket: AuthenticatedSocket): 
       const updated = parsed.data;
       const outcome = await withMapsLocked([mapId], async (tx): Promise<{ refused: string } | { done: LightSource }> => {
         const map = await tx.map.findUnique({ where: { id: mapId }, select: { ...EXTENT, lights: true } });
-        if (!map || map.campaignId !== campaignId) return { refused: 'Map not found' };
+        if (!map || map.campaignId !== campaignId) return { refused: 'Mapa não encontrado.' };
 
         const existing = (Array.isArray(map.lights) ? map.lights : []) as unknown as LightSource[];
         const idx = existing.findIndex((l) => l.id === updated.id);
-        if (idx === -1) return { refused: 'Light source not found' };
+        if (idx === -1) return { refused: 'Fonte de luz não encontrada.' };
         // Within the map's bounds; one stored outside them before they existed
         // may stay where it is.
         if (lightOutsideMap([updated], map, [existing[idx]])) return { refused: LIGHT_OUTSIDE_MAP_MESSAGE };
@@ -191,7 +192,7 @@ export function registerLightHandlers(io: Server, socket: AuthenticatedSocket): 
       if (lightChangeReachesPlayers(before, updated)) resendSightAfterChange(io, campaignId, mapId);
     } catch (error) {
       logger.error('light:update failed', { err: error });
-      socket.emit('error', { message: 'Failed to update light source' });
+      socket.emit('error', { message: 'Não foi possível atualizar a fonte de luz.' });
     }
   });
 
@@ -203,16 +204,16 @@ export function registerLightHandlers(io: Server, socket: AuthenticatedSocket): 
       if (!socket.campaignId) return;
       if (!mapEditLimiter.check(limiterKey(socket), MAP_EDITS_PER_SECOND, 1000)) return; // flood ceiling, per user
       if (socket.role !== 'GM') {
-        socket.emit('error', { message: 'Only GMs can replace light sources' });
+        socket.emit('error', { message: GM_ONLY });
         return;
       }
 
       const { mapId, lights } = data;
-      if (!mapId) { socket.emit('error', { message: 'mapId required' }); return; }
+      if (!mapId) { socket.emit('error', { message: 'Informe o mapa.' }); return; }
 
       const parsed = LightSourcesArraySchema.safeParse(lights);
       if (!parsed.success) {
-        socket.emit('error', { message: parsed.error.issues[0]?.message ?? 'Invalid lights array' });
+        socket.emit('error', { message: parsed.error.issues[0]?.message ?? 'Lista de luzes inválida.' });
         return;
       }
 
@@ -221,7 +222,7 @@ export function registerLightHandlers(io: Server, socket: AuthenticatedSocket): 
       // Answers the list it replaced, so each member is told only of a change to their copy.
       const outcome = await withMapsLocked([mapId], async (tx): Promise<{ refused: string } | { done: unknown }> => {
         const map = await tx.map.findUnique({ where: { id: mapId }, select: { ...EXTENT, lights: true } });
-        if (!map || map.campaignId !== campaignId) return { refused: 'Map not found' };
+        if (!map || map.campaignId !== campaignId) return { refused: 'Mapa não encontrado.' };
         if (lightOutsideMap(next, map, map.lights)) return { refused: LIGHT_OUTSIDE_MAP_MESSAGE };
 
         await tx.map.update({ where: { id: mapId }, data: { lights: toJson(next) } });
@@ -241,7 +242,7 @@ export function registerLightHandlers(io: Server, socket: AuthenticatedSocket): 
       if (lightListChangeReachesPlayers(before, next)) resendSightAfterChange(io, campaignId, mapId);
     } catch (error) {
       logger.error('lights:replace failed', { err: error });
-      socket.emit('error', { message: 'Failed to replace light sources' });
+      socket.emit('error', { message: 'Não foi possível substituir as fontes de luz.' });
     }
   });
 

@@ -220,15 +220,15 @@ describe('drawing:add', () => {
 
   it('answers a map of another campaign as one that does not exist', async () => {
     const gm = await server.connectAndAuth(cookies.gm, campaignId);
-    expect(await ask(gm, 'drawing:add', { mapId: foreignId, drawing: line() })).toEqual({ ok: false, error: 'Map not found' });
-    expect(await ask(gm, 'drawing:add', { mapId: 'not-a-map', drawing: line() })).toEqual({ ok: false, error: 'Map not found' });
+    expect(await ask(gm, 'drawing:add', { mapId: foreignId, drawing: line() })).toEqual({ ok: false, error: 'Mapa não encontrado.' });
+    expect(await ask(gm, 'drawing:add', { mapId: 'not-a-map', drawing: line() })).toEqual({ ok: false, error: 'Mapa não encontrado.' });
     expect(await prisma.mapDrawing.count({ where: { mapId: foreignId } })).toBe(0);
     gm.disconnect();
   });
 
   it('refuses a player on a prepared map, and sends the GM\'s drawing there to the GM alone', async () => {
     const table = await seat();
-    expect(await ask(table.p1, 'drawing:add', { mapId: preparedId, drawing: line() })).toEqual({ ok: false, error: 'Map not found' });
+    expect(await ask(table.p1, 'drawing:add', { mapId: preparedId, drawing: line() })).toEqual({ ok: false, error: 'Mapa não encontrado.' });
     const quiet = expectNoEvent(table.p1, 'drawing:added', 800);
     const gmHears = waitForEvent<{ mapId: string }>(table.gm, 'drawing:added');
     expect((await ask(table.gm, 'drawing:add', { mapId: preparedId, drawing: line() })).ok).toBe(true);
@@ -441,7 +441,7 @@ describe('drawing:remove', () => {
     const p1 = await server.connectAndAuth(cookies.p1, campaignId);
     const unknown = await ask(p1, 'drawing:remove', { mapId: shownId, drawingId: randomUUID() });
     const hidden = await ask(p1, 'drawing:remove', { mapId: shownId, drawingId: secret.id });
-    expect(unknown).toEqual({ ok: false, error: 'Drawing not found' });
+    expect(unknown).toEqual({ ok: false, error: 'Desenho não encontrado.' });
     expect(hidden).toEqual(unknown);
     expect(await prisma.mapDrawing.findUnique({ where: { id: secret.id } })).not.toBeNull();
     p1.disconnect();
@@ -450,7 +450,7 @@ describe('drawing:remove', () => {
   it('answers a drawing named on another map as one that does not exist', async () => {
     const elsewhere = await stored(preparedId, ids.gm);
     const gm = await server.connectAndAuth(cookies.gm, campaignId);
-    expect(await ask(gm, 'drawing:remove', { mapId: shownId, drawingId: elsewhere.id })).toEqual({ ok: false, error: 'Drawing not found' });
+    expect(await ask(gm, 'drawing:remove', { mapId: shownId, drawingId: elsewhere.id })).toEqual({ ok: false, error: 'Desenho não encontrado.' });
     expect(await prisma.mapDrawing.findUnique({ where: { id: elsewhere.id } })).not.toBeNull();
     gm.disconnect();
   });
@@ -480,7 +480,7 @@ describe('drawing:remove', () => {
   it('refuses a player on a prepared map', async () => {
     const mine = await stored(preparedId, ids.p1);
     const p1 = await server.connectAndAuth(cookies.p1, campaignId);
-    expect(await ask(p1, 'drawing:remove', { mapId: preparedId, drawingId: mine.id })).toEqual({ ok: false, error: 'Map not found' });
+    expect(await ask(p1, 'drawing:remove', { mapId: preparedId, drawingId: mine.id })).toEqual({ ok: false, error: 'Mapa não encontrado.' });
     p1.disconnect();
   });
 });
@@ -548,7 +548,7 @@ describe('a GM who has left the seat', () => {
       await asRole(ids.gm, 'GM');
     }
     const p1 = await server.connectAndAuth(cookies.p1, campaignId);
-    expect(await ask(p1, 'drawing:remove', { mapId: shownId, drawingId: secretId })).toEqual({ ok: false, error: 'Drawing not found' });
+    expect(await ask(p1, 'drawing:remove', { mapId: shownId, drawingId: secretId })).toEqual({ ok: false, error: 'Desenho não encontrado.' });
     expect((await ask(p1, 'drawing:clear_mine', { mapId: shownId })).ok).toBe(true);
     expect(await prisma.mapDrawing.findUnique({ where: { id: secretId } })).not.toBeNull();
     expect(await prisma.mapDrawing.findUnique({ where: { id: sharedId } })).toBeNull();
@@ -583,7 +583,7 @@ describe('drawing:clear', () => {
   it('refuses a player, and the ground layer', async () => {
     await stored(shownId, ids.p1);
     const table = await seat();
-    expect(await ask(table.p1, 'drawing:clear', { mapId: shownId, layer: 'MARKUP' })).toEqual({ ok: false, error: 'Only the GM can clear the drawings' });
+    expect(await ask(table.p1, 'drawing:clear', { mapId: shownId, layer: 'MARKUP' })).toEqual({ ok: false, error: 'Só o mestre pode fazer isso.' });
     expect(await ask(table.gm, 'drawing:clear', { mapId: shownId, layer: 'GROUND' })).toEqual({ ok: false, error: DRAWING_LAYER_REFUSAL });
     expect(await prisma.mapDrawing.count({ where: { mapId: shownId } })).toBe(1);
     leave(table);
@@ -637,7 +637,7 @@ describe('drawing:clear naming one member', () => {
   it('refuses a player who names a member, as any clear', async () => {
     await stored(shownId, ids.p2);
     const table = await seat();
-    expect(await ask(table.p1, 'drawing:clear', { mapId: shownId, layer: 'MARKUP', authorId: ids.p2 })).toEqual({ ok: false, error: 'Only the GM can clear the drawings' });
+    expect(await ask(table.p1, 'drawing:clear', { mapId: shownId, layer: 'MARKUP', authorId: ids.p2 })).toEqual({ ok: false, error: 'Só o mestre pode fazer isso.' });
     expect(await prisma.mapDrawing.count({ where: { mapId: shownId } })).toBe(1);
     leave(table);
   });

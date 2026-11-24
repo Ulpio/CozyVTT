@@ -138,7 +138,7 @@ export function registerEventHandlers(io: Server): void {
         logger.debug('authenticate', { campaignId: data.campaignId, userId: socket.userId });
 
         if (!data.campaignId || typeof data.campaignId !== 'string') {
-          socket.emit('error', { message: 'Campaign ID required' });
+          socket.emit('error', { message: 'Informe o id da campanha.' });
           return;
         }
 
@@ -236,7 +236,7 @@ export function registerEventHandlers(io: Server): void {
         }
       } catch (error) {
         logger.error('authenticate failed', { err: error });
-        socket.emit('error', { message: 'Authentication failed' });
+        socket.emit('error', { message: 'Falha na autenticação.' });
       }
     }
 

@@ -112,7 +112,7 @@ describe('chat.message with an acknowledgement', () => {
 
     const answer: Answer = await player.timeout(3000).emitWithAck('chat.message', { content: 'Second' });
 
-    expect(answer).toEqual({ ok: false, error: 'Rate limit: wait 30s between messages.' });
+    expect(answer).toEqual({ ok: false, error: 'Espere 30 s entre uma mensagem e outra.' });
     expect(await messages()).toHaveLength(1);
   });
 

@@ -14,6 +14,7 @@ import { toJson } from '../../utils/prisma-json';
 import { canReadMap } from '../../services/permissions';
 import { bestEffort } from '../utils';
 import { withMapsLocked } from '../../utils/mapTokens';
+import { GM_ONLY } from '../../services/gmNotice';
 
 export function registerFogHandlers(io: Server, socket: AuthenticatedSocket): void {
   /**
@@ -25,7 +26,7 @@ export function registerFogHandlers(io: Server, socket: AuthenticatedSocket): vo
     try {
       if (!socket.campaignId) return;
       if (socket.role !== 'GM') {
-        socket.emit('error', { message: 'Only GMs can modify fog of war' });
+        socket.emit('error', { message: GM_ONLY });
         return;
       }
 
@@ -35,11 +36,11 @@ export function registerFogHandlers(io: Server, socket: AuthenticatedSocket): vo
       }
 
       const { mapId, operation } = data;
-      if (!mapId) { socket.emit('error', { message: 'mapId required' }); return; }
+      if (!mapId) { socket.emit('error', { message: 'Informe o mapa.' }); return; }
 
       const parsed = FogOperationSchema.safeParse(operation);
       if (!parsed.success) {
-        socket.emit('error', { message: parsed.error.issues[0]?.message ?? 'Invalid fog operation' });
+        socket.emit('error', { message: parsed.error.issues[0]?.message ?? 'Operação de névoa inválida.' });
         return;
       }
 
@@ -54,9 +55,9 @@ export function registerFogHandlers(io: Server, socket: AuthenticatedSocket): vo
           where: { id: mapId },
           select: { campaignId: true, fogData: true, fogEnabled: true, width: true, height: true, gridSize: true },
         });
-        if (!map || map.campaignId !== campaignId) return { refused: 'Map not found' };
+        if (!map || map.campaignId !== campaignId) return { refused: 'Mapa não encontrado.' };
         // The map's flag is the single source of truth for whether fog applies.
-        if (!map.fogEnabled) return { refused: 'Fog of war is off for this map' };
+        if (!map.fogEnabled) return { refused: 'A névoa está desligada neste mapa.' };
 
         const fog: FogState = loadFogState(map, map.fogData as FogState | null);
         applyWsFogOperation(fog, op);
@@ -76,7 +77,7 @@ export function registerFogHandlers(io: Server, socket: AuthenticatedSocket): vo
         return;
       }
       logger.error('fog:operation failed', { err: error });
-      socket.emit('error', { message: 'Failed to apply fog operation' });
+      socket.emit('error', { message: 'Não foi possível aplicar a operação de névoa.' });
     }
   });
 

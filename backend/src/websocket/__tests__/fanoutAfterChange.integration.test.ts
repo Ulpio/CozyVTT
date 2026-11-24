@@ -88,7 +88,7 @@ it('revealing the spirit layer stands, and is announced, when re-sending the map
   const noError = expectNoEvent(gm, 'error', 800);
   const notice = waitForEvent<{ content: string }>(gm, 'chat.system');
   gm.emit('spirit_layer.toggle', { visible: true });
-  expect((await notice).content).toMatch(/spirit layer/i);
+  expect((await notice).content).toMatch(/plano espiritual/i);
   await expect(noError).resolves.toBeUndefined();
   const stored = await prisma.campaign.findUniqueOrThrow({ where: { id: campaignId }, select: { spiritLayerEnabled: true } });
   expect(stored.spiritLayerEnabled).toBe(true);

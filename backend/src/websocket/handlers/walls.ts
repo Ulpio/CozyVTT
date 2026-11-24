@@ -23,6 +23,7 @@ import { wallOutsideMap, WALL_OUTSIDE_MAP_MESSAGE } from '../../validators/maps'
 import { withMapsLocked } from '../../utils/mapTokens';
 import { echoedOpId } from '../opId';
 import { ackFrom, refuseRequest } from '../ack';
+import { GM_ONLY } from '../../services/gmNotice';
 
 /** What a wall edit reads of the map to check it: whose it is, and its extent. */
 const EXTENT = { campaignId: true, width: true, height: true, gridSize: true } as const;
@@ -103,16 +104,16 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
         return;
       }
       if (socket.role !== 'GM') {
-        refuse('Only GMs can add wall segments');
+        refuse(GM_ONLY);
         return;
       }
 
       const { mapId, segment } = data;
-      if (!mapId) { refuse('mapId required'); return; }
+      if (!mapId) { refuse('Informe o mapa.'); return; }
 
       const parsed = WallSegmentSchema.safeParse(segment);
       if (!parsed.success) {
-        refuse(parsed.error.issues[0]?.message ?? 'Invalid wall segment');
+        refuse(parsed.error.issues[0]?.message ?? 'Segmento de parede inválido.');
         return;
       }
 
@@ -120,7 +121,7 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
       const added = parsed.data;
       const outcome = await withMapsLocked([mapId], async (tx): Promise<Locked<null>> => {
         const map = await tx.map.findUnique({ where: { id: mapId }, select: { ...EXTENT, wallSegments: true } });
-        if (!map || map.campaignId !== campaignId) return { refused: 'Map not found' };
+        if (!map || map.campaignId !== campaignId) return { refused: 'Mapa não encontrado.' };
         if (wallOutsideMap([added], map)) return { refused: WALL_OUTSIDE_MAP_MESSAGE };
 
         const existing = (Array.isArray(map.wallSegments) ? map.wallSegments : []) as unknown as WallSegment[];
@@ -143,7 +144,7 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
       resendSightAfterChange(io, campaignId, mapId);
     } catch (error) {
       logger.error('wall:add failed', { err: error });
-      refuse('Failed to add wall segment');
+      refuse('Não foi possível adicionar o segmento de parede.');
     }
   });
 
@@ -155,22 +156,22 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
       if (!socket.campaignId) return;
       if (!mapEditLimiter.check(limiterKey(socket), MAP_EDITS_PER_SECOND, 1000)) return; // flood ceiling, per user
       if (socket.role !== 'GM') {
-        socket.emit('error', { message: 'Only GMs can remove wall segments' });
+        socket.emit('error', { message: GM_ONLY });
         return;
       }
 
       const { mapId, segmentId } = data;
-      if (!mapId || !segmentId) { socket.emit('error', { message: 'mapId and segmentId required' }); return; }
+      if (!mapId || !segmentId) { socket.emit('error', { message: 'Informe o mapa e o segmento.' }); return; }
 
       const campaignId = socket.campaignId;
       const outcome = await withMapsLocked([mapId], async (tx): Promise<Locked<null>> => {
         const map = await tx.map.findUnique({ where: { id: mapId }, select: { campaignId: true, wallSegments: true } });
-        if (!map || map.campaignId !== campaignId) return { refused: 'Map not found' };
+        if (!map || map.campaignId !== campaignId) return { refused: 'Mapa não encontrado.' };
 
         const existing = (Array.isArray(map.wallSegments) ? map.wallSegments : []) as unknown as WallSegment[];
         // As the REST route answers 404: a wall the map does not have is not
         // written over, and nobody is told it went.
-        if (!existing.some((s) => s.id === segmentId)) return { refused: 'Wall segment not found' };
+        if (!existing.some((s) => s.id === segmentId)) return { refused: 'Segmento de parede não encontrado.' };
         const filtered = existing.filter((s) => s.id !== segmentId);
         await tx.map.update({ where: { id: mapId }, data: { wallSegments: toJson(filtered) } });
         return { done: null };
@@ -184,7 +185,7 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
       resendSightAfterChange(io, campaignId, mapId);
     } catch (error) {
       logger.error('wall:remove failed', { err: error });
-      socket.emit('error', { message: 'Failed to remove wall segment' });
+      socket.emit('error', { message: 'Não foi possível remover o segmento de parede.' });
     }
   });
 
@@ -196,17 +197,17 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
     try {
       if (!socket.campaignId) return;
       if (!canToggleDoor(socket.role)) {
-        socket.emit('error', { message: 'Spectators cannot open or close doors' });
+        socket.emit('error', { message: 'Espectadores não podem abrir nem fechar portas.' });
         return;
       }
       if (!mapEditLimiter.check(limiterKey(socket), MAP_EDITS_PER_SECOND, 1000)) return; // flood ceiling, per user
 
       const { mapId, segment } = data;
-      if (!mapId) { socket.emit('error', { message: 'mapId required' }); return; }
+      if (!mapId) { socket.emit('error', { message: 'Informe o mapa.' }); return; }
 
       const parsed = WallSegmentSchema.safeParse(segment);
       if (!parsed.success) {
-        socket.emit('error', { message: parsed.error.issues[0]?.message ?? 'Invalid wall segment' });
+        socket.emit('error', { message: parsed.error.issues[0]?.message ?? 'Segmento de parede inválido.' });
         return;
       }
 
@@ -226,12 +227,12 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
           select: { ...EXTENT, wallSegments: true, lightingEnabled: true, fogEnabled: true, fogData: true, campaign: { select: { currentMapId: true } } },
         });
         if (!map || map.campaignId !== campaignId || !canReadMap(role, mapId, map.campaign.currentMapId)) {
-          return { refused: 'Map not found' };
+          return { refused: 'Mapa não encontrado.' };
         }
 
         const existing = (Array.isArray(map.wallSegments) ? map.wallSegments : []) as unknown as WallSegment[];
         const idx = existing.findIndex((s) => s.id === sent.id);
-        if (idx === -1) return { refused: 'Wall segment not found' };
+        if (idx === -1) return { refused: 'Segmento de parede não encontrado.' };
 
         // Non-GM users may only toggle unlocked doors (door-closed ↔ door-open),
         // and only that: the segment they send is otherwise ignored, so the door
@@ -240,7 +241,7 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
         let updated: WallSegment;
         if (role !== 'GM') {
           const isDoor = ['door-open', 'door-closed', 'door-locked'].includes(existing[idx].type);
-          if (!isDoor) return { refused: 'Players may only toggle doors', current: existing[idx] };
+          if (!isDoor) return { refused: 'Os jogadores só podem abrir e fechar portas.', current: existing[idx] };
           // On a lit map, only a door one of their tokens can see, by the rule
           // the map shows doors by; asked before whether it is locked, so a
           // door in the dark tells them nothing. The door is judged where it
@@ -249,23 +250,23 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
           // no sight worked out, no door is seen yet.
           const door = existing[idx];
           if (map.lightingEnabled && !(sight?.seesPoint((door.x1 + door.x2) / 2, (door.y1 + door.y2) / 2) ?? false)) {
-            return { refused: 'You cannot see that door', current: door };
+            return { refused: 'Você não consegue ver essa porta.', current: door };
           }
           // Under manual fog, only a door beside a revealed square: one
           // wholly under fog is covered on their screen. Same answer as a
           // door in the dark, and also asked before the lock.
           if (map.fogEnabled && !doorBesideRevealedFog(door, map)) {
-            return { refused: 'You cannot see that door', current: door };
+            return { refused: 'Você não consegue ver essa porta.', current: door };
           }
           const targetType = sent.type;
           const currentType = existing[idx].type;
           // Locked doors cannot be opened by players. The refusal carries the
           // segment, so the player's page, which drew the door open as it
           // asked, is put back.
-          if (currentType === 'door-locked') return { refused: 'That door is locked', current: existing[idx] };
+          if (currentType === 'door-locked') return { refused: 'Essa porta está trancada.', current: existing[idx] };
           const isDoorToggle = targetType === 'door-open' || targetType === 'door-closed';
           const currentIsDoor = currentType === 'door-open' || currentType === 'door-closed';
-          if (!isDoorToggle || !currentIsDoor) return { refused: 'Players may only toggle doors', current: existing[idx] };
+          if (!isDoorToggle || !currentIsDoor) return { refused: 'Os jogadores só podem abrir e fechar portas.', current: existing[idx] };
           updated = { ...existing[idx], type: targetType };
         } else {
           // The GM may move a wall, within the map's bounds. One stored outside
@@ -297,7 +298,7 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
       if (wallChangeReachesPlayers(before, after)) resendSightAfterChange(io, campaignId, mapId);
     } catch (error) {
       logger.error('wall:update failed', { err: error });
-      socket.emit('error', { message: 'Failed to update wall segment' });
+      socket.emit('error', { message: 'Não foi possível atualizar o segmento de parede.' });
     }
   });
 
@@ -315,16 +316,16 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
         return;
       }
       if (socket.role !== 'GM') {
-        refuse('Only GMs can replace wall segments');
+        refuse(GM_ONLY);
         return;
       }
 
       const { mapId, segments } = data;
-      if (!mapId) { refuse('mapId required'); return; }
+      if (!mapId) { refuse('Informe o mapa.'); return; }
 
       const parsed = WallSegmentsArraySchema.safeParse(segments);
       if (!parsed.success) {
-        refuse(parsed.error.issues[0]?.message ?? 'Invalid segments array');
+        refuse(parsed.error.issues[0]?.message ?? 'Lista de segmentos inválida.');
         return;
       }
 
@@ -333,7 +334,7 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
       // Answers the list it replaced, so each member is told only of a change to their copy.
       const outcome = await withMapsLocked([mapId], async (tx): Promise<Locked<unknown>> => {
         const map = await tx.map.findUnique({ where: { id: mapId }, select: { ...EXTENT, wallSegments: true } });
-        if (!map || map.campaignId !== campaignId) return { refused: 'Map not found' };
+        if (!map || map.campaignId !== campaignId) return { refused: 'Mapa não encontrado.' };
         if (wallOutsideMap(next, map, map.wallSegments)) return { refused: WALL_OUTSIDE_MAP_MESSAGE };
 
         await tx.map.update({ where: { id: mapId }, data: { wallSegments: toJson(next) } });
@@ -354,7 +355,7 @@ export function registerWallHandlers(io: Server, socket: AuthenticatedSocket): v
       if (wallListChangeReachesPlayers(before, next)) resendSightAfterChange(io, campaignId, mapId);
     } catch (error) {
       logger.error('walls:replace failed', { err: error });
-      refuse('Failed to replace wall segments');
+      refuse('Não foi possível substituir os segmentos de parede.');
     }
   });
 

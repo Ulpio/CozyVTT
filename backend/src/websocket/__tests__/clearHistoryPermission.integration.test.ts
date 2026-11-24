@@ -118,7 +118,7 @@ describe('dice.clearHistory decides from the membership role', () => {
       client.emit('dice.clearHistory');
     });
 
-    expect(refusal.message).toMatch(/only the gm/i);
+    expect(refusal.message).toMatch(/Só o mestre/);
 
     // The refusal must be real, not just a message — nothing may be written.
     const campaign = await prisma.campaign.findUnique({

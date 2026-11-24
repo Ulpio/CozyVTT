@@ -194,12 +194,12 @@ describe('a vibe switch drives the ambient track', () => {
     gm.emit('vibe.update', { period: 'stolen' });
     await vibe;
     expect((await audio).assetId).toBeNull();
-    expect((await told).message).toMatch(/audio/i);
+    expect((await told).message).toMatch(/áudio/i);
     expect(await storedState()).toEqual({ currentVibe: 'stolen', ambientAssetId: null });
 
     const told2 = waitForEvent<{ message: string }>(gm, 'error');
     gm.emit('vibe.update', { period: 'gone' });
-    expect((await told2).message).toMatch(/audio/i);
+    expect((await told2).message).toMatch(/áudio/i);
     expect((await storedState()).currentVibe).toBe('gone');
 
     gm.disconnect();
