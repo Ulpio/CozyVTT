@@ -11,6 +11,7 @@
 // ============================================
 
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { effectiveDpr } from './map/layerCanvas';
 
 const PREVIEW_PX = 280;
@@ -29,6 +30,7 @@ export default function MapGridPreview({
   zoom: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { t } = useTranslation();
   const dpr = effectiveDpr(window.devicePixelRatio, PREVIEW_PX, PREVIEW_PX);
 
   useEffect(() => {
@@ -48,8 +50,8 @@ export default function MapGridPreview({
       ctx.font = '13px Georgia, serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('Select a map image', PREVIEW_PX / 2, PREVIEW_PX / 2 - 10);
-      ctx.fillText('to preview the grid', PREVIEW_PX / 2, PREVIEW_PX / 2 + 10);
+      ctx.fillText(t('mapModal.previewEmptyTop'), PREVIEW_PX / 2, PREVIEW_PX / 2 - 10);
+      ctx.fillText(t('mapModal.previewEmptyBottom'), PREVIEW_PX / 2, PREVIEW_PX / 2 + 10);
       return;
     }
 
@@ -109,7 +111,7 @@ export default function MapGridPreview({
       cx.restore();
     };
     img.src = imageUrl;
-  }, [imageUrl, width, height, gridSize, zoom, dpr]);
+  }, [imageUrl, width, height, gridSize, zoom, dpr, t]);
 
   return (
     <canvas

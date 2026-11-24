@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+
 // ============================================
 // Importing a Universal VTT file
 //
@@ -67,17 +69,15 @@ export function uvttImportDecision(err: unknown): UvttImportDecision | undefined
   return walls + doors + lights + decision.objectWalls > 0 ? decision : undefined;
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-
 /** "79 walls and 20 doors", skipping whatever is zero. */
 export function describeOutOfBounds(counts: UvttOutOfBounds): string {
   const parts: string[] = [];
-  if (counts.walls > 0) parts.push(plural(counts.walls, 'wall', 'walls'));
-  if (counts.doors > 0) parts.push(plural(counts.doors, 'door', 'doors'));
-  if (counts.lights > 0) parts.push(plural(counts.lights, 'light', 'lights'));
-  if (parts.length === 0) return 'Some walls';
+  if (counts.walls > 0) parts.push(i18n.t('mapManager.uvtt.wall', { count: counts.walls }));
+  if (counts.doors > 0) parts.push(i18n.t('mapManager.uvtt.door', { count: counts.doors }));
+  if (counts.lights > 0) parts.push(i18n.t('mapManager.uvtt.light', { count: counts.lights }));
+  if (parts.length === 0) return i18n.t('mapManager.uvtt.someWalls');
   if (parts.length === 1) return parts[0];
-  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+  return i18n.t('mapManager.uvtt.and', { list: parts.slice(0, -1).join(', '), last: parts[parts.length - 1] });
 }
 
 /** Whether this file has geometry its picture does not cover. */
@@ -87,33 +87,24 @@ export function hasOutOfBounds(counts: UvttOutOfBounds): boolean {
 
 /** The heading for the import dialog, which depends on what is being asked. */
 export function uvttImportTitle(decision?: UvttImportDecision): string {
-  if (decision && !hasOutOfBounds(decision.outOfBounds)) return 'Bring in the furniture too?';
-  return "Some walls sit outside this map's picture";
+  if (decision && !hasOutOfBounds(decision.outOfBounds)) return i18n.t('mapManager.uvtt.furnitureTitle');
+  return i18n.t('mapManager.uvtt.outsideTitle');
 }
 
 /** What the GM reads before deciding. */
 export function uvttImportMessage(decision?: UvttImportDecision): string {
   if (!decision) {
-    return 'Some of this file\'s walls sit outside its map picture. Import it anyway?';
+    return i18n.t('mapManager.uvtt.outsideShort');
   }
 
   const parts: string[] = [];
 
   if (hasOutOfBounds(decision.outOfBounds)) {
-    parts.push(
-      `${describeOutOfBounds(decision.outOfBounds)} in this file sit outside its map picture. ` +
-        'That usually means the tool that exported it cropped the picture but kept ' +
-        'the walls for the whole map, so those walls arrive with nothing underneath ' +
-        'them and cannot block sight. Everything inside the picture imports normally.'
-    );
+    parts.push(i18n.t('mapManager.uvtt.outsideLong', { what: describeOutOfBounds(decision.outOfBounds) }));
   }
 
   if (decision.objectWalls > 0) {
-    parts.push(
-      `It also has ${plural(decision.objectWalls, 'wall', 'walls')} for its furniture, ` +
-        'pillars and crates, kept apart from the room walls. They block sight the same way. ' +
-        'Leave them out and only the architecture blocks sight.'
-    );
+    parts.push(i18n.t('mapManager.uvtt.furnitureLong', { walls: i18n.t('mapManager.uvtt.wall', { count: decision.objectWalls }) }));
   }
 
   return parts.join(' ');
