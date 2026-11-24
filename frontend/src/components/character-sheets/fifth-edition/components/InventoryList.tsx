@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { Package, Coins, Star } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import type { FifthEditionInventoryItem as InventoryItem, FifthEditionCurrency as Currency } from '@/types/game-systems';
 import { carryingCapacity } from '@/utils/rules/fifthEdition';
@@ -27,6 +28,7 @@ interface InventoryListProps {
  * CurrencyDisplay - Shows character's money
  */
 const CurrencyDisplay: React.FC<{ currency: Currency }> = ({ currency }) => {
+  const { t } = useTranslation();
   const coins = [
     { label: 'PP', value: currency.pp },
     { label: 'GP', value: currency.gp },
@@ -39,7 +41,7 @@ const CurrencyDisplay: React.FC<{ currency: Currency }> = ({ currency }) => {
     <div className="p-4 bg-ink/10 border-2 border-ink/20 rounded-lg">
       <div className="flex items-center space-x-2 mb-3">
         <Coins className="w-5 h-5 text-ink-secondary" />
-        <h4 className="font-semibold text-ink">Currency</h4>
+        <h4 className="font-semibold text-ink">{t('sheet5e.currency')}</h4>
       </div>
       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
         {coins.map(({ label, value }) => (
@@ -57,6 +59,7 @@ const CurrencyDisplay: React.FC<{ currency: Currency }> = ({ currency }) => {
  * InventoryItem Row
  */
 const InventoryItemRow: React.FC<{ item: InventoryItem; showWeight: boolean }> = ({ item, showWeight }) => {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between p-2 hover:bg-ink/5 rounded-sm border-b border-ink/10 last:border-0">
       <div className="flex-1">
@@ -67,18 +70,18 @@ const InventoryItemRow: React.FC<{ item: InventoryItem; showWeight: boolean }> =
               <span className="font-medium text-ink">{item.name}</span>
               {item.equipped && (
                 <span className="px-1.5 py-0.5 text-xs bg-success/15 text-success-ink rounded-sm border border-success/30">
-                  Equipped
+                  {t('sheet5e.equipped')}
                 </span>
               )}
               {item.attuned && (
                 <span className="px-1.5 py-0.5 text-xs bg-spirit/15 text-spirit-ink rounded-sm border border-spirit/30 flex items-center gap-1">
                   <Star className="w-3 h-3" />
-                  Attuned
+                  {t('sheet5e.attuned')}
                 </span>
               )}
               {item.requiresAttunement && !item.attuned && (
                 <span className="px-1.5 py-0.5 text-xs bg-warning/15 text-warning-ink rounded-sm border border-warning/30">
-                  Requires Attunement
+                  {t('sheet5e.requiresAttunement')}
                 </span>
               )}
             </div>
@@ -90,17 +93,17 @@ const InventoryItemRow: React.FC<{ item: InventoryItem; showWeight: boolean }> =
       </div>
       <div className="flex items-center space-x-4 text-sm text-ink-secondary">
         <div className="text-right">
-          <div className="text-xs text-ink-muted">Qty</div>
+          <div className="text-xs text-ink-muted">{t('sheet5e.quantityShort')}</div>
           <div>{item.quantity ?? '—'}</div>
         </div>
         {showWeight && (
           <div className="text-right">
-            <div className="text-xs text-ink-muted">Wt</div>
+            <div className="text-xs text-ink-muted">{t('sheet5e.weightShort')}</div>
             <div>{item.weight != null ? `${item.weight} lb` : '—'}</div>
           </div>
         )}
         <div className="text-right">
-          <div className="text-xs text-ink-muted">Value</div>
+          <div className="text-xs text-ink-muted">{t('sheet5e.value')}</div>
           <div>{item.value != null ? `${item.value} gp` : '—'}</div>
         </div>
       </div>
@@ -112,6 +115,7 @@ const InventoryItemRow: React.FC<{ item: InventoryItem; showWeight: boolean }> =
  * InventoryList - Displays inventory and currency
  */
 export const InventoryList: React.FC<InventoryListProps> = ({ inventory, currency, strengthScore, showWeight = true }) => {
+  const { t } = useTranslation();
   // The schema lets an item go without either: one with no weight weighs
   // nothing, and one with no quantity is one item.
   const totalWeight = inventory?.reduce((sum, item) => sum + (item.weight ?? 0) * (item.quantity ?? 1), 0) ?? 0;
@@ -132,7 +136,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({ inventory, currenc
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
               <Star className="w-5 h-5 text-spirit-ink" />
-              <h4 className="font-semibold text-ink">Attunement Slots</h4>
+              <h4 className="font-semibold text-ink">{t('sheet5e.attunementSlots')}</h4>
             </div>
             <span className={`text-lg font-bold ${attunedCount >= maxAttunement ? 'text-danger-ink' : 'text-spirit-ink'}`}>
               {attunedCount} / {maxAttunement}
@@ -152,7 +156,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({ inventory, currenc
           </div>
           {attunedItems.length > 0 && (
             <div className="mt-3 text-xs text-spirit-ink">
-              <span className="font-medium">Attuned to:</span>{' '}
+              <span className="font-medium">{t('sheet5e.attunedTo')}</span>{' '}
               {attunedItems.map(item => item.name).join(', ')}
             </div>
           )}
@@ -163,17 +167,16 @@ export const InventoryList: React.FC<InventoryListProps> = ({ inventory, currenc
       <div className="bg-ink/5 border border-ink/10 rounded-lg overflow-hidden">
         <div className="p-3 bg-ink/10 border-b border-ink/10">
           <div className="flex flex-wrap items-center justify-between gap-x-4 sm:flex-nowrap">
-            <h4 className="font-semibold text-ink">Equipment & Items</h4>
+            <h4 className="font-semibold text-ink">{t('sheet5e.equipmentAndItems')}</h4>
             {showWeight && (
               <span className="text-sm text-ink-secondary">
-                Total Weight: <span className="font-semibold">{totalWeight.toFixed(1)} lb</span>
+                {t('sheet5e.totalWeight')}{' '}<span className="font-semibold">{totalWeight.toFixed(1)} lb</span>
               </span>
             )}
           </div>
           {showWeight && strengthScore != null && (
             <div className="mt-1 text-right text-xs text-ink-secondary">
-              Carrying capacity: {carryingCapacity(strengthScore).carry} lb (push, drag or lift{' '}
-              {carryingCapacity(strengthScore).pushDragLift} lb)
+              {t('sheet5e.carryingCapacity', { carry: carryingCapacity(strengthScore).carry, pushDragLift: carryingCapacity(strengthScore).pushDragLift })}
             </div>
           )}
         </div>
@@ -184,7 +187,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({ inventory, currenc
             ))
           ) : (
             <div className="p-8 text-center text-ink-muted">
-              No items in inventory
+              {t('sheet5e.noItems')}
             </div>
           )}
         </div>

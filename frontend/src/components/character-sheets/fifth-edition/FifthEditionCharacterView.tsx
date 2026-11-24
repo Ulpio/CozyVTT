@@ -6,6 +6,8 @@
  */
 
 import React, { useState, useEffect, useId } from 'react';
+import { useTranslation } from 'react-i18next';
+import { sheetWord } from './sheetWords';
 import {
   Heart,
   Shield,
@@ -77,12 +79,12 @@ interface FifthEditionCharacterViewProps {
 type TabId = 'stats' | 'combat' | 'spells' | 'inventory' | 'features' | 'bio';
 
 const TABS: SheetTab<TabId>[] = [
-  { id: 'stats', label: 'Stats & Skills', icon: Target },
-  { id: 'combat', label: 'Combat', icon: Swords },
-  { id: 'spells', label: 'Spells', icon: Sparkles },
-  { id: 'inventory', label: 'Inventory', icon: Package },
-  { id: 'features', label: 'Features', icon: BookOpen },
-  { id: 'bio', label: 'Biography', icon: User },
+  { id: 'stats', label: 'stats', icon: Target },
+  { id: 'combat', label: 'combat', icon: Swords },
+  { id: 'spells', label: 'spells', icon: Sparkles },
+  { id: 'inventory', label: 'inventory', icon: Package },
+  { id: 'features', label: 'features', icon: BookOpen },
+  { id: 'bio', label: 'bio', icon: User },
 ];
 
 const ABILITY_ORDER = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
@@ -97,6 +99,7 @@ function abilityRank(key: string): number {
  * FifthEditionCharacterView - Read-only 5E character sheet
  */
 export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps> = ({ character, onEdit, onRoll, rollMode, onSpendHitDie, campaignDetailLevel }) => {
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabId>('stats');
   const sheetTabsId = useId();
   const data = character.data as FifthEditionCharacterData;
@@ -160,10 +163,10 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
           <button
             onClick={onEdit}
             className={`ml-auto mb-3 w-fit sm:absolute sm:top-4 sm:right-4 sm:mb-0 px-4 py-2 ${ink.button} rounded-lg transition-colors flex items-center space-x-2 font-medium`}
-            title="Edit character"
+            title={t('sheet5e.editCharacter')}
           >
             <Edit className="w-4 h-4" />
-            <span>Edit</span>
+            <span>{t('sheet5e.edit')}</span>
           </button>
         )}
 
@@ -176,7 +179,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
             {character.tokenImageUrl ? (
               <img
                 src={character.tokenImageUrl}
-                alt={data.characterName || 'Character'}
+                alt={data.characterName || t('sheet5e.character')}
                 className={`w-20 h-20 rounded-full border-4 ${ink.border} object-cover`}
               />
             ) : (
@@ -188,22 +191,22 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
 
           {/* Character Info */}
           <div className="min-w-0">
-            <h2 className="text-3xl font-bold mb-1">{data.characterName || 'Unnamed Character'}</h2>
+            <h2 className="text-3xl font-bold mb-1">{data.characterName || t('sheet5e.unnamed')}</h2>
             <div className={`flex flex-wrap items-center gap-x-4 ${ink.soft}`}>
               <span>
-                Level {data.level} {data.race} {data.class}
+                {t('sheet5e.levelLine', { level: data.level, race: data.race, class: data.class })}
               </span>
               {data.alignment && <span>• {data.alignment}</span>}
               {data.background && <span>• {data.background}</span>}
             </div>
-            {data.playerName && <div className="mt-1 text-sm opacity-80">Player: {data.playerName}</div>}
+            {data.playerName && <div className="mt-1 text-sm opacity-80">{t('sheet5e.player', { name: data.playerName })}</div>}
           </div>
         </div>
 
         {data.experiencePoints !== undefined && (
           <div className="sm:text-right">
-            <div className={`text-xs ${ink.soft}`}>Experience</div>
-            <div className="text-xl font-bold">{data.experiencePoints.toLocaleString()}</div>
+            <div className={`text-xs ${ink.soft}`}>{t('sheet5e.experience')}</div>
+            <div className="text-xl font-bold">{data.experiencePoints.toLocaleString(i18n.language)}</div>
           </div>
         )}
       </div>
@@ -216,25 +219,25 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
     <div className="space-y-6">
       {/* Ability Scores */}
       <div>
-        <h3 className="text-lg font-semibold text-ink mb-3">Ability Scores</h3>
+        <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.abilityScores')}</h3>
         <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
           {data.stats && (() => {
-            const statEntries: Array<[string, string, keyof typeof data.stats]> = [
-              ['STR', 'Strength', 'strength'],
-              ['DEX', 'Dexterity', 'dexterity'],
-              ['CON', 'Constitution', 'constitution'],
-              ['INT', 'Intelligence', 'intelligence'],
-              ['WIS', 'Wisdom', 'wisdom'],
-              ['CHA', 'Charisma', 'charisma'],
+            const statEntries: Array<[keyof typeof data.stats, string]> = [
+              ['strength', 'Strength'],
+              ['dexterity', 'Dexterity'],
+              ['constitution', 'Constitution'],
+              ['intelligence', 'Intelligence'],
+              ['wisdom', 'Wisdom'],
+              ['charisma', 'Charisma'],
             ];
-            return statEntries.map(([label, fullName, key]) => {
+            return statEntries.map(([key, fullName]) => {
               const stat = data.stats[key];
               const expr = stat.modifier >= 0 ? `1d20+${stat.modifier}` : `1d20${stat.modifier}`;
               const purpose = `${fullName} Check`;
               return (
                 <StatBlock
                   key={key as string}
-                  label={label}
+                  label={t(`sheet5e.abbreviations.${key}`)}
                   score={stat.score}
                   modifier={stat.modifier}
                   colorFrom={themeColor.from}
@@ -253,7 +256,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Saving Throws */}
       {data.savingThrows && (
         <div>
-          <h3 className="text-lg font-semibold text-ink mb-3">Saving Throws</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.savingThrows')}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 bg-ink/5 border border-ink/10 rounded-lg p-4">
             {/* Strength to Charisma, as the ability scores above, whatever
                 order the character's saves were stored in. */}
@@ -274,7 +277,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
                 >
                   <div className="flex items-center gap-1">
                     {onRoll && <Dices className="w-3 h-3 text-accent-ink opacity-0 group-hover:opacity-60 [@media(hover:none)]:opacity-60 transition-opacity" />}
-                    <span className="text-sm capitalize">{key}</span>
+                    <span className="text-sm capitalize">{sheetWord(i18n, 'saveNames', key)}</span>
                   </div>
                   <span className={`text-sm font-semibold ${save.proficient ? 'text-accent-ink' : 'text-ink-secondary'}`}>
                     {formatModifier(bonus)}
@@ -290,7 +293,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Skills */}
       {data.skills && (
         <div>
-          <h3 className="text-lg font-semibold text-ink mb-3">Skills</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.skills')}</h3>
           <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
             <SkillsList
               // Each total worked out as the dice roll it: from the scores,
@@ -327,16 +330,16 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Proficiency Bonus & Inspiration */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-accent/10 border-2 border-accent/30 rounded-lg p-4 text-center">
-          <div className="text-sm text-ink-secondary mb-1">Proficiency Bonus</div>
+          <div className="text-sm text-ink-secondary mb-1">{t('sheet5e.proficiencyBonus')}</div>
           <div className="text-2xl font-bold text-accent-ink">
             {formatModifier(data.proficiencyBonus)}
           </div>
         </div>
         {data.inspiration !== undefined && (
           <div className="bg-warning/10 border-2 border-warning/30 rounded-lg p-4 text-center">
-            <div className="text-sm text-ink-secondary mb-1">Inspiration</div>
+            <div className="text-sm text-ink-secondary mb-1">{t('sheet5e.inspiration')}</div>
             <div className="text-2xl font-bold text-warning-ink">
-              {data.inspiration ? 'Yes' : 'No'}
+              {data.inspiration ? t('sheet5e.yes') : t('sheet5e.no')}
             </div>
           </div>
         )}
@@ -352,14 +355,14 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
         {data.armorClass !== undefined && (
           <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4 text-center">
             <Shield className="w-6 h-6 mx-auto mb-2 text-ink-secondary" />
-            <div className="text-xs text-ink-muted mb-1">Armor Class</div>
+            <div className="text-xs text-ink-muted mb-1">{t('sheet5e.armorClass')}</div>
             <div className="text-2xl font-bold text-ink">{data.armorClass}</div>
           </div>
         )}
         {data.stats?.dexterity !== undefined && (
           <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4 text-center">
             <Zap className="w-6 h-6 mx-auto mb-2 text-warning-ink" />
-            <div className="text-xs text-ink-muted mb-1">Initiative</div>
+            <div className="text-xs text-ink-muted mb-1">{t('sheet5e.initiative')}</div>
             {/* Derived from Dexterity and the sheet's other-bonus field rather
                 than read from the stored total, so this matches the editor and
                 matches what is actually rolled. */}
@@ -370,29 +373,29 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
                 exhaustion or the poisoned condition that cancels the box is
                 shown as it is rolled. */}
             {fifthEditionInitiativeAdvantage(data) === 'advantage' && (
-              <div className="text-xs text-ink-secondary mt-1">With advantage</div>
+              <div className="text-xs text-ink-secondary mt-1">{t('sheet5e.withAdvantage')}</div>
             )}
             {fifthEditionInitiativeAdvantage(data) === 'cancelled' && (
-              <div className="text-xs text-ink-muted mt-1">Advantage cancelled</div>
+              <div className="text-xs text-ink-muted mt-1">{t('sheet5e.advantageCancelled')}</div>
             )}
           </div>
         )}
         {data.speed !== undefined && (
           <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4 text-center">
             <Footprints className="w-6 h-6 mx-auto mb-2 text-info-ink" />
-            <div className="text-xs text-ink-muted mb-1">Speed</div>
-            <div className="text-2xl font-bold text-ink">{data.speed} ft</div>
+            <div className="text-xs text-ink-muted mb-1">{t('sheet5e.speed')}</div>
+            <div className="text-2xl font-bold text-ink">{t('sheet5e.feet', { feet: data.speed })}</div>
           </div>
         )}
         {data.hp && (
           <div className="bg-danger/10 border-2 border-danger/30 rounded-lg p-4 text-center">
             <Heart className="w-6 h-6 mx-auto mb-2 text-danger-ink" />
-            <div className="text-xs text-ink-muted mb-1">Hit Points</div>
+            <div className="text-xs text-ink-muted mb-1">{t('sheet5e.hitPoints')}</div>
             <div className="text-2xl font-bold text-danger-ink">
               {data.hp.current}/{data.hp.maximum}
             </div>
             {data.hp.temporary > 0 && (
-              <div className="text-xs text-info-ink mt-1">+{data.hp.temporary} temp</div>
+              <div className="text-xs text-info-ink mt-1">{t('sheet5e.temporaryHp', { temp: data.hp.temporary })}</div>
             )}
           </div>
         )}
@@ -408,7 +411,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Hit Dice */}
       {data.hitDice && data.hitDice.length > 0 && (
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-ink mb-3">Hit Dice</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.hitDice')}</h3>
           <div className="flex flex-wrap gap-3">
             {data.hitDice!.map((hd, idx) => {
               // `total` is the pool ("5d10"), so spending rolls one die plus
@@ -428,7 +431,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
                     spendable ? 'cursor-pointer hover:bg-accent/10 select-none' : ''
                   }`}
                   onClick={spendable ? () => spendHitDie(expr, purpose, idx) : undefined}
-                  title={spendable ? `Spend one hit die: roll ${expr}` : undefined}
+                  title={spendable ? t('sheet5e.spendHitDie', { expression: expr }) : undefined}
                   {...(spendable ? sheetRoll : undefined)}
                 >
                   <div className="text-xs text-ink-muted capitalize">{hd.class}</div>
@@ -447,10 +450,10 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Death Saves */}
       {data.deathSaves && (
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-ink mb-3">Death Saves</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.deathSaves')}</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-sm text-success-ink font-medium mb-2">Successes</div>
+              <div className="text-sm text-success-ink font-medium mb-2">{t('sheet5e.successes')}</div>
               <div className="flex space-x-2">
                 {[1, 2, 3].map((i) => (
                   <div
@@ -465,7 +468,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
               </div>
             </div>
             <div>
-              <div className="text-sm text-danger-ink font-medium mb-2">Failures</div>
+              <div className="text-sm text-danger-ink font-medium mb-2">{t('sheet5e.failures')}</div>
               <div className="flex space-x-2">
                 {[1, 2, 3].map((i) => (
                   <div
@@ -486,14 +489,14 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Conditions */}
       {data.conditions && data.conditions.length > 0 && (
         <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-ink mb-3">Conditions</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.conditions')}</h3>
           <div className="flex flex-wrap gap-2">
             {data.conditions.map((condition: string, idx: number) => (
               <span
                 key={idx}
                 className="px-3 py-1 bg-warning/15 text-warning-ink border border-warning/30 rounded-full capitalize"
               >
-                {condition}
+                {sheetWord(i18n, 'conditionNames', condition)}
               </span>
             ))}
           </div>
@@ -505,9 +508,9 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {exhaustionLevel(data.exhaustionLevel) > 0 && (
         <div className="bg-danger/10 border border-danger/30 rounded-lg p-4">
           <div className="flex items-center space-x-2 mb-2">
-            <h3 className="text-lg font-semibold text-ink">Exhaustion</h3>
+            <h3 className="text-lg font-semibold text-ink">{t('sheet5e.exhaustion')}</h3>
             <span className="px-2 py-0.5 bg-danger/15 text-danger-ink border border-danger/30 text-sm font-bold rounded-full">
-              Level {exhaustionLevel(data.exhaustionLevel)}
+              {t('sheet5e.exhaustionLevel', { level: exhaustionLevel(data.exhaustionLevel) })}
             </span>
           </div>
           <ul className="space-y-0.5">
@@ -516,7 +519,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
                 <span className="text-danger-ink">•</span>
                 <span>
                   <span className="text-ink-muted mr-1">{idx + 1}.</span>
-                  {effect}
+                  {i18n.exists(`sheet5e.exhaustionEffects.${idx + 1}`) ? t(`sheet5e.exhaustionEffects.${idx + 1}` as 'sheet5e.exhaustionEffects.1') : effect}
                 </span>
               </li>
             ))}
@@ -527,7 +530,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Attacks */}
       {data.attacks && (
         <div>
-          <h3 className="text-lg font-semibold text-ink mb-3">Attacks & Weapons</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.attacks')}</h3>
           <AttacksList
             attacks={data.attacks}
             onRollAttack={onRoll ? rollTest : undefined}
@@ -551,7 +554,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       ) : (
         <div className="text-center py-12 text-ink-muted">
           <Sparkles className="w-12 h-12 mx-auto mb-3 text-ink-muted" />
-          <p>This character is not a spellcaster</p>
+          <p>{t('sheet5e.notACaster')}</p>
         </div>
       )}
     </div>
@@ -589,7 +592,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
           <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-ink mb-4 flex items-center">
               <Shield className="w-5 h-5 mr-2 text-accent-ink" />
-              Proficiencies & Training
+              {t('sheet5e.proficienciesAndTraining')}
             </h3>
 
             <div className="space-y-4">
@@ -597,7 +600,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
               {proficiencies.armor.length > 0 && (
                 <div>
                   <div className="text-sm font-semibold text-ink-secondary mb-2 uppercase tracking-wide">
-                    Armor
+                    {t('sheet5e.armor')}
                   </div>
                   <div className="text-ink">
                     {proficiencies.armor}
@@ -609,7 +612,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
               {proficiencies.weapons.length > 0 && (
                 <div>
                   <div className="text-sm font-semibold text-ink-secondary mb-2 uppercase tracking-wide">
-                    Weapons
+                    {t('sheet5e.weapons')}
                   </div>
                   <div className="text-ink">
                     {proficiencies.weapons}
@@ -621,7 +624,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
               {proficiencies.tools.length > 0 && (
                 <div>
                   <div className="text-sm font-semibold text-ink-secondary mb-2 uppercase tracking-wide">
-                    Tools
+                    {t('sheet5e.tools')}
                   </div>
                   <div className="text-ink">
                     {proficiencies.tools}
@@ -633,7 +636,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
               {proficiencies.languages.length > 0 && (
                 <div>
                   <div className="text-sm font-semibold text-ink-secondary mb-2 uppercase tracking-wide">
-                    Languages
+                    {t('sheet5e.languages')}
                   </div>
                   <div className="text-ink">
                     {proficiencies.languages}
@@ -651,7 +654,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
           description only appears when there is one. */}
       {features.length > 0 && (
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-ink mb-3">Features &amp; Traits</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.featuresAndTraits')}</h3>
           <ul className="space-y-2">
             {features.map((feature, idx) => (
               <li key={idx} className="flex items-start space-x-2">
@@ -675,7 +678,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Additional Features */}
       {data.additionalFeaturesAndTraits && (
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-ink mb-3">Additional Features</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.additionalFeatures')}</h3>
           <p className="text-ink-secondary whitespace-pre-wrap">{data.additionalFeaturesAndTraits}</p>
         </div>
       )}
@@ -689,30 +692,30 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Appearance */}
       {data.appearance && (
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-ink mb-3">Appearance</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.appearance')}</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
-              <div className="text-xs text-ink-muted">Age</div>
+              <div className="text-xs text-ink-muted">{t('sheet5e.age')}</div>
               <div className="text-ink">{data.appearance.age}</div>
             </div>
             <div>
-              <div className="text-xs text-ink-muted">Height</div>
+              <div className="text-xs text-ink-muted">{t('sheet5e.height')}</div>
               <div className="text-ink">{data.appearance.height}</div>
             </div>
             <div>
-              <div className="text-xs text-ink-muted">Weight</div>
+              <div className="text-xs text-ink-muted">{t('sheet5e.weight')}</div>
               <div className="text-ink">{data.appearance.weight}</div>
             </div>
             <div>
-              <div className="text-xs text-ink-muted">Eyes</div>
+              <div className="text-xs text-ink-muted">{t('sheet5e.eyes')}</div>
               <div className="text-ink">{data.appearance.eyes}</div>
             </div>
             <div>
-              <div className="text-xs text-ink-muted">Skin</div>
+              <div className="text-xs text-ink-muted">{t('sheet5e.skin')}</div>
               <div className="text-ink">{data.appearance.skin}</div>
             </div>
             <div>
-              <div className="text-xs text-ink-muted">Hair</div>
+              <div className="text-xs text-ink-muted">{t('sheet5e.hair')}</div>
               <div className="text-ink">{data.appearance.hair}</div>
             </div>
           </div>
@@ -722,29 +725,29 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Personality */}
       {data.personality && (
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-ink mb-3">Personality</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.personality')}</h3>
           <div className="space-y-3">
             {data.personality.traits && (
               <div>
-                <div className="text-sm font-medium text-ink-secondary mb-1">Traits</div>
+                <div className="text-sm font-medium text-ink-secondary mb-1">{t('sheet5e.traits')}</div>
                 <p className="text-ink-secondary">{data.personality.traits}</p>
               </div>
             )}
             {data.personality.ideals && (
               <div>
-                <div className="text-sm font-medium text-ink-secondary mb-1">Ideals</div>
+                <div className="text-sm font-medium text-ink-secondary mb-1">{t('sheet5e.ideals')}</div>
                 <p className="text-ink-secondary">{data.personality.ideals}</p>
               </div>
             )}
             {data.personality.bonds && (
               <div>
-                <div className="text-sm font-medium text-ink-secondary mb-1">Bonds</div>
+                <div className="text-sm font-medium text-ink-secondary mb-1">{t('sheet5e.bonds')}</div>
                 <p className="text-ink-secondary">{data.personality.bonds}</p>
               </div>
             )}
             {data.personality.flaws && (
               <div>
-                <div className="text-sm font-medium text-ink-secondary mb-1">Flaws</div>
+                <div className="text-sm font-medium text-ink-secondary mb-1">{t('sheet5e.flaws')}</div>
                 <p className="text-ink-secondary">{data.personality.flaws}</p>
               </div>
             )}
@@ -755,7 +758,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Backstory */}
       {data.backstory && (
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-ink mb-3">Backstory</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.backstory')}</h3>
           <p className="text-ink-secondary whitespace-pre-wrap">{data.backstory}</p>
         </div>
       )}
@@ -763,7 +766,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Allies & Organizations */}
       {data.alliesAndOrganizations && (
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-ink mb-3">Allies & Organizations</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.alliesAndOrganizations')}</h3>
           <div className="space-y-2">
             <div className="font-medium text-ink">{data.alliesAndOrganizations.name}</div>
             <p className="text-ink-secondary">{data.alliesAndOrganizations.description}</p>
@@ -774,7 +777,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
       {/* Treasure */}
       {data.treasure && (
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-ink mb-3">Treasure</h3>
+          <h3 className="text-lg font-semibold text-ink mb-3">{t('sheet5e.treasure')}</h3>
           <p className="text-ink-secondary whitespace-pre-wrap">{data.treasure}</p>
         </div>
       )}
@@ -804,7 +807,7 @@ export const FifthEditionCharacterView: React.FC<FifthEditionCharacterViewProps>
   return (
     <div className="bg-paper rounded-lg shadow-lg overflow-hidden" {...rollRoot}>
       {renderHeader()}
-      <SheetTabs id={sheetTabsId} tabs={TABS} active={activeTab} onSelect={setActiveTab} underline={isCustomColor ? customColorHex : themeColor.hex} />
+      <SheetTabs id={sheetTabsId} tabs={TABS.map((tab) => ({ ...tab, label: t(`sheet5e.tabs.${tab.id}`) }))} active={activeTab} onSelect={setActiveTab} underline={isCustomColor ? customColorHex : themeColor.hex} />
       <div data-sheet-body {...sheetTabPanel(sheetTabsId, activeTab)} className="p-3 sm:p-6">{renderTabContent()}</div>
 
       {/* Advantage / Disadvantage, on a right-click or a press and hold of any d20 test */}
