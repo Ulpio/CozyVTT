@@ -234,7 +234,7 @@ describe('a request that is not a list of walls', () => {
     const mapId = await newMap();
     const res = await gm.post(batchUrl(mapId)).send({ segments: [wall(), { ...wall(), type: 'lava' }] });
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/^Wall 1: /);
+    expect(res.body.message).toMatch(/^Parede 1: /);
   });
 });
 

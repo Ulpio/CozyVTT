@@ -530,7 +530,7 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
       // The same limits as Create Map, checked before anything is asked or
       // saved, so a file that cannot become a map leaves nothing behind.
       if (dimensionProblem(MapSideSchema('Map width'), parsed.mapWidth) || dimensionProblem(MapSideSchema('Map height'), parsed.mapHeight)) {
-        const limit = `Um mapa pode ter de ${MAP_LIMITS.minSide} to ${MAP_LIMITS.maxSide} quadrados de cada lado.`;
+        const limit = `Um mapa pode ter de ${MAP_LIMITS.minSide} a ${MAP_LIMITS.maxSide} quadrados de cada lado.`;
         return answer(400, {
           error: 'Validation Error',
           message: Number.isFinite(parsed.mapWidth) && Number.isFinite(parsed.mapHeight)
@@ -1569,7 +1569,7 @@ router.post('/:id/tokens', campaignGM, async (req: AuthenticatedRequest, res: Re
         return {
           status: 400,
           error: 'Validation Error',
-          message: `A posição do token deve ficar dentro do mapa (0-${fresh.width-1}, 0-${fresh.height-1})`,
+          message: `A posição do token deve ficar dentro do mapa (0-${fresh.width-1}, 0-${fresh.height-1}).`,
         };
       }
       const tokens = readTokens(fresh.tokens);
@@ -1823,7 +1823,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
         return {
           status: 400,
           error: 'Validation Error',
-          message: `A posição deve ficar dentro do mapa (0-${fresh.width-1}, 0-${fresh.height-1})`,
+          message: `A posição deve ficar dentro do mapa (0-${fresh.width-1}, 0-${fresh.height-1}).`,
         };
       }
       // The whole footprint on the map, at the size the token will have.
@@ -1840,7 +1840,7 @@ router.put('/:id/tokens/:tokenId', campaignMember, async (req: AuthenticatedRequ
       if (metadata) {
         const merged = TokenMetadataSchema.safeParse(metadata);
         if (!merged.success) {
-          return { status: 400, error: 'Validation Error', message: `Metadados do token inválidos: ${merged.error.issues[0]?.message ?? 'sem detalhes'}` };
+          return { status: 400, error: 'Validation Error', message: `Metadados do token inválidos: ${merged.error.issues[0]?.message ?? 'sem detalhes'}.` };
         }
       }
 
@@ -1926,7 +1926,7 @@ router.post('/:id/tokens/move', campaignGM, async (req: AuthenticatedRequest, re
       const sourceTokens = readTokens(source.tokens);
       const missing = tokenIds.filter((id) => !sourceTokens.some((t) => t.id === id));
       if (missing.length > 0) {
-        return { refused: `Token não encontrado neste mapa: ${missing.join(', ')}` };
+        return { refused: `Token não encontrado neste mapa: ${missing.join(', ')}.` };
       }
       const moved = sourceTokens
         .filter((t) => wanted.has(t.id))
@@ -2366,7 +2366,7 @@ router.patch('/:id/walls/:sid', campaignGM, async (req: AuthenticatedRequest, re
     const validTypes = WallSegmentSchema.shape.type.options;
     const type = WallSegmentSchema.shape.type.safeParse(req.body.type);
     if (!type.success) {
-      return res.status(400).json({ error: 'Validation Error', message: `O tipo deve ser um destes: ${validTypes.join(', ')}` });
+      return res.status(400).json({ error: 'Validation Error', message: `O tipo deve ser um destes: ${validTypes.join(', ')}.` });
     }
 
     const outcome = await withMapsLocked([id], async (tx): Promise<LockedEdit<{ before: WallSegment; after: WallSegment }>> => {

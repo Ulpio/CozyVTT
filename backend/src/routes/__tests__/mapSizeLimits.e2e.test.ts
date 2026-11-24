@@ -225,6 +225,7 @@ describe('POST /maps/import-uvtt', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/não informa quantos quadrados/);
+    expect(res.body.message).toMatch(/Um mapa pode ter de 1 a 500 quadrados de cada lado.$/);
     expect(await prisma.asset.count({ where: { campaignId } })).toBe(assetsBefore);
   });
 
