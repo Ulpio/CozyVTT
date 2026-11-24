@@ -29,25 +29,25 @@ const DEFAULT_PLACEMENT: LightPlacementDefaults = {
 };
 
 /** Named presets matching common TTRPG light sources (radii in grid squares). */
-const LIGHT_PRESETS: Array<{ label: string; bright: number; dim: number }> = [
-  { label: 'Candle',    bright: 1,  dim: 2 },
-  { label: 'Torch',     bright: 4,  dim: 8 },
-  { label: 'Lamp',      bright: 3,  dim: 6 },
-  { label: 'Lantern',   bright: 6,  dim: 12 },
-  { label: 'Campfire',  bright: 8,  dim: 16 },
-];
+const LIGHT_PRESETS = [
+  { labelKey: 'tokenLight.candle',  bright: 1,  dim: 2 },
+  { labelKey: 'tokenLight.torch',   bright: 4,  dim: 8 },
+  { labelKey: 'tokenLight.lamp',    bright: 3,  dim: 6 },
+  { labelKey: 'tokenLight.lantern', bright: 6,  dim: 12 },
+  { labelKey: 'gmLights.campfire',  bright: 8,  dim: 16 },
+] as const;
 
 /** Preset glow colors for the palette. */
 const LIGHT_COLOR_PRESETS = [
-  { label: 'Warm Amber', value: '#ffcc66' },
-  { label: 'Candlelight', value: '#ff9933' },
-  { label: 'Daylight', value: '#ffffee' },
-  { label: 'Cool Blue', value: '#66aaff' },
-  { label: 'Eerie Green', value: '#66ff99' },
-  { label: 'Arcane Purple', value: '#cc66ff' },
-  { label: 'Firelight', value: '#ff6633' },
-  { label: 'Moonlight', value: '#aabbdd' },
-];
+  { labelKey: 'gmLights.colors.warmAmber', value: '#ffcc66' },
+  { labelKey: 'gmLights.colors.candlelight', value: '#ff9933' },
+  { labelKey: 'gmLights.colors.daylight', value: '#ffffee' },
+  { labelKey: 'gmLights.colors.coolBlue', value: '#66aaff' },
+  { labelKey: 'gmLights.colors.eerieGreen', value: '#66ff99' },
+  { labelKey: 'gmLights.colors.arcanePurple', value: '#cc66ff' },
+  { labelKey: 'gmLights.colors.firelight', value: '#ff6633' },
+  { labelKey: 'gmLights.colors.moonlight', value: '#aabbdd' },
+] as const;
 
 interface GmLightControlsProps {
   lightMode: LightToolMode;
@@ -198,7 +198,7 @@ export default function GmLightControls({
         }}
       >
         <span className="text-xs text-brand-ink font-medium uppercase tracking-wide">
-          Lights
+          {t('gmLights.title')}
           {lightCount > 0 && (
             <>{' '}<span className="text-ink-muted normal-case">({lightCount})</span></>
           )}
@@ -238,7 +238,7 @@ export default function GmLightControls({
           {/* Warning when lighting is off */}
           {!lightingEnabled && (
             <div className="text-[10px] text-accent-ink bg-accent/10 rounded-sm px-1.5 py-1 border border-accent/20">
-              Dynamic lighting is off. Enable it in Edit Map for lights to affect player visibility.
+              {t('gmLights.lightingOff')}
             </div>
           )}
 
@@ -258,9 +258,9 @@ export default function GmLightControls({
                   ? 'bg-accent/30 text-accent-ink border border-accent/50'
                   : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-moss-green/10'
               }`}
-              title="Click on map to place a light source"
+              title={t('gmLights.placeHint')}
             >
-              Place
+              {t('gmLights.place')}
             </button>
             <button
               type="button"
@@ -270,9 +270,9 @@ export default function GmLightControls({
                   ? 'bg-accent/30 text-accent-ink border border-accent/50'
                   : 'bg-surface-light/60 text-ink border border-moss-green/30 hover:bg-moss-green/10'
               }`}
-              title="Click a light source to select and edit it; drag to move"
+              title={t('gmLights.selectHint')}
             >
-              Select
+              {t('gmLights.select')}
             </button>
           </div>
 
@@ -280,7 +280,7 @@ export default function GmLightControls({
           {lightMode && (
             <div className="flex flex-col gap-2 bg-moss-green/10 rounded-sm p-2 border border-moss-green/30">
               <div className="text-[10px] text-ink-muted uppercase tracking-wide">
-                {isEditing ? 'Edit Light' : 'New Light Settings'}
+                {isEditing ? t('gmLights.editLight') : t('gmLights.newLightSettings')}
               </div>
 
               {/* Enabled toggle — only for selected light */}
@@ -293,20 +293,20 @@ export default function GmLightControls({
                     className="rounded-sm accent-accent"
                   />
                   <span className="text-[11px] text-ink">
-                    {selectedLight.enabled ? 'Enabled' : 'Disabled (extinguished)'}
+                    {selectedLight.enabled ? t('gmLights.enabled') : t('gmLights.disabled')}
                   </span>
                 </label>
               )}
 
               {/* Preset buttons */}
               <div>
-                <span className="text-[10px] text-ink-muted block mb-1">Presets</span>
+                <span className="text-[10px] text-ink-muted block mb-1">{t('gmLights.presets')}</span>
                 <div className="flex flex-wrap gap-1">
                   {LIGHT_PRESETS.map((p) => {
                     const isActive = displayBright === p.bright && displayDim === p.dim;
                     return (
                       <button
-                        key={p.label}
+                        key={p.labelKey}
                         type="button"
                         onClick={() => {
                           if (isEditing) {
@@ -320,9 +320,9 @@ export default function GmLightControls({
                             ? 'bg-accent/25 text-accent-ink border border-accent/40'
                             : 'bg-surface-light/60 text-ink-muted border border-moss-green/30 hover:text-ink hover:bg-moss-green/10'
                         }`}
-                        title={`Bright: ${p.bright} sq, Dim: ${p.dim} sq`}
+                        title={t('gmLights.presetHint', { bright: p.bright, dim: p.dim })}
                       >
-                        {p.label}
+                        {t(p.labelKey)}
                       </button>
                     );
                   })}
@@ -332,8 +332,8 @@ export default function GmLightControls({
               {/* Bright radius slider */}
               <div>
                 <div className="flex justify-between mb-0.5">
-                  <span className="text-[10px] text-ink-muted">Bright</span>
-                  <span className="text-[10px] text-ink">{displayBright.toFixed(1)} sq</span>
+                  <span className="text-[10px] text-ink-muted">{t('gmLights.bright')}</span>
+                  <span className="text-[10px] text-ink">{t('gmLights.sq', { value: displayBright.toFixed(1) })}</span>
                 </div>
                 <input
                   type="range"
@@ -359,8 +359,8 @@ export default function GmLightControls({
               {/* Dim radius slider */}
               <div>
                 <div className="flex justify-between mb-0.5">
-                  <span className="text-[10px] text-ink-muted">Dim</span>
-                  <span className="text-[10px] text-ink">{displayDim.toFixed(1)} sq</span>
+                  <span className="text-[10px] text-ink-muted">{t('gmLights.dim')}</span>
+                  <span className="text-[10px] text-ink">{t('gmLights.sq', { value: displayDim.toFixed(1) })}</span>
                 </div>
                 <input
                   type="range"
@@ -385,7 +385,7 @@ export default function GmLightControls({
 
               {/* Color presets */}
               <div>
-                <span className="text-[10px] text-ink-muted block mb-1">Color</span>
+                <span className="text-[10px] text-ink-muted block mb-1">{t('gmLights.color')}</span>
                 <div className="flex flex-wrap gap-1">
                   {LIGHT_COLOR_PRESETS.map((c) => (
                     <button
@@ -401,7 +401,7 @@ export default function GmLightControls({
                           : 'border-moss-green/40 hover:border-ink-muted'
                       }`}
                       style={{ backgroundColor: c.value }}
-                      title={c.label}
+                      title={t(c.labelKey)}
                     />
                   ))}
                 </div>
@@ -415,7 +415,7 @@ export default function GmLightControls({
                       else updateDefaults({ color: e.target.value });
                     }}
                     className="w-5 h-5 rounded-sm cursor-pointer border-0 bg-transparent"
-                    title="Pick custom color"
+                    title={t('gmLights.pickColor')}
                   />
                   <input
                     type="text"
@@ -431,7 +431,7 @@ export default function GmLightControls({
                       }
                     }}
                     onBlur={() => setColourDraft(null)}
-                    aria-label="Light colour"
+                    aria-label={t('gmLights.colourField')}
                     className="flex-1 text-[10px] bg-surface-light border border-moss-green/40 rounded-sm px-1.5 py-0.5 text-ink font-mono"
                     maxLength={7}
                     placeholder="#ffcc66"
@@ -446,7 +446,7 @@ export default function GmLightControls({
                   onClick={onDeleteSelected}
                   className="text-[11px] py-1 rounded-sm bg-danger/25 text-danger-ink border border-danger/30 hover:bg-danger/35 transition-colors"
                 >
-                  Delete Light
+                  {t('gmLights.deleteLight')}
                 </button>
               )}
             </div>
@@ -464,7 +464,7 @@ export default function GmLightControls({
                   : 'bg-surface-light/60 text-ink-muted border border-moss-green/30 hover:text-ink'
               }`}
             >
-              {confirmClear ? 'Confirm Clear All' : `Clear All (${lightCount})`}
+              {confirmClear ? t('gmLights.confirmClearAll') : t('gmLights.clearAll', { count: lightCount })}
             </button>
           )}
         </div>
