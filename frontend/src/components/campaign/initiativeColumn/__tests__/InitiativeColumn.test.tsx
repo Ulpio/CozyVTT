@@ -112,3 +112,39 @@ it('keeps clear of the map foot and sits under the AoE panel', () => {
   expect(region.className).toContain('max-h-[calc(100%-8rem)]');
   expect(region.className).toContain('z-20');
 });
+
+it('sits at the top it is given, under the toolbar band', () => {
+  const { rerender } = render(<InitiativeColumn compact={false} top={70} />);
+  const region = screen.getByRole('region', { name: 'Initiative order' });
+  expect(region.style.top).toBe('70px');
+  rerender(<InitiativeColumn compact={false} top={130} />);
+  expect(region.style.top).toBe('130px');
+});
+
+it('names each collapsed row by its combatant and value', () => {
+  render(<InitiativeColumn compact />);
+  expect(screen.getByRole('button', { name: 'Goblin, 18' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Aria, –' })).toBeTruthy();
+});
+
+it('shows the current-turn arrow when collapsed too', () => {
+  render(<InitiativeColumn compact />);
+  const current = document.querySelector('[aria-current="true"]') as HTMLElement;
+  expect(current.querySelector('svg')).not.toBeNull();
+});
+
+it('applies the new layout default on a switch when nothing is stored', () => {
+  const { rerender } = render(<InitiativeColumn compact={false} />);
+  expect(screen.getByText('Goblin')).toBeTruthy();
+  rerender(<InitiativeColumn compact />);
+  expect(screen.queryByText('Goblin')).toBeNull();
+  rerender(<InitiativeColumn compact={false} />);
+  expect(screen.getByText('Goblin')).toBeTruthy();
+});
+
+it('keeps a stored choice across a layout switch', () => {
+  window.localStorage.setItem(KEY, '0');
+  const { rerender } = render(<InitiativeColumn compact={false} />);
+  rerender(<InitiativeColumn compact />);
+  expect(screen.getByText('Goblin')).toBeTruthy();
+});

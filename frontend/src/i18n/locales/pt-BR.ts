@@ -2721,6 +2721,7 @@ const ptBR: Messages = {
     collapse: 'Recolher',
     expand: 'Abrir',
     hp: '{{name}}: {{current}} de {{max}} pontos de vida',
+    collapsedRow: '{{name}}, {{value}}',
   },
 };
 

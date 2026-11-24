@@ -11,6 +11,8 @@ const STORAGE_KEY = 'mesa.initiativeColumn.collapsed';
 interface InitiativeColumnProps {
   compact: boolean;
   onRowClick?: (row: InitiativeRow) => void;
+  /** Pixels from the map's top, under the toolbar band; null keeps a default place. */
+  top?: number | null;
 }
 
 function Portrait({ row }: { row: InitiativeRow }) {
@@ -32,28 +34,32 @@ function Portrait({ row }: { row: InitiativeRow }) {
  * Initiative tab. Mounted over the map by the campaign page, so both layouts
  * show it.
  */
-export default function InitiativeColumn({ compact, onRowClick }: InitiativeColumnProps) {
+export default function InitiativeColumn({ compact, onRowClick, top = null }: InitiativeColumnProps) {
   const { t } = useTranslation();
   const combat = useCombatState();
   const { userRole } = useCampaign();
-  const [collapsed, setCollapsed] = useState(() => {
+  // The stored choice, or null: then the layout decides, so a switch between
+  // compact and desktop applies the new one's default.
+  const [choice, setChoice] = useState<boolean | null>(() => {
     const stored = optionalStorage.getItem(STORAGE_KEY);
-    return stored === null ? compact : stored === '1';
+    return stored === null ? null : stored === '1';
   });
+  const collapsed = choice ?? compact;
 
   if (!combat.active) return null;
   const rows = initiativeRows(combat, { isGM: userRole === 'GM' });
 
   const toggle = () => {
     optionalStorage.setItem(STORAGE_KEY, collapsed ? '0' : '1');
-    setCollapsed(!collapsed);
+    setChoice(!collapsed);
   };
 
   return (
     <section
       role="region"
       aria-label={t('initiativeColumn.label')}
-      className={`absolute top-14 left-2 z-20 flex max-h-[calc(100%-8rem)] flex-col rounded-xl border border-moss-green/30 bg-parchment/95 shadow-lg backdrop-blur-xs ${collapsed ? 'w-14' : 'w-44'}`}
+      style={top === null ? undefined : { top }}
+      className={`absolute left-2 ${top === null ? 'top-14' : ''} z-20 flex max-h-[calc(100%-8rem)] flex-col rounded-xl border border-moss-green/30 bg-parchment/95 shadow-lg backdrop-blur-xs ${collapsed ? 'w-14' : 'w-44'}`}
     >
       <div className={`flex items-center gap-1 px-2 py-1 ${collapsed ? 'justify-center' : 'justify-between'}`}>
         {!collapsed && <span className="text-xs font-semibold text-brand-ink">{t('initiativeColumn.round', { round: combat.round })}</span>}
@@ -75,12 +81,13 @@ export default function InitiativeColumn({ compact, onRowClick }: InitiativeColu
               type="button"
               onClick={() => onRowClick?.(row)}
               aria-current={row.current ? 'true' : undefined}
+              aria-label={collapsed ? t('initiativeColumn.collapsedRow', { name: row.name, value: row.value }) : undefined}
               title={collapsed ? row.name : undefined}
               className={`flex w-full items-center gap-2 rounded-lg border px-1.5 py-1 text-left hover:bg-soft-cream focus-visible:ring-2 focus-visible:ring-brand outline-hidden ${
                 row.current ? 'border-brand bg-soft-cream' : 'border-transparent'
               } ${collapsed ? 'flex-col gap-0.5' : ''}`}
             >
-              {row.current && !collapsed && <ChevronRight className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />}
+              {row.current && <ChevronRight className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />}
               <Portrait row={row} />
               {collapsed ? (
                 <span className="text-sm font-bold text-brand-ink">{row.value}</span>

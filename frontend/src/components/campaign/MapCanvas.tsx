@@ -171,6 +171,7 @@ import '@/styles/spirit-effects.css';
 import { mapImageState, pictureFor, PICTURE_DECODE_WAIT_MS, type LoadedPicture } from './map/mapImageState';
 import { useTokenImages } from './map/useTokenImages';
 import { useTopBand, underBand, belowBand, useMeasuredBottom, useMeasuredHeight, BAND_GAP } from './map/toolbarLayout';
+import InitiativeColumn from './initiativeColumn/InitiativeColumn';
 import { playedGameSystem } from '@/constants/game-systems';
 
 /** Returns the accent color for the spirit layer style string. Used for spirit token ring. */
@@ -1218,7 +1219,6 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- answered once per request, by its nonce
   }, [centreRequest, currentMap, canvasSize.width, canvasSize.height]);
-
 
   // ============================================
   // WebSocket Event Listeners
@@ -5117,6 +5117,9 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           {rulerNeedsToken && <div className={MAP_NOTE}>{i18n.t(RULER_NEEDS_TOKEN)}</div>}
         </div>
       )}
+
+      {/* The initiative order, under the band like the AoE panel, which lies over it. */}
+      <InitiativeColumn compact={compact} top={aoeTop} onRowClick={(row) => useGameStore.getState().requestCentreOn(row.tokenId)} />
 
       {/* AoE panel, under the toolbar's band (top-12 until the band is
           measured), and under Put back while that shows. */}

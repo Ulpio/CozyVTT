@@ -48,7 +48,6 @@ import TokenRoster from '@/components/campaign/TokenRoster';
 import CampaignSettingsModal from '@/components/campaign/CampaignSettingsModal';
 import CampaignDocumentsModal from '@/components/documents/CampaignDocumentsModal';
 import ShortcutsPanel from '@/components/campaign/ShortcutsPanel';
-import InitiativeColumn from '@/components/campaign/initiativeColumn/InitiativeColumn';
 import SessionPanels from '@/components/campaign/SessionPanels';
 import DesktopTable from '@/components/campaign/DesktopTable';
 import CompactTable from '@/components/campaign/compact/CompactTable';
@@ -263,7 +262,6 @@ function CampaignPageContent() {
           >
             <MapCanvas onEditToken={editToken} onShowShortcuts={() => setIsShortcutsOpen(true)} />
           </Suspense>
-          <InitiativeColumn compact={compact} onRowClick={(row) => useGameStore.getState().requestCentreOn(row.tokenId)} />
         </div>
       </div>
     ),

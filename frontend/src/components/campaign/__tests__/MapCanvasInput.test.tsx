@@ -375,7 +375,8 @@ describe('the card a hovered token shows', () => {
   });
 
   /** The card over the map, found by the name in it. */
-  const card = (name: string) => screen.getByText(name).closest('.glass-panel') as HTMLElement;
+  // The initiative column, while a fight runs, names the token too: the card is the one in a glass panel.
+  const card = (name: string) => screen.getAllByText(name).map((el) => el.closest('.glass-panel')).find((el) => el !== null) as HTMLElement;
   const hover = (point: { clientX: number; clientY: number }) => mouse.move(surface(), point);
   const inOrder = (initiative: number | null) => act(() => {
     useGameStore.getState().setCombatState({

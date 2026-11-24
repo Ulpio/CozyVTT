@@ -2719,6 +2719,7 @@ const en = {
     collapse: 'Collapse',
     expand: 'Expand',
     hp: '{{name}}: {{current}} of {{max}} hit points',
+    collapsedRow: '{{name}}, {{value}}',
   },
 };
 
