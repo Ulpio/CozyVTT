@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { SHEET_LIST_MAX } from '@/constants/sheetLimits';
 
 /**
@@ -20,7 +21,7 @@ export function listChangeAllowed(nextCount: number, currentCount: number, max: 
 
 /** What to say where a list is full. */
 export function listFullMessage(max: number): string {
-  return `This list is full: a sheet holds at most ${max.toLocaleString('en-US')} entries here. Remove one to add another.`;
+  return i18n.t('sheetShared.listFull', { max: max.toLocaleString(i18n.language === 'en' ? 'en-US' : i18n.language) });
 }
 
 /**

@@ -1263,6 +1263,14 @@ const en = {
       saveFailed: 'Failed to save character. Please try again.',
     },
   },
+
+  sheetShared: {
+    hexHint: 'Enter a colour as #rgb or #rrggbb',
+    notAnImage: 'Please select an image file',
+    imageTooLarge: 'Image must be smaller than {{limit}}',
+    listFull: 'This list is full: a sheet holds at most {{max}} entries here. Remove one to add another.',
+    personalToken: 'Saves as personal token',
+  },
 };
 
 export default en;

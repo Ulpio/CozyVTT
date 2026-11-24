@@ -6,15 +6,16 @@
 
 import { AssetType } from '@/types';
 import type { ServerConfig } from '@/types';
+import i18n from '@/i18n';
 import { api } from '@/services/api';
 import { assetNameFrom } from './assetName';
 import { getUploadLimit, formatUploadLimit } from './uploadLimits';
 
 /** Why a file cannot be a token picture, or null when it can. */
 export function tokenPictureProblem(file: File, serverConfig: ServerConfig | undefined): string | null {
-  if (!file.type.startsWith('image/')) return 'Please select an image file';
+  if (!file.type.startsWith('image/')) return i18n.t('sheetShared.notAnImage');
   const limit = getUploadLimit(serverConfig, AssetType.TOKEN);
-  if (file.size > limit) return `Image must be smaller than ${formatUploadLimit(limit)}`;
+  if (file.size > limit) return i18n.t('sheetShared.imageTooLarge', { limit: formatUploadLimit(limit) });
   return null;
 }
 

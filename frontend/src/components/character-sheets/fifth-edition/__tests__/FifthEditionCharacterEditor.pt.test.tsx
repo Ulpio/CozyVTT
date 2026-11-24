@@ -7,6 +7,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { inPortuguese } from '@/test/inPortuguese';
 import { FifthEditionCharacterEditor } from '../FifthEditionCharacterEditor';
 import { fifthEditionCharacter } from './fifthEditionFixture';
+import { hexColourHint } from '@/utils/themeColor';
+import { tokenPictureProblem } from '@/utils/tokenPicture';
+import { listFullMessage } from '../../ListLimitNote';
 
 vi.mock('@/hooks/queries', () => ({
   useServerConfigQuery: () => ({ data: undefined }),
@@ -57,6 +60,19 @@ describe('the 5e sheet editor in Portuguese', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));
       expect(screen.getByText('Esta ficha ainda não pode ser salva:')).toBeInTheDocument();
       expect(screen.getAllByText('O nome do personagem é obrigatório').length).toBeGreaterThan(0);
+    });
+  });
+});
+
+describe('the notes the editors share, in Portuguese', () => {
+  it('says why a colour or a picture is refused, and where the picture goes', async () => {
+    await inPortuguese(() => {
+      open();
+      expect(screen.getByText('Salva como token pessoal')).toBeInTheDocument();
+      expect(screen.queryByText('Saves as personal token')).toBeNull();
+      expect(hexColourHint()).toBe('Digite uma cor como #rgb ou #rrggbb');
+      expect(tokenPictureProblem(new File(['x'], 'a.txt', { type: 'text/plain' }), undefined)).toBe('Escolha um arquivo de imagem');
+      expect(listFullMessage(500)).toContain('Esta lista está cheia');
     });
   });
 });

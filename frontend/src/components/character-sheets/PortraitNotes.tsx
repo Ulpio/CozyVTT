@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 /**
  * The notes under a sheet editor's portrait: why a picture was refused, and
  * "Saves as personal token" for a character in no campaign.
@@ -17,12 +19,14 @@ interface PortraitNotesProps {
   noteClassName: string;
 }
 
+
 export default function PortraitNotes({ error, personal, errorClassName, noteClassName }: PortraitNotesProps) {
+  const { t } = useTranslation();
   if (!error && !personal) return null;
   return (
     <div>
       {error && <div className={`mt-1 text-xs ${errorClassName}`}>{error}</div>}
-      {personal && <div className={`mt-1 text-xs ${noteClassName}`}>Saves as personal token</div>}
+      {personal && <div className={`mt-1 text-xs ${noteClassName}`}>{t('sheetShared.personalToken')}</div>}
     </div>
   );
 }

@@ -47,7 +47,7 @@ import { OriginalValues } from './components/OriginalValues';
 import NumberField from '../../ui/NumberField';
 import ListField, { parseLineList, formatLineList } from '../../ui/ListField';
 import { LIMIT_NOTE_CLASS } from './limitNoteClass';
-import { toStoredHexColor, HEX_COLOUR_HINT, headerInk } from '@/utils/themeColor';
+import { toStoredHexColor, hexColourHint, headerInk } from '@/utils/themeColor';
 import {
   HORROR_D100_CHARACTERISTIC_ROLLS,
   horrorD100DamageModifier,
@@ -280,7 +280,7 @@ export const HorrorD100CharacterEditor: React.FC<HorrorD100CharacterEditorProps>
     };
     // The server refuses a colour it cannot read, and the whole save with it.
     if (isCustomColor && customColorHex !== '' && !toStoredHexColor(customColorHex)) {
-      setErrors((prev) => ({ ...prev, themeColor: HEX_COLOUR_HINT }));
+      setErrors((prev) => ({ ...prev, themeColor: hexColourHint() }));
       setShowColorPicker(true);
       return;
     }

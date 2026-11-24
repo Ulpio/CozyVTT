@@ -1265,6 +1265,14 @@ const ptBR: Messages = {
       saveFailed: 'Não foi possível salvar o personagem. Tente de novo.',
     },
   },
+
+  sheetShared: {
+    hexHint: 'Digite uma cor como #rgb ou #rrggbb',
+    notAnImage: 'Escolha um arquivo de imagem',
+    imageTooLarge: 'A imagem deve ter menos de {{limit}}',
+    listFull: 'Esta lista está cheia: a ficha guarda no máximo {{max}} entradas aqui. Remova uma para adicionar outra.',
+    personalToken: 'Salva como token pessoal',
+  },
 };
 
 export default ptBR;

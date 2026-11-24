@@ -69,7 +69,7 @@ import {
   customWeaponProperties,
   addCustomWeaponProperty,
 } from '@/utils/weaponProperties';
-import { toStoredHexColor, HEX_COLOUR_HINT, shouldUseWhiteText, headerInk } from '@/utils/themeColor';
+import { toStoredHexColor, hexColourHint, shouldUseWhiteText, headerInk } from '@/utils/themeColor';
 import {
   FIFTH_EDITION_ATTACK_DAMAGE_ROLLS_MAX,
   FIFTH_EDITION_CUSTOM_SKILLS_MAX,
@@ -931,7 +931,7 @@ export const FifthEditionCharacterEditor: React.FC<FifthEditionCharacterEditorPr
 
     // The server refuses a colour it cannot read, and the whole save with it.
     if (isCustomColor && customColorHex !== '' && !toStoredHexColor(customColorHex)) {
-      newErrors.themeColor = HEX_COLOUR_HINT;
+      newErrors.themeColor = hexColourHint();
       setShowColorPicker(true);
     }
 

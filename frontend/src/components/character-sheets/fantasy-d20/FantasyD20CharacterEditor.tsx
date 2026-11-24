@@ -64,7 +64,7 @@ import {
   FANTASY_D20_ATTRIBUTE_NAMES,
 } from '@/utils/rules/fantasyD20';
 import { readFeatureEntries, readFeatureEntriesForEditing } from '@/utils/featureEntries';
-import { toStoredHexColor, HEX_COLOUR_HINT, headerInk } from '@/utils/themeColor';
+import { toStoredHexColor, hexColourHint, headerInk } from '@/utils/themeColor';
 import {
   readFantasyD20SpellSlots,
   readFantasyD20Cantrips,
@@ -829,7 +829,7 @@ export const FantasyD20CharacterEditor: React.FC<FantasyD20CharacterEditorProps>
     }
     // The server refuses a colour it cannot read, and the whole save with it.
     if (isCustomColor && customColorHex !== '' && !toStoredHexColor(customColorHex)) {
-      newErrors.themeColor = HEX_COLOUR_HINT;
+      newErrors.themeColor = hexColourHint();
       setShowColorPicker(true);
     }
     setErrors(newErrors);
