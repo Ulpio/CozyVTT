@@ -28,6 +28,8 @@ import type { FifthEditionCharacterData, FifthEditionInventoryItem } from '@/typ
 import ItemIcon from '@/components/character-sheets/fifth-edition/components/ItemIcon';
 import { itemCategory } from '@/utils/itemIcons';
 import ActionButton, { RechargeButtons } from './ActionButton';
+import ActionIcon from './ActionIcon';
+import { actionIconFor } from '@/utils/actionIcons';
 import FeatureMenu from './FeatureMenu';
 import RiderToggles from './RiderToggles';
 import TurnStrip from './TurnStrip';
@@ -180,7 +182,7 @@ export default function ActionBar() {
           {menu === 'features' && <FeatureMenu features={features} combat={combat} onUse={(option, amount) => run(option, amount !== undefined ? { amount } : {})} />}
           {menu === 'common' && (
             <div className="flex flex-wrap gap-1.5">
-              {commons.map((option) => <ActionButton key={option.id} menu disabled={gateFor(option, combat, t) !== undefined} title={gateFor(option, combat, t)} onClick={() => run(option)}>{option.name}</ActionButton>)}
+              {commons.map((option) => <ActionButton key={option.id} menu disabled={gateFor(option, combat, t) !== undefined} title={gateFor(option, combat, t)} onClick={() => run(option)}><span className="flex items-center gap-1.5"><ActionIcon icon={actionIconFor(option)} /><span className="truncate">{option.name}</span></span></ActionButton>)}
             </div>
           )}
           {menu === 'swap' && (inHand.length + inPack.length === 0 ? <p className="text-sm text-ink-muted">{t('actionBar.swapNone')}</p> : (

@@ -11,6 +11,8 @@ import { useTranslation } from 'react-i18next';
 import type { ActionOption } from '@/types/actions';
 import type { FifthEditionSpellSlots } from '@/types/game-systems';
 import ActionButton from './ActionButton';
+import ActionIcon from './ActionIcon';
+import { actionIconFor } from '@/utils/actionIcons';
 
 export type SlotsByCircle = Partial<FifthEditionSpellSlots> | undefined;
 
@@ -55,7 +57,7 @@ export default function SpellMenu({ spells, slots, onCast, gate }: SpellMenuProp
         pressed={asking?.id === spell.id}
         onClick={() => (level === 0 ? onCast(spell) : setAsking(spell))}
       >
-        {spell.name}
+        <span className="flex items-center gap-1.5"><ActionIcon icon={actionIconFor(spell)} /><span className="truncate">{spell.name}</span></span>
       </ActionButton>
     );
   };

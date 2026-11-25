@@ -9,6 +9,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ActionCombatTurn, ActionOption } from '@/types/actions';
 import ActionButton from './ActionButton';
+import ActionIcon from './ActionIcon';
+import { actionIconFor } from '@/utils/actionIcons';
 import { gateFor } from './turnGate';
 
 const MAX_PIPS = 6;
@@ -60,7 +62,7 @@ export default function FeatureMenu({ features, combat, onUse }: FeatureMenuProp
                 if (option.chosenAmount && !option.active) { setAsking(option); setAmount(Math.min(1, option.uses?.left ?? 1)); } else onUse(option);
               }}
             >
-              {label}
+              <span className="flex items-center gap-1.5"><ActionIcon icon={actionIconFor(option)} /><span className="truncate">{label}</span></span>
             </ActionButton>
           );
         })}
