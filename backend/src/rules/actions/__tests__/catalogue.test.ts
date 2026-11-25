@@ -20,9 +20,9 @@ const spell = (data: Partial<CompendiumSpell['data']>, name = 'Magia'): Compendi
 });
 
 const spells = new Map<string, CompendiumSpell>([
-  ['book-test/raio-de-fogo', spell({ range: '36 metros', mechanics: { attack: 'ranged', damage: [{ dice: '1d10', type: 'fogo' }], scaling: { cantrip: true } } }, 'Raio de Fogo')],
+  ['book-test/raio-de-fogo', spell({ school: 'evocação', range: '36 metros', mechanics: { attack: 'ranged', damage: [{ dice: '1d10', type: 'fogo' }], scaling: { cantrip: true } } }, 'Raio de Fogo')],
   ['book-test/curar-ferimentos', spell({ level: 1, range: 'Toque', mechanics: { damage: [], healing: '1d8', healingAddsModifier: true, scaling: { perSlot: '1d8' } } }, 'Curar Ferimentos')],
-  ['book-test/luz', spell({ range: 'Toque', mechanics: { damage: [] } }, 'Luz')],
+  ['book-test/luz', spell({ school: 'evocação', range: 'Toque', mechanics: { damage: [] } }, 'Luz')],
   ['book-test/bencao', spell({ level: 1, concentration: true, range: '9 metros' }, 'Bênção')],
 ]);
 const weapons = new Map<string, CompendiumWeapon>([
@@ -153,6 +153,28 @@ describe('characterActions', () => {
     expect(cantrip.option).toMatchObject({ name: 'Truque caseiro', resolution: 'cast', spellLevel: 0 });
     // A cantrip the sheet already points at a book for is listed once, by its book id.
     expect(out.filter((x) => x.option.name === 'S luz' || x.option.id.startsWith('spell:sheet-cantrip:')).length).toBe(1);
+  });
+
+  it('gives a damaging spell its first damage type and school', () => {
+    const s = characterActions(sheet('mago'), spells, weapons).find((x) => x.option.id === 'spell:book-test/raio-de-fogo')!;
+    expect(s.option.damageType).toBe('fogo');
+    expect(s.option.school).toBe('evocação');
+  });
+
+  it('gives a spell without damage only its school', () => {
+    const out = characterActions(sheet('clerigo'), spells, weapons);
+    const s = out.find((x) => x.option.id === 'spell:book-test/luz');
+    expect(s).toBeDefined();
+    expect(s!.option.damageType).toBeUndefined();
+    expect(s!.option.school).toBe('evocação');
+  });
+
+  it('leaves a spell with no compendium entry without either', () => {
+    const c = sheet('clerigo');
+    c.spellcasting.spells = [{ level: 2, name: 'Magia caseira', prepared: true, ritual: false, concentration: false }];
+    const s = characterActions(c, spells, weapons).find((x) => x.option.id === 'spell:sheet:0')!;
+    expect(s.option).not.toHaveProperty('damageType');
+    expect(s.option).not.toHaveProperty('school');
   });
 
   it('leaves out a spell with no compendium entry that the sheet already lists as an attack', () => {

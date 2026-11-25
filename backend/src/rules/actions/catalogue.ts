@@ -37,6 +37,10 @@ export interface ActionOption {
   /** Character spells only: public to the caster. */
   saveDc?: number;
   spellLevel?: number;
+  /** Spells: the first damage type, as the book writes it (fogo, radiante...). */
+  damageType?: string;
+  /** Spells: the school of magic, as the book writes it (evocação...). */
+  school?: string;
   concentration?: boolean;
   grips?: ('one' | 'two')[];
   reach?: { kind: 'self' | 'touch' } | { kind: 'feet'; normal: number; long?: number };
@@ -108,6 +112,7 @@ export interface CompendiumSpell {
   text?: string;
   data: {
     level: number;
+    school?: string;
     range: string;
     castingTime?: string;
     concentration: boolean;
@@ -264,6 +269,9 @@ function spellSpec(
     spellLevel: entry?.data.level ?? sheetLevel ?? 0,
     concentration: entry?.data.concentration ?? sheetConcentration ?? false,
   };
+  const damageType = mech?.damage?.[0]?.type;
+  if (damageType) option.damageType = damageType;
+  if (entry?.data.school) option.school = entry.data.school;
   if (entry?.data.castingTime) {
     option.castingTime = entry.data.castingTime;
     Object.assign(option, costFromCastingTime(entry.data.castingTime));

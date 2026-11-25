@@ -33,6 +33,10 @@ export interface ActionOption {
   /** Character spells only: public to the caster. */
   saveDc?: number;
   spellLevel?: number;
+  /** Spells: the first damage type, as the book writes it (fogo, radiante...). */
+  damageType?: string;
+  /** Spells: the school of magic, as the book writes it (evocação...). */
+  school?: string;
   concentration?: boolean;
   grips?: ('one' | 'two')[];
   reach?: ActionReach;
