@@ -87,7 +87,7 @@ export default function InitiativeColumn({ compact, onRowClick, top = null }: In
                 row.current ? 'border-brand bg-soft-cream' : 'border-transparent'
               } ${collapsed ? 'flex-col gap-0.5' : ''}`}
             >
-              {row.current && <ChevronRight className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />}
+              {row.current && <ChevronRight className="h-4 w-4 shrink-0 text-brand-ink" aria-hidden="true" />}
               <Portrait row={row} />
               {collapsed ? (
                 <span className="text-sm font-bold text-brand-ink">{row.value}</span>
