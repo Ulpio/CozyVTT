@@ -533,3 +533,14 @@ describe('values the dice cannot roll', () => {
     expect(getCharacterRolls('FIFTH_EDITION', data).hitDice).toEqual([]);
   });
 });
+
+describe('custom skill rolls', () => {
+  it('carry the ability they use, so the Checks menu can show its icon', () => {
+    const { skills } = getCharacterRolls('FIFTH_EDITION', {
+      level: 3,
+      stats: { dexterity: { score: 14, modifier: 2 } },
+      customSkills: [{ name: "Thieves' Tools", ability: 'dexterity', proficient: true }],
+    } as unknown as CharacterData);
+    expect(skills.find((o) => o.testName === "Thieves' Tools")?.ability).toBe('dex');
+  });
+});

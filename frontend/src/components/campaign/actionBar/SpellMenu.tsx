@@ -57,7 +57,7 @@ export default function SpellMenu({ spells, slots, onCast, gate }: SpellMenuProp
         pressed={asking?.id === spell.id}
         onClick={() => (level === 0 ? onCast(spell) : setAsking(spell))}
       >
-        <span className="flex items-center gap-1.5"><ActionIcon icon={actionIconFor(spell)} /><span className="truncate">{spell.name}</span></span>
+        <span className="flex min-w-0 items-center gap-1.5"><ActionIcon icon={actionIconFor(spell)} /><span className="min-w-0 truncate">{spell.name}</span></span>
       </ActionButton>
     );
   };

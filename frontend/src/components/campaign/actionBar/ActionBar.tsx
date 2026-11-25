@@ -182,7 +182,7 @@ export default function ActionBar() {
           {menu === 'features' && <FeatureMenu features={features} combat={combat} onUse={(option, amount) => run(option, amount !== undefined ? { amount } : {})} />}
           {menu === 'common' && (
             <div className="flex flex-wrap gap-1.5">
-              {commons.map((option) => <ActionButton key={option.id} menu disabled={gateFor(option, combat, t) !== undefined} title={gateFor(option, combat, t)} onClick={() => run(option)}><span className="flex items-center gap-1.5"><ActionIcon icon={actionIconFor(option)} /><span className="truncate">{option.name}</span></span></ActionButton>)}
+              {commons.map((option) => <ActionButton key={option.id} menu disabled={gateFor(option, combat, t) !== undefined} title={gateFor(option, combat, t)} onClick={() => run(option)}><span className="flex min-w-0 items-center gap-1.5"><ActionIcon icon={actionIconFor(option)} /><span className="min-w-0 truncate">{option.name}</span></span></ActionButton>)}
             </div>
           )}
           {menu === 'swap' && (inHand.length + inPack.length === 0 ? <p className="text-sm text-ink-muted">{t('actionBar.swapNone')}</p> : (
@@ -194,7 +194,7 @@ export default function ActionBar() {
           {menu === 'items' && (items.length === 0 ? <p className="text-sm text-ink-muted">{t('actionBar.noItems')}</p> : (
             <div className="flex flex-wrap gap-1.5">
               {items.map(({ item, action }, index) => (
-                <ActionButton key={index} menu disabled={!action} detail={action ? undefined : t('actionBar.itemWithoutAction')} onClick={() => action && pick(action)}><span className="flex items-center gap-1.5"><ItemIcon item={item} size={24} /><span className="truncate">{item.name}</span>{(item.quantity ?? 1) > 1 && <span className="text-ink-muted">×{item.quantity}</span>}</span></ActionButton>
+                <ActionButton key={index} menu disabled={!action} detail={action ? undefined : t('actionBar.itemWithoutAction')} onClick={() => action && pick(action)}><span className="flex min-w-0 items-center gap-1.5"><ItemIcon item={item} size={24} /><span className="min-w-0 truncate">{item.name}</span>{(item.quantity ?? 1) > 1 && <span className="text-ink-muted">×{item.quantity}</span>}</span></ActionButton>
               ))}
             </div>
           ))}
@@ -245,7 +245,7 @@ function SwapRow({ title, items, hint, busy, onPick }: { title: string; items: F
       <span className="text-sm text-ink-muted">{title}</span>
       {items.map((item) => (
         <ActionButton key={item.id} menu disabled={busy} title={hint} onClick={() => onPick(item)}>
-          <span className="flex items-center gap-1.5"><ItemIcon item={item} size={24} /><span className="truncate">{item.name}</span></span>
+          <span className="flex min-w-0 items-center gap-1.5"><ItemIcon item={item} size={24} /><span className="min-w-0 truncate">{item.name}</span></span>
         </ActionButton>
       ))}
     </div>

@@ -62,7 +62,7 @@ export default function FeatureMenu({ features, combat, onUse }: FeatureMenuProp
                 if (option.chosenAmount && !option.active) { setAsking(option); setAmount(Math.min(1, option.uses?.left ?? 1)); } else onUse(option);
               }}
             >
-              <span className="flex items-center gap-1.5"><ActionIcon icon={actionIconFor(option)} /><span className="truncate">{label}</span></span>
+              <span className="flex min-w-0 items-center gap-1.5"><ActionIcon icon={actionIconFor(option)} /><span className="min-w-0 truncate">{label}</span></span>
             </ActionButton>
           );
         })}

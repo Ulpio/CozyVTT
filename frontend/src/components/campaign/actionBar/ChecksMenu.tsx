@@ -85,7 +85,7 @@ export default function ChecksMenu({ rolls, onRoll }: ChecksMenuProps) {
           <div className="flex flex-wrap gap-1.5">
             {rolls[key].map((option) => (
               <ActionButton key={option.purpose + option.label} menu onClick={() => onRoll(option)}>
-                <span className="flex items-center gap-1.5"><ActionIcon icon={checkIconFor(option.testName)} /><span className="truncate">{checkLabel(key, option, t as unknown as Translate)}</span></span>
+                <span className="flex min-w-0 items-center gap-1.5"><ActionIcon icon={checkIconFor(option.testName, option.ability)} /><span className="min-w-0 truncate">{checkLabel(key, option, t as unknown as Translate)}</span></span>
               </ActionButton>
             ))}
           </div>

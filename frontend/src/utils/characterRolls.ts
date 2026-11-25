@@ -9,7 +9,7 @@ import { abilityMark, abilityName, skillName, checkPurpose, savePurpose, saveLab
 
 // Re-exported so the many callers that reach for it here keep working.
 export { isValidDiceExpression };
-import { readCustomSkills, fifthEditionCustomSkillBonus, fifthEditionSkillBonus, fifthEditionSaveBonus } from '@/utils/rules/fifthEdition';
+import { ABILITY_KEYS, FIFTH_EDITION_ABILITY_NAMES as CUSTOM_ABILITY_NAMES, readCustomSkills, fifthEditionCustomSkillBonus, fifthEditionSkillBonus, fifthEditionSaveBonus, type AbilityKey } from '@/utils/rules/fifthEdition';
 import { fantasyD20PerceptionTotal, fantasyD20SaveTotal, fantasyD20SkillTotal } from '@/utils/rules/fantasyD20';
 import {
   HORROR_D100_CHARACTERISTIC_ROLLS,
@@ -53,6 +53,8 @@ export interface RollOption {
    * menu names in the app's language; the purpose is in the roller's.
    */
   testName?: string;
+  /** The ability a custom skill uses, so the Checks menu can show that ability's icon. */
+  ability?: AbilityKey;
   /**
    * true for d20-based systems (5E, Fantasy d20): the caller may substitute
    * "2d20kh1" (advantage) or "2d20kl1" (disadvantage) in place of "1d20".
@@ -208,6 +210,7 @@ function extractFifthEditionRolls(data: FifthEditionCharacterData): CharacterRol
       expression:        `1d20${fmt(bonus)}`,
       purpose:           checkPurpose(custom.name),
       testName:          custom.name,
+      ability:           ABILITY_KEYS[CUSTOM_ABILITY_NAMES.indexOf(custom.ability)],
       supportsAdvantage: true,
     });
   }

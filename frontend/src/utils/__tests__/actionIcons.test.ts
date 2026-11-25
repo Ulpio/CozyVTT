@@ -55,4 +55,10 @@ describe('actionIcons', () => {
     expect(checkIconFor('Luck')).toBe(CHECK_ICON);
     expect(checkIconFor(undefined)).toBe(CHECK_ICON);
   });
+
+  it('a custom skill shows the icon of its own ability', () => {
+    expect(checkIconFor("Thieves' Tools", 'dex')).toBe(ABILITY_ICONS.dex);
+    expect(checkIconFor('Luck', 'wis')).toBe(ABILITY_ICONS.wis);
+    expect(checkIconFor('Luck', undefined)).toBe(CHECK_ICON);
+  });
 });

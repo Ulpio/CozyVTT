@@ -1,8 +1,8 @@
 import type { IconType } from 'react-icons';
 import {
-  GiAcid, GiAcrobatic, GiArrowhead, GiBiceps, GiBrain, GiBrainFreeze, GiCrossedSwords,
+  GiAcid, GiAcrobatic, GiArrowhead, GiBiceps, GiBrain, GiPsychicWaves, GiCrossedSwords,
   GiDeathSkull, GiDiceTwentyFacesTwenty, GiDodge, GiExitDoor, GiFist, GiFlame, GiGhost,
-  GiHearts, GiHeartPlus, GiHelp, GiHidden, GiHourglass, GiLightningTree, GiMagicPortal,
+  GiHearts, GiMuscularTorso, GiShakingHands, GiHidden, GiHourglass, GiBoltSpellCast, GiMagicPortal,
   GiMagicSwirl, GiMagnifyingGlass, GiOwl, GiPoisonBottle, GiRoundStar, GiRunningShoe,
   GiSaberSlash, GiShield, GiSnowflake1, GiSoundWaves, GiSparkles, GiSpellBook, GiStarFormation,
   GiSun, GiTalk,
@@ -11,9 +11,9 @@ import type { ActionOption } from '../types/actions';
 import { ABILITY_LABELS, FIFTH_EDITION_SKILLS, type AbilityKey } from './rules/fifthEdition';
 
 export const DAMAGE_ICONS: Record<string, IconType> = {
-  'ácido': GiAcid, 'concussão': GiFist, cortante: GiSaberSlash, 'elétrico': GiLightningTree,
+  'ácido': GiAcid, 'concussão': GiFist, cortante: GiSaberSlash, 'elétrico': GiBoltSpellCast,
   energia: GiMagicSwirl, fogo: GiFlame, frio: GiSnowflake1, 'necrótico': GiDeathSkull,
-  perfurante: GiArrowhead, 'psíquico': GiBrainFreeze, radiante: GiSun, trovejante: GiSoundWaves,
+  perfurante: GiArrowhead, 'psíquico': GiPsychicWaves, radiante: GiSun, trovejante: GiSoundWaves,
   veneno: GiPoisonBottle,
 };
 
@@ -25,11 +25,11 @@ export const SCHOOL_ICONS: Record<string, IconType> = {
 
 export const COMMON_ICONS: Record<string, IconType> = {
   'common:dash': GiRunningShoe, 'common:disengage': GiExitDoor, 'common:dodge': GiDodge,
-  'common:help': GiHelp, 'common:hide': GiHidden,
+  'common:help': GiShakingHands, 'common:hide': GiHidden,
 };
 
 export const ABILITY_ICONS: Record<AbilityKey, IconType> = {
-  str: GiBiceps, dex: GiAcrobatic, con: GiHeartPlus, int: GiBrain, wis: GiOwl, cha: GiTalk,
+  str: GiBiceps, dex: GiAcrobatic, con: GiMuscularTorso, int: GiBrain, wis: GiOwl, cha: GiTalk,
 };
 
 const HEAL_ICON: IconType = GiHearts;
@@ -62,7 +62,8 @@ export function actionIconFor(
   }
 }
 
-export function checkIconFor(testName: string | undefined): IconType {
+export function checkIconFor(testName: string | undefined, given?: AbilityKey): IconType {
+  if (given && pick(ABILITY_ICONS, given)) return ABILITY_ICONS[given];
   if (!testName) return CHECK_ICON;
   const ability = (Object.keys(ABILITY_LABELS) as AbilityKey[]).find((k) => ABILITY_LABELS[k] === testName)
     ?? FIFTH_EDITION_SKILLS.find((s) => s.label === testName)?.ability;
